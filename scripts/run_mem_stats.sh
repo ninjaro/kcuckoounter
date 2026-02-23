@@ -13,10 +13,10 @@ fi
 
 case "$mode" in
   kde)
-    bin="$ROOT_DIR/build-kde/kcuckounter"
+    bin="$ROOT_DIR/build-kde/kcuckoounter"
     ;;
   nonkde|nokde)
-    bin="$ROOT_DIR/build-nokde/kcuckounter"
+    bin="$ROOT_DIR/build-nokde/kcuckoounter"
     ;;
   *)
     die "usage: $0 {kde|nonkde}"

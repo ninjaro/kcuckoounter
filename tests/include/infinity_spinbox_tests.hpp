@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_INFINITY_SPINBOX_TESTS_HPP
-#define KCUCKOUNTER_INFINITY_SPINBOX_TESTS_HPP
+#ifndef KCUCKOOUNTER_INFINITY_SPINBOX_TESTS_HPP
+#define KCUCKOOUNTER_INFINITY_SPINBOX_TESTS_HPP
 #include <QObject>
 
 class infinity_spinbox_tests : public QObject {
@@ -19,4 +19,4 @@ private slots:
     void text_is_inf_when_infinity_mode();
 };
 
-#endif // KCUCKOUNTER_INFINITY_SPINBOX_TESTS_HPP
+#endif // KCUCKOOUNTER_INFINITY_SPINBOX_TESTS_HPP

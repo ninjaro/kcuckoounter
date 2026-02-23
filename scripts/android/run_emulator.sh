@@ -54,4 +54,4 @@ if [ -z "$serial" ]; then
 fi
 
 "$adb_bin" -s "$serial" install -r "$apk_path"
-"$adb_bin" -s "$serial" shell monkey -p org.example.kcuckounter -c android.intent.category.LAUNCHER 1
+"$adb_bin" -s "$serial" shell monkey -p org.example.kcuckoounter -c android.intent.category.LAUNCHER 1

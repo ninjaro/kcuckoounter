@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_HELPERS_STRATEGY_DATA_HPP
-#define KCUCKOUNTER_HELPERS_STRATEGY_DATA_HPP
+#ifndef KCUCKOOUNTER_HELPERS_STRATEGY_DATA_HPP
+#define KCUCKOOUNTER_HELPERS_STRATEGY_DATA_HPP
 
 #include <QMap>
 #include <QString>
@@ -34,4 +34,4 @@ struct strategy_data {
 QVector<strategy_data> load_strategies();
 QMap<QString, QString> load_strategy_key_descriptions();
 
-#endif // KCUCKOUNTER_HELPERS_STRATEGY_DATA_HPP
+#endif // KCUCKOOUNTER_HELPERS_STRATEGY_DATA_HPP

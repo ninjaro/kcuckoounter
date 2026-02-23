@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_MAIN_WINDOW_HPP
-#define KCUCKOUNTER_MAIN_WINDOW_HPP
+#ifndef KCUCKOOUNTER_MAIN_WINDOW_HPP
+#define KCUCKOOUNTER_MAIN_WINDOW_HPP
 
 #include "helpers/widget_helpers.hpp"
 
@@ -59,4 +59,4 @@ private:
     void pause_for_dialog();
 };
 
-#endif // KCUCKOUNTER_MAIN_WINDOW_HPP
+#endif // KCUCKOOUNTER_MAIN_WINDOW_HPP

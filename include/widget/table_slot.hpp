@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_WIDGETS_TABLE_SLOT_HPP
-#define KCUCKOUNTER_WIDGETS_TABLE_SLOT_HPP
+#ifndef KCUCKOOUNTER_WIDGETS_TABLE_SLOT_HPP
+#define KCUCKOOUNTER_WIDGETS_TABLE_SLOT_HPP
 
 #include "helpers/widget_helpers.hpp"
 
@@ -114,4 +114,4 @@ private:
     show_template_dialog(const QString& title, const QString& strategy_name);
 };
 
-#endif // KCUCKOUNTER_WIDGETS_TABLE_SLOT_HPP
+#endif // KCUCKOOUNTER_WIDGETS_TABLE_SLOT_HPP

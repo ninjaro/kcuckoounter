@@ -13,14 +13,14 @@ fi
 
 case "$mode" in
   kde)
-    bin="$ROOT_DIR/build-kde/kcuckounter"
+    bin="$ROOT_DIR/build-kde/kcuckoounter"
     if [ ! -x "$bin" ]; then
       die "binary $bin not found; run ./scripts/cli.sh build kde first"
     fi
     exec "$bin"
     ;;
   nonkde|nokde)
-    bin="$ROOT_DIR/build-nokde/kcuckounter"
+    bin="$ROOT_DIR/build-nokde/kcuckoounter"
     if [ ! -x "$bin" ]; then
       die "binary $bin not found; run ./scripts/cli.sh build nonkde first"
     fi

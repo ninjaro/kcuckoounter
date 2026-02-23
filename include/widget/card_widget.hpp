@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_WIDGETS_CARD_WIDGET_HPP
-#define KCUCKOUNTER_WIDGETS_CARD_WIDGET_HPP
+#ifndef KCUCKOOUNTER_WIDGETS_CARD_WIDGET_HPP
+#define KCUCKOOUNTER_WIDGETS_CARD_WIDGET_HPP
 
 #include "card_helpers/card_picker.hpp"
 #include "helpers/image_cacher.hpp"
@@ -126,4 +126,4 @@ private:
     void on_rasterization_finished();
 };
 
-#endif // KCUCKOUNTER_WIDGETS_CARD_WIDGET_HPP
+#endif // KCUCKOOUNTER_WIDGETS_CARD_WIDGET_HPP

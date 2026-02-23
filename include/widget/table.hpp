@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_WIDGETS_TABLE_HPP
-#define KCUCKOUNTER_WIDGETS_TABLE_HPP
+#ifndef KCUCKOOUNTER_WIDGETS_TABLE_HPP
+#define KCUCKOOUNTER_WIDGETS_TABLE_HPP
 
 #include "helpers/random_generator.hpp"
 #include "helpers/time_interface.hpp"
@@ -79,4 +79,4 @@ private:
     void handle_game_over();
 };
 
-#endif // KCUCKOUNTER_WIDGETS_TABLE_HPP
+#endif // KCUCKOOUNTER_WIDGETS_TABLE_HPP

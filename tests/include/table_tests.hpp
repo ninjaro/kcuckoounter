@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_TABLE_TESTS_HPP
-#define KCUCKOUNTER_TABLE_TESTS_HPP
+#ifndef KCUCKOOUNTER_TABLE_TESTS_HPP
+#define KCUCKOOUNTER_TABLE_TESTS_HPP
 
 #include <QObject>
 
@@ -27,4 +27,4 @@ private slots:
     void quiz_spin_box_remembers_last_input();
 };
 
-#endif // KCUCKOUNTER_TABLE_TESTS_HPP
+#endif // KCUCKOOUNTER_TABLE_TESTS_HPP

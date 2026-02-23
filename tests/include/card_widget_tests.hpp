@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_CARD_WIDGET_TESTS_HPP
-#define KCUCKOUNTER_CARD_WIDGET_TESTS_HPP
+#ifndef KCUCKOOUNTER_CARD_WIDGET_TESTS_HPP
+#define KCUCKOOUNTER_CARD_WIDGET_TESTS_HPP
 
 #include <QObject>
 
@@ -11,4 +11,4 @@ private slots:
     void memory_cache_tracks_resize();
 };
 
-#endif // KCUCKOUNTER_CARD_WIDGET_TESTS_HPP
+#endif // KCUCKOOUNTER_CARD_WIDGET_TESTS_HPP

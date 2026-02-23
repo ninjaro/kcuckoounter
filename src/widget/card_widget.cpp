@@ -390,7 +390,7 @@ void card_widget::paintEvent(QPaintEvent* event) {
             const QRectF marking_rect(marking_top_left, marking_size);
             painter.drawPixmap(marking_rect, marking, marking.rect());
         } else {
-            const QString marking_text = str_label("kcuckounter");
+            const QString marking_text = str_label("kcuckoounter");
             QColor marking_color = gold_marking;
             marking_color.setAlpha(150);
             QFont marking_font = painter.font();
@@ -471,7 +471,7 @@ void card_widget::paintEvent(QPaintEvent* event) {
         return;
     }
 
-    const QString marking_text = str_label("kcuckounter");
+    const QString marking_text = str_label("kcuckoounter");
     QColor marking_color = gold_marking;
     marking_color.setAlpha(150);
     QFont marking_font = painter.font();

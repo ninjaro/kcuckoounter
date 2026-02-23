@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.18)
 
-project(kcuckounter VERSION 0.1.0 LANGUAGES CXX)
+project(kcuckoounter VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -98,7 +98,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
-set(kcuckounter_sources
+set(kcuckoounter_sources
         src/main_window.cpp
         src/widget/table.cpp
         src/widget/table_slot.cpp
@@ -121,7 +121,7 @@ set(kcuckounter_sources
         src/helpers/theme_settings.cpp
 )
 
-set(kcuckounter_headers
+set(kcuckoounter_headers
         include/main_window.hpp
         include/widget/table.hpp
         include/widget/table_slot.hpp
@@ -145,7 +145,7 @@ set(kcuckounter_headers
         include/helpers/theme_settings.hpp
 )
 
-set(kcuckounter_qt_libs
+set(kcuckoounter_qt_libs
         Qt6::Core
         Qt6::Concurrent
         Qt6::Svg
@@ -153,7 +153,7 @@ set(kcuckounter_qt_libs
 )
 
 if (KDE)
-    set(kcuckounter_kde_libs
+    set(kcuckoounter_kde_libs
             KF6::CoreAddons
             KF6::I18n
             KF6::XmlGui
@@ -164,31 +164,31 @@ if (KDE)
     )
 endif ()
 
-qt_add_executable(kcuckounter
+qt_add_executable(kcuckoounter
         MANUAL_FINALIZATION
         src/main.cpp
-        ${kcuckounter_sources}
-        ${kcuckounter_headers}
+        ${kcuckoounter_sources}
+        ${kcuckoounter_headers}
 )
 
-target_include_directories(kcuckounter
+target_include_directories(kcuckoounter
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-target_link_libraries(kcuckounter
+target_link_libraries(kcuckoounter
         PRIVATE
-        ${kcuckounter_qt_libs}
-        $<$<BOOL:${KDE}>:${kcuckounter_kde_libs}>
+        ${kcuckoounter_qt_libs}
+        $<$<BOOL:${KDE}>:${kcuckoounter_kde_libs}>
 )
 
-target_compile_definitions(kcuckounter
+target_compile_definitions(kcuckoounter
         PRIVATE
         $<$<BOOL:${KDE}>:KC_KDE>
 )
 
 if (NOT ANDROID AND BUILD_UNIT_TESTS)
-    target_precompile_headers(kcuckounter PRIVATE
+    target_precompile_headers(kcuckoounter PRIVATE
             <QtCore>
             <QtWidgets>
             <vector>
@@ -197,16 +197,16 @@ if (NOT ANDROID AND BUILD_UNIT_TESTS)
 endif ()
 
 if (ANDROID)
-    set_property(TARGET kcuckounter PROPERTY QT_ANDROID_PACKAGE_NAME org.example.kcuckounter)
+    set_property(TARGET kcuckoounter PROPERTY QT_ANDROID_PACKAGE_NAME org.example.kcuckoounter)
 endif ()
 
-qt_finalize_executable(kcuckounter)
+qt_finalize_executable(kcuckoounter)
 
 add_custom_command(
-        TARGET kcuckounter POST_BUILD
+        TARGET kcuckoounter POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_CURRENT_SOURCE_DIR}/assets
-        $<TARGET_FILE_DIR:kcuckounter>/assets
+        $<TARGET_FILE_DIR:kcuckoounter>/assets
 )
 
 if (KDE)
@@ -220,11 +220,11 @@ else ()
 endif ()
 
 if (NOT ANDROID)
-    install(TARGETS kcuckounter ${install_args})
+    install(TARGETS kcuckoounter ${install_args})
 endif ()
 
 if (NOT ANDROID AND BUILD_UNIT_TESTS)
-    set(kcuckounter_test_headers
+    set(kcuckoounter_test_headers
             tests/include/card_packer_tests.hpp
             tests/include/card_sheet_tests.hpp
             tests/include/card_widget_tests.hpp
@@ -232,7 +232,7 @@ if (NOT ANDROID AND BUILD_UNIT_TESTS)
             tests/include/infinity_spinbox_tests.hpp
     )
 
-    set(kcuckounter_test_sources
+    set(kcuckoounter_test_sources
             tests/main_tests.cpp
             tests/card_packer_tests.cpp
             tests/card_sheet_tests.cpp
@@ -241,36 +241,36 @@ if (NOT ANDROID AND BUILD_UNIT_TESTS)
             tests/infinity_spinbox_tests.cpp
     )
 
-    qt_add_executable(kcuckounter_unittests
-            ${kcuckounter_test_sources}
-            ${kcuckounter_test_headers}
-            ${kcuckounter_sources}
-            ${kcuckounter_headers}
+    qt_add_executable(kcuckoounter_unittests
+            ${kcuckoounter_test_sources}
+            ${kcuckoounter_test_headers}
+            ${kcuckoounter_sources}
+            ${kcuckoounter_headers}
     )
 
-    target_include_directories(kcuckounter_unittests
+    target_include_directories(kcuckoounter_unittests
             PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/include
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/include
     )
 
-    target_link_libraries(kcuckounter_unittests
+    target_link_libraries(kcuckoounter_unittests
             PRIVATE
-            ${kcuckounter_qt_libs}
+            ${kcuckoounter_qt_libs}
             Qt6::Test
-            $<$<BOOL:${KDE}>:${kcuckounter_kde_libs}>
+            $<$<BOOL:${KDE}>:${kcuckoounter_kde_libs}>
     )
 
     add_test(
-            NAME kcuckounter_unittests
-            COMMAND kcuckounter_unittests
+            NAME kcuckoounter_unittests
+            COMMAND kcuckoounter_unittests
     )
 
     add_custom_command(
-            TARGET kcuckounter_unittests POST_BUILD
+            TARGET kcuckoounter_unittests POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_CURRENT_SOURCE_DIR}/assets
-            $<TARGET_FILE_DIR:kcuckounter_unittests>/assets
+            $<TARGET_FILE_DIR:kcuckoounter_unittests>/assets
     )
 endif ()
 
@@ -278,9 +278,9 @@ if (ENABLE_COVERAGE AND NOT ANDROID)
     set(COVERAGE_DIR "${CMAKE_BINARY_DIR}/../doc/cov")
     set(COVERAGE_IGNORE_REGEX ".*/tests/.*|.*/include/.*|.*/usr/lib/.*|.*/[^/]*_autogen/.*|.*\\.moc|.*/moc_.*")
 
-    if (TARGET kcuckounter_unittests)
+    if (TARGET kcuckoounter_unittests)
         add_custom_command(
-                TARGET kcuckounter_unittests POST_BUILD
+                TARGET kcuckoounter_unittests POST_BUILD
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DIR}
         )
 
@@ -295,12 +295,12 @@ if (ENABLE_COVERAGE AND NOT ANDROID)
                 add_custom_target(coverage
                         COMMENT "Generating coverage with llvm-cov"
                         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                        COMMAND ${CMAKE_COMMAND} --build . --target kcuckounter_unittests
+                        COMMAND ${CMAKE_COMMAND} --build . --target kcuckoounter_unittests
                         COMMAND ${CMAKE_COMMAND} -E env LLVM_PROFILE_FILE=${PROFRAW_FILE}
-                        $<TARGET_FILE:kcuckounter_unittests>
+                        $<TARGET_FILE:kcuckoounter_unittests>
                         COMMAND ${LLVM_PROFDATA} merge -sparse
                         -o ${PROFDATA_FILE} ${PROFRAW_FILE}
-                        COMMAND ${LLVM_COV} show $<TARGET_FILE:kcuckounter_unittests>
+                        COMMAND ${LLVM_COV} show $<TARGET_FILE:kcuckoounter_unittests>
                         -instr-profile=${PROFDATA_FILE}
                         -format=html
                         -output-dir=${COVERAGE_DIR}
@@ -313,12 +313,12 @@ if (ENABLE_COVERAGE AND NOT ANDROID)
                         -show-expansions
                         -use-color
                         -coverage-watermark=90,60
-                        COMMAND ${LLVM_COV} export $<TARGET_FILE:kcuckounter_unittests>
+                        COMMAND ${LLVM_COV} export $<TARGET_FILE:kcuckoounter_unittests>
                         -instr-profile=${PROFDATA_FILE}
                         -format=lcov
                         -ignore-filename-regex=${COVERAGE_IGNORE_REGEX}
                         > ${CMAKE_BINARY_DIR}/coverage.info
-                        DEPENDS kcuckounter_unittests
+                        DEPENDS kcuckoounter_unittests
                         VERBATIM
                 )
             else ()
@@ -334,15 +334,15 @@ if (ENABLE_COVERAGE AND NOT ANDROID)
                 add_custom_target(coverage
                         COMMENT "Generating coverage with gcovr"
                         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-                        COMMAND ${CMAKE_COMMAND} --build . --target kcuckounter_unittests
-                        COMMAND $<TARGET_FILE:kcuckounter_unittests>
+                        COMMAND ${CMAKE_COMMAND} --build . --target kcuckoounter_unittests
+                        COMMAND $<TARGET_FILE:kcuckoounter_unittests>
                         COMMAND ${CMAKE_COMMAND} -E make_directory ${COVERAGE_DIR}
                         COMMAND ${GCOVR}
                         --root ${CMAKE_SOURCE_DIR}
                         --exclude "${COVERAGE_IGNORE_REGEX}"
                         --html --html-details
                         -o ${COVERAGE_DIR}/index.html
-                        DEPENDS kcuckounter_unittests
+                        DEPENDS kcuckoounter_unittests
                         VERBATIM
                 )
             else ()

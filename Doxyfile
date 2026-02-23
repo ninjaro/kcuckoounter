@@ -1,4 +1,4 @@
-PROJECT_NAME           = "kcuckounter"
+PROJECT_NAME           = "kcuckoounter"
 PROJECT_NUMBER         = 1.0
 PROJECT_BRIEF          = "A tool for improving arithmetic skills and memory"\
                          "retention through counting cards in different"\

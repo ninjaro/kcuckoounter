@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_WIDGETS_SLOT_SETTINGS_HPP
-#define KCUCKOUNTER_WIDGETS_SLOT_SETTINGS_HPP
+#ifndef KCUCKOOUNTER_WIDGETS_SLOT_SETTINGS_HPP
+#define KCUCKOOUNTER_WIDGETS_SLOT_SETTINGS_HPP
 
 #include "helpers/widget_helpers.hpp"
 
@@ -34,4 +34,4 @@ private:
     void setup_ui(bool include_info_button);
 };
 
-#endif // KCUCKOUNTER_WIDGETS_SLOT_SETTINGS_HPP
+#endif // KCUCKOOUNTER_WIDGETS_SLOT_SETTINGS_HPP

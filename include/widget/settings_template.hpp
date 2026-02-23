@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_WIDGET_SETTINGS_TEMPLATE_HPP
-#define KCUCKOUNTER_WIDGET_SETTINGS_TEMPLATE_HPP
+#ifndef KCUCKOOUNTER_WIDGET_SETTINGS_TEMPLATE_HPP
+#define KCUCKOOUNTER_WIDGET_SETTINGS_TEMPLATE_HPP
 
 #include "helpers/strategy_data.hpp"
 #include "helpers/widget_helpers.hpp"
@@ -82,4 +82,4 @@ private:
     card_preview_carousel* theme_carousel;
 };
 
-#endif // KCUCKOUNTER_WIDGET_SETTINGS_TEMPLATE_HPP
+#endif // KCUCKOOUNTER_WIDGET_SETTINGS_TEMPLATE_HPP

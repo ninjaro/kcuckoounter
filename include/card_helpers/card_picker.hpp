@@ -1,5 +1,5 @@
-#ifndef KCUCKOUNTER_CARD_HELPERS_CARD_PICKER_HPP
-#define KCUCKOUNTER_CARD_HELPERS_CARD_PICKER_HPP
+#ifndef KCUCKOOUNTER_CARD_HELPERS_CARD_PICKER_HPP
+#define KCUCKOOUNTER_CARD_HELPERS_CARD_PICKER_HPP
 
 #include "helpers/random_generator.hpp"
 #include <vector>
@@ -30,4 +30,4 @@ private:
     random_generator random_gen;
 };
 
-#endif // KCUCKOUNTER_CARD_HELPERS_CARD_PICKER_HPP
+#endif // KCUCKOOUNTER_CARD_HELPERS_CARD_PICKER_HPP

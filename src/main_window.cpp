@@ -257,7 +257,7 @@ void main_window::setup_ui() {
         table_widget->set_pick_interval(speed_slider->value());
     }
 
-    setWindowTitle(str_label("kcuckounter"));
+    setWindowTitle(str_label("kcuckoounter"));
 
     QObject::connect(
         continue_button, &BasePushButton::clicked, this,

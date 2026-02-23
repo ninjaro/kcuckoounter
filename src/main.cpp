@@ -18,13 +18,13 @@ int main(int argc, char* argv[]) {
     app.setWindowIcon(QIcon(str_label("assets/favicon.ico")));
 
 #ifdef KC_KDE
-    KLocalizedString::setApplicationDomain("kcuckounter");
+    KLocalizedString::setApplicationDomain("kcuckoounter");
 
     KAboutData about_data(
-        str_label("kcuckounter"), str_label("kcuckounter"), str_label("1.0"),
+        str_label("kcuckoounter"), str_label("kcuckoounter"), str_label("1.0"),
         str_label("A tool for card counting training."), KAboutLicense::MIT,
         str_label("(c) 2025, Yaroslav Riabtsev"), QString(),
-        str_label("https://github.com/ninjaro/kcuckounter"),
+        str_label("https://github.com/ninjaro/kcuckoounter"),
         str_label("yaroslav.riabtsev@rwth-aachen.de")
     );
 
@@ -41,8 +41,8 @@ int main(int argc, char* argv[]) {
     parser.process(app);
     about_data.processCommandLine(&parser);
 #else
-    QCoreApplication::setApplicationName(str_label("kcuckounter"));
-    QCoreApplication::setOrganizationName(str_label("kcuckounter"));
+    QCoreApplication::setApplicationName(str_label("kcuckoounter"));
+    QCoreApplication::setOrganizationName(str_label("kcuckoounter"));
     QCoreApplication::setApplicationVersion(str_label("1.0"));
 
     QCommandLineParser parser;

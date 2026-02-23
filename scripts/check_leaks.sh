@@ -16,12 +16,12 @@ case "$mode" in
   kde)
     build_dir="$ROOT_DIR/build-leakcheck-kde"
     kde_flag="ON"
-    bin="$build_dir/kcuckounter"
+    bin="$build_dir/kcuckoounter"
     ;;
   nonkde|nokde)
     build_dir="$ROOT_DIR/build-leakcheck-nokde"
     kde_flag="OFF"
-    bin="$build_dir/kcuckounter"
+    bin="$build_dir/kcuckoounter"
     ;;
   *)
     die "usage: $0 {kde|nonkde} [--tests]"

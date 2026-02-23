@@ -148,7 +148,7 @@ jobs:
         run: cmake -S . -B build-clang-tidy -DCMAKE_BUILD_TYPE=Debug -DKDE=OFF -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
       - name: Build Qt autogen files
-        run: cmake --build build-clang-tidy --target kcuckounter_autogen kcuckounter_unittests_autogen
+        run: cmake --build build-clang-tidy --target kcuckoounter_autogen kcuckoounter_unittests_autogen
 
       - name: Run clang-tidy
         run: run-clang-tidy -p build-clang-tidy
