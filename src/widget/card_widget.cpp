@@ -103,7 +103,9 @@ card_widget::card_widget(BaseWidget* parent)
     , rasterize_watcher()
     , raster_task_size()
     , pending_raster_size()
-    , rasterizing(false) {
+    , rasterizing(false)
+    , shared_card_faces_active(false)
+    , shared_card_faces_mode(false) {
     selection_timer->set_interval(45);
     QObject::connect(
         selection_timer.get(), &time_interface::timeout, this,
@@ -325,6 +327,59 @@ void card_widget::prepare_card_faces() {
         return;
     }
     update_card_faces(target_size);
+}
+
+void card_widget::set_shared_card_faces(
+    const QVector<QImage>& face_images, const QSize& raster_size
+) {
+    if (face_images.isEmpty() || raster_size.isEmpty()) {
+        return;
+    }
+
+    apply_rasterized_images(face_images, raster_size);
+    shared_card_faces_active = true;
+
+    if (rasterizing) {
+        pending_raster_size = QSize();
+        set_rasterizing(false);
+    }
+
+    if (!card_face_size.isEmpty()) {
+        update_card_faces(card_face_size);
+    }
+    update();
+}
+
+void card_widget::clear_shared_card_faces() {
+    shared_card_faces_active = false;
+}
+
+bool card_widget::has_shared_card_faces() const {
+    return shared_card_faces_active && !card_faces_rasterized.isEmpty();
+}
+
+void card_widget::set_shared_card_faces_mode(bool enabled) {
+    if (shared_card_faces_mode == enabled) {
+        return;
+    }
+
+    shared_card_faces_mode = enabled;
+    if (shared_card_faces_mode && rasterizing) {
+        pending_raster_size = QSize();
+        set_rasterizing(false);
+    }
+    if (!card_face_size.isEmpty()) {
+        update_card_faces(card_face_size);
+    }
+}
+
+int card_widget::card_face_target_short_px() const {
+    const QSize target_size = card_face_target_size();
+    if (target_size.isEmpty()) {
+        return 0;
+    }
+
+    return std::min(target_size.width(), target_size.height());
 }
 
 void card_widget::paintEvent(QPaintEvent* event) {
@@ -789,10 +844,13 @@ void card_widget::update_card_faces(const QSize& target_size) {
         = card_face_raster_size != raster_target_size;
     const bool raster_cache_ready
         = !card_faces_rasterized.isEmpty() && !card_face_raster_size.isEmpty();
+    const bool allow_local_rasterization
+        = !shared_card_faces_mode && !shared_card_faces_active;
     const bool should_rasterize = !raster_cache_ready
-        || (raster_size_changed && picks_since_rasterize >= 3);
+        || (allow_local_rasterization && raster_size_changed
+            && picks_since_rasterize >= 3);
 
-    if (should_rasterize) {
+    if (should_rasterize && allow_local_rasterization) {
         if (!rasterizing) {
             start_rasterization(raster_target_size);
         } else if (raster_task_size != raster_target_size) {

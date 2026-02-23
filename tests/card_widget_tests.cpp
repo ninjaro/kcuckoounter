@@ -84,3 +84,38 @@ void card_widget_tests::memory_cache_tracks_resize() {
         "resizing up should increase raster cache size"
     );
 }
+
+void card_widget_tests::shared_faces_disable_local_rasterization() {
+    card_widget widget;
+    widget.start_quiz(0, 1, false);
+
+    QVector<QImage> shared_faces;
+    shared_faces.push_back(
+        QImage(128, 196, QImage::Format_ARGB32_Premultiplied)
+    );
+    shared_faces[0].fill(Qt::red);
+    shared_faces.push_back(
+        QImage(128, 196, QImage::Format_ARGB32_Premultiplied)
+    );
+    shared_faces[1].fill(Qt::blue);
+
+    widget.set_shared_card_faces(shared_faces, QSize(128, 196));
+    QVERIFY(widget.has_shared_card_faces());
+
+    const QSize target_size(120, 180);
+    widget.update_card_faces(target_size);
+    QVERIFY(!widget.rasterizing);
+    QVERIFY(!widget.card_faces.isEmpty());
+    QVERIFY(!widget.card_face_raster_size.isEmpty());
+
+    bool saw_scaled = false;
+    for (const QPixmap& pixmap : widget.card_faces) {
+        if (pixmap.isNull()) {
+            continue;
+        }
+        QCOMPARE(pixmap.size(), target_size);
+        saw_scaled = true;
+        break;
+    }
+    QVERIFY2(saw_scaled, "shared card faces should be scaled for display size");
+}

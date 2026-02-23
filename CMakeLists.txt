@@ -112,6 +112,7 @@ set(kcuckoounter_sources
         src/helpers/infinity_spinbox.cpp
         src/helpers/rasterization_runner.cpp
         src/helpers/image_cacher.cpp
+        src/helpers/svg_raster_cache_service.cpp
         src/helpers/card_preview_carousel.cpp
         src/widget/slot_settings.cpp
         src/widget/settings_template.cpp
@@ -135,6 +136,7 @@ set(kcuckoounter_headers
         include/helpers/time_interface.hpp
         include/helpers/infinity_spinbox.hpp
         include/helpers/rasterization_runner.hpp
+        include/helpers/svg_raster_cache_service.hpp
         include/helpers/card_preview_carousel.hpp
         include/widget/slot_settings.hpp
         include/widget/settings_template.hpp
@@ -228,8 +230,12 @@ if (NOT ANDROID AND BUILD_UNIT_TESTS)
             tests/include/card_packer_tests.hpp
             tests/include/card_sheet_tests.hpp
             tests/include/card_widget_tests.hpp
+            tests/include/card_preview_carousel_tests.hpp
             tests/include/table_tests.hpp
             tests/include/infinity_spinbox_tests.hpp
+            tests/include/rasterization_runner_tests.hpp
+            tests/include/svg_raster_cache_service_tests.hpp
+            tests/include/image_cacher_tests.hpp
     )
 
     set(kcuckoounter_test_sources
@@ -237,8 +243,12 @@ if (NOT ANDROID AND BUILD_UNIT_TESTS)
             tests/card_packer_tests.cpp
             tests/card_sheet_tests.cpp
             tests/card_widget_tests.cpp
+            tests/card_preview_carousel_tests.cpp
             tests/table_tests.cpp
             tests/infinity_spinbox_tests.cpp
+            tests/rasterization_runner_tests.cpp
+            tests/svg_raster_cache_service_tests.cpp
+            tests/image_cacher_tests.cpp
     )
 
     qt_add_executable(kcuckoounter_unittests

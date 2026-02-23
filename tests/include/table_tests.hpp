@@ -25,6 +25,8 @@ private slots:
     void quiz_skip_shows_continue_feedback();
     /// @brief Verifies quiz spin box remembers the last input.
     void quiz_spin_box_remembers_last_input();
+    /// @brief Verifies shared card-face presence tracks set and clear calls.
+    void shared_card_faces_presence_tracks_set_and_clear();
 };
 
 #endif // KCUCKOOUNTER_TABLE_TESTS_HPP

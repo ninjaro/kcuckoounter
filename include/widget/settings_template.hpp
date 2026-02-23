@@ -2,9 +2,12 @@
 #define KCUCKOOUNTER_WIDGET_SETTINGS_TEMPLATE_HPP
 
 #include "helpers/strategy_data.hpp"
+#include "helpers/svg_raster_cache_service.hpp"
 #include "helpers/widget_helpers.hpp"
 
 #include <QObject>
+#include <QQueue>
+#include <QSet>
 
 class settings_shared_state : public QObject {
     Q_OBJECT
@@ -59,6 +62,23 @@ private:
     void update_theme_palette_preview(int index);
     void update_weights_carousel(int suit_index);
     void update_suit_selection(int index);
+    QPixmap request_theme_preview_card(
+        int card_index, int suit_index, const QSize& size
+    );
+    QPixmap request_weighted_preview_card(
+        int card_index, int suit_index, const QSize& size
+    );
+    void enqueue_theme_preview_render(
+        const svg_raster_cache_service::entry_key& key
+    );
+    void process_pending_theme_preview_render();
+    bool is_theme_preview_key_relevant(
+        const svg_raster_cache_service::entry_key& key
+    ) const;
+    void prune_pending_theme_preview_queue();
+    void on_theme_preview_cache_result_updated(
+        const svg_raster_cache_service::entry_key& key
+    );
 
     settings_tab_kind tab_kind;
     table* table_widget;
@@ -80,6 +100,12 @@ private:
     BaseWidget* theme_palette_preview;
     QButtonGroup* theme_button_group;
     card_preview_carousel* theme_carousel;
+    int active_theme_preview_suit_index;
+    int active_weights_preview_suit_index;
+    QQueue<svg_raster_cache_service::entry_key>
+        pending_theme_preview_render_queue;
+    QSet<svg_raster_cache_service::entry_key> pending_theme_preview_render_set;
+    bool theme_preview_render_scheduled;
 };
 
 #endif // KCUCKOOUNTER_WIDGET_SETTINGS_TEMPLATE_HPP

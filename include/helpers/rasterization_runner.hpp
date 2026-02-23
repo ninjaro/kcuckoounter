@@ -1,9 +1,9 @@
 #ifndef KCUCKOOUNTER_HELPERS_RASTERIZATION_RUNNER_HPP
 #define KCUCKOOUNTER_HELPERS_RASTERIZATION_RUNNER_HPP
 
-#include "helpers/time_interface.hpp"
-
+#include <QElapsedTimer>
 #include <QObject>
+#include <QTimer>
 
 class rasterization_runner : public QObject {
     Q_OBJECT
@@ -43,11 +43,10 @@ private:
     double last_change_time_sec_value;
     int pending_target_px;
     double pending_delay_sec_value;
-    double last_clock_sec;
-    bool has_clock;
+    double pending_start_time_sec;
 
-    time_interface pending_timer;
-    time_interface fallback_clock;
+    QTimer pending_timer;
+    QElapsedTimer monotonic_clock;
 
     static double clamp(double value, double lo, double hi);
     static int bucketize(int short_px);
@@ -63,6 +62,7 @@ private:
     double calc_downsize_delay_sec(
         double pickup_interval_sec, int step_drop, double waste_ratio
     ) const;
+    void on_pending_timeout();
     double current_time_sec() const;
 };
 

@@ -53,6 +53,8 @@ private:
 
     void setup_ui();
     void update_status_text();
+    void refresh_clock_label() const;
+    void update_start_pause_action(bool paused) const;
     void reset_game_state(bool show_setup_dialog, bool mark_finished = false);
     void show_game_over_dialog();
     void start_quiz_from_ui();

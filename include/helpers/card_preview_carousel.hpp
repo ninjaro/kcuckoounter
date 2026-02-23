@@ -29,6 +29,7 @@ public:
     void set_card_size(const QSize& size);
     void set_minimum_card_width(int width);
     void set_card_spacing(int spacing);
+    void set_prefetch_adjacent_cards(bool enabled);
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
@@ -55,6 +56,7 @@ private:
     int total_cards_value;
     int min_card_width_value;
     int card_spacing_value;
+    bool prefetch_adjacent_cards;
     double card_aspect_ratio;
     QSize base_card_size;
     QSize card_size;

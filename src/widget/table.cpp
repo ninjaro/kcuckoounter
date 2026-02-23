@@ -13,6 +13,7 @@
 #include <QString>
 
 #include <algorithm>
+#include <limits>
 #include <memory>
 
 table::table(BaseWidget* parent)
@@ -30,8 +31,18 @@ table::table(BaseWidget* parent)
     , rasterizing_slots()
     , rasterization_busy(false)
     , random_gen()
-    , preload_timer(nullptr) {
+    , preload_timer(nullptr)
+    , main_faces_runner(this)
+    , raster_cache_service(this) {
     setMinimumHeight(88);
+    QObject::connect(
+        &main_faces_runner, &rasterization_runner::rasterization_requested,
+        this, &table::on_shared_rasterization_requested
+    );
+    QObject::connect(
+        &raster_cache_service, &svg_raster_cache_service::result_updated, this,
+        &table::on_shared_cache_result_updated
+    );
 }
 
 table::~table() = default;
@@ -46,19 +57,8 @@ void table::set_slot_count(int count) {
         return;
     }
 
-    if (swap_source_slot != nullptr) {
-        swap_source_slot->set_swap_selected(false);
-        swap_source_slot = nullptr;
-    }
-    if (copy_source_slot != nullptr) {
-        copy_source_slot->set_swap_selected(false);
-        copy_source_slot = nullptr;
-        for (table_slot* slot_widget : slot_widgets) {
-            if (slot_widget != nullptr) {
-                slot_widget->set_copy_button_text(str_label("Copy"));
-            }
-        }
-    }
+    clear_swap_selection();
+    clear_copy_selection();
 
     if (count < current_count) {
         if (count == 0) {
@@ -79,6 +79,7 @@ void table::set_slot_count(int count) {
         for (int index = current_count; index < count; ++index) {
             auto slot_widget = new table_slot(this);
             slot_widget->set_allow_skipping(allow_skipping);
+            slot_widget->set_shared_card_faces_mode(true);
             QObject::connect(
                 slot_widget, &table_slot::swap_clicked, this,
                 &table::on_slot_swap
@@ -123,6 +124,7 @@ void table::set_slot_count(int count) {
 
     update_layout();
     schedule_card_preload();
+    update_shared_card_face_need();
 }
 
 void table::start_quiz(int quiz_type_index, bool wait_for_answers) {
@@ -144,6 +146,7 @@ void table::start_quiz(int quiz_type_index, bool wait_for_answers) {
         }
     }
     pick_elapsed_ms = 0;
+    update_shared_card_face_need();
 }
 
 void table::clear_quiz() {
@@ -213,6 +216,7 @@ void table::resizeEvent(QResizeEvent* event) {
     BaseWidget::resizeEvent(event);
     update_layout();
     schedule_card_preload();
+    update_shared_card_face_need();
 }
 
 void table::schedule_card_preload() {
@@ -240,6 +244,7 @@ void table::prepare_cards_for_start() {
     if (preload_timer != nullptr && preload_timer->is_active()) {
         preload_timer->stop();
     }
+    update_shared_card_face_need(true);
     on_preload_tick();
 }
 
@@ -250,6 +255,7 @@ void table::apply_theme() {
             slot_widget->apply_theme();
         }
     }
+    update_shared_card_face_need();
 }
 
 bool table::is_rasterization_busy() const { return rasterization_busy; }
@@ -261,15 +267,109 @@ void table::on_preload_tick() {
     }
 
     for (table_slot* slot_widget : slot_widgets) {
-        if (slot_widget != nullptr) {
-            slot_widget->prepare_card_faces();
+        if (slot_widget == nullptr || slot_widget->has_shared_card_faces()) {
+            continue;
         }
+
+        slot_widget->prepare_card_faces();
     }
+}
+
+void table::on_shared_rasterization_requested(int target_cache_px) {
+    if (target_cache_px <= 0) {
+        return;
+    }
+
+    const svg_raster_cache_service::request req {
+        .name_space = svg_raster_cache_service::cache_namespace::main,
+        .kind = svg_raster_cache_service::resource_kind::card_sheet_faces,
+        .source_id = str_label("assets/cards.svg"),
+        .render_scope = str_label("all_faces"),
+        .need_short_px = std::max(1, compute_max_card_face_need_short_px()),
+        .target_bucket_px = target_cache_px,
+        .high_priority = false,
+        .interactive = true,
+        .preview = false,
+    };
+
+    const svg_raster_cache_service::submit_outcome outcome
+        = raster_cache_service.submit_request(req);
+    if (outcome.state == svg_raster_cache_service::request_state::cache_hit) {
+        apply_shared_card_faces_from_entry(outcome.key);
+    }
+
+    if (outcome.state == svg_raster_cache_service::request_state::start_async
+        || outcome.state
+            == svg_raster_cache_service::request_state::cache_hit) {
+        main_faces_runner.set_cached_short_px(target_cache_px);
+    }
+}
+
+void table::on_shared_cache_result_updated(
+    const svg_raster_cache_service::entry_key& key
+) {
+    apply_shared_card_faces_from_entry(key);
 }
 
 int table::rasterization_delay_ms() const {
     const int computed = std::max(400, pick_interval_ms * 2);
     return std::min(600, computed);
+}
+
+int table::compute_max_card_face_need_short_px() const {
+    int max_need = 0;
+    for (const table_slot* slot_widget : slot_widgets) {
+        if (slot_widget == nullptr || !slot_widget->isVisible()) {
+            continue;
+        }
+        max_need = std::max(max_need, slot_widget->card_face_need_short_px());
+    }
+
+    return max_need;
+}
+
+void table::update_shared_card_face_need(bool immediate) {
+    const int need_short_px = compute_max_card_face_need_short_px();
+    if (need_short_px <= 0) {
+        main_faces_runner.cancel_pending();
+        return;
+    }
+
+    if (immediate) {
+        main_faces_runner.cancel_pending();
+        on_shared_rasterization_requested(need_short_px);
+        return;
+    }
+
+    main_faces_runner.on_need_changed(
+        need_short_px, static_cast<double>(pick_interval_ms) / 1000.0,
+        std::numeric_limits<double>::quiet_NaN(), false, false, false
+    );
+}
+
+void table::apply_shared_card_faces_from_entry(
+    const svg_raster_cache_service::entry_key& key
+) {
+    if (key.name_space != svg_raster_cache_service::cache_namespace::main
+        || key.kind != svg_raster_cache_service::resource_kind::card_sheet_faces
+        || key.source_id != str_label("assets/cards.svg")
+        || key.render_scope != str_label("all_faces")) {
+        return;
+    }
+
+    const std::optional<svg_raster_cache_service::result> ready
+        = raster_cache_service.get_if_ready(key);
+    if (!ready.has_value() || ready->face_images.isEmpty()) {
+        return;
+    }
+
+    for (table_slot* slot_widget : slot_widgets) {
+        if (slot_widget != nullptr) {
+            slot_widget->set_shared_card_faces(
+                ready->face_images, ready->raster_size
+            );
+        }
+    }
 }
 
 void table::update_layout() {
@@ -342,15 +442,7 @@ void table::on_slot_swap(table_slot* slot) {
     }
 
     if (swap_source_slot == nullptr) {
-        if (copy_source_slot != nullptr) {
-            copy_source_slot->set_swap_selected(false);
-            copy_source_slot = nullptr;
-            for (table_slot* slot_widget : slot_widgets) {
-                if (slot_widget != nullptr) {
-                    slot_widget->set_copy_button_text(str_label("Copy"));
-                }
-            }
-        }
+        clear_copy_selection();
         swap_source_slot = slot;
         swap_source_slot->set_swap_selected(true);
         return;
@@ -387,43 +479,20 @@ void table::on_slot_copy(table_slot* slot) {
     }
 
     if (copy_source_slot == nullptr) {
-        if (swap_source_slot != nullptr) {
-            swap_source_slot->set_swap_selected(false);
-            swap_source_slot = nullptr;
-        }
+        clear_swap_selection();
         copy_source_slot = slot;
         copy_source_slot->set_swap_selected(true);
-        for (table_slot* slot_widget : slot_widgets) {
-            if (slot_widget == nullptr) {
-                continue;
-            }
-            slot_widget->set_copy_button_text(
-                slot_widget == copy_source_slot ? str_label("Cancel")
-                                                : str_label("Set")
-            );
-        }
+        update_copy_button_labels(copy_source_slot);
         return;
     }
 
     if (copy_source_slot == slot) {
-        copy_source_slot->set_swap_selected(false);
-        copy_source_slot = nullptr;
-        for (table_slot* slot_widget : slot_widgets) {
-            if (slot_widget != nullptr) {
-                slot_widget->set_copy_button_text(str_label("Copy"));
-            }
-        }
+        clear_copy_selection();
         return;
     }
 
     slot->apply_settings_from(*copy_source_slot);
-    copy_source_slot->set_swap_selected(false);
-    copy_source_slot = nullptr;
-    for (table_slot* slot_widget : slot_widgets) {
-        if (slot_widget != nullptr) {
-            slot_widget->set_copy_button_text(str_label("Copy"));
-        }
-    }
+    clear_copy_selection();
 }
 
 void table::on_slot_copy_all(table_slot* slot) {
@@ -543,6 +612,39 @@ void table::on_clock_tick(qint64 elapsed_ms, qint64 delta_ms) {
     while (pick_elapsed_ms >= pick_interval_ms) {
         pick_elapsed_ms -= pick_interval_ms;
         on_pick_timeout();
+    }
+}
+
+void table::clear_swap_selection() {
+    if (swap_source_slot == nullptr) {
+        return;
+    }
+    swap_source_slot->set_swap_selected(false);
+    swap_source_slot = nullptr;
+}
+
+void table::clear_copy_selection() {
+    if (copy_source_slot == nullptr) {
+        return;
+    }
+    copy_source_slot->set_swap_selected(false);
+    copy_source_slot = nullptr;
+    update_copy_button_labels();
+}
+
+void table::update_copy_button_labels(table_slot* selected_slot) {
+    const auto copy_label = str_label("Copy");
+    const auto set_label = str_label("Set");
+    const auto cancel_label = str_label("Cancel");
+    for (table_slot* slot_widget : slot_widgets) {
+        if (slot_widget == nullptr) {
+            continue;
+        }
+        slot_widget->set_copy_button_text(
+            selected_slot == nullptr
+                ? copy_label
+                : (slot_widget == selected_slot ? cancel_label : set_label)
+        );
     }
 }
 

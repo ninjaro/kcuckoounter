@@ -20,6 +20,7 @@ card_preview_carousel::card_preview_carousel(BaseWidget* parent)
     , total_cards_value(0)
     , min_card_width_value(88)
     , card_spacing_value(0)
+    , prefetch_adjacent_cards(true)
     , card_aspect_ratio(1.0)
     , base_card_size()
     , card_size()
@@ -131,6 +132,32 @@ void card_preview_carousel::set_card_spacing(int spacing) {
     cards_layout->setSpacing(card_spacing_value);
     update_visible_count();
     update_card_dimensions();
+}
+
+void card_preview_carousel::set_prefetch_adjacent_cards(bool enabled) {
+    if (prefetch_adjacent_cards == enabled) {
+        return;
+    }
+    prefetch_adjacent_cards = enabled;
+    if (!prefetch_adjacent_cards && card_provider && !cached_cards.isEmpty()) {
+        const int total_cards = total_cards_value;
+        const int label_count = static_cast<int>(card_labels.size());
+        QVector<bool> keep_cache(total_cards, false);
+        for (int i = 0; i < label_count; ++i) {
+            if (total_cards <= 0) {
+                break;
+            }
+            const int card_index = (first_index + i) % total_cards;
+            if (card_index >= 0 && card_index < keep_cache.size()) {
+                keep_cache[card_index] = true;
+            }
+        }
+        for (int i = 0; i < cached_cards.size(); ++i) {
+            if (!keep_cache[i]) {
+                cached_cards[i] = QPixmap();
+            }
+        }
+    }
 }
 
 void card_preview_carousel::show_previous() {
@@ -292,7 +319,7 @@ void card_preview_carousel::refresh_view() {
         label->setVisible(true);
     }
 
-    if (card_provider && !cached_cards.isEmpty()) {
+    if (prefetch_adjacent_cards && card_provider && !cached_cards.isEmpty()) {
         const int prev_index = (first_index - 1 + total_cards) % total_cards;
         const int next_index = (first_index + label_count) % total_cards;
         if (prev_index >= 0 && prev_index < cached_cards.size()

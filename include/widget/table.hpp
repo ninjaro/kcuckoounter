@@ -2,6 +2,8 @@
 #define KCUCKOOUNTER_WIDGETS_TABLE_HPP
 
 #include "helpers/random_generator.hpp"
+#include "helpers/rasterization_runner.hpp"
+#include "helpers/svg_raster_cache_service.hpp"
 #include "helpers/time_interface.hpp"
 #include "helpers/widget_helpers.hpp"
 #include <QSet>
@@ -52,6 +54,10 @@ private slots:
     void on_slot_copy(table_slot* slot);
     void on_slot_copy_all(table_slot* slot);
     void on_preload_tick();
+    void on_shared_rasterization_requested(int target_cache_px);
+    void on_shared_cache_result_updated(
+        const svg_raster_cache_service::entry_key& key
+    );
 
 private:
     enum class dealing_mode { sequential, random, simultaneous };
@@ -71,10 +77,20 @@ private:
     bool rasterization_busy;
     random_generator random_gen;
     std::unique_ptr<time_interface> preload_timer;
+    rasterization_runner main_faces_runner;
+    svg_raster_cache_service raster_cache_service;
     int rasterization_delay_ms() const;
+    int compute_max_card_face_need_short_px() const;
+    void update_shared_card_face_need(bool immediate = false);
+    void apply_shared_card_faces_from_entry(
+        const svg_raster_cache_service::entry_key& key
+    );
     void update_layout();
     void on_pick_timeout();
     void update_rasterization_state(table_slot* slot, bool busy);
+    void clear_swap_selection();
+    void clear_copy_selection();
+    void update_copy_button_labels(table_slot* selected_slot = nullptr);
     bool all_slots_exhausted() const;
     void handle_game_over();
 };

@@ -10,23 +10,15 @@ rasterization_runner::rasterization_runner(QObject* parent)
     , last_change_time_sec_value(0.0)
     , pending_target_px(0)
     , pending_delay_sec_value(0.0)
-    , last_clock_sec(0.0)
-    , has_clock(false)
+    , pending_start_time_sec(0.0)
     , pending_timer()
-    , fallback_clock() {
+    , monotonic_clock() {
     pending_timer.set_single_shot(true);
-    QObject::connect(&pending_timer, &time_interface::timeout, this, [this]() {
-        const double now = current_time_sec();
-        if ((now - last_change_time_sec_value) < pending_delay_sec_value) {
-            return;
-        }
-        const int target_px = pending_target_px;
-        if (target_px <= 0) {
-            return;
-        }
-        emit rasterization_requested(target_px);
-    });
-    fallback_clock.restart_elapsed();
+    QObject::connect(
+        &pending_timer, &QTimer::timeout, this,
+        &rasterization_runner::on_pending_timeout
+    );
+    monotonic_clock.start();
 }
 
 void rasterization_runner::set_cached_short_px(int short_px) {
@@ -88,12 +80,12 @@ void rasterization_runner::on_need_changed(
 
 void rasterization_runner::cancel_pending() {
     pending_target_px = 0;
+    pending_delay_sec_value = 0.0;
     pending_timer.stop();
 }
 
-void rasterization_runner::on_clock_tick(qint64 elapsed_ms, qint64) {
-    last_clock_sec = static_cast<double>(elapsed_ms) / 1000.0;
-    has_clock = true;
+void rasterization_runner::on_clock_tick(qint64, qint64) {
+    // Kept for API compatibility with existing signal wiring.
 }
 
 double rasterization_runner::clamp(double value, double lo, double hi) {
@@ -127,6 +119,7 @@ void rasterization_runner::schedule_stable_reraster(
     last_need_px_value = target_cache_px;
     pending_target_px = target_cache_px;
     pending_delay_sec_value = delay_sec;
+    pending_start_time_sec = now_sec;
 
     const int delay_ms = static_cast<int>(std::round(delay_sec * 1000.0));
     pending_timer.set_interval(std::max(1, delay_ms));
@@ -167,9 +160,27 @@ double rasterization_runner::calc_downsize_delay_sec(
     return base_sec / bonus;
 }
 
-double rasterization_runner::current_time_sec() const {
-    if (has_clock) {
-        return last_clock_sec;
+void rasterization_runner::on_pending_timeout() {
+    const int target_px = pending_target_px;
+    if (target_px <= 0) {
+        return;
     }
-    return fallback_clock.elapsed_time_sec();
+
+    const double now = current_time_sec();
+    const double elapsed = now - pending_start_time_sec;
+    const double remaining = pending_delay_sec_value - elapsed;
+    if (remaining > 0.0) {
+        const int remaining_ms
+            = std::max(1, static_cast<int>(std::ceil(remaining * 1000.0)));
+        pending_timer.set_interval(remaining_ms);
+        pending_timer.start();
+        return;
+    }
+
+    pending_target_px = 0;
+    emit rasterization_requested(target_px);
+}
+
+double rasterization_runner::current_time_sec() const {
+    return static_cast<double>(monotonic_clock.elapsed()) / 1000.0;
 }

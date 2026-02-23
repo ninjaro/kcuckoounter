@@ -4,7 +4,10 @@
 #include "helpers/widget_helpers.hpp"
 
 #include <QBoxLayout>
+#include <QImage>
+#include <QSize>
 #include <QString>
+#include <QVector>
 
 class QStackedLayout;
 class QResizeEvent;
@@ -30,6 +33,13 @@ public:
     void trigger_highlight(int duration_ms);
     void tick_highlight(int delta_ms);
     void prepare_card_faces();
+    int card_face_need_short_px() const;
+    void set_shared_card_faces(
+        const QVector<QImage>& face_images, const QSize& raster_size
+    );
+    void clear_shared_card_faces();
+    bool has_shared_card_faces() const;
+    void set_shared_card_faces_mode(bool enabled);
     void apply_theme();
     void apply_settings_from(const table_slot& source);
     void set_copy_button_text(const QString& text);

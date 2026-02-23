@@ -53,6 +53,37 @@ main_window::main_window(BaseWidget* parent)
 
 main_window::~main_window() = default;
 
+void main_window::refresh_clock_label() const {
+    if (clock_timer != nullptr && clock_label != nullptr) {
+        clock_label->setText(clock_timer->time_string_hh_mm_ss());
+    }
+}
+
+void main_window::update_start_pause_action(bool paused) const {
+    if (start_pause_action == nullptr) {
+        return;
+    }
+
+    if (paused) {
+        start_pause_action->setText(str_label("Resume"));
+        start_pause_action->setIcon(
+            icon_loader::themed(
+                { "media-playback-start", "media-playback-play", "play" },
+                QStyle::SP_MediaPlay
+            )
+        );
+        return;
+    }
+
+    start_pause_action->setText(str_label("Pause"));
+    start_pause_action->setIcon(
+        icon_loader::themed(
+            { "media-playback-pause", "media-playback-stop", "pause" },
+            QStyle::SP_MediaPause
+        )
+    );
+}
+
 void main_window::setup_ui() {
     auto toolbar = new BaseToolBar(str_label("Main"), this);
     toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
@@ -373,9 +404,7 @@ void main_window::on_continue_button_clicked() {
 
     if (clock_timer != nullptr) {
         clock_timer->reset();
-        if (clock_label != nullptr) {
-            clock_label->setText(clock_timer->time_string_hh_mm_ss());
-        }
+        refresh_clock_label();
     }
     update_status_text();
 
@@ -434,20 +463,12 @@ void main_window::on_start_pause_triggered() {
         quiz_paused = true;
 
         if (start_pause_action != nullptr) {
-            start_pause_action->setText(str_label("Resume"));
-            start_pause_action->setIcon(
-                icon_loader::themed(
-                    { "media-playback-start", "media-playback-play", "play" },
-                    QStyle::SP_MediaPlay
-                )
-            );
+            update_start_pause_action(true);
         }
 
         if (clock_timer != nullptr) {
             clock_timer->pause();
-            if (clock_label != nullptr) {
-                clock_label->setText(clock_timer->time_string_hh_mm_ss());
-            }
+            refresh_clock_label();
         }
         update_status_text();
     } else {
@@ -455,20 +476,12 @@ void main_window::on_start_pause_triggered() {
         quiz_paused = false;
 
         if (start_pause_action != nullptr) {
-            start_pause_action->setText(str_label("Pause"));
-            start_pause_action->setIcon(
-                icon_loader::themed(
-                    { "media-playback-pause", "media-playback-stop", "pause" },
-                    QStyle::SP_MediaPause
-                )
-            );
+            update_start_pause_action(false);
         }
 
         if (clock_timer != nullptr) {
             clock_timer->start(true);
-            if (clock_label != nullptr) {
-                clock_label->setText(clock_timer->time_string_hh_mm_ss());
-            }
+            refresh_clock_label();
         }
         update_status_text();
     }
@@ -479,19 +492,11 @@ void main_window::on_finish_triggered() {
         table_widget->set_paused(true);
         quiz_paused = true;
         if (start_pause_action != nullptr) {
-            start_pause_action->setText(str_label("Resume"));
-            start_pause_action->setIcon(
-                icon_loader::themed(
-                    { "media-playback-start", "media-playback-play", "play" },
-                    QStyle::SP_MediaPlay
-                )
-            );
+            update_start_pause_action(true);
         }
         if (clock_timer != nullptr) {
             clock_timer->pause();
-            if (clock_label != nullptr) {
-                clock_label->setText(clock_timer->time_string_hh_mm_ss());
-            }
+            refresh_clock_label();
         }
         update_status_text();
     }
@@ -534,23 +539,7 @@ void main_window::start_quiz_from_ui() {
     quiz_paused = wait_answers;
 
     if (start_pause_action != nullptr) {
-        if (quiz_paused) {
-            start_pause_action->setText(str_label("Resume"));
-            start_pause_action->setIcon(
-                icon_loader::themed(
-                    { "media-playback-start", "media-playback-play", "play" },
-                    QStyle::SP_MediaPlay
-                )
-            );
-        } else {
-            start_pause_action->setText(str_label("Pause"));
-            start_pause_action->setIcon(
-                icon_loader::themed(
-                    { "media-playback-pause", "media-playback-stop", "pause" },
-                    QStyle::SP_MediaPause
-                )
-            );
-        }
+        update_start_pause_action(quiz_paused);
     }
     if (finish_action != nullptr) {
         finish_action->setEnabled(true);
@@ -561,9 +550,7 @@ void main_window::start_quiz_from_ui() {
         if (!quiz_paused) {
             clock_timer->start(true);
         }
-        if (clock_label != nullptr) {
-            clock_label->setText(clock_timer->time_string_hh_mm_ss());
-        }
+        refresh_clock_label();
     }
     update_status_text();
 }
@@ -670,20 +657,12 @@ void main_window::pause_for_dialog() {
     quiz_paused = true;
 
     if (start_pause_action != nullptr) {
-        start_pause_action->setText(str_label("Resume"));
-        start_pause_action->setIcon(
-            icon_loader::themed(
-                { "media-playback-start", "media-playback-play", "play" },
-                QStyle::SP_MediaPlay
-            )
-        );
+        update_start_pause_action(true);
     }
 
     if (clock_timer != nullptr) {
         clock_timer->pause();
-        if (clock_label != nullptr) {
-            clock_label->setText(clock_timer->time_string_hh_mm_ss());
-        }
+        refresh_clock_label();
     }
     update_status_text();
 }
@@ -709,9 +688,7 @@ void main_window::reset_game_state(bool show_setup_dialog, bool mark_finished) {
 
     if (clock_timer != nullptr) {
         clock_timer->reset();
-        if (clock_label != nullptr) {
-            clock_label->setText(clock_timer->time_string_hh_mm_ss());
-        }
+        refresh_clock_label();
     }
     update_status_text();
 

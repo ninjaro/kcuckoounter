@@ -22,6 +22,17 @@ QVector<theme_palette_option> build_theme_options() {
     };
 }
 
+template <typename Predicate>
+theme_palette_id find_palette_id(Predicate&& predicate) {
+    const auto& palettes = theme_palette_registry::options();
+    for (int i = 0; i < palettes.size(); ++i) {
+        if (predicate(palettes.at(i))) {
+            return static_cast<theme_palette_id>(i);
+        }
+    }
+    return theme_palette_id::green;
+}
+
 } // namespace
 
 theme_palette_option::theme_palette_option(
@@ -66,23 +77,15 @@ theme_palette_registry::option(theme_palette_id id) {
 }
 
 theme_palette_id theme_palette_registry::id_from_color(const QColor& color) {
-    const auto& palettes = options();
-    for (int i = 0; i < palettes.size(); ++i) {
-        if (palettes.at(i).base_color() == color) {
-            return static_cast<theme_palette_id>(i);
-        }
-    }
-    return theme_palette_id::green;
+    return find_palette_id([&](const theme_palette_option& palette) {
+        return palette.base_color() == color;
+    });
 }
 
 theme_palette_id theme_palette_registry::id_from_label(const QString& label) {
-    const auto& palettes = options();
-    for (int i = 0; i < palettes.size(); ++i) {
-        if (palettes.at(i).label() == label) {
-            return static_cast<theme_palette_id>(i);
-        }
-    }
-    return theme_palette_id::green;
+    return find_palette_id([&](const theme_palette_option& palette) {
+        return palette.label() == label;
+    });
 }
 
 int theme_palette_registry::index(theme_palette_id id) {
@@ -91,6 +94,7 @@ int theme_palette_registry::index(theme_palette_id id) {
 
 QStringList theme_palette_registry::labels() {
     QStringList labels;
+    labels.reserve(options().size());
     for (const auto& palette : options()) {
         labels.append(palette.label());
     }

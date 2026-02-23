@@ -281,6 +281,48 @@ void table_slot::prepare_card_faces() {
     }
 }
 
+int table_slot::card_face_need_short_px() const {
+    if (card_widget_internal == nullptr) {
+        return 0;
+    }
+
+    return card_widget_internal->card_face_target_short_px();
+}
+
+void table_slot::set_shared_card_faces(
+    const QVector<QImage>& face_images, const QSize& raster_size
+) {
+    if (card_widget_internal == nullptr) {
+        return;
+    }
+
+    card_widget_internal->set_shared_card_faces(face_images, raster_size);
+}
+
+void table_slot::clear_shared_card_faces() {
+    if (card_widget_internal == nullptr) {
+        return;
+    }
+
+    card_widget_internal->clear_shared_card_faces();
+}
+
+bool table_slot::has_shared_card_faces() const {
+    if (card_widget_internal == nullptr) {
+        return false;
+    }
+
+    return card_widget_internal->has_shared_card_faces();
+}
+
+void table_slot::set_shared_card_faces_mode(bool enabled) {
+    if (card_widget_internal == nullptr) {
+        return;
+    }
+
+    card_widget_internal->set_shared_card_faces_mode(enabled);
+}
+
 void table_slot::apply_theme() {
     if (card_widget_internal != nullptr) {
         card_widget_internal->update();

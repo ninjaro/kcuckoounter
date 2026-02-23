@@ -256,3 +256,18 @@ void table_tests::quiz_spin_box_remembers_last_input() {
     QVERIFY(slot.is_quiz_prompt_active());
     QCOMPARE(spin_box->value(), 7);
 }
+
+void table_tests::shared_card_faces_presence_tracks_set_and_clear() {
+    table_slot slot;
+    QVERIFY(!slot.has_shared_card_faces());
+
+    QVector<QImage> shared_faces;
+    shared_faces.push_back(QImage(24, 36, QImage::Format_ARGB32_Premultiplied));
+    shared_faces[0].fill(Qt::red);
+
+    slot.set_shared_card_faces(shared_faces, QSize(24, 36));
+    QVERIFY(slot.has_shared_card_faces());
+
+    slot.clear_shared_card_faces();
+    QVERIFY(!slot.has_shared_card_faces());
+}

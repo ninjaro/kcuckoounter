@@ -59,6 +59,13 @@ public:
     void trigger_highlight(int duration_ms);
     void tick_highlight(int delta_ms);
     void prepare_card_faces();
+    int card_face_target_short_px() const;
+    void set_shared_card_faces(
+        const QVector<QImage>& face_images, const QSize& raster_size
+    );
+    void clear_shared_card_faces();
+    bool has_shared_card_faces() const;
+    void set_shared_card_faces_mode(bool enabled);
 
 signals:
     void rasterization_busy_changed(bool busy);
@@ -108,6 +115,8 @@ private:
     QSize raster_task_size;
     QSize pending_raster_size;
     bool rasterizing;
+    bool shared_card_faces_active;
+    bool shared_card_faces_mode;
 
     void update_card_jitter();
     void update_table_marking();
