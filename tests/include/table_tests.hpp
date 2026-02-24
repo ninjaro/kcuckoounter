@@ -1,5 +1,5 @@
-#ifndef KCUCKOOUNTER_TABLE_TESTS_HPP
-#define KCUCKOOUNTER_TABLE_TESTS_HPP
+#ifndef KCUCKOOUNTER_TESTS_INCLUDE_TABLE_TESTS_HPP
+#define KCUCKOOUNTER_TESTS_INCLUDE_TABLE_TESTS_HPP
 
 #include <QObject>
 
@@ -29,4 +29,4 @@ private slots:
     void shared_card_faces_presence_tracks_set_and_clear();
 };
 
-#endif // KCUCKOOUNTER_TABLE_TESTS_HPP
+#endif // KCUCKOOUNTER_TESTS_INCLUDE_TABLE_TESTS_HPP

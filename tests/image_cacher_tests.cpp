@@ -1,6 +1,6 @@
 #include "include/image_cacher_tests.hpp"
 
-#include "helpers/image_cacher.hpp"
+#include "image/image_cacher.hpp"
 
 #include <QtTest/QtTest>
 
@@ -20,14 +20,9 @@ void image_cacher_tests::namespace_switch_keeps_image_ready() {
     cacher.set_target_size(QSize(72, 72));
     QVERIFY(cacher.is_ready());
 
-    cacher.set_cache_namespace(
-        svg_raster_cache_service::cache_namespace::settings
-    );
+    cacher.set_cache_namespace(raster_cache::cache_namespace::settings);
 
-    QCOMPARE(
-        cacher.cache_namespace(),
-        svg_raster_cache_service::cache_namespace::settings
-    );
+    QCOMPARE(cacher.cache_namespace(), raster_cache::cache_namespace::settings);
     QVERIFY(cacher.is_ready());
     QCOMPARE(cacher.display_size(), QSize(72, 72));
 }

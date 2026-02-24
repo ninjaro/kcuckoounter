@@ -1,5 +1,5 @@
-#ifndef KCUCKOOUNTER_CARD_HELPERS_CARD_SHEET_HPP
-#define KCUCKOOUNTER_CARD_HELPERS_CARD_SHEET_HPP
+#ifndef KCUCKOOUNTER_INCLUDE_CARD_HELPERS_CARD_SHEET_HPP
+#define KCUCKOOUNTER_INCLUDE_CARD_HELPERS_CARD_SHEET_HPP
 
 #include <QString>
 #include <QStringList>
@@ -13,4 +13,4 @@ QString card_element_id_from_index(int index);
 const QStringList& card_element_ids();
 QString card_back_element_id();
 
-#endif // KCUCKOOUNTER_CARD_HELPERS_CARD_SHEET_HPP
+#endif // KCUCKOOUNTER_INCLUDE_CARD_HELPERS_CARD_SHEET_HPP

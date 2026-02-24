@@ -1,6 +1,6 @@
 #include "include/infinity_spinbox_tests.hpp"
-#include "helpers/infinity_spinbox.hpp"
-#include "helpers/str_label.hpp"
+#include "arch/str_label.hpp"
+#include "table/infinity_spinbox.hpp"
 
 #include <QtTest/QtTest>
 

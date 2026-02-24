@@ -1,7 +1,7 @@
 #include "include/card_sheet_tests.hpp"
 
+#include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
-#include "helpers/str_label.hpp"
 
 #include <QFileInfo>
 #include <QSet>

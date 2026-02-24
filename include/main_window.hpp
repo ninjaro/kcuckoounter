@@ -1,13 +1,18 @@
-#ifndef KCUCKOOUNTER_MAIN_WINDOW_HPP
-#define KCUCKOOUNTER_MAIN_WINDOW_HPP
+#ifndef KCUCKOOUNTER_INCLUDE_MAIN_WINDOW_HPP
+#define KCUCKOOUNTER_INCLUDE_MAIN_WINDOW_HPP
 
-#include "helpers/widget_helpers.hpp"
+#include "arch/widget_helpers.hpp"
+
+#include <QString>
 
 class table;
 class QLabel;
 class QDialog;
 class QProgressBar;
 class QSlider;
+class QPlainTextEdit;
+class QTabWidget;
+class resource_monitor;
 
 class main_window : public BaseMainWindow {
     Q_OBJECT
@@ -22,6 +27,13 @@ private slots:
     void on_start_pause_triggered();
     void on_finish_triggered();
     void on_settings_triggered();
+#ifndef NDEBUG
+    void on_export_debug_snapshot_triggered();
+    void on_set_realistic_cadence_mode_triggered();
+    void on_set_instrumented_cadence_mode_triggered();
+    void on_toggle_resource_monitor_triggered(bool checked);
+    void on_resource_monitor_visibility_changed(bool visible);
+#endif
 
 private:
     BaseSpinBox* table_slots_count;
@@ -32,6 +44,7 @@ private:
     BasePushButton* continue_button;
     table* table_widget;
     QDialog* setup_dialog;
+    QDialog* settings_dialog;
     BaseWidget* setup_widget;
     BaseClock* clock_timer;
     QLabel* clock_label;
@@ -43,13 +56,24 @@ private:
     BaseAction* start_pause_action;
     BaseAction* finish_action;
     BaseAction* settings_action;
+#ifndef NDEBUG
+    BaseAction* export_debug_snapshot_action;
+    BaseAction* realistic_cadence_mode_action;
+    BaseAction* instrumented_cadence_mode_action;
+    BaseAction* toggle_resource_monitor_action;
+    QDialog* resource_monitor_window;
+    QTabWidget* resource_monitor_tabs;
+    QPlainTextEdit* resource_monitor_live_text;
+    QPlainTextEdit* resource_monitor_timeline_text;
+    QPlainTextEdit* resource_monitor_diagnostics_text;
+#endif
     bool quiz_started;
     bool quiz_paused;
     bool quiz_finished;
     bool rasterization_busy;
-    bool pending_start_after_rasterization;
     int score_correct;
     int score_total;
+    resource_monitor* debug_telemetry_collector;
 
     void setup_ui();
     void update_status_text();
@@ -59,6 +83,12 @@ private:
     void show_game_over_dialog();
     void start_quiz_from_ui();
     void pause_for_dialog();
+#ifndef NDEBUG
+    void add_debug_marker(const QString& label) const;
+    void sync_debug_cadence_mode_actions() const;
+    void refresh_resource_monitor_view();
+    void dump_debug_telemetry_on_exit() const;
+#endif
 };
 
-#endif // KCUCKOOUNTER_MAIN_WINDOW_HPP
+#endif // KCUCKOOUNTER_INCLUDE_MAIN_WINDOW_HPP

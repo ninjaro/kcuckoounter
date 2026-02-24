@@ -1,6 +1,6 @@
 #include "card_helpers/card_sheet.hpp"
 
-#include "helpers/str_label.hpp"
+#include "arch/str_label.hpp"
 
 #include <QRectF>
 #include <QSvgRenderer>
@@ -104,7 +104,7 @@ const card_sheet_cache& cached_card_sheet() {
 
 }
 
-QString card_sheet_source_path() { return str_label("assets/cards.svg"); }
+QString card_sheet_source_path() { return str_label("assets/cards_0.svg"); }
 
 bool preload_card_sheet() {
     const auto& cache = cached_card_sheet();

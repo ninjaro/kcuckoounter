@@ -1,0 +1,742 @@
+#include "image/raster_cache.hpp"
+
+#include <QtGlobal>
+
+#include <QDateTime>
+#include <QStringList>
+#include <QVector>
+
+#include <algorithm>
+#include <limits>
+
+namespace {
+
+int size_to_int(qsizetype value) {
+    return value > static_cast<qsizetype>(std::numeric_limits<int>::max())
+        ? std::numeric_limits<int>::max()
+        : static_cast<int>(value);
+}
+
+size_t combine_hash(size_t lhs, size_t rhs) {
+    return lhs ^ (rhs + 0x9e3779b9 + (lhs << 6U) + (lhs >> 2U));
+}
+
+QString normalize_render_scope(const QString& raw_scope) {
+    const QString simplified = raw_scope.simplified();
+    if (!simplified.startsWith(QStringLiteral("subset:"))) {
+        return simplified;
+    }
+
+    QStringList ids = simplified.sliced(QStringLiteral("subset:").size())
+                          .split(',', Qt::SkipEmptyParts);
+    for (QString& id : ids) {
+        id = id.simplified();
+    }
+
+    std::sort(ids.begin(), ids.end());
+    ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+
+    return QStringLiteral("subset:%1").arg(ids.join(','));
+}
+
+} // namespace
+
+qint64 raster_cache::estimate_result_bytes(const result& value) {
+    qint64 bytes = static_cast<qint64>(value.single_image.sizeInBytes());
+    for (const QImage& image : value.face_images) {
+        bytes += static_cast<qint64>(image.sizeInBytes());
+    }
+    return bytes;
+}
+
+int raster_cache::count_result_images(const result& value) {
+    return (value.single_image.isNull() ? 0 : 1)
+        + size_to_int(value.face_images.size());
+}
+
+bool raster_cache::entry_key::operator==(const entry_key& other) const {
+    return name_space == other.name_space && kind == other.kind
+        && source_id == other.source_id && render_scope == other.render_scope
+        && target_bucket_px == other.target_bucket_px;
+}
+
+bool raster_cache::family_key::operator==(const family_key& other) const {
+    return name_space == other.name_space && kind == other.kind
+        && source_id == other.source_id && render_scope == other.render_scope;
+}
+
+bool raster_cache::result::is_ready() const {
+    return !single_image.isNull() || !face_images.isEmpty();
+}
+
+bool raster_cache::debug_task_timing_key::operator==(
+    const debug_task_timing_key& other
+) const {
+    return stage == other.stage && entry == other.entry;
+}
+
+raster_cache::raster_cache(QObject* parent)
+    : QObject(parent)
+    , ready_results()
+    , ready_entry_order()
+    , namespace_entry_limits(
+          {
+              { cache_namespace::main, -1 },
+              { cache_namespace::settings, 3 },
+          }
+      )
+    , families() { }
+
+std::optional<raster_cache::result>
+raster_cache::get_if_ready(const entry_key& key) const {
+    const auto it = ready_results.constFind(key);
+    if (it == ready_results.cend()) {
+        return std::nullopt;
+    }
+
+    if (!it.value().is_ready()) {
+        return std::nullopt;
+    }
+
+    return it.value();
+}
+
+std::optional<raster_cache::result>
+raster_cache::get_if_ready_with_namespace_fallback(const entry_key& key) const {
+    const std::optional<result> direct = get_if_ready(key);
+    if (direct.has_value()) {
+        return direct;
+    }
+
+    if (key.name_space != cache_namespace::settings) {
+        return std::nullopt;
+    }
+
+    entry_key main_key = key;
+    main_key.name_space = cache_namespace::main;
+    return get_if_ready(main_key);
+}
+
+void raster_cache::insert_or_update_result(const result& new_result) {
+    const auto existing = ready_results.constFind(new_result.key);
+    if (existing != ready_results.cend()) {
+        const qint64 existing_bytes = estimate_result_bytes(existing.value());
+        const int existing_images = count_result_images(existing.value());
+        ready_bytes -= existing_bytes;
+        ready_images -= existing_images;
+        lifetime_deltas.bytes_removed += existing_bytes;
+        lifetime_deltas.images_removed += existing_images;
+        interval_deltas.bytes_removed += existing_bytes;
+        interval_deltas.images_removed += existing_images;
+    }
+
+    if (!ready_results.contains(new_result.key)) {
+        ready_entry_order[new_result.key.name_space].enqueue(new_result.key);
+        lifetime_deltas.entries_added += 1;
+        interval_deltas.entries_added += 1;
+    }
+
+    ready_results.insert(new_result.key, new_result);
+    if (!new_result.is_ready()) {
+        displayed_entry_last_seen_ms.remove(new_result.key);
+    }
+    const qint64 added_bytes = estimate_result_bytes(new_result);
+    const int added_images = count_result_images(new_result);
+    ready_bytes += added_bytes;
+    ready_images += added_images;
+    lifetime_deltas.bytes_added += added_bytes;
+    lifetime_deltas.images_added += added_images;
+    interval_deltas.bytes_added += added_bytes;
+    interval_deltas.images_added += added_images;
+
+    enforce_namespace_limit(new_result.key.name_space);
+    update_high_water_marks();
+    emit_debug_snapshot();
+    emit result_updated(new_result.key);
+}
+
+raster_cache::submit_outcome raster_cache::submit_request(const request& req) {
+    const entry_key entry = make_entry_key(req);
+    const family_key family = make_family_key(req);
+    request_counts[entry] += 1;
+
+    const std::optional<result> ready = get_if_ready(entry);
+    if (ready.has_value()) {
+        return submit_outcome {
+            .state = request_state::cache_hit,
+            .key = entry,
+            .ready_result = ready,
+        };
+    }
+
+    family_state& state = families[family];
+    if (!state.in_flight) {
+        const qint64 submitted_at = now_ms();
+        state.in_flight = true;
+        state.active_entry = entry;
+        state.active_started_ms = submitted_at;
+        state.active_deadline_budget_ms = deadline_budget_ms_for_request(req);
+
+        if (state.has_pending) {
+            add_timing_sample(
+                coalesced_wait_accumulator,
+                std::max<qint64>(0, submitted_at - state.pending_submitted_ms)
+            );
+            state.has_pending = false;
+            state.pending_submitted_ms = 0;
+            state.pending_deadline_budget_ms = 0;
+        }
+
+        emit_debug_snapshot();
+        return submit_outcome {
+            .state = request_state::start_async,
+            .key = entry,
+            .ready_result = std::nullopt,
+        };
+    }
+
+    if (state.active_entry == entry) {
+        return submit_outcome {
+            .state = request_state::already_in_flight,
+            .key = entry,
+            .ready_result = std::nullopt,
+        };
+    }
+
+    state.has_pending = true;
+    state.pending_entry = entry;
+    state.pending_submitted_ms = now_ms();
+    state.pending_deadline_budget_ms = deadline_budget_ms_for_request(req);
+    emit_debug_snapshot();
+    return submit_outcome {
+        .state = request_state::pending_coalesced,
+        .key = entry,
+        .ready_result = std::nullopt,
+    };
+}
+
+raster_cache::finish_outcome raster_cache::finish_active_request(
+    const family_key& key, const entry_key& completed_entry
+) {
+    const auto it = families.find(key);
+    if (it == families.end() || !it->in_flight) {
+        return finish_outcome {
+            .accepted_completion = false,
+            .next_entry_to_start = std::nullopt,
+        };
+    }
+
+    if (!(it->active_entry == completed_entry)) {
+        return finish_outcome {
+            .accepted_completion = false,
+            .next_entry_to_start = std::nullopt,
+        };
+    }
+
+    if (it->active_started_ms > 0) {
+        const qint64 elapsed_ms
+            = std::max<qint64>(0, now_ms() - it->active_started_ms);
+        add_timing_sample(raster_timing_accumulator, elapsed_ms);
+        add_deadline_sample(
+            deadline_counters, elapsed_ms, it->active_deadline_budget_ms
+        );
+        add_task_timing_sample(
+            completed_entry, debug_snapshot::timing_stage::raster_lifecycle,
+            elapsed_ms
+        );
+    }
+
+    it->in_flight = false;
+    it->active_started_ms = 0;
+    if (!it->has_pending) {
+        families.erase(it);
+        emit_debug_snapshot();
+        return finish_outcome {
+            .accepted_completion = true,
+            .next_entry_to_start = std::nullopt,
+        };
+    }
+
+    const qint64 promoted_at = now_ms();
+    const qint64 coalesced_wait_ms
+        = std::max<qint64>(0, promoted_at - it->pending_submitted_ms);
+    add_timing_sample(coalesced_wait_accumulator, coalesced_wait_ms);
+    add_task_timing_sample(
+        it->pending_entry, debug_snapshot::timing_stage::coalesced_wait,
+        coalesced_wait_ms
+    );
+
+    const entry_key next_entry = it->pending_entry;
+    it->has_pending = false;
+    it->pending_submitted_ms = 0;
+    it->active_entry = next_entry;
+    it->in_flight = true;
+    it->active_started_ms = promoted_at;
+    it->active_deadline_budget_ms = it->pending_deadline_budget_ms;
+    it->pending_deadline_budget_ms = 0;
+    emit_debug_snapshot();
+    return finish_outcome {
+        .accepted_completion = true,
+        .next_entry_to_start = next_entry,
+    };
+}
+
+bool raster_cache::is_in_flight(const family_key& key) const {
+    const auto it = families.constFind(key);
+    if (it == families.cend()) {
+        return false;
+    }
+
+    return it.value().in_flight;
+}
+
+void raster_cache::mark_in_flight(
+    const family_key& key, const entry_key& active_key
+) {
+    family_state& state = families[key];
+    const qint64 marked_at = now_ms();
+    state.in_flight = true;
+    state.active_entry = active_key;
+    state.active_started_ms = marked_at;
+    state.active_deadline_budget_ms = 0;
+
+    if (state.has_pending) {
+        const qint64 coalesced_wait_ms
+            = std::max<qint64>(0, marked_at - state.pending_submitted_ms);
+        add_timing_sample(coalesced_wait_accumulator, coalesced_wait_ms);
+        add_task_timing_sample(
+            state.pending_entry, debug_snapshot::timing_stage::coalesced_wait,
+            coalesced_wait_ms
+        );
+        state.has_pending = false;
+        state.pending_submitted_ms = 0;
+        state.pending_deadline_budget_ms = 0;
+    }
+
+    emit_debug_snapshot();
+}
+
+void raster_cache::clear_in_flight(const family_key& key) {
+    const auto it = families.find(key);
+    if (it == families.end()) {
+        return;
+    }
+
+    it->in_flight = false;
+    it->active_started_ms = 0;
+    it->active_deadline_budget_ms = 0;
+    if (!it->has_pending) {
+        families.erase(it);
+    }
+
+    emit_debug_snapshot();
+}
+
+void raster_cache::set_pending_latest(
+    const family_key& key, const entry_key& pending_key
+) {
+    family_state& state = families[key];
+    state.has_pending = true;
+    state.pending_entry = pending_key;
+    state.pending_submitted_ms = now_ms();
+    state.pending_deadline_budget_ms = 0;
+    emit_debug_snapshot();
+}
+
+std::optional<raster_cache::entry_key>
+raster_cache::take_pending_latest(const family_key& key) {
+    const auto it = families.find(key);
+    if (it == families.end() || !it->has_pending) {
+        return std::nullopt;
+    }
+
+    const entry_key pending = it->pending_entry;
+    const qint64 coalesced_wait_ms
+        = std::max<qint64>(0, now_ms() - it->pending_submitted_ms);
+    add_timing_sample(coalesced_wait_accumulator, coalesced_wait_ms);
+    add_task_timing_sample(
+        pending, debug_snapshot::timing_stage::coalesced_wait, coalesced_wait_ms
+    );
+    it->has_pending = false;
+    it->pending_submitted_ms = 0;
+    it->pending_deadline_budget_ms = 0;
+    if (!it->in_flight) {
+        families.erase(it);
+    }
+
+    emit_debug_snapshot();
+
+    return pending;
+}
+
+int raster_cache::ready_entry_count() const {
+    return static_cast<int>(ready_results.size());
+}
+
+int raster_cache::ready_entry_count(cache_namespace name_space) const {
+    int count = 0;
+    for (auto it = ready_results.cbegin(); it != ready_results.cend(); ++it) {
+        if (it.key().name_space == name_space) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+raster_cache::entry_key raster_cache::make_entry_key(const request& req) {
+    return entry_key {
+        .name_space = req.name_space,
+        .kind = req.kind,
+        .source_id = req.source_id,
+        .render_scope = normalize_render_scope(req.render_scope),
+        .target_bucket_px = req.target_bucket_px,
+    };
+}
+
+raster_cache::family_key raster_cache::make_family_key(const request& req) {
+    return family_key {
+        .name_space = req.name_space,
+        .kind = req.kind,
+        .source_id = req.source_id,
+        .render_scope = normalize_render_scope(req.render_scope),
+    };
+}
+
+int raster_cache::in_flight_count() const {
+    int count = 0;
+    for (auto it = families.cbegin(); it != families.cend(); ++it) {
+        if (it->in_flight) {
+            ++count;
+        }
+    }
+    return count;
+}
+
+void raster_cache::note_entry_displayed(const entry_key& key) {
+    const auto it = ready_results.constFind(key);
+    if (it == ready_results.cend() || !it.value().is_ready()) {
+        return;
+    }
+
+    displayed_entry_last_seen_ms.insert(key, now_ms());
+    emit_debug_snapshot();
+}
+
+raster_cache::debug_snapshot raster_cache::get_debug_snapshot() const {
+    QHash<int, debug_snapshot::debug_size_bucket> size_bucket_map;
+    QVector<debug_snapshot::debug_largest_entry> largest_entries;
+    QVector<debug_snapshot::debug_requested_entry> top_requested_entries;
+    QVector<debug_snapshot::debug_expensive_task> top_expensive_tasks;
+    largest_entries.reserve(3);
+
+    int displayed_ready_entries = 0;
+    int cached_only_ready_entries = 0;
+    int displayed_ready_images = 0;
+    int cached_only_ready_images = 0;
+
+    const qint64 snapshot_now_ms = now_ms();
+
+    for (auto it = ready_results.cbegin(); it != ready_results.cend(); ++it) {
+        const qint64 result_bytes = estimate_result_bytes(it.value());
+        const int bucket_px = it.key().target_bucket_px;
+        const int result_images = count_result_images(it.value());
+
+        debug_snapshot::debug_size_bucket& bucket = size_bucket_map[bucket_px];
+        bucket.target_bucket_px = bucket_px;
+        bucket.entry_count += 1;
+        bucket.total_bytes += result_bytes;
+
+        largest_entries.push_back(
+            debug_snapshot::debug_largest_entry {
+                .target_bucket_px = bucket_px,
+                .estimated_bytes = result_bytes,
+            }
+        );
+
+        const qint64 displayed_at_ms
+            = displayed_entry_last_seen_ms.value(it.key(), 0);
+        if (displayed_at_ms > 0
+            && (snapshot_now_ms - displayed_at_ms)
+                <= displayed_entry_window_ms) {
+            displayed_ready_entries += 1;
+            displayed_ready_images += result_images;
+        } else {
+            cached_only_ready_entries += 1;
+            cached_only_ready_images += result_images;
+        }
+    }
+
+    for (auto it = request_counts.cbegin(); it != request_counts.cend(); ++it) {
+        top_requested_entries.push_back(
+            debug_snapshot::debug_requested_entry {
+                .source_id = it.key().source_id,
+                .render_scope = it.key().render_scope,
+                .target_bucket_px = it.key().target_bucket_px,
+                .request_count = it.value(),
+            }
+        );
+    }
+
+    for (auto it = task_timing.cbegin(); it != task_timing.cend(); ++it) {
+        const debug_task_timing_aggregate& aggregate = it.value();
+        const qint64 average_elapsed_ms = aggregate.completed_samples > 0
+            ? (aggregate.total_elapsed_ms / aggregate.completed_samples)
+            : 0;
+
+        top_expensive_tasks.push_back(
+            debug_snapshot::debug_expensive_task {
+                .stage = it.key().stage,
+                .source_id = it.key().entry.source_id,
+                .render_scope = it.key().entry.render_scope,
+                .target_bucket_px = it.key().entry.target_bucket_px,
+                .completed_samples = aggregate.completed_samples,
+                .avg_elapsed_ms = average_elapsed_ms,
+                .max_elapsed_ms = aggregate.max_elapsed_ms,
+            }
+        );
+    }
+
+    QVector<debug_snapshot::debug_size_bucket> size_buckets
+        = size_bucket_map.values();
+    std::sort(
+        size_buckets.begin(), size_buckets.end(),
+        [](const debug_snapshot::debug_size_bucket& lhs,
+           const debug_snapshot::debug_size_bucket& rhs) {
+            return lhs.target_bucket_px < rhs.target_bucket_px;
+        }
+    );
+
+    std::sort(
+        largest_entries.begin(), largest_entries.end(),
+        [](const debug_snapshot::debug_largest_entry& lhs,
+           const debug_snapshot::debug_largest_entry& rhs) {
+            return lhs.estimated_bytes > rhs.estimated_bytes;
+        }
+    );
+
+    if (largest_entries.size() > 3) {
+        largest_entries.resize(3);
+    }
+
+    std::sort(
+        top_requested_entries.begin(), top_requested_entries.end(),
+        [](const debug_snapshot::debug_requested_entry& lhs,
+           const debug_snapshot::debug_requested_entry& rhs) {
+            if (lhs.request_count != rhs.request_count) {
+                return lhs.request_count > rhs.request_count;
+            }
+            return lhs.target_bucket_px < rhs.target_bucket_px;
+        }
+    );
+
+    if (top_requested_entries.size() > 3) {
+        top_requested_entries.resize(3);
+    }
+
+    std::sort(
+        top_expensive_tasks.begin(), top_expensive_tasks.end(),
+        [](const debug_snapshot::debug_expensive_task& lhs,
+           const debug_snapshot::debug_expensive_task& rhs) {
+            if (lhs.max_elapsed_ms != rhs.max_elapsed_ms) {
+                return lhs.max_elapsed_ms > rhs.max_elapsed_ms;
+            }
+            return lhs.avg_elapsed_ms > rhs.avg_elapsed_ms;
+        }
+    );
+
+    if (top_expensive_tasks.size() > 3) {
+        top_expensive_tasks.resize(3);
+    }
+
+    int pending_count = 0;
+    for (auto it = families.cbegin(); it != families.cend(); ++it) {
+        if (it->has_pending) {
+            ++pending_count;
+        }
+    }
+
+    const int ready_entries_now = ready_entry_count();
+    const int displayed_entry_coverage_percent = ready_entries_now > 0
+        ? ((displayed_ready_entries * 100) / ready_entries_now)
+        : 0;
+
+    return debug_snapshot {
+        .snapshot_sequence = snapshot_sequence,
+        .timestamp_ms = now_ms(),
+        .ready_entries = ready_entries_now,
+        .ready_bytes = ready_bytes,
+        .ready_images = ready_images,
+        .in_flight_families = in_flight_count(),
+        .pending_families = pending_count,
+        .displayed_ready_entries = displayed_ready_entries,
+        .cached_only_ready_entries = cached_only_ready_entries,
+        .displayed_ready_images = displayed_ready_images,
+        .cached_only_ready_images = cached_only_ready_images,
+        .displayed_entry_window_ms = displayed_entry_window_ms,
+        .displayed_entry_coverage_percent = displayed_entry_coverage_percent,
+        .high_water_ready_entries = high_water_ready_entries,
+        .high_water_ready_bytes = high_water_ready_bytes,
+        .high_water_ready_images = high_water_ready_images,
+        .lifetime_deltas = lifetime_deltas,
+        .interval_deltas = interval_deltas,
+        .raster_timing_samples = raster_timing_accumulator.samples,
+        .raster_timing_avg_ms = average_timing_ms(raster_timing_accumulator),
+        .raster_timing_max_ms = raster_timing_accumulator.max_ms,
+        .coalesced_wait_samples = coalesced_wait_accumulator.samples,
+        .coalesced_wait_avg_ms = average_timing_ms(coalesced_wait_accumulator),
+        .coalesced_wait_max_ms = coalesced_wait_accumulator.max_ms,
+        .deadline_readiness_samples = deadline_counters.samples,
+        .deadline_ready_early = deadline_counters.ready_early,
+        .deadline_ready_on_time = deadline_counters.ready_on_time,
+        .deadline_ready_late = deadline_counters.ready_late,
+        .unique_size_buckets = size_to_int(size_buckets.size()),
+        .size_buckets = size_buckets,
+        .largest_entries = largest_entries,
+        .top_requested_entries = top_requested_entries,
+        .top_expensive_tasks = top_expensive_tasks,
+    };
+}
+
+raster_cache::debug_delta_counters raster_cache::take_interval_deltas() {
+    const debug_delta_counters current = interval_deltas;
+    interval_deltas = {};
+    return current;
+}
+
+void raster_cache::set_namespace_entry_limit(
+    cache_namespace name_space, int limit
+) {
+    namespace_entry_limits.insert(name_space, limit);
+    enforce_namespace_limit(name_space);
+}
+
+void raster_cache::enforce_namespace_limit(cache_namespace name_space) {
+    const int limit = namespace_entry_limits.value(name_space, -1);
+    if (limit < 0) {
+        return;
+    }
+
+    QQueue<entry_key>& queue = ready_entry_order[name_space];
+    while (ready_entry_count(name_space) > limit && !queue.isEmpty()) {
+        const entry_key oldest = queue.dequeue();
+        const auto old_it = ready_results.constFind(oldest);
+        if (old_it == ready_results.cend()) {
+            continue;
+        }
+
+        const qint64 removed_bytes = estimate_result_bytes(old_it.value());
+        const int removed_images = count_result_images(old_it.value());
+        ready_bytes -= removed_bytes;
+        ready_images -= removed_images;
+        lifetime_deltas.entries_removed += 1;
+        lifetime_deltas.bytes_removed += removed_bytes;
+        lifetime_deltas.images_removed += removed_images;
+        interval_deltas.entries_removed += 1;
+        interval_deltas.bytes_removed += removed_bytes;
+        interval_deltas.images_removed += removed_images;
+        ready_results.remove(oldest);
+        displayed_entry_last_seen_ms.remove(oldest);
+    }
+}
+
+void raster_cache::update_high_water_marks() {
+    const int entries_now = ready_entry_count();
+    high_water_ready_entries = std::max(high_water_ready_entries, entries_now);
+    high_water_ready_bytes = std::max(high_water_ready_bytes, ready_bytes);
+    high_water_ready_images = std::max(high_water_ready_images, ready_images);
+}
+
+qint64 raster_cache::now_ms() { return QDateTime::currentMSecsSinceEpoch(); }
+
+void raster_cache::add_timing_sample(
+    debug_timing_accumulator& accumulator, qint64 value_ms
+) {
+    accumulator.samples += 1;
+    accumulator.total_ms += value_ms;
+    accumulator.max_ms = std::max(accumulator.max_ms, value_ms);
+}
+
+qint64
+raster_cache::average_timing_ms(const debug_timing_accumulator& accumulator) {
+    if (accumulator.samples <= 0) {
+        return 0;
+    }
+
+    return accumulator.total_ms / accumulator.samples;
+}
+
+qint64 raster_cache::deadline_budget_ms_for_request(const request& req) {
+    if (req.interactive) {
+        return 120;
+    }
+
+    if (req.preview) {
+        return 220;
+    }
+
+    return 400;
+}
+
+void raster_cache::add_deadline_sample(
+    debug_deadline_counters& counters, qint64 elapsed_ms, qint64 budget_ms
+) {
+    if (budget_ms <= 0) {
+        return;
+    }
+
+    counters.samples += 1;
+    if (elapsed_ms <= (budget_ms / 2)) {
+        counters.ready_early += 1;
+        return;
+    }
+
+    if (elapsed_ms <= budget_ms) {
+        counters.ready_on_time += 1;
+        return;
+    }
+
+    counters.ready_late += 1;
+}
+
+void raster_cache::add_task_timing_sample(
+    const entry_key& entry, debug_snapshot::timing_stage stage, qint64 value_ms
+) {
+    debug_task_timing_aggregate& aggregate = task_timing[debug_task_timing_key {
+        .stage = stage,
+        .entry = entry,
+    }];
+    aggregate.completed_samples += 1;
+    aggregate.total_elapsed_ms += value_ms;
+    aggregate.max_elapsed_ms = std::max(aggregate.max_elapsed_ms, value_ms);
+}
+
+void raster_cache::emit_debug_snapshot() {
+    ++snapshot_sequence;
+    emit debug_snapshot_updated(get_debug_snapshot());
+}
+
+size_t qHash(const raster_cache::entry_key& key, size_t seed) {
+    size_t value = seed;
+    value = combine_hash(value, qHash(static_cast<int>(key.name_space)));
+    value = combine_hash(value, qHash(static_cast<int>(key.kind)));
+    value = combine_hash(value, qHash(key.source_id));
+    value = combine_hash(value, qHash(key.render_scope));
+    value = combine_hash(value, qHash(key.target_bucket_px));
+    return value;
+}
+
+size_t qHash(const raster_cache::family_key& key, size_t seed) {
+    size_t value = seed;
+    value = combine_hash(value, qHash(static_cast<int>(key.name_space)));
+    value = combine_hash(value, qHash(static_cast<int>(key.kind)));
+    value = combine_hash(value, qHash(key.source_id));
+    value = combine_hash(value, qHash(key.render_scope));
+    return value;
+}
+
+size_t qHash(const raster_cache::debug_task_timing_key& key, size_t seed) {
+    size_t value = seed;
+    value = combine_hash(value, qHash(static_cast<int>(key.stage)));
+    value = combine_hash(value, qHash(key.entry));
+    return value;
+}

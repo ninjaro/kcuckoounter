@@ -6,7 +6,7 @@
 
 #include "main_window.hpp"
 
-#include "helpers/str_label.hpp"
+#include "arch/str_label.hpp"
 
 #ifdef KC_KDE
 #include <KAboutData>

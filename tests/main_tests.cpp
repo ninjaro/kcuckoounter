@@ -2,13 +2,14 @@
 #include <QtTest/QtTest>
 
 #include "include/card_packer_tests.hpp"
-#include "include/card_preview_carousel_tests.hpp"
 #include "include/card_sheet_tests.hpp"
 #include "include/card_widget_tests.hpp"
 #include "include/image_cacher_tests.hpp"
 #include "include/infinity_spinbox_tests.hpp"
+#include "include/preview_carousel_tests.hpp"
+#include "include/raster_cache_tests.hpp"
 #include "include/rasterization_runner_tests.hpp"
-#include "include/svg_raster_cache_service_tests.hpp"
+#include "include/resource_monitor_tests.hpp"
 #include "include/table_tests.hpp"
 
 int main(int argc, char** argv) {
@@ -29,7 +30,7 @@ int main(int argc, char** argv) {
         status |= QTest::qExec(&t, argc, argv);
     }
     {
-        card_preview_carousel_tests t;
+        preview_carousel_tests t;
         status |= QTest::qExec(&t, argc, argv);
     }
     {
@@ -41,11 +42,15 @@ int main(int argc, char** argv) {
         status |= QTest::qExec(&t, argc, argv);
     }
     {
-        svg_raster_cache_service_tests t;
+        raster_cache_tests t;
         status |= QTest::qExec(&t, argc, argv);
     }
     {
         image_cacher_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        resource_monitor_tests t;
         status |= QTest::qExec(&t, argc, argv);
     }
     {

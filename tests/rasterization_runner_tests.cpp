@@ -1,6 +1,6 @@
 #include "include/rasterization_runner_tests.hpp"
 
-#include "helpers/rasterization_runner.hpp"
+#include "image/rasterization_runner.hpp"
 
 #include <QtTest/QtTest>
 

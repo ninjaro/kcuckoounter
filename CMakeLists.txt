@@ -100,51 +100,53 @@ set(CMAKE_AUTOUIC ON)
 
 set(kcuckoounter_sources
         src/main_window.cpp
-        src/widget/table.cpp
-        src/widget/table_slot.cpp
-        src/widget/card_widget.cpp
+        src/table/table.cpp
+        src/table/table_slot.cpp
+        src/table/card_widget.cpp
         src/card_helpers/card_packer.cpp
         src/card_helpers/card_picker.cpp
         src/card_helpers/card_sheet.cpp
-        src/helpers/random_generator.cpp
-        src/helpers/base_clock.cpp
-        src/helpers/time_interface.cpp
-        src/helpers/infinity_spinbox.cpp
-        src/helpers/rasterization_runner.cpp
-        src/helpers/image_cacher.cpp
-        src/helpers/svg_raster_cache_service.cpp
-        src/helpers/card_preview_carousel.cpp
-        src/widget/slot_settings.cpp
-        src/widget/settings_template.cpp
-        src/helpers/icon_loader.cpp
-        src/helpers/strategy_data.cpp
-        src/helpers/theme_palette.cpp
-        src/helpers/theme_settings.cpp
+        src/arch/random_generator.cpp
+        src/arch/base_clock.cpp
+        src/arch/time_interface.cpp
+        src/table/infinity_spinbox.cpp
+        src/image/rasterization_runner.cpp
+        src/image/image_cacher.cpp
+        src/image/raster_cache.cpp
+        src/image/card_preview_carousel.cpp
+        src/table/slot_settings.cpp
+        src/table/settings_template.cpp
+        src/arch/icon_loader.cpp
+        src/settings/strategy_data.cpp
+        src/settings/theme_palette.cpp
+        src/settings/theme_settings.cpp
+        src/monitor/resource_monitor.cpp
 )
 
 set(kcuckoounter_headers
         include/main_window.hpp
-        include/widget/table.hpp
-        include/widget/table_slot.hpp
-        include/widget/card_widget.hpp
+        include/table/table.hpp
+        include/table/table_slot.hpp
+        include/table/card_widget.hpp
         include/card_helpers/card_packer.hpp
         include/card_helpers/card_picker.hpp
         include/card_helpers/card_sheet.hpp
-        include/helpers/random_generator.hpp
-        include/helpers/image_cacher.hpp
-        include/helpers/base_clock.hpp
-        include/helpers/time_interface.hpp
-        include/helpers/infinity_spinbox.hpp
-        include/helpers/rasterization_runner.hpp
-        include/helpers/svg_raster_cache_service.hpp
-        include/helpers/card_preview_carousel.hpp
-        include/widget/slot_settings.hpp
-        include/widget/settings_template.hpp
-        include/helpers/str_label.hpp
-        include/helpers/icon_loader.hpp
-        include/helpers/strategy_data.hpp
-        include/helpers/theme_palette.hpp
-        include/helpers/theme_settings.hpp
+        include/arch/random_generator.hpp
+        include/image/image_cacher.hpp
+        include/arch/base_clock.hpp
+        include/arch/time_interface.hpp
+        include/table/infinity_spinbox.hpp
+        include/image/rasterization_runner.hpp
+        include/image/raster_cache.hpp
+        include/image/card_preview_carousel.hpp
+        include/table/slot_settings.hpp
+        include/table/settings_template.hpp
+        include/arch/str_label.hpp
+        include/arch/icon_loader.hpp
+        include/settings/strategy_data.hpp
+        include/settings/theme_palette.hpp
+        include/settings/theme_settings.hpp
+        include/monitor/resource_monitor.hpp
 )
 
 set(kcuckoounter_qt_libs
@@ -230,12 +232,13 @@ if (NOT ANDROID AND BUILD_UNIT_TESTS)
             tests/include/card_packer_tests.hpp
             tests/include/card_sheet_tests.hpp
             tests/include/card_widget_tests.hpp
-            tests/include/card_preview_carousel_tests.hpp
+            tests/include/preview_carousel_tests.hpp
             tests/include/table_tests.hpp
             tests/include/infinity_spinbox_tests.hpp
             tests/include/rasterization_runner_tests.hpp
-            tests/include/svg_raster_cache_service_tests.hpp
+            tests/include/raster_cache_tests.hpp
             tests/include/image_cacher_tests.hpp
+            tests/include/resource_monitor_tests.hpp
     )
 
     set(kcuckoounter_test_sources
@@ -243,12 +246,13 @@ if (NOT ANDROID AND BUILD_UNIT_TESTS)
             tests/card_packer_tests.cpp
             tests/card_sheet_tests.cpp
             tests/card_widget_tests.cpp
-            tests/card_preview_carousel_tests.cpp
+            tests/preview_carousel_tests.cpp
             tests/table_tests.cpp
             tests/infinity_spinbox_tests.cpp
             tests/rasterization_runner_tests.cpp
-            tests/svg_raster_cache_service_tests.cpp
+            tests/raster_cache_tests.cpp
             tests/image_cacher_tests.cpp
+            tests/resource_monitor_tests.cpp
     )
 
     qt_add_executable(kcuckoounter_unittests

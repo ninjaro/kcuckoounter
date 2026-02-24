@@ -1,11 +1,11 @@
 #include "include/table_tests.hpp"
 
-#include "helpers/theme_palette.hpp"
-#include "helpers/theme_settings.hpp"
-#include "widget/table_slot.hpp"
+#include "settings/theme_palette.hpp"
+#include "settings/theme_settings.hpp"
+#include "table/table_slot.hpp"
 
-#include "helpers/str_label.hpp"
-#include "widget/card_widget.hpp"
+#include "arch/str_label.hpp"
+#include "table/card_widget.hpp"
 
 #include <QFrame>
 #include <QLabel>

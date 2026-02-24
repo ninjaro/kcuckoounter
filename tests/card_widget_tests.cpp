@@ -1,6 +1,7 @@
 #include "include/card_widget_tests.hpp"
 
-#include "widget/card_widget.hpp"
+#include "arch/str_label.hpp"
+#include "table/card_widget.hpp"
 
 #include <QtTest/QtTest>
 
@@ -118,4 +119,28 @@ void card_widget_tests::shared_faces_disable_local_rasterization() {
         break;
     }
     QVERIFY2(saw_scaled, "shared card faces should be scaled for display size");
+}
+
+void card_widget_tests::theme_source_change_invalidates_stale_raster_result() {
+    card_widget widget;
+    widget.start_quiz(0, 1, false);
+
+    widget.card_sheet_source = str_label("assets/cards_0.svg");
+    widget.card_sheet_renderer.load(widget.card_sheet_source);
+    widget.start_rasterization(QSize(120, 180));
+
+    widget.card_sheet_source = str_label("assets/cards_1.svg");
+    widget.card_sheet_renderer.load(widget.card_sheet_source);
+    widget.pending_raster_size = QSize(120, 180);
+
+    widget.rasterize_watcher.waitForFinished();
+    if (widget.rasterizing) {
+        widget.rasterize_watcher.waitForFinished();
+    }
+
+    QCOMPARE(widget.raster_task_source, widget.card_sheet_source);
+    QVERIFY2(
+        !widget.card_faces_rasterized.isEmpty(),
+        "widget should start a follow-up rasterization for the new source"
+    );
 }
