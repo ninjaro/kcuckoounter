@@ -1,5 +1,5 @@
-#ifndef KCUCKOOUNTER_INCLUDE_TABLE_TABLE_HPP
-#define KCUCKOOUNTER_INCLUDE_TABLE_TABLE_HPP
+#ifndef KCUCKOOUNTER_TABLE_TABLE_HPP
+#define KCUCKOOUNTER_TABLE_TABLE_HPP
 
 #include "arch/random_generator.hpp"
 #include "arch/time_interface.hpp"
@@ -104,4 +104,4 @@ private:
     void handle_game_over();
 };
 
-#endif // KCUCKOOUNTER_INCLUDE_TABLE_TABLE_HPP
+#endif // KCUCKOOUNTER_TABLE_TABLE_HPP

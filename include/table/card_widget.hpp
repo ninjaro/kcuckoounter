@@ -1,5 +1,5 @@
-#ifndef KCUCKOOUNTER_INCLUDE_TABLE_CARD_WIDGET_HPP
-#define KCUCKOOUNTER_INCLUDE_TABLE_CARD_WIDGET_HPP
+#ifndef KCUCKOOUNTER_TABLE_CARD_WIDGET_HPP
+#define KCUCKOOUNTER_TABLE_CARD_WIDGET_HPP
 
 #include "arch/random_generator.hpp"
 #include "arch/time_interface.hpp"
@@ -137,4 +137,4 @@ private:
     void on_rasterization_finished();
 };
 
-#endif // KCUCKOOUNTER_INCLUDE_TABLE_CARD_WIDGET_HPP
+#endif // KCUCKOOUNTER_TABLE_CARD_WIDGET_HPP

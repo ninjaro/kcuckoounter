@@ -44,8 +44,12 @@ while you wait for the next card, table is a jazz group, each one in slot and pl
 by one pattern only, here a card opens long across the cloth like a trombone slide, there one lands exact as a
 metronome, another cracks like a knout, and you cannot know what comes next, not really, but when the card opens you
 know it is the one that had to be there, even if you begged for another, even if you kept saying once it has to go my
-way, and you can try to tame it, cheat it, ask Roy Johnson for You Can't Put Your Arms Round a Memory, you can learn
+way, and you can try to tame it, cheat it, ask George Shearing for You Can't Put Your Arms Round a Memory, you can learn
 Hi-Lo and KO (Knock-Out) Count and BRH-II Count and all the rest, but do you really want to know or do you want the
 haze, the smoke before the turn, and can any of that be carried into C++ with Qt6, KF6, KDEGames6, coreaddons, ki18n,
 kxmlgui, kconfigwidgets, kwidgetsaddons, kio, libkdegames, extra-cmake-modules, all of it correct, all of it working,
 and still not the same, do you think it came through.
+
+[![go: Castaneda](https://img.shields.io/badge/go-Castaneda-5A4A3A)](https://en.wikipedia.org/wiki/Carlos_Castaneda)
+[![go: Kesey](https://img.shields.io/badge/go-Kesey-2F3E5E)](https://en.wikipedia.org/wiki/Ken_Kesey)
+[![go: George Shearing](https://img.shields.io/badge/go-George%20Shearing-6B5E3B)](https://en.wikipedia.org/wiki/George_Shearing)

@@ -1,5 +1,5 @@
-#ifndef KCUCKOOUNTER_INCLUDE_TABLE_SLOT_SETTINGS_HPP
-#define KCUCKOOUNTER_INCLUDE_TABLE_SLOT_SETTINGS_HPP
+#ifndef KCUCKOOUNTER_TABLE_SLOT_SETTINGS_HPP
+#define KCUCKOOUNTER_TABLE_SLOT_SETTINGS_HPP
 
 #include "arch/widget_helpers.hpp"
 
@@ -8,7 +8,7 @@ class slot_settings : public BaseWidget {
 
 public:
     explicit slot_settings(
-        BaseWidget* parent = nullptr, bool include_info_button = true
+        BaseWidget* parent = nullptr, bool info_button = true
     );
     ~slot_settings() override;
 
@@ -31,7 +31,7 @@ private:
     BaseCheckBox* training_check_box_internal;
     BasePushButton* info_button_internal;
 
-    void setup_ui(bool include_info_button);
+    void setup_ui(bool info_button);
 };
 
-#endif // KCUCKOOUNTER_INCLUDE_TABLE_SLOT_SETTINGS_HPP
+#endif // KCUCKOOUNTER_TABLE_SLOT_SETTINGS_HPP

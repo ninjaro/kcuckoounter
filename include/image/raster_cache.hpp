@@ -1,5 +1,5 @@
-#ifndef KCUCKOOUNTER_INCLUDE_IMAGE_RASTER_CACHE_HPP
-#define KCUCKOOUNTER_INCLUDE_IMAGE_RASTER_CACHE_HPP
+#ifndef KCUCKOOUNTER_IMAGE_RASTER_CACHE_HPP
+#define KCUCKOOUNTER_IMAGE_RASTER_CACHE_HPP
 
 #include <QHash>
 #include <QImage>
@@ -283,4 +283,4 @@ size_t qHash(const raster_cache::entry_key& key, size_t seed = 0);
 size_t qHash(const raster_cache::family_key& key, size_t seed = 0);
 size_t qHash(const raster_cache::debug_task_timing_key& key, size_t seed = 0);
 
-#endif // KCUCKOOUNTER_INCLUDE_IMAGE_RASTER_CACHE_HPP
+#endif // KCUCKOOUNTER_IMAGE_RASTER_CACHE_HPP
