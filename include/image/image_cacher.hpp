@@ -11,6 +11,7 @@
 class image_cacher {
 public:
     explicit image_cacher(const QString& source_path = QString());
+    ~image_cacher();
 
     void set_source(const QString& new_source_path);
     void set_target_size(const QSize& new_target_size);
@@ -32,8 +33,10 @@ private:
     qreal base_scale;
     int min_short_px;
     raster_cache::cache_namespace name_space;
+    std::optional<raster_cache::entry_key> displayed_entry_key;
 
     QSize raster_cache_size(const QSize& desired_size) const;
+    void clear_display_tracking();
     void rasterize();
 };
 

@@ -27,6 +27,15 @@ private slots:
     void quiz_spin_box_remembers_last_input();
     /// @brief Verifies shared card-face presence tracks set and clear calls.
     void shared_card_faces_presence_tracks_set_and_clear();
+    /// @brief Verifies shared cache rasterization includes card back and
+    /// deterministic fallback usage metadata.
+    void shared_cache_rasterization_includes_back_and_fallback_usage();
+    /// @brief Verifies shared-cache generation cutover keeps bounded active +
+    /// warming entries under rapid source churn.
+    void shared_cache_generation_cutover_stays_bounded();
+    /// @brief Verifies theme apply does not leave stale shared-face in-flight
+    /// state.
+    void theme_apply_while_shared_worker_busy_clears_stale_in_flight();
 };
 
 #endif // KCUCKOOUNTER_TESTS_TABLE_TESTS_HPP

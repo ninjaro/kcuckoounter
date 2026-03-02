@@ -10,6 +10,8 @@ class QLabel;
 class QDialog;
 class QProgressBar;
 class QSlider;
+class QCheckBox;
+class QGroupBox;
 class QPlainTextEdit;
 class QTabWidget;
 class resource_monitor;
@@ -29,6 +31,9 @@ private slots:
     void on_settings_triggered();
 #ifndef NDEBUG
     void on_export_debug_snapshot_triggered();
+    void on_export_process_memory_report_triggered();
+    void on_export_monitor_charts_triggered();
+    void on_add_monitor_marker_triggered();
     void on_set_realistic_cadence_mode_triggered();
     void on_set_instrumented_cadence_mode_triggered();
     void on_toggle_resource_monitor_triggered(bool checked);
@@ -58,14 +63,35 @@ private:
     BaseAction* settings_action;
 #ifndef NDEBUG
     BaseAction* export_debug_snapshot_action;
+    BaseAction* export_process_memory_report_action;
+    BaseAction* export_monitor_charts_action;
+    BaseAction* add_monitor_marker_action;
     BaseAction* realistic_cadence_mode_action;
     BaseAction* instrumented_cadence_mode_action;
     BaseAction* toggle_resource_monitor_action;
     QDialog* resource_monitor_window;
     QTabWidget* resource_monitor_tabs;
-    QPlainTextEdit* resource_monitor_live_text;
+    QLabel* resource_monitor_summary_memory_card;
+    QLabel* resource_monitor_summary_process_card;
+    QLabel* resource_monitor_summary_stock_card;
+    QLabel* resource_monitor_summary_activity_card;
+    QCheckBox* resource_monitor_show_cache_bytes_series;
+    QCheckBox* resource_monitor_show_widget_local_series;
+    QCheckBox* resource_monitor_show_process_rss_series;
+    QCheckBox* resource_monitor_show_gap_bytes_series;
+    QCheckBox* resource_monitor_show_accounted_to_measured_ratio_series;
+    QCheckBox* resource_monitor_show_activity_displayed_series;
+    QCheckBox* resource_monitor_show_activity_pending_series;
+    QCheckBox* resource_monitor_show_activity_in_flight_series;
+    QCheckBox* resource_monitor_show_activity_events_series;
+    QPlainTextEdit* resource_monitor_primary_chart_text;
+    QPlainTextEdit* resource_monitor_secondary_chart_text;
+    QGroupBox* resource_monitor_timeline_group;
+    QGroupBox* resource_monitor_diagnostics_group;
     QPlainTextEdit* resource_monitor_timeline_text;
     QPlainTextEdit* resource_monitor_diagnostics_text;
+    QPlainTextEdit* resource_monitor_geometry_text;
+    QPlainTextEdit* resource_monitor_resize_history_text;
 #endif
     bool quiz_started;
     bool quiz_paused;
@@ -86,6 +112,7 @@ private:
 #ifndef NDEBUG
     void add_debug_marker(const QString& label) const;
     void sync_debug_cadence_mode_actions() const;
+    void setup_debug_resource_monitor_ui();
     void refresh_resource_monitor_view();
     void dump_debug_telemetry_on_exit() const;
 #endif

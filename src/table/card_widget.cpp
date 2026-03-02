@@ -388,7 +388,7 @@ void card_widget::sync_card_sheet_source() {
     picks_since_rasterize = 0;
 
     if (rasterizing) {
-        pending_raster_size = card_face_size;
+        pending_raster_size = raster_cache_size(card_face_size);
     }
 
     if (!card_face_size.isEmpty()) {
@@ -913,47 +913,13 @@ void card_widget::start_rasterization(const QSize& target_size) {
     set_rasterizing(true);
 
     const QString source = raster_task_source;
-    QStringList element_ids = card_element_ids();
-    const QString back_id = card_back_element_id();
-    if (!back_id.isEmpty()) {
-        element_ids.append(back_id);
-    }
     const QSize raster_size = target_size;
 
     rasterize_watcher.setFuture(
-        QtConcurrent::run([source, element_ids, raster_size]() {
-            QVector<QImage> images;
-            images.reserve(element_ids.size());
-
-            QSvgRenderer renderer(source);
-            if (!renderer.isValid()) {
-                for (int i = 0; i < element_ids.size(); ++i) {
-                    images.push_back(QImage());
-                }
-                return images;
-            }
-
-            for (const QString& element_id : element_ids) {
-                if (element_id.isEmpty()
-                    || !renderer.elementExists(element_id)) {
-                    images.push_back(QImage());
-                    continue;
-                }
-
-                QImage card_image(
-                    raster_size, QImage::Format_ARGB32_Premultiplied
-                );
-                card_image.fill(Qt::transparent);
-                QPainter card_painter(&card_image);
-                renderer.render(
-                    &card_painter, element_id,
-                    QRectF(QPointF(0.0, 0.0), QSizeF(raster_size))
-                );
-                card_painter.end();
-                images.push_back(card_image);
-            }
-
-            return images;
+        QtConcurrent::run([source, raster_size]() {
+            return rasterize_required_card_faces_with_fallback(
+                source, raster_size
+            );
         })
     );
 }
@@ -999,13 +965,20 @@ void card_widget::set_rasterizing(bool active) {
 void card_widget::on_rasterization_finished() {
     const QString finished_source = raster_task_source;
     const QVector<QImage> images = rasterize_watcher.result();
+    const bool source_still_current = finished_source == card_sheet_source;
 
-    if (finished_source == card_sheet_source) {
+    if (source_still_current) {
         apply_rasterized_images(images, raster_task_size);
     }
 
+    if (!source_still_current && pending_raster_size.isEmpty()
+        && !card_face_size.isEmpty()) {
+        pending_raster_size = raster_cache_size(card_face_size);
+    }
+
     if (!pending_raster_size.isEmpty()
-        && pending_raster_size != raster_task_size) {
+        && (pending_raster_size != raster_task_size
+            || !source_still_current)) {
         const QSize next_size = pending_raster_size;
         start_rasterization(next_size);
         update();

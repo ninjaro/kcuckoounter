@@ -28,6 +28,7 @@ private slots:
     void debug_snapshot_tracks_deadline_readiness_counters();
     void debug_snapshot_includes_size_buckets_and_largest_entries();
     void debug_snapshot_includes_displayed_split_and_task_toplists();
+    void display_lifecycle_hooks_update_consumer_rollups();
 };
 
 #endif // KCUCKOOUNTER_TESTS_RASTER_CACHE_TESTS_HPP

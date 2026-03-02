@@ -32,6 +32,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace {
 QColor theme_color_from_label(const QString& label) {
@@ -113,13 +114,74 @@ raster_cache& settings_theme_preview_cache_service() {
     return service;
 }
 
+qint64 next_theme_preview_instance_id() {
+    static qint64 next_id = 1;
+    return next_id++;
+}
+
 QString theme_preview_render_scope(int rank_index, int suit_index) {
     const QStringList& ids = card_element_ids();
     const int card_index = suit_index * 13 + rank_index;
     if (card_index < 0 || card_index >= ids.size()) {
         return QString();
     }
-    return QStringLiteral("subset:%1").arg(ids.at(card_index));
+    return ids.at(card_index);
+}
+
+QString theme_preview_generation_render_scope(
+    const QString& element_id, qint64 instance_id, qint64 generation_id
+) {
+    if (element_id.isEmpty() || instance_id <= 0 || generation_id <= 0) {
+        return QString();
+    }
+    return QStringLiteral("subset:%1#w%2#g%3")
+        .arg(element_id)
+        .arg(instance_id)
+        .arg(generation_id);
+}
+
+struct theme_preview_scope_parse {
+    QString element_id;
+    qint64 instance_id;
+    qint64 generation_id;
+    bool valid;
+};
+
+theme_preview_scope_parse parse_theme_preview_render_scope(const QString& scope) {
+    const QString prefix = QStringLiteral("subset:");
+    if (!scope.startsWith(prefix)) {
+        return { {}, 0, 0, false };
+    }
+
+    const QString payload = scope.mid(prefix.size()).trimmed();
+    const qsizetype generation_index
+        = payload.lastIndexOf(QStringLiteral("#g"));
+    if (generation_index <= 0) {
+        return { {}, 0, 0, false };
+    }
+    const qsizetype instance_index
+        = payload.lastIndexOf(QStringLiteral("#w"), generation_index - 1);
+    if (instance_index <= 0 || instance_index >= generation_index) {
+        return { {}, 0, 0, false };
+    }
+
+    const QString element_id = payload.left(instance_index).trimmed();
+    bool instance_ok = false;
+    const qint64 instance_id = payload
+                                   .mid(
+                                       instance_index + 2,
+                                       generation_index - (instance_index + 2)
+                                   )
+                                   .toLongLong(&instance_ok);
+    bool generation_ok = false;
+    const qint64 generation_id
+        = payload.mid(generation_index + 2).toLongLong(&generation_ok);
+    if (!instance_ok || !generation_ok || instance_id <= 0
+        || generation_id <= 0 || element_id.isEmpty()) {
+        return { {}, 0, 0, false };
+    }
+
+    return { element_id, instance_id, generation_id, true };
 }
 
 QString weight_text_for_value(int weight) {
@@ -283,6 +345,16 @@ settings_template_widget::settings_template_widget(
     , theme_carousel(nullptr)
     , active_theme_preview_suit_index(0)
     , active_weights_preview_suit_index(0)
+    , theme_preview_instance_id(0)
+    , active_theme_preview_source_id()
+    , active_theme_preview_bucket_px(0)
+    , active_theme_preview_generation_id(0)
+    , active_theme_preview_requested_element_ids()
+    , warming_theme_preview_source_id()
+    , warming_theme_preview_bucket_px(0)
+    , warming_theme_preview_generation_id(0)
+    , warming_theme_preview_requested_element_ids()
+    , next_theme_preview_generation_id(1)
     , theme_preview_render_watcher(this)
     , active_theme_preview_render_key(std::nullopt)
     , pending_theme_preview_render_queue()
@@ -290,7 +362,10 @@ settings_template_widget::settings_template_widget(
     , theme_preview_render_scheduled(false)
     , theme_preview_refresh_scheduled(false)
     , theme_preview_needs_refresh(false)
-    , weights_preview_needs_refresh(false) {
+    , weights_preview_needs_refresh(false)
+    , displayed_theme_preview_entries()
+    , displayed_weights_preview_entries() {
+    theme_preview_instance_id = next_theme_preview_instance_id();
     QObject::connect(
         &settings_theme_preview_cache_service(), &raster_cache::result_updated,
         this, &settings_template_widget::on_theme_preview_cache_result_updated
@@ -303,9 +378,25 @@ settings_template_widget::settings_template_widget(
 }
 
 settings_template_widget::~settings_template_widget() {
+    clear_displayed_theme_preview_entries(
+        raster_cache::debug_consumer_scope::settings_theme_carousel,
+        displayed_theme_preview_entries
+    );
+    clear_displayed_theme_preview_entries(
+        raster_cache::debug_consumer_scope::settings_strategy_preview,
+        displayed_weights_preview_entries
+    );
     if (theme_preview_render_watcher.isRunning()) {
         theme_preview_render_watcher.waitForFinished();
     }
+    retire_theme_preview_generation(
+        active_theme_preview_source_id, active_theme_preview_bucket_px,
+        active_theme_preview_generation_id
+    );
+    retire_theme_preview_generation(
+        warming_theme_preview_source_id, warming_theme_preview_bucket_px,
+        warming_theme_preview_generation_id
+    );
 }
 
 void settings_template_widget::setup_ui(const QString& selected_strategy) {
@@ -557,7 +648,6 @@ void settings_template_widget::setup_appearance_ui() {
         str_label("Base card theme (cards_0.svg)"), theme_options_widget
     );
     base_theme_button->setProperty("theme_source", themed_cards_asset_path(0));
-    base_theme_button->setChecked(true);
     theme_button_group->addButton(base_theme_button);
     theme_options_layout->addWidget(base_theme_button);
 
@@ -576,6 +666,23 @@ void settings_template_widget::setup_appearance_ui() {
     alt_theme_2_button->setProperty("theme_source", themed_cards_asset_path(2));
     theme_button_group->addButton(alt_theme_2_button);
     theme_options_layout->addWidget(alt_theme_2_button);
+
+    const QString active_theme_source = card_sheet_source_path();
+    bool matched_runtime_source = false;
+    for (QAbstractButton* button : theme_button_group->buttons()) {
+        if (button == nullptr
+            || button->property("theme_source").toString()
+                != active_theme_source) {
+            continue;
+        }
+
+        button->setChecked(true);
+        matched_runtime_source = true;
+        break;
+    }
+    if (!matched_runtime_source) {
+        base_theme_button->setChecked(true);
+    }
 
     theme_section_layout->addWidget(theme_options_widget);
 
@@ -623,6 +730,14 @@ void settings_template_widget::setup_appearance_ui() {
         theme_button_group, &QButtonGroup::buttonClicked, this,
         [this](QAbstractButton*) {
             prune_pending_theme_preview_queue();
+            clear_displayed_theme_preview_entries(
+                raster_cache::debug_consumer_scope::settings_theme_carousel,
+                displayed_theme_preview_entries
+            );
+            clear_displayed_theme_preview_entries(
+                raster_cache::debug_consumer_scope::settings_strategy_preview,
+                displayed_weights_preview_entries
+            );
             theme_preview_needs_refresh = true;
             weights_preview_needs_refresh = true;
             flush_coalesced_preview_refresh();
@@ -638,9 +753,12 @@ void settings_template_widget::apply_theme_settings() {
     if (theme_combo_box == nullptr || shared_state == nullptr) {
         return;
     }
+
     const QColor base_color
         = theme_color_from_label(theme_combo_box->currentText());
+    const QString selected_theme_source = selected_theme_source_id();
     theme_settings::set_base_color(base_color);
+    set_card_sheet_source_path(selected_theme_source);
     shared_state->set_table_color_index(theme_combo_box->currentIndex());
     if (table_widget != nullptr) {
         table_widget->apply_theme();
@@ -651,7 +769,43 @@ void settings_template_widget::reset_theme_selection() {
     if (theme_combo_box == nullptr || shared_state == nullptr) {
         return;
     }
+
     theme_combo_box->setCurrentIndex(shared_state->table_color_index());
+    if (theme_button_group == nullptr) {
+        return;
+    }
+
+    const QString runtime_source = card_sheet_source_path();
+    QAbstractButton* button_to_check = nullptr;
+    const QList<QAbstractButton*> buttons = theme_button_group->buttons();
+    for (QAbstractButton* button : buttons) {
+        if (button == nullptr
+            || button->property("theme_source").toString() != runtime_source) {
+            continue;
+        }
+        button_to_check = button;
+        break;
+    }
+
+    if (button_to_check == nullptr && !buttons.isEmpty()) {
+        button_to_check = buttons.first();
+    }
+    if (button_to_check != nullptr && !button_to_check->isChecked()) {
+        button_to_check->setChecked(true);
+    }
+
+    prune_pending_theme_preview_queue();
+    clear_displayed_theme_preview_entries(
+        raster_cache::debug_consumer_scope::settings_theme_carousel,
+        displayed_theme_preview_entries
+    );
+    clear_displayed_theme_preview_entries(
+        raster_cache::debug_consumer_scope::settings_strategy_preview,
+        displayed_weights_preview_entries
+    );
+    theme_preview_needs_refresh = true;
+    weights_preview_needs_refresh = true;
+    flush_coalesced_preview_refresh();
 }
 
 void settings_template_widget::update_strategy_details(int index) {
@@ -784,7 +938,13 @@ void settings_template_widget::update_theme_carousel(int suit_index) {
         return;
     }
     active_theme_preview_suit_index = suit_index;
+    active_theme_preview_requested_element_ids.clear();
+    warming_theme_preview_requested_element_ids.clear();
     prune_pending_theme_preview_queue();
+    clear_displayed_theme_preview_entries(
+        raster_cache::debug_consumer_scope::settings_theme_carousel,
+        displayed_theme_preview_entries
+    );
     const QSize card_size = preview_card_size();
     theme_carousel->set_card_size(card_size);
     theme_carousel->set_card_provider(
@@ -794,44 +954,323 @@ void settings_template_widget::update_theme_carousel(int suit_index) {
     );
 }
 
-QPixmap settings_template_widget::request_theme_preview_card(
-    int card_index, int suit_index, const QSize& size
+raster_cache::entry_key settings_template_widget::theme_preview_entry_key(
+    const QString& source_id, int target_bucket_px, qint64 generation_id,
+    const QString& element_id
+) const {
+    return raster_cache::entry_key {
+        .name_space = raster_cache::cache_namespace::settings,
+        .kind = raster_cache::resource_kind::card_sheet_faces,
+        .source_id = source_id,
+        .render_scope
+        = theme_preview_generation_render_scope(
+            element_id, theme_preview_instance_id, generation_id
+        ),
+        .target_bucket_px = target_bucket_px,
+    };
+}
+
+bool settings_template_widget::is_theme_preview_key_ready(
+    const QString& source_id, int target_bucket_px, qint64 generation_id,
+    const QString& element_id
+) const {
+    if (source_id.isEmpty() || target_bucket_px <= 0 || generation_id <= 0
+        || element_id.isEmpty()) {
+        return false;
+    }
+
+    const raster_cache::entry_key key = theme_preview_entry_key(
+        source_id, target_bucket_px, generation_id, element_id
+    );
+    const std::optional<raster_cache::result> ready
+        = settings_theme_preview_cache_service().get_if_ready(key);
+    return ready.has_value() && !ready->face_images.isEmpty()
+        && !ready->face_images[0].isNull();
+}
+
+void settings_template_widget::retire_theme_preview_generation(
+    const QString& source_id, int target_bucket_px, qint64 generation_id
+) {
+    if (source_id.isEmpty() || target_bucket_px <= 0 || generation_id <= 0) {
+        return;
+    }
+
+    auto& service = settings_theme_preview_cache_service();
+    for (const QString& element_id : card_element_ids()) {
+        service.erase_result(theme_preview_entry_key(
+            source_id, target_bucket_px, generation_id, element_id
+        ));
+    }
+}
+
+void settings_template_widget::begin_theme_preview_warming_generation(
+    const QString& source_id, int target_bucket_px
+) {
+    if (source_id.isEmpty() || target_bucket_px <= 0) {
+        return;
+    }
+
+    if (warming_theme_preview_generation_id > 0
+        && warming_theme_preview_source_id == source_id
+        && warming_theme_preview_bucket_px == target_bucket_px) {
+        return;
+    }
+
+    retire_theme_preview_generation(
+        warming_theme_preview_source_id, warming_theme_preview_bucket_px,
+        warming_theme_preview_generation_id
+    );
+
+    warming_theme_preview_source_id = source_id;
+    warming_theme_preview_bucket_px = target_bucket_px;
+    warming_theme_preview_generation_id = next_theme_preview_generation_id++;
+    warming_theme_preview_requested_element_ids.clear();
+}
+
+void settings_template_widget::ensure_theme_preview_generation(
+    const QString& source_id, int target_bucket_px
+) {
+    if (source_id.isEmpty() || target_bucket_px <= 0) {
+        return;
+    }
+
+    if (active_theme_preview_generation_id <= 0) {
+        active_theme_preview_source_id = source_id;
+        active_theme_preview_bucket_px = target_bucket_px;
+        active_theme_preview_generation_id = next_theme_preview_generation_id++;
+        active_theme_preview_requested_element_ids.clear();
+        return;
+    }
+
+    const bool active_matches = active_theme_preview_source_id == source_id
+        && active_theme_preview_bucket_px == target_bucket_px;
+    if (active_matches) {
+        if (warming_theme_preview_generation_id > 0) {
+            retire_theme_preview_generation(
+                warming_theme_preview_source_id, warming_theme_preview_bucket_px,
+                warming_theme_preview_generation_id
+            );
+            warming_theme_preview_source_id.clear();
+            warming_theme_preview_bucket_px = 0;
+            warming_theme_preview_generation_id = 0;
+            warming_theme_preview_requested_element_ids.clear();
+        }
+        return;
+    }
+
+    begin_theme_preview_warming_generation(source_id, target_bucket_px);
+}
+
+bool settings_template_widget::try_cutover_theme_preview_generation() {
+    if (warming_theme_preview_generation_id <= 0
+        || warming_theme_preview_requested_element_ids.isEmpty()) {
+        return false;
+    }
+
+    for (const QString& element_id :
+         std::as_const(warming_theme_preview_requested_element_ids)) {
+        if (!is_theme_preview_key_ready(
+                warming_theme_preview_source_id,
+                warming_theme_preview_bucket_px,
+                warming_theme_preview_generation_id, element_id
+            )) {
+            return false;
+        }
+    }
+
+    const QString previous_source_id = active_theme_preview_source_id;
+    const int previous_bucket_px = active_theme_preview_bucket_px;
+    const qint64 previous_generation_id = active_theme_preview_generation_id;
+
+    active_theme_preview_source_id = warming_theme_preview_source_id;
+    active_theme_preview_bucket_px = warming_theme_preview_bucket_px;
+    active_theme_preview_generation_id = warming_theme_preview_generation_id;
+    active_theme_preview_requested_element_ids
+        = warming_theme_preview_requested_element_ids;
+
+    warming_theme_preview_source_id.clear();
+    warming_theme_preview_bucket_px = 0;
+    warming_theme_preview_generation_id = 0;
+    warming_theme_preview_requested_element_ids.clear();
+
+    clear_displayed_theme_preview_entries(
+        raster_cache::debug_consumer_scope::settings_theme_carousel,
+        displayed_theme_preview_entries
+    );
+    clear_displayed_theme_preview_entries(
+        raster_cache::debug_consumer_scope::settings_strategy_preview,
+        displayed_weights_preview_entries
+    );
+
+    retire_theme_preview_generation(
+        previous_source_id, previous_bucket_px, previous_generation_id
+    );
+    prune_pending_theme_preview_queue();
+
+    if (theme_carousel != nullptr) {
+        theme_preview_needs_refresh = true;
+    }
+    if (weights_carousel != nullptr) {
+        weights_preview_needs_refresh = true;
+    }
+    if (!theme_preview_refresh_scheduled
+        && (theme_preview_needs_refresh || weights_preview_needs_refresh)) {
+        theme_preview_refresh_scheduled = true;
+        QTimer::singleShot(
+            0, this, &settings_template_widget::flush_coalesced_preview_refresh
+        );
+    }
+    return true;
+}
+
+std::optional<QImage> settings_template_widget::request_theme_preview_face_image(
+    int card_index, int suit_index, const QSize& size,
+    raster_cache::debug_consumer_scope consumer,
+    QSet<raster_cache::entry_key>& tracked_keys
 ) {
     if (!size.isValid()) {
-        return {};
+        return std::nullopt;
     }
-    const QString render_scope
-        = theme_preview_render_scope(card_index, suit_index);
-    if (render_scope.isEmpty()) {
-        return {};
+
+    const QString element_id = theme_preview_render_scope(card_index, suit_index);
+    if (element_id.isEmpty()) {
+        return std::nullopt;
     }
 
     const int short_px = std::max(1, std::min(size.width(), size.height()));
+    ensure_theme_preview_generation(selected_theme_source_id(), short_px);
+    const bool use_warming_generation = warming_theme_preview_generation_id > 0;
+    if (use_warming_generation) {
+        warming_theme_preview_requested_element_ids.insert(element_id);
+        active_theme_preview_requested_element_ids.insert(element_id);
+    } else {
+        active_theme_preview_requested_element_ids.insert(element_id);
+    }
+    try_cutover_theme_preview_generation();
+
+    const bool use_warming_after_cutover
+        = warming_theme_preview_generation_id > 0;
+    const QString request_source_id = use_warming_after_cutover
+        ? warming_theme_preview_source_id
+        : active_theme_preview_source_id;
+    const int request_bucket_px = use_warming_after_cutover
+        ? warming_theme_preview_bucket_px
+        : active_theme_preview_bucket_px;
+    const qint64 request_generation_id = use_warming_after_cutover
+        ? warming_theme_preview_generation_id
+        : active_theme_preview_generation_id;
+    if (request_source_id.isEmpty() || request_bucket_px <= 0
+        || request_generation_id <= 0) {
+        return std::nullopt;
+    }
+
+    auto& service = settings_theme_preview_cache_service();
+    std::optional<QImage> active_fallback;
+    if (is_theme_preview_key_ready(
+            active_theme_preview_source_id, active_theme_preview_bucket_px,
+            active_theme_preview_generation_id, element_id
+        )) {
+        const raster_cache::entry_key key = theme_preview_entry_key(
+            active_theme_preview_source_id, active_theme_preview_bucket_px,
+            active_theme_preview_generation_id, element_id
+        );
+        const std::optional<raster_cache::result> ready = service.get_if_ready(key);
+        if (ready.has_value() && !ready->face_images.isEmpty()
+            && !ready->face_images[0].isNull()) {
+            active_fallback = ready->face_images[0];
+            note_displayed_theme_preview_entry(key, consumer, tracked_keys);
+            if (!use_warming_after_cutover) {
+                return active_fallback;
+            }
+        }
+    }
+
+    const raster_cache::entry_key request_key = theme_preview_entry_key(
+        request_source_id, request_bucket_px, request_generation_id, element_id
+    );
     const raster_cache::request req {
-        .name_space = raster_cache::cache_namespace::settings,
-        .kind = raster_cache::resource_kind::card_sheet_faces,
-        .source_id = selected_theme_source_id(),
-        .render_scope = render_scope,
+        .name_space = request_key.name_space,
+        .kind = request_key.kind,
+        .source_id = request_key.source_id,
+        .render_scope = request_key.render_scope,
         .need_short_px = short_px,
-        .target_bucket_px = short_px,
+        .target_bucket_px = request_key.target_bucket_px,
         .high_priority = false,
         .interactive = true,
         .preview = true,
     };
 
-    auto& service = settings_theme_preview_cache_service();
     const raster_cache::submit_outcome outcome = service.submit_request(req);
-    if (outcome.ready_result.has_value()
+    const bool request_has_ready_image = outcome.ready_result.has_value()
         && !outcome.ready_result->face_images.isEmpty()
-        && !outcome.ready_result->face_images[0].isNull()) {
-        settings_theme_preview_cache_service().note_entry_displayed(
-            outcome.key
-        );
-        return QPixmap::fromImage(outcome.ready_result->face_images[0]);
+        && !outcome.ready_result->face_images[0].isNull();
+    if (request_has_ready_image) {
+        if (request_generation_id == active_theme_preview_generation_id) {
+            note_displayed_theme_preview_entry(
+                outcome.key, consumer, tracked_keys
+            );
+            return outcome.ready_result->face_images[0];
+        }
+        if (try_cutover_theme_preview_generation()
+            && is_theme_preview_key_ready(
+                active_theme_preview_source_id, active_theme_preview_bucket_px,
+                active_theme_preview_generation_id, element_id
+            )) {
+            const raster_cache::entry_key key = theme_preview_entry_key(
+                active_theme_preview_source_id, active_theme_preview_bucket_px,
+                active_theme_preview_generation_id, element_id
+            );
+            const std::optional<raster_cache::result> ready
+                = service.get_if_ready(key);
+            if (ready.has_value() && !ready->face_images.isEmpty()
+                && !ready->face_images[0].isNull()) {
+                note_displayed_theme_preview_entry(key, consumer, tracked_keys);
+                return ready->face_images[0];
+            }
+        }
+        if (active_fallback.has_value()) {
+            return active_fallback;
+        }
     }
 
-    enqueue_theme_preview_render(outcome.key);
-    return {};
+    if (!request_has_ready_image) {
+        enqueue_theme_preview_render(outcome.key);
+    }
+    const bool did_cutover = try_cutover_theme_preview_generation();
+    if (did_cutover
+        && is_theme_preview_key_ready(
+            active_theme_preview_source_id, active_theme_preview_bucket_px,
+            active_theme_preview_generation_id, element_id
+        )) {
+        const raster_cache::entry_key key = theme_preview_entry_key(
+            active_theme_preview_source_id, active_theme_preview_bucket_px,
+            active_theme_preview_generation_id, element_id
+        );
+        const std::optional<raster_cache::result> ready = service.get_if_ready(key);
+        if (ready.has_value() && !ready->face_images.isEmpty()
+            && !ready->face_images[0].isNull()) {
+            note_displayed_theme_preview_entry(key, consumer, tracked_keys);
+            return ready->face_images[0];
+        }
+    }
+    if (active_fallback.has_value()) {
+        return active_fallback;
+    }
+    return std::nullopt;
+}
+
+QPixmap settings_template_widget::request_theme_preview_card(
+    int card_index, int suit_index, const QSize& size
+) {
+    const std::optional<QImage> face = request_theme_preview_face_image(
+        card_index, suit_index, size,
+        raster_cache::debug_consumer_scope::settings_theme_carousel,
+        displayed_theme_preview_entries
+    );
+    if (!face.has_value()) {
+        return {};
+    }
+    return QPixmap::fromImage(*face);
 }
 
 void settings_template_widget::enqueue_theme_preview_render(
@@ -882,8 +1321,7 @@ void settings_template_widget::process_pending_theme_preview_render() {
     }
 
     const QString render_scope = key.render_scope;
-    const QString prefix = QStringLiteral("subset:");
-    if (!render_scope.startsWith(prefix)) {
+    if (!render_scope.startsWith(QStringLiteral("subset:"))) {
         const raster_cache::family_key family {
             .name_space = key.name_space,
             .kind = key.kind,
@@ -899,8 +1337,9 @@ void settings_template_widget::process_pending_theme_preview_render() {
         return;
     }
 
-    const QString element_id = render_scope.mid(prefix.size());
-    if (element_id.isEmpty()) {
+    const theme_preview_scope_parse parsed
+        = parse_theme_preview_render_scope(render_scope);
+    if (!parsed.valid) {
         const raster_cache::family_key family {
             .name_space = key.name_space,
             .kind = key.kind,
@@ -918,6 +1357,7 @@ void settings_template_widget::process_pending_theme_preview_render() {
 
     active_theme_preview_render_key = key;
     const QString source_id = key.source_id;
+    const QString element_id = parsed.element_id;
     const int target_bucket_px = key.target_bucket_px;
     theme_preview_render_watcher.setFuture(
         QtConcurrent::run([source_id, element_id, target_bucket_px]() {
@@ -947,20 +1387,25 @@ void settings_template_widget::on_theme_preview_render_finished() {
 
     const raster_cache::entry_key key = *active_theme_preview_render_key;
     active_theme_preview_render_key.reset();
+    const theme_preview_scope_parse parsed
+        = parse_theme_preview_render_scope(key.render_scope);
 
     auto& service = settings_theme_preview_cache_service();
     const QImage image = theme_preview_render_watcher.result();
-    if (!image.isNull()) {
+    const bool key_is_expected = parsed.valid && is_theme_preview_key_relevant(key);
+    if (!image.isNull() && key_is_expected) {
         const raster_cache::result ready {
             .key = key,
             .raster_size = QSize(key.target_bucket_px, key.target_bucket_px),
-            .generation = 0,
+            .generation = static_cast<int>(parsed.generation_id),
             .timestamp_ms = QDateTime::currentMSecsSinceEpoch(),
             .use_count = 0,
             .single_image = {},
             .face_images = { image },
         };
         service.insert_or_update_result(ready);
+    } else if (!key_is_expected) {
+        service.erase_result(key);
     }
 
     const raster_cache::family_key family {
@@ -991,17 +1436,22 @@ void settings_template_widget::on_theme_preview_cache_result_updated(
         || key.kind != raster_cache::resource_kind::card_sheet_faces) {
         return;
     }
-    if (!key.render_scope.startsWith(QStringLiteral("subset:"))) {
+    const theme_preview_scope_parse parsed
+        = parse_theme_preview_render_scope(key.render_scope);
+    if (!parsed.valid || !is_theme_preview_key_relevant(key)) {
         return;
     }
-    if (!is_theme_preview_key_relevant(key)) {
+
+    if (parsed.generation_id == warming_theme_preview_generation_id) {
+        try_cutover_theme_preview_generation();
+        return;
+    }
+    if (parsed.generation_id != active_theme_preview_generation_id) {
         return;
     }
 
     const QStringList& ids = card_element_ids();
-    const QString element_id
-        = key.render_scope.mid(QStringLiteral("subset:").size());
-    const int card_index = static_cast<int>(ids.indexOf(element_id));
+    const int card_index = static_cast<int>(ids.indexOf(parsed.element_id));
     if (card_index < 0) {
         return;
     }
@@ -1043,7 +1493,13 @@ void settings_template_widget::update_weights_carousel(int suit_index) {
         return;
     }
     active_weights_preview_suit_index = suit_index;
+    active_theme_preview_requested_element_ids.clear();
+    warming_theme_preview_requested_element_ids.clear();
     prune_pending_theme_preview_queue();
+    clear_displayed_theme_preview_entries(
+        raster_cache::debug_consumer_scope::settings_strategy_preview,
+        displayed_weights_preview_entries
+    );
     int strategy_index = strategy_list_widget != nullptr
         ? strategy_list_widget->currentRow()
         : -1;
@@ -1062,9 +1518,6 @@ void settings_template_widget::update_weights_carousel(int suit_index) {
 QPixmap settings_template_widget::request_weighted_preview_card(
     int card_index, int suit_index, const QSize& size
 ) {
-    if (!size.isValid()) {
-        return {};
-    }
     int strategy_index = strategy_list_widget != nullptr
         ? strategy_list_widget->currentRow()
         : -1;
@@ -1072,39 +1525,41 @@ QPixmap settings_template_widget::request_weighted_preview_card(
         return {};
     }
 
-    const QString render_scope
-        = theme_preview_render_scope(card_index, suit_index);
-    if (render_scope.isEmpty()) {
+    const std::optional<QImage> base_face = request_theme_preview_face_image(
+        card_index, suit_index, size,
+        raster_cache::debug_consumer_scope::settings_strategy_preview,
+        displayed_weights_preview_entries
+    );
+    if (!base_face.has_value()) {
         return {};
     }
+    return build_weighted_card_preview(
+        *base_face, card_index, suit_index, size, strategies[strategy_index].weights
+    );
+}
 
-    const int short_px = std::max(1, std::min(size.width(), size.height()));
-    const raster_cache::request req {
-        .name_space = raster_cache::cache_namespace::settings,
-        .kind = raster_cache::resource_kind::card_sheet_faces,
-        .source_id = selected_theme_source_id(),
-        .render_scope = render_scope,
-        .need_short_px = short_px,
-        .target_bucket_px = short_px,
-        .high_priority = false,
-        .interactive = true,
-        .preview = true,
-    };
+void settings_template_widget::note_displayed_theme_preview_entry(
+    const raster_cache::entry_key& key,
+    raster_cache::debug_consumer_scope consumer,
+    QSet<raster_cache::entry_key>& tracked_keys
+) {
+    settings_theme_preview_cache_service().note_entry_displayed(key, consumer);
+    tracked_keys.insert(key);
+}
+
+void settings_template_widget::clear_displayed_theme_preview_entries(
+    raster_cache::debug_consumer_scope consumer,
+    QSet<raster_cache::entry_key>& tracked_keys
+) {
+    if (tracked_keys.isEmpty()) {
+        return;
+    }
 
     auto& service = settings_theme_preview_cache_service();
-    const raster_cache::submit_outcome outcome = service.submit_request(req);
-    if (!outcome.ready_result.has_value()
-        || outcome.ready_result->face_images.isEmpty()
-        || outcome.ready_result->face_images[0].isNull()) {
-        enqueue_theme_preview_render(outcome.key);
-        return {};
+    for (const raster_cache::entry_key& key : std::as_const(tracked_keys)) {
+        service.note_entry_no_longer_displayed(key, consumer);
     }
-
-    settings_theme_preview_cache_service().note_entry_displayed(outcome.key);
-    return build_weighted_card_preview(
-        outcome.ready_result->face_images[0], card_index, suit_index, size,
-        strategies[strategy_index].weights
-    );
+    tracked_keys.clear();
 }
 
 void settings_template_widget::update_suit_selection(int index) {
@@ -1117,29 +1572,45 @@ void settings_template_widget::update_suit_selection(int index) {
 bool settings_template_widget::is_theme_preview_key_relevant(
     const raster_cache::entry_key& key
 ) const {
-    const QString source_id = selected_theme_source_id();
     if (key.name_space != raster_cache::cache_namespace::settings
-        || key.kind != raster_cache::resource_kind::card_sheet_faces
-        || key.source_id != source_id
-        || !key.render_scope.startsWith(QStringLiteral("subset:"))) {
+        || key.kind != raster_cache::resource_kind::card_sheet_faces) {
         return false;
     }
 
-    const QString element_id
-        = key.render_scope.mid(QStringLiteral("subset:").size());
-    if (element_id.isEmpty()) {
+    const theme_preview_scope_parse parsed
+        = parse_theme_preview_render_scope(key.render_scope);
+    if (!parsed.valid || parsed.instance_id != theme_preview_instance_id) {
         return false;
     }
 
     const QStringList& ids = card_element_ids();
-    const int card_index = static_cast<int>(ids.indexOf(element_id));
+    const int card_index = static_cast<int>(ids.indexOf(parsed.element_id));
     if (card_index < 0) {
         return false;
     }
 
     const int suit_index = card_index / 13;
-    return suit_index == active_theme_preview_suit_index
+    const bool suit_is_relevant = suit_index == active_theme_preview_suit_index
         || suit_index == active_weights_preview_suit_index;
+    if (!suit_is_relevant) {
+        return false;
+    }
+
+    if (parsed.generation_id == active_theme_preview_generation_id) {
+        return key.source_id == active_theme_preview_source_id
+            && key.target_bucket_px == active_theme_preview_bucket_px
+            && active_theme_preview_requested_element_ids.contains(parsed.element_id
+            );
+    }
+    if (parsed.generation_id == warming_theme_preview_generation_id) {
+        return key.source_id == warming_theme_preview_source_id
+            && key.target_bucket_px == warming_theme_preview_bucket_px
+            && warming_theme_preview_requested_element_ids.contains(
+                parsed.element_id
+            );
+    }
+
+    return false;
 }
 
 QString settings_template_widget::selected_theme_source_id() const {

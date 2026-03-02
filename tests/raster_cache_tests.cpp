@@ -29,6 +29,16 @@ raster_cache::entry_key make_entry_in_namespace(
     };
 }
 
+raster_cache::entry_key make_face_entry(int bucket) {
+    return raster_cache::entry_key {
+        .name_space = raster_cache::cache_namespace::main,
+        .kind = raster_cache::resource_kind::card_sheet_faces,
+        .source_id = QStringLiteral("assets/cards_0.svg"),
+        .render_scope = QStringLiteral("all_faces"),
+        .target_bucket_px = bucket,
+    };
+}
+
 raster_cache::request make_request(int bucket) {
     return raster_cache::request {
         .name_space = raster_cache::cache_namespace::main,
@@ -607,25 +617,39 @@ void raster_cache_tests::
     debug_snapshot_includes_size_buckets_and_largest_entries() {
     raster_cache service;
 
-    auto make_result = [](int bucket, int height_scale) {
-        return raster_cache::result {
-            .key = make_entry(bucket),
-            .raster_size = QSize(bucket, bucket * height_scale),
-            .generation = 1,
-            .timestamp_ms = 0,
-            .use_count = 0,
-            .single_image = QImage(
-                bucket, bucket * height_scale,
-                QImage::Format_ARGB32_Premultiplied
-            ),
-            .face_images = {},
-        };
-    };
+    auto make_result
+        = [](const raster_cache::entry_key& key, int height_scale) {
+              const int bucket = key.target_bucket_px;
+              return raster_cache::result {
+                  .key = key,
+                  .raster_size = QSize(bucket, bucket * height_scale),
+                  .generation = 1,
+                  .timestamp_ms = 0,
+                  .use_count = 0,
+                  .single_image = QImage(
+                      bucket, bucket * height_scale,
+                      QImage::Format_ARGB32_Premultiplied
+                  ),
+                  .face_images = {},
+              };
+          };
 
-    service.insert_or_update_result(make_result(96, 1));
-    service.insert_or_update_result(make_result(96, 2));
-    service.insert_or_update_result(make_result(256, 2));
-    service.insert_or_update_result(make_result(160, 1));
+    service.insert_or_update_result(make_result(make_entry(96), 1));
+    service.insert_or_update_result(make_result(
+        make_entry_in_namespace(
+            raster_cache::cache_namespace::main, 96,
+            QStringLiteral("assets/logo.svg")
+        ),
+        2
+    ));
+    service.insert_or_update_result(make_result(
+        make_entry_in_namespace(
+            raster_cache::cache_namespace::settings, 256,
+            QStringLiteral("assets/cards_0.svg")
+        ),
+        2
+    ));
+    service.insert_or_update_result(make_result(make_face_entry(160), 1));
 
     const raster_cache::debug_snapshot snapshot = service.get_debug_snapshot();
 
@@ -646,6 +670,17 @@ void raster_cache_tests::
         >= snapshot.largest_entries.at(2).estimated_bytes
     );
     QCOMPARE(snapshot.largest_entries.at(0).target_bucket_px, 256);
+    QCOMPARE(
+        snapshot.largest_entries.at(0).name_space,
+        raster_cache::cache_namespace::settings
+    );
+    QCOMPARE(
+        snapshot.largest_entries.at(0).source_id,
+        QStringLiteral("assets/cards_0.svg")
+    );
+    QCOMPARE(
+        snapshot.largest_entries.at(0).render_scope, QStringLiteral("full")
+    );
 }
 
 void raster_cache_tests::
@@ -654,31 +689,20 @@ void raster_cache_tests::
 
     service.insert_or_update_result(
         raster_cache::result {
-            .key = make_entry(128),
+            .key = make_face_entry(128),
             .raster_size = QSize(128, 128),
             .generation = 1,
             .timestamp_ms = 0,
             .use_count = 0,
-            .single_image
-            = QImage(128, 128, QImage::Format_ARGB32_Premultiplied),
-            .face_images = {},
+            .single_image = {},
+            .face_images = {
+                QImage(128, 128, QImage::Format_ARGB32_Premultiplied),
+                QImage(128, 128, QImage::Format_ARGB32_Premultiplied),
+            },
         }
     );
 
-    service.insert_or_update_result(
-        raster_cache::result {
-            .key = make_entry(192),
-            .raster_size = QSize(192, 192),
-            .generation = 1,
-            .timestamp_ms = 0,
-            .use_count = 0,
-            .single_image
-            = QImage(192, 192, QImage::Format_ARGB32_Premultiplied),
-            .face_images = {},
-        }
-    );
-
-    service.note_entry_displayed(make_entry(128));
+    service.note_entry_displayed(make_face_entry(128));
 
     raster_cache::request requested_twice {
         .name_space = raster_cache::cache_namespace::main,
@@ -704,6 +728,21 @@ void raster_cache_tests::
     };
     QVERIFY(service.finish_active_request(first_family, first.key)
                 .accepted_completion);
+    service.insert_or_update_result(
+        raster_cache::result {
+            .key = first.key,
+            .raster_size
+            = QSize(first.key.target_bucket_px, first.key.target_bucket_px),
+            .generation = 1,
+            .timestamp_ms = 1,
+            .use_count = 0,
+            .single_image = QImage(
+                first.key.target_bucket_px, first.key.target_bucket_px,
+                QImage::Format_ARGB32_Premultiplied
+            ),
+            .face_images = {},
+        }
+    );
 
     const raster_cache::submit_outcome second
         = service.submit_request(requested_twice);
@@ -735,18 +774,82 @@ void raster_cache_tests::
         snapshot.displayed_ready_entries + snapshot.cached_only_ready_entries,
         snapshot.ready_entries
     );
+    QVERIFY(snapshot.widget_local_rasterized_bytes_estimated > 0);
+    QVERIFY(snapshot.widget_local_scaled_bytes_estimated > 0);
+    QCOMPARE(
+        snapshot.widget_local_display_bytes_estimated,
+        snapshot.widget_local_rasterized_bytes_estimated
+            + snapshot.widget_local_scaled_bytes_estimated
+    );
 
     QVERIFY(!snapshot.top_requested_entries.isEmpty());
     QCOMPARE(snapshot.top_requested_entries.at(0).request_count, 2);
     QCOMPARE(snapshot.top_requested_entries.at(0).target_bucket_px, 128);
 
     QVERIFY(!snapshot.top_expensive_tasks.isEmpty());
-    QCOMPARE(
-        snapshot.top_expensive_tasks.at(0).stage,
-        raster_cache::debug_snapshot::timing_stage::raster_lifecycle
-    );
+    bool has_raster_lifecycle_stage = false;
+    for (const auto& task : snapshot.top_expensive_tasks) {
+        if (task.stage
+            == raster_cache::debug_snapshot::timing_stage::raster_lifecycle) {
+            has_raster_lifecycle_stage = true;
+            break;
+        }
+    }
+    QVERIFY(has_raster_lifecycle_stage);
     QVERIFY(snapshot.top_expensive_tasks.at(0).completed_samples >= 1);
     QVERIFY(snapshot.top_expensive_tasks.at(0).max_elapsed_ms >= 0);
+}
+
+void raster_cache_tests::display_lifecycle_hooks_update_consumer_rollups() {
+    raster_cache service;
+
+    service.insert_or_update_result(
+        raster_cache::result {
+            .key = make_face_entry(176),
+            .raster_size = QSize(176, 176),
+            .generation = 1,
+            .timestamp_ms = 0,
+            .use_count = 0,
+            .single_image = {},
+            .face_images = {
+                QImage(176, 176, QImage::Format_ARGB32_Premultiplied),
+            },
+        }
+    );
+
+    service.note_entry_displayed(
+        make_face_entry(176), raster_cache::debug_consumer_scope::table_slots
+    );
+    service.note_entry_displayed(
+        make_face_entry(176),
+        raster_cache::debug_consumer_scope::settings_theme_carousel
+    );
+
+    raster_cache::debug_snapshot snapshot = service.get_debug_snapshot();
+    QCOMPARE(snapshot.displayed_ready_entries, 1);
+    QCOMPARE(snapshot.consumer_summaries.size(), 2);
+
+    service.note_entry_no_longer_displayed(
+        make_face_entry(176), raster_cache::debug_consumer_scope::table_slots
+    );
+
+    snapshot = service.get_debug_snapshot();
+    QCOMPARE(snapshot.displayed_ready_entries, 1);
+    QCOMPARE(snapshot.consumer_summaries.size(), 1);
+    QCOMPARE(
+        snapshot.consumer_summaries.at(0).consumer,
+        raster_cache::debug_consumer_scope::settings_theme_carousel
+    );
+
+    service.note_entry_no_longer_displayed(
+        make_face_entry(176),
+        raster_cache::debug_consumer_scope::settings_theme_carousel
+    );
+
+    snapshot = service.get_debug_snapshot();
+    QCOMPARE(snapshot.displayed_ready_entries, 0);
+    QCOMPARE(snapshot.cached_only_ready_entries, 1);
+    QVERIFY(snapshot.consumer_summaries.isEmpty());
 }
 
 void raster_cache_tests::interval_deltas_can_be_taken_and_reset() {

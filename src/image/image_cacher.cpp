@@ -21,11 +21,14 @@ image_cacher::image_cacher(const QString& source_path)
     , renderer()
     , base_scale(1.75)
     , min_short_px(63)
-    , name_space(raster_cache::cache_namespace::main) {
+    , name_space(raster_cache::cache_namespace::main)
+    , displayed_entry_key(std::nullopt) {
     if (!source_path.isEmpty()) {
         renderer.load(source_path);
     }
 }
+
+image_cacher::~image_cacher() { clear_display_tracking(); }
 
 void image_cacher::set_source(const QString& new_source_path) {
     if (source_path == new_source_path) {
@@ -107,6 +110,7 @@ QSize image_cacher::raster_cache_size(const QSize& desired_size) const {
 
 void image_cacher::rasterize() {
     if (!renderer.isValid() || source_path.isEmpty() || target_size.isEmpty()) {
+        clear_display_tracking();
         cached_pixmap = QPixmap();
         return;
     }
@@ -126,9 +130,17 @@ void image_cacher::rasterize() {
     };
     raster_cache& service = shared_single_svg_cache_service();
     const raster_cache::submit_outcome outcome = service.submit_request(req);
+    if (displayed_entry_key.has_value()
+        && *displayed_entry_key != outcome.key) {
+        clear_display_tracking();
+    }
+
     if (outcome.ready_result.has_value()
         && !outcome.ready_result->single_image.isNull()) {
-        service.note_entry_displayed(outcome.key);
+        service.note_entry_displayed(
+            outcome.key, raster_cache::debug_consumer_scope::image_cacher
+        );
+        displayed_entry_key = outcome.key;
         cached_pixmap = QPixmap::fromImage(outcome.ready_result->single_image);
         return;
     }
@@ -152,6 +164,10 @@ void image_cacher::rasterize() {
         .face_images = {},
     };
     service.insert_or_update_result(ready);
+    service.note_entry_displayed(
+        outcome.key, raster_cache::debug_consumer_scope::image_cacher
+    );
+    displayed_entry_key = outcome.key;
 
     const raster_cache::family_key family {
         .name_space = outcome.key.name_space,
@@ -160,4 +176,15 @@ void image_cacher::rasterize() {
         .render_scope = outcome.key.render_scope,
     };
     service.finish_active_request(family, outcome.key);
+}
+
+void image_cacher::clear_display_tracking() {
+    if (!displayed_entry_key.has_value()) {
+        return;
+    }
+
+    shared_single_svg_cache_service().note_entry_no_longer_displayed(
+        *displayed_entry_key, raster_cache::debug_consumer_scope::image_cacher
+    );
+    displayed_entry_key.reset();
 }

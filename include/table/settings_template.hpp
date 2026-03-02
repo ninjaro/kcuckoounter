@@ -10,6 +10,8 @@
 #include <QObject>
 #include <QQueue>
 #include <QSet>
+#include <QString>
+#include <QtGlobal>
 
 #include <optional>
 
@@ -73,6 +75,11 @@ private:
     QPixmap request_weighted_preview_card(
         int card_index, int suit_index, const QSize& size
     );
+    std::optional<QImage> request_theme_preview_face_image(
+        int card_index, int suit_index, const QSize& size,
+        raster_cache::debug_consumer_scope consumer,
+        QSet<raster_cache::entry_key>& tracked_keys
+    );
     void enqueue_theme_preview_render(const raster_cache::entry_key& key);
     void process_pending_theme_preview_render();
     void on_theme_preview_render_finished();
@@ -82,6 +89,33 @@ private:
     void
     on_theme_preview_cache_result_updated(const raster_cache::entry_key& key);
     void flush_coalesced_preview_refresh();
+    void note_displayed_theme_preview_entry(
+        const raster_cache::entry_key& key,
+        raster_cache::debug_consumer_scope consumer,
+        QSet<raster_cache::entry_key>& tracked_keys
+    );
+    void clear_displayed_theme_preview_entries(
+        raster_cache::debug_consumer_scope consumer,
+        QSet<raster_cache::entry_key>& tracked_keys
+    );
+    void ensure_theme_preview_generation(
+        const QString& source_id, int target_bucket_px
+    );
+    void begin_theme_preview_warming_generation(
+        const QString& source_id, int target_bucket_px
+    );
+    bool try_cutover_theme_preview_generation();
+    raster_cache::entry_key theme_preview_entry_key(
+        const QString& source_id, int target_bucket_px, qint64 generation_id,
+        const QString& element_id
+    ) const;
+    bool is_theme_preview_key_ready(
+        const QString& source_id, int target_bucket_px, qint64 generation_id,
+        const QString& element_id
+    ) const;
+    void retire_theme_preview_generation(
+        const QString& source_id, int target_bucket_px, qint64 generation_id
+    );
 
     settings_tab_kind tab_kind;
     table* table_widget;
@@ -105,6 +139,16 @@ private:
     card_preview_carousel* theme_carousel;
     int active_theme_preview_suit_index;
     int active_weights_preview_suit_index;
+    qint64 theme_preview_instance_id;
+    QString active_theme_preview_source_id;
+    int active_theme_preview_bucket_px;
+    qint64 active_theme_preview_generation_id;
+    QSet<QString> active_theme_preview_requested_element_ids;
+    QString warming_theme_preview_source_id;
+    int warming_theme_preview_bucket_px;
+    qint64 warming_theme_preview_generation_id;
+    QSet<QString> warming_theme_preview_requested_element_ids;
+    qint64 next_theme_preview_generation_id;
     QFutureWatcher<QImage> theme_preview_render_watcher;
     std::optional<raster_cache::entry_key> active_theme_preview_render_key;
     QQueue<raster_cache::entry_key> pending_theme_preview_render_queue;
@@ -113,6 +157,8 @@ private:
     bool theme_preview_refresh_scheduled;
     bool theme_preview_needs_refresh;
     bool weights_preview_needs_refresh;
+    QSet<raster_cache::entry_key> displayed_theme_preview_entries;
+    QSet<raster_cache::entry_key> displayed_weights_preview_entries;
 };
 
 #endif // KCUCKOOUNTER_TABLE_SETTINGS_TEMPLATE_HPP

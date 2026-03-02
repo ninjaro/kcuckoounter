@@ -25,6 +25,14 @@ public:
         card_sheet_faces,
     };
 
+    enum class debug_consumer_scope {
+        unknown,
+        table_slots,
+        settings_theme_carousel,
+        settings_strategy_preview,
+        image_cacher,
+    };
+
     struct request {
         cache_namespace name_space;
         resource_kind kind;
@@ -57,6 +65,12 @@ public:
     };
 
     struct result {
+        struct debug_fallback_usage {
+            int active_theme_keys = 0;
+            int default_theme_keys = 0;
+            int placeholder_keys = 0;
+        };
+
         entry_key key;
         QSize raster_size;
         int generation;
@@ -64,6 +78,7 @@ public:
         int use_count;
         QImage single_image;
         QVector<QImage> face_images;
+        debug_fallback_usage fallback_usage {};
 
         bool is_ready() const;
     };
@@ -108,11 +123,17 @@ public:
         };
 
         struct debug_largest_entry {
+            cache_namespace name_space = cache_namespace::main;
+            resource_kind kind = resource_kind::single_svg;
+            QString source_id;
+            QString render_scope;
             int target_bucket_px = 0;
             qint64 estimated_bytes = 0;
         };
 
         struct debug_requested_entry {
+            cache_namespace name_space = cache_namespace::main;
+            resource_kind kind = resource_kind::single_svg;
             QString source_id;
             QString render_scope;
             int target_bucket_px = 0;
@@ -121,12 +142,32 @@ public:
 
         struct debug_expensive_task {
             timing_stage stage = timing_stage::raster_lifecycle;
+            cache_namespace name_space = cache_namespace::main;
+            resource_kind kind = resource_kind::single_svg;
             QString source_id;
             QString render_scope;
             int target_bucket_px = 0;
             int completed_samples = 0;
             qint64 avg_elapsed_ms = 0;
             qint64 max_elapsed_ms = 0;
+        };
+
+        struct debug_subsystem_summary {
+            cache_namespace name_space = cache_namespace::main;
+            resource_kind kind = resource_kind::single_svg;
+            int ready_entries = 0;
+            qint64 ready_bytes = 0;
+            int request_samples = 0;
+            int timing_samples = 0;
+            qint64 timing_max_elapsed_ms = 0;
+        };
+
+        struct debug_consumer_summary {
+            debug_consumer_scope consumer = debug_consumer_scope::unknown;
+            int displayed_recent_entries = 0;
+            int displayed_recent_images = 0;
+            qint64 displayed_recent_ready_bytes = 0;
+            qint64 displayed_recent_widget_local_bytes_estimated = 0;
         };
 
         qint64 snapshot_sequence = 0;
@@ -140,6 +181,12 @@ public:
         int cached_only_ready_entries = 0;
         int displayed_ready_images = 0;
         int cached_only_ready_images = 0;
+        qint64 widget_local_rasterized_bytes_estimated = 0;
+        qint64 widget_local_scaled_bytes_estimated = 0;
+        qint64 widget_local_display_bytes_estimated = 0;
+        int fallback_active_theme_keys_ready = 0;
+        int fallback_default_theme_keys_ready = 0;
+        int fallback_placeholder_keys_ready = 0;
         qint64 displayed_entry_window_ms = 0;
         int displayed_entry_coverage_percent = 0;
         int high_water_ready_entries = 0;
@@ -162,6 +209,8 @@ public:
         QVector<debug_largest_entry> largest_entries;
         QVector<debug_requested_entry> top_requested_entries;
         QVector<debug_expensive_task> top_expensive_tasks;
+        QVector<debug_subsystem_summary> subsystem_summaries;
+        QVector<debug_consumer_summary> consumer_summaries;
     };
 
     struct debug_task_timing_key {
@@ -195,8 +244,16 @@ public:
     int ready_entry_count() const;
     int ready_entry_count(cache_namespace name_space) const;
     int in_flight_count() const;
-    void note_entry_displayed(const entry_key& key);
+    void note_entry_displayed(
+        const entry_key& key,
+        debug_consumer_scope consumer = debug_consumer_scope::unknown
+    );
+    void note_entry_no_longer_displayed(
+        const entry_key& key,
+        debug_consumer_scope consumer = debug_consumer_scope::unknown
+    );
     void set_namespace_entry_limit(cache_namespace name_space, int limit);
+    bool erase_result(const entry_key& key);
     debug_snapshot get_debug_snapshot() const;
     debug_delta_counters take_interval_deltas();
 
@@ -255,7 +312,13 @@ private:
     debug_deadline_counters deadline_counters;
     QHash<entry_key, int> request_counts;
     QHash<debug_task_timing_key, debug_task_timing_aggregate> task_timing;
-    QHash<entry_key, qint64> displayed_entry_last_seen_ms;
+
+    struct displayed_entry_observation {
+        qint64 last_seen_ms = 0;
+        quint32 consumer_mask = 0;
+    };
+
+    QHash<entry_key, displayed_entry_observation> displayed_entry_observations;
 
     static constexpr qint64 displayed_entry_window_ms = 2000;
 

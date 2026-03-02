@@ -8,25 +8,14 @@
 #include "monitor/resource_monitor.hpp"
 
 #include <QAbstractButton>
-#include <QActionGroup>
-#include <QCoreApplication>
-#include <QDateTime>
-#include <QDebug>
 #include <QDialog>
 #include <QDialogButtonBox>
-#include <QDir>
-#include <QFileDialog>
 #include <QLabel>
-#include <QMenu>
-#include <QMenuBar>
 #include <QMessageBox>
-#include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QSlider>
-#include <QStandardPaths>
 #include <QStatusBar>
 #include <QStringList>
-#include <QTabWidget>
 #include <QToolBar>
 
 #include <algorithm>
@@ -55,14 +44,35 @@ main_window::main_window(BaseWidget* parent)
     , settings_action(nullptr)
 #ifndef NDEBUG
     , export_debug_snapshot_action(nullptr)
+    , export_process_memory_report_action(nullptr)
+    , export_monitor_charts_action(nullptr)
+    , add_monitor_marker_action(nullptr)
     , realistic_cadence_mode_action(nullptr)
     , instrumented_cadence_mode_action(nullptr)
     , toggle_resource_monitor_action(nullptr)
     , resource_monitor_window(nullptr)
     , resource_monitor_tabs(nullptr)
-    , resource_monitor_live_text(nullptr)
+    , resource_monitor_summary_memory_card(nullptr)
+    , resource_monitor_summary_process_card(nullptr)
+    , resource_monitor_summary_stock_card(nullptr)
+    , resource_monitor_summary_activity_card(nullptr)
+    , resource_monitor_show_cache_bytes_series(nullptr)
+    , resource_monitor_show_widget_local_series(nullptr)
+    , resource_monitor_show_process_rss_series(nullptr)
+    , resource_monitor_show_gap_bytes_series(nullptr)
+    , resource_monitor_show_accounted_to_measured_ratio_series(nullptr)
+    , resource_monitor_show_activity_displayed_series(nullptr)
+    , resource_monitor_show_activity_pending_series(nullptr)
+    , resource_monitor_show_activity_in_flight_series(nullptr)
+    , resource_monitor_show_activity_events_series(nullptr)
+    , resource_monitor_primary_chart_text(nullptr)
+    , resource_monitor_secondary_chart_text(nullptr)
+    , resource_monitor_timeline_group(nullptr)
+    , resource_monitor_diagnostics_group(nullptr)
     , resource_monitor_timeline_text(nullptr)
     , resource_monitor_diagnostics_text(nullptr)
+    , resource_monitor_geometry_text(nullptr)
+    , resource_monitor_resize_history_text(nullptr)
 #endif
     , quiz_started(false)
     , quiz_paused(false)
@@ -74,7 +84,14 @@ main_window::main_window(BaseWidget* parent)
     setup_ui();
 }
 
-main_window::~main_window() = default;
+main_window::~main_window() {
+#ifndef NDEBUG
+    if (resource_monitor_window != nullptr) {
+        delete resource_monitor_window;
+        resource_monitor_window = nullptr;
+    }
+#endif
+}
 
 void main_window::refresh_clock_label() const {
     if (clock_timer != nullptr && clock_label != nullptr) {
@@ -250,108 +267,7 @@ void main_window::setup_ui() {
     table_widget = new table(central_widget);
 
 #ifndef NDEBUG
-    debug_telemetry_collector = new resource_monitor(this);
-    if (table_widget != nullptr) {
-        debug_telemetry_collector->attach_cache_service(
-            table_widget->shared_raster_cache_service()
-        );
-    }
-    sync_debug_cadence_mode_actions();
-
-    QObject::connect(qApp, &QCoreApplication::aboutToQuit, this, [this]() {
-        dump_debug_telemetry_on_exit();
-    });
-
-    resource_monitor_window = new QDialog(this, Qt::Window);
-    resource_monitor_window->setWindowTitle(str_label("Resource monitor"));
-    resource_monitor_window->setModal(false);
-    resource_monitor_window->resize(760, 520);
-
-    auto monitor_menu_bar = new QMenuBar(resource_monitor_window);
-    auto monitor_menu = monitor_menu_bar->addMenu(str_label("Monitor"));
-
-    export_debug_snapshot_action
-        = monitor_menu->addAction(str_label("Export debug snapshot"));
-    export_debug_snapshot_action->setToolTip(
-        str_label("Export cache/resource telemetry snapshot to JSON")
-    );
-    QObject::connect(
-        export_debug_snapshot_action, &BaseAction::triggered, this,
-        &main_window::on_export_debug_snapshot_triggered
-    );
-
-    auto cadence_action_group = new QActionGroup(this);
-    cadence_action_group->setExclusive(true);
-    auto debug_mode_menu = monitor_menu->addMenu(str_label("Debug mode"));
-
-    realistic_cadence_mode_action
-        = debug_mode_menu->addAction(str_label("Realistic"));
-    realistic_cadence_mode_action->setCheckable(true);
-    cadence_action_group->addAction(realistic_cadence_mode_action);
-    QObject::connect(
-        realistic_cadence_mode_action, &BaseAction::triggered, this,
-        &main_window::on_set_realistic_cadence_mode_triggered
-    );
-
-    instrumented_cadence_mode_action
-        = debug_mode_menu->addAction(str_label("Instrumented"));
-    instrumented_cadence_mode_action->setCheckable(true);
-    cadence_action_group->addAction(instrumented_cadence_mode_action);
-    QObject::connect(
-        instrumented_cadence_mode_action, &BaseAction::triggered, this,
-        &main_window::on_set_instrumented_cadence_mode_triggered
-    );
-
-    auto monitor_layout = new BaseVBoxLayout;
-    monitor_layout->setMenuBar(monitor_menu_bar);
-    resource_monitor_tabs = new QTabWidget(resource_monitor_window);
-
-    resource_monitor_live_text = new QPlainTextEdit(resource_monitor_window);
-    resource_monitor_live_text->setReadOnly(true);
-    resource_monitor_live_text->setLineWrapMode(QPlainTextEdit::NoWrap);
-    resource_monitor_tabs->addTab(
-        resource_monitor_live_text, str_label("Live")
-    );
-
-    resource_monitor_timeline_text
-        = new QPlainTextEdit(resource_monitor_window);
-    resource_monitor_timeline_text->setReadOnly(true);
-    resource_monitor_timeline_text->setLineWrapMode(QPlainTextEdit::NoWrap);
-    resource_monitor_tabs->addTab(
-        resource_monitor_timeline_text, str_label("Timeline")
-    );
-
-    resource_monitor_diagnostics_text
-        = new QPlainTextEdit(resource_monitor_window);
-    resource_monitor_diagnostics_text->setReadOnly(true);
-    resource_monitor_diagnostics_text->setLineWrapMode(QPlainTextEdit::NoWrap);
-    resource_monitor_tabs->addTab(
-        resource_monitor_diagnostics_text, str_label("Diagnostics")
-    );
-
-    monitor_layout->addWidget(resource_monitor_tabs);
-    resource_monitor_window->setLayout(monitor_layout);
-    resource_monitor_window->hide();
-
-    QObject::connect(
-        resource_monitor_window, &QDialog::finished, this,
-        [this](int) { on_resource_monitor_visibility_changed(false); }
-    );
-
-    QObject::connect(
-        debug_telemetry_collector, &resource_monitor::cache_snapshot_collected,
-        this, [this](const resource_monitor::cache_timeline_entry&) {
-            refresh_resource_monitor_view();
-        }
-    );
-    QObject::connect(
-        debug_telemetry_collector, &resource_monitor::event_recorded, this,
-        [this](const resource_monitor::event_timeline_entry&) {
-            refresh_resource_monitor_view();
-        }
-    );
-
-    refresh_resource_monitor_view();
+    setup_debug_resource_monitor_ui();
 #endif
 
     main_layout->addWidget(table_widget, 1);
@@ -831,298 +747,6 @@ void main_window::update_status_text() {
                               .arg(time_label)
                               .arg(debug_mode_suffix));
 }
-
-#ifndef NDEBUG
-void main_window::on_export_debug_snapshot_triggered() {
-    if (debug_telemetry_collector == nullptr) {
-        return;
-    }
-
-    const QString timestamp = QDateTime::currentDateTimeUtc().toString(
-        QStringLiteral("yyyyMMdd_hhmmss")
-    );
-    const QString suggested_name
-        = QStringLiteral("debug_snapshot_%1.json").arg(timestamp);
-    const QString output_path = QFileDialog::getSaveFileName(
-        this, str_label("Export debug snapshot"), suggested_name,
-        str_label("JSON files (*.json)")
-    );
-    if (output_path.isEmpty()) {
-        return;
-    }
-
-    add_debug_marker(QStringLiteral("manual_export_snapshot"));
-    debug_telemetry_collector->export_debug_snapshot_async(output_path);
-}
-
-void main_window::on_set_realistic_cadence_mode_triggered() {
-    if (debug_telemetry_collector == nullptr) {
-        return;
-    }
-
-    debug_telemetry_collector->set_debug_cadence_mode(
-        resource_monitor::debug_cadence_mode::realistic
-    );
-    add_debug_marker(QStringLiteral("cadence_mode_realistic"));
-    sync_debug_cadence_mode_actions();
-    update_status_text();
-}
-
-void main_window::on_set_instrumented_cadence_mode_triggered() {
-    if (debug_telemetry_collector == nullptr) {
-        return;
-    }
-
-    debug_telemetry_collector->set_debug_cadence_mode(
-        resource_monitor::debug_cadence_mode::instrumented
-    );
-    add_debug_marker(QStringLiteral("cadence_mode_instrumented"));
-    sync_debug_cadence_mode_actions();
-    update_status_text();
-}
-
-void main_window::add_debug_marker(const QString& label) const {
-    if (debug_telemetry_collector == nullptr) {
-        return;
-    }
-
-    debug_telemetry_collector->add_manual_marker(label);
-}
-
-void main_window::sync_debug_cadence_mode_actions() const {
-    if (debug_telemetry_collector == nullptr) {
-        return;
-    }
-
-    const bool is_instrumented
-        = debug_telemetry_collector->get_debug_cadence_mode()
-        == resource_monitor::debug_cadence_mode::instrumented;
-    if (realistic_cadence_mode_action != nullptr) {
-        realistic_cadence_mode_action->setChecked(!is_instrumented);
-    }
-    if (instrumented_cadence_mode_action != nullptr) {
-        instrumented_cadence_mode_action->setChecked(is_instrumented);
-    }
-}
-
-void main_window::on_toggle_resource_monitor_triggered(bool checked) {
-    if (resource_monitor_window == nullptr) {
-        return;
-    }
-
-    if (checked) {
-        resource_monitor_window->show();
-        resource_monitor_window->raise();
-        resource_monitor_window->activateWindow();
-        on_resource_monitor_visibility_changed(true);
-        return;
-    }
-
-    resource_monitor_window->hide();
-    on_resource_monitor_visibility_changed(false);
-}
-
-void main_window::on_resource_monitor_visibility_changed(bool visible) {
-    if (toggle_resource_monitor_action != nullptr) {
-        toggle_resource_monitor_action->setChecked(visible);
-    }
-
-    if (visible) {
-        refresh_resource_monitor_view();
-    }
-}
-
-void main_window::refresh_resource_monitor_view() {
-    if (resource_monitor_live_text == nullptr
-        || resource_monitor_timeline_text == nullptr
-        || resource_monitor_diagnostics_text == nullptr
-        || debug_telemetry_collector == nullptr) {
-        return;
-    }
-
-    QStringList live_lines;
-    live_lines.append(str_label("Debug resource monitor (collector shell)"));
-    live_lines.append(str_label("Cache timeline entries: %1")
-                          .arg(debug_telemetry_collector->timeline_size()));
-    live_lines.append(
-        str_label("Event timeline entries: %1")
-            .arg(debug_telemetry_collector->event_timeline_size())
-    );
-
-    if (!debug_telemetry_collector->has_cache_snapshot()) {
-        live_lines.append(
-            str_label("No cache snapshot has been collected yet.")
-        );
-        resource_monitor_live_text->setPlainText(
-            live_lines.join(QLatin1Char('\n'))
-        );
-        resource_monitor_timeline_text->setPlainText(
-            str_label("No timeline rows yet.")
-        );
-        resource_monitor_diagnostics_text->setPlainText(
-            str_label("No diagnostics data yet.")
-        );
-        return;
-    }
-
-    const resource_monitor::cache_timeline_entry latest
-        = debug_telemetry_collector->latest_cache_snapshot();
-    const raster_cache::debug_snapshot& snapshot = latest.cache_snapshot;
-
-    const bool instrumented
-        = debug_telemetry_collector->get_debug_cadence_mode()
-        == resource_monitor::debug_cadence_mode::instrumented;
-
-    live_lines.append(str_label("Cadence mode: %1")
-                          .arg(
-                              instrumented ? str_label("instrumented")
-                                           : str_label("realistic")
-                          ));
-    live_lines.append(str_label("Latest collector sequence: %1")
-                          .arg(latest.collector_sequence));
-    live_lines.append(str_label("Latest cache snapshot sequence: %1")
-                          .arg(snapshot.snapshot_sequence));
-    live_lines.append(str_label("Ready entries/images: %1 / %2")
-                          .arg(snapshot.ready_entries)
-                          .arg(snapshot.ready_images));
-    live_lines.append(str_label("Ready bytes: %1").arg(snapshot.ready_bytes));
-    live_lines.append(str_label("Displayed now entries/images: %1 / %2")
-                          .arg(snapshot.displayed_ready_entries)
-                          .arg(snapshot.displayed_ready_images));
-    live_lines.append(str_label("Cached-only entries/images: %1 / %2")
-                          .arg(snapshot.cached_only_ready_entries)
-                          .arg(snapshot.cached_only_ready_images));
-    live_lines.append(str_label("Size buckets: %1  Largest entries tracked: %2")
-                          .arg(snapshot.unique_size_buckets)
-                          .arg(snapshot.largest_entries.size()));
-
-    resource_monitor_live_text->setPlainText(
-        live_lines.join(QLatin1Char('\n'))
-    );
-
-    QStringList timeline_lines;
-    timeline_lines.append(str_label("Latest timeline rows (up to 12):"));
-    const QVector<resource_monitor::cache_timeline_entry> cache_rows
-        = debug_telemetry_collector->cache_timeline();
-    const QVector<resource_monitor::event_timeline_entry> event_rows
-        = debug_telemetry_collector->event_timeline();
-
-    const int cache_start = std::max(0, int(cache_rows.size() - 12));
-    for (int index = cache_start; index < cache_rows.size(); ++index) {
-        const auto& row = cache_rows.at(index);
-        timeline_lines.append(
-            str_label("[cache] seq=%1 snap=%2 ready=%3 bytes=%4")
-                .arg(row.collector_sequence)
-                .arg(row.cache_snapshot.snapshot_sequence)
-                .arg(row.cache_snapshot.ready_entries)
-                .arg(row.cache_snapshot.ready_bytes)
-        );
-    }
-
-    const int event_start = std::max(0, int(event_rows.size() - 12));
-    for (int index = event_start; index < event_rows.size(); ++index) {
-        const auto& row = event_rows.at(index);
-        const QString kind = row.kind
-                == resource_monitor::event_timeline_entry::event_kind::
-                    manual_marker
-            ? QStringLiteral("marker")
-            : QStringLiteral("cache");
-        timeline_lines.append(str_label("[event] seq=%1 kind=%2 t=%3 label=%4")
-                                  .arg(row.collector_sequence)
-                                  .arg(kind)
-                                  .arg(row.timestamp_ms)
-                                  .arg(row.label));
-    }
-    resource_monitor_timeline_text->setPlainText(
-        timeline_lines.join(QLatin1Char('\n'))
-    );
-
-    QStringList diagnostics_lines;
-    diagnostics_lines.append(str_label("Recency-window diagnostics"));
-    diagnostics_lines.append(
-        str_label("Window size: %1 ms").arg(snapshot.displayed_entry_window_ms)
-    );
-    diagnostics_lines.append(str_label("Displayed-now entries: %1")
-                                 .arg(snapshot.displayed_ready_entries));
-    diagnostics_lines.append(str_label("Cached-only entries: %1")
-                                 .arg(snapshot.cached_only_ready_entries));
-    const QString recency_quality = snapshot.ready_entries <= 0
-        ? str_label("no-ready-entries")
-        : (snapshot.displayed_entry_coverage_percent >= 80
-               ? str_label("strong")
-               : (snapshot.displayed_entry_coverage_percent >= 40
-                      ? str_label("moderate")
-                      : str_label("sparse")));
-    diagnostics_lines.append(str_label("Displayed recency coverage: %1% (%2)")
-                                 .arg(snapshot.displayed_entry_coverage_percent)
-                                 .arg(recency_quality));
-    diagnostics_lines.append(str_label("Stage timing summary"));
-    diagnostics_lines.append(
-        str_label("- raster_lifecycle: avg %1 ms, max %2 ms, samples=%3")
-            .arg(snapshot.raster_timing_avg_ms)
-            .arg(snapshot.raster_timing_max_ms)
-            .arg(snapshot.raster_timing_samples)
-    );
-    diagnostics_lines.append(
-        str_label("- coalesced_wait: avg %1 ms, max %2 ms, samples=%3")
-            .arg(snapshot.coalesced_wait_avg_ms)
-            .arg(snapshot.coalesced_wait_max_ms)
-            .arg(snapshot.coalesced_wait_samples)
-    );
-    diagnostics_lines.append(str_label("Top expensive tasks: %1")
-                                 .arg(snapshot.top_expensive_tasks.size()));
-    for (const auto& expensive : snapshot.top_expensive_tasks) {
-        const QString stage = expensive.stage
-                == raster_cache::debug_snapshot::timing_stage::coalesced_wait
-            ? QStringLiteral("coalesced_wait")
-            : QStringLiteral("raster_lifecycle");
-        diagnostics_lines.append(
-            str_label("- %1 | %2ms avg / %3ms max | samples=%4")
-                .arg(stage)
-                .arg(expensive.avg_elapsed_ms)
-                .arg(expensive.max_elapsed_ms)
-                .arg(expensive.completed_samples)
-        );
-    }
-    resource_monitor_diagnostics_text->setPlainText(
-        diagnostics_lines.join(QLatin1Char('\n'))
-    );
-}
-
-void main_window::dump_debug_telemetry_on_exit() const {
-    if (debug_telemetry_collector == nullptr) {
-        return;
-    }
-
-    const QString base_dir
-        = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    if (base_dir.isEmpty()) {
-        return;
-    }
-
-    QDir dir(base_dir);
-    if (!dir.mkpath(QStringLiteral("."))) {
-        return;
-    }
-
-    const QString timestamp = QDateTime::currentDateTimeUtc().toString(
-        QStringLiteral("yyyyMMdd_hhmmss")
-    );
-    const QString output_path = dir.filePath(
-        QStringLiteral("debug_snapshot_exit_%1.json").arg(timestamp)
-    );
-
-    QString error_message;
-    const bool success = debug_telemetry_collector->export_debug_snapshot_sync(
-        output_path, &error_message
-    );
-    if (!success) {
-        qWarning() << "Unable to export debug snapshot on exit:"
-                   << error_message;
-    }
-}
-
-#endif
 
 void main_window::pause_for_dialog() {
     if (table_widget == nullptr || !quiz_started || quiz_paused) {
