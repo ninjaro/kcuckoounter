@@ -1,6 +1,7 @@
 #include "main_window.hpp"
 
 #include "arch/str_label.hpp"
+#include "monitor/monitor_visual_widgets.hpp"
 #include "monitor/resource_monitor.hpp"
 #include "table/table.hpp"
 
@@ -13,6 +14,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPlainTextEdit>
+#include <QSplitter>
 #include <QTabWidget>
 #include <QToolBar>
 
@@ -131,8 +133,7 @@ void main_window::setup_debug_resource_monitor_ui() {
     resource_monitor_summary_memory_card = new QLabel(dashboard_tab);
     resource_monitor_summary_process_card = new QLabel(dashboard_tab);
     resource_monitor_summary_stock_card = new QLabel(dashboard_tab);
-    resource_monitor_summary_activity_card
-        = new QLabel(dashboard_tab);
+    resource_monitor_summary_activity_card = new QLabel(dashboard_tab);
     setup_card(resource_monitor_summary_memory_card);
     setup_card(resource_monitor_summary_process_card);
     setup_card(resource_monitor_summary_stock_card);
@@ -144,15 +145,13 @@ void main_window::setup_debug_resource_monitor_ui() {
     dashboard_layout->addLayout(summary_layout);
 
     auto primary_series_layout = new QHBoxLayout;
-    resource_monitor_show_cache_bytes_series = new QCheckBox(
-        str_label("Cache-accounted bytes"), dashboard_tab
-    );
+    resource_monitor_show_cache_bytes_series
+        = new QCheckBox(str_label("Cache-accounted bytes"), dashboard_tab);
     resource_monitor_show_widget_local_series = new QCheckBox(
         str_label("Widget-local estimated bytes"), dashboard_tab
     );
-    resource_monitor_show_process_rss_series = new QCheckBox(
-        str_label("Process RSS (OS)"), dashboard_tab
-    );
+    resource_monitor_show_process_rss_series
+        = new QCheckBox(str_label("Process RSS (OS)"), dashboard_tab);
     resource_monitor_show_gap_bytes_series = new QCheckBox(
         str_label("Measured-accounted gap (derived)"), dashboard_tab
     );
@@ -174,27 +173,31 @@ void main_window::setup_debug_resource_monitor_ui() {
     primary_series_layout->addStretch(1);
     dashboard_layout->addLayout(primary_series_layout);
 
-    resource_monitor_primary_chart_text = new QPlainTextEdit(dashboard_tab);
-    resource_monitor_primary_chart_text->setReadOnly(true);
-    resource_monitor_primary_chart_text->setLineWrapMode(
-        QPlainTextEdit::NoWrap
+    resource_monitor_primary_chart_view
+        = new monitor_line_chart_widget(dashboard_tab);
+    resource_monitor_primary_chart_view->set_title(
+        str_label("Primary memory timelines")
     );
-    resource_monitor_primary_chart_text->setMaximumBlockCount(256);
-    dashboard_layout->addWidget(resource_monitor_primary_chart_text, 2);
+    resource_monitor_primary_chart_view->set_unit_label(str_label("MiB"));
+    dashboard_layout->addWidget(resource_monitor_primary_chart_view, 2);
+
+    resource_monitor_ratio_chart_view
+        = new monitor_line_chart_widget(dashboard_tab);
+    resource_monitor_ratio_chart_view->set_title(
+        str_label("Derived ratio timeline")
+    );
+    resource_monitor_ratio_chart_view->set_unit_label(str_label("%"));
+    dashboard_layout->addWidget(resource_monitor_ratio_chart_view, 1);
 
     auto secondary_series_layout = new QHBoxLayout;
-    resource_monitor_show_activity_displayed_series = new QCheckBox(
-        str_label("Displayed-recent entries"), dashboard_tab
-    );
-    resource_monitor_show_activity_pending_series = new QCheckBox(
-        str_label("Pending raster requests"), dashboard_tab
-    );
-    resource_monitor_show_activity_in_flight_series = new QCheckBox(
-        str_label("In-flight raster families"), dashboard_tab
-    );
-    resource_monitor_show_activity_events_series = new QCheckBox(
-        str_label("Event markers"), dashboard_tab
-    );
+    resource_monitor_show_activity_displayed_series
+        = new QCheckBox(str_label("Displayed-recent entries"), dashboard_tab);
+    resource_monitor_show_activity_pending_series
+        = new QCheckBox(str_label("Pending raster requests"), dashboard_tab);
+    resource_monitor_show_activity_in_flight_series
+        = new QCheckBox(str_label("In-flight raster families"), dashboard_tab);
+    resource_monitor_show_activity_events_series
+        = new QCheckBox(str_label("Event markers"), dashboard_tab);
     resource_monitor_show_activity_displayed_series->setChecked(true);
     resource_monitor_show_activity_pending_series->setChecked(true);
     resource_monitor_show_activity_in_flight_series->setChecked(true);
@@ -214,13 +217,20 @@ void main_window::setup_debug_resource_monitor_ui() {
     secondary_series_layout->addStretch(1);
     dashboard_layout->addLayout(secondary_series_layout);
 
-    resource_monitor_secondary_chart_text = new QPlainTextEdit(dashboard_tab);
-    resource_monitor_secondary_chart_text->setReadOnly(true);
-    resource_monitor_secondary_chart_text->setLineWrapMode(
-        QPlainTextEdit::NoWrap
+    resource_monitor_secondary_chart_view
+        = new monitor_line_chart_widget(dashboard_tab);
+    resource_monitor_secondary_chart_view->set_title(
+        str_label("Activity timelines")
     );
-    resource_monitor_secondary_chart_text->setMaximumBlockCount(256);
-    dashboard_layout->addWidget(resource_monitor_secondary_chart_text, 1);
+    resource_monitor_secondary_chart_view->set_unit_label(str_label("count"));
+    dashboard_layout->addWidget(resource_monitor_secondary_chart_view, 1);
+
+    resource_monitor_composition_chart_view
+        = new monitor_pie_chart_widget(dashboard_tab);
+    resource_monitor_composition_chart_view->set_title(
+        str_label("Composition view (explicit subsets)")
+    );
+    dashboard_layout->addWidget(resource_monitor_composition_chart_view, 1);
 
     resource_monitor_tabs->addTab(dashboard_tab, str_label("Dashboard"));
 
@@ -238,25 +248,38 @@ void main_window::setup_debug_resource_monitor_ui() {
     auto geometry_layout = new BaseVBoxLayout(geometry_tab);
     geometry_layout->setContentsMargins(4, 4, 4, 4);
     geometry_layout->setSpacing(6);
-    resource_monitor_geometry_text = new QPlainTextEdit(geometry_tab);
+    auto geometry_splitter = new QSplitter(Qt::Vertical, geometry_tab);
+    resource_monitor_geometry_view
+        = new monitor_geometry_schematic_widget(geometry_splitter);
+    resource_monitor_geometry_text = new QPlainTextEdit(geometry_splitter);
     resource_monitor_geometry_text->setReadOnly(true);
     resource_monitor_geometry_text->setLineWrapMode(QPlainTextEdit::NoWrap);
     resource_monitor_geometry_text->setMaximumBlockCount(512);
-    geometry_layout->addWidget(resource_monitor_geometry_text);
+    geometry_splitter->addWidget(resource_monitor_geometry_view);
+    geometry_splitter->addWidget(resource_monitor_geometry_text);
+    geometry_splitter->setStretchFactor(0, 4);
+    geometry_splitter->setStretchFactor(1, 2);
+    geometry_layout->addWidget(geometry_splitter);
     resource_monitor_tabs->addTab(geometry_tab, str_label("Geometry"));
 
     auto resize_history_tab = new BaseWidget(resource_monitor_tabs);
     auto resize_history_layout = new BaseVBoxLayout(resize_history_tab);
     resize_history_layout->setContentsMargins(4, 4, 4, 4);
     resize_history_layout->setSpacing(6);
-    resource_monitor_resize_history_text
-        = new QPlainTextEdit(resize_history_tab);
+    auto resize_splitter = new QSplitter(Qt::Vertical, resize_history_tab);
+    resource_monitor_resize_history_view
+        = new monitor_resize_history_widget(resize_splitter);
+    resource_monitor_resize_history_text = new QPlainTextEdit(resize_splitter);
     resource_monitor_resize_history_text->setReadOnly(true);
     resource_monitor_resize_history_text->setLineWrapMode(
         QPlainTextEdit::NoWrap
     );
     resource_monitor_resize_history_text->setMaximumBlockCount(768);
-    resize_history_layout->addWidget(resource_monitor_resize_history_text);
+    resize_splitter->addWidget(resource_monitor_resize_history_view);
+    resize_splitter->addWidget(resource_monitor_resize_history_text);
+    resize_splitter->setStretchFactor(0, 4);
+    resize_splitter->setStretchFactor(1, 2);
+    resize_history_layout->addWidget(resize_splitter);
     resource_monitor_tabs->addTab(
         resize_history_tab, str_label("Resize history")
     );
@@ -293,8 +316,8 @@ void main_window::setup_debug_resource_monitor_ui() {
         [refresh](const resource_monitor::event_timeline_entry&) { refresh(); }
     );
     QObject::connect(
-        debug_telemetry_collector, &resource_monitor::geometry_snapshot_collected,
-        this,
+        debug_telemetry_collector,
+        &resource_monitor::geometry_snapshot_collected, this,
         [refresh](const geometry_debug_snapshot&) { refresh(); }
     );
     QObject::connect(

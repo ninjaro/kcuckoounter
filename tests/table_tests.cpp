@@ -274,9 +274,11 @@ void table_tests::shared_card_faces_presence_tracks_set_and_clear() {
     QVERIFY(!slot.has_shared_card_faces());
 }
 
-void table_tests::shared_cache_rasterization_includes_back_and_fallback_usage() {
+void table_tests::
+    shared_cache_rasterization_includes_back_and_fallback_usage() {
     struct source_restore_guard {
         QString source;
+
         ~source_restore_guard() { set_card_sheet_source_path(source); }
     } guard { card_sheet_source_path() };
 
@@ -337,6 +339,7 @@ void table_tests::shared_cache_rasterization_includes_back_and_fallback_usage() 
 void table_tests::shared_cache_generation_cutover_stays_bounded() {
     struct source_restore_guard {
         QString source;
+
         ~source_restore_guard() { set_card_sheet_source_path(source); }
     } guard { card_sheet_source_path() };
 
@@ -370,9 +373,11 @@ void table_tests::shared_cache_generation_cutover_stays_bounded() {
     QVERIFY(snapshot.in_flight_families <= 1);
 }
 
-void table_tests::theme_apply_while_shared_worker_busy_clears_stale_in_flight() {
+void table_tests::
+    theme_apply_while_shared_worker_busy_clears_stale_in_flight() {
     struct source_restore_guard {
         QString source;
+
         ~source_restore_guard() { set_card_sheet_source_path(source); }
     } guard { card_sheet_source_path() };
 

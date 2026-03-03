@@ -915,13 +915,9 @@ void card_widget::start_rasterization(const QSize& target_size) {
     const QString source = raster_task_source;
     const QSize raster_size = target_size;
 
-    rasterize_watcher.setFuture(
-        QtConcurrent::run([source, raster_size]() {
-            return rasterize_required_card_faces_with_fallback(
-                source, raster_size
-            );
-        })
-    );
+    rasterize_watcher.setFuture(QtConcurrent::run([source, raster_size]() {
+        return rasterize_required_card_faces_with_fallback(source, raster_size);
+    }));
 }
 
 void card_widget::apply_rasterized_images(
@@ -977,8 +973,7 @@ void card_widget::on_rasterization_finished() {
     }
 
     if (!pending_raster_size.isEmpty()
-        && (pending_raster_size != raster_task_size
-            || !source_still_current)) {
+        && (pending_raster_size != raster_task_size || !source_still_current)) {
         const QSize next_size = pending_raster_size;
         start_rasterization(next_size);
         update();

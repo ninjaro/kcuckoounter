@@ -127,7 +127,10 @@ raster_cache::raster_cache(QObject* parent)
               { cache_namespace::settings, 3 },
           }
       )
-    , families() { }
+    , families()
+    , ready_bytes(0)
+    , ready_images(0)
+    , widget_local_always_rasterized_bytes_estimated(0) { }
 
 std::optional<raster_cache::result>
 raster_cache::get_if_ready(const entry_key& key) const {
@@ -160,16 +163,33 @@ raster_cache::get_if_ready_with_namespace_fallback(const entry_key& key) const {
 }
 
 void raster_cache::insert_or_update_result(const result& new_result) {
+    std::optional<debug_entry_accounting> old_accounting;
+    const auto old_accounting_it
+        = debug_entry_accounting_cache.constFind(new_result.key);
+    if (old_accounting_it != debug_entry_accounting_cache.cend()) {
+        old_accounting = old_accounting_it.value();
+    }
+
     const auto existing = ready_results.constFind(new_result.key);
     if (existing != ready_results.cend()) {
-        const qint64 existing_bytes = estimate_result_bytes(existing.value());
-        const int existing_images = count_result_images(existing.value());
+        const debug_entry_accounting effective_old_accounting
+            = old_accounting.has_value()
+            ? *old_accounting
+            : make_debug_entry_accounting(new_result.key, existing.value());
+        const qint64 existing_bytes
+            = effective_old_accounting.cache_accounted_bytes;
+        const int existing_images = effective_old_accounting.image_count;
         ready_bytes -= existing_bytes;
         ready_images -= existing_images;
         lifetime_deltas.bytes_removed += existing_bytes;
         lifetime_deltas.images_removed += existing_images;
         interval_deltas.bytes_removed += existing_bytes;
         interval_deltas.images_removed += existing_images;
+        apply_debug_entry_accounting_remove(
+            new_result.key, effective_old_accounting
+        );
+    } else if (old_accounting.has_value()) {
+        apply_debug_entry_accounting_remove(new_result.key, *old_accounting);
     }
 
     if (!ready_results.contains(new_result.key)) {
@@ -179,11 +199,15 @@ void raster_cache::insert_or_update_result(const result& new_result) {
     }
 
     ready_results.insert(new_result.key, new_result);
+    const debug_entry_accounting new_accounting
+        = make_debug_entry_accounting(new_result.key, new_result);
+    debug_entry_accounting_cache.insert(new_result.key, new_accounting);
+    apply_debug_entry_accounting_add(new_result.key, new_accounting);
     if (!new_result.is_ready()) {
         displayed_entry_observations.remove(new_result.key);
     }
-    const qint64 added_bytes = estimate_result_bytes(new_result);
-    const int added_images = count_result_images(new_result);
+    const qint64 added_bytes = new_accounting.cache_accounted_bytes;
+    const int added_images = new_accounting.image_count;
     ready_bytes += added_bytes;
     ready_images += added_images;
     lifetime_deltas.bytes_added += added_bytes;
@@ -531,7 +555,8 @@ raster_cache::debug_snapshot raster_cache::get_debug_snapshot() const {
     int cached_only_ready_entries = 0;
     int displayed_ready_images = 0;
     int cached_only_ready_images = 0;
-    qint64 widget_local_rasterized_bytes_estimated = 0;
+    qint64 widget_local_rasterized_bytes_estimated
+        = widget_local_always_rasterized_bytes_estimated;
     qint64 widget_local_scaled_bytes_estimated = 0;
     int fallback_active_theme_keys_ready = 0;
     int fallback_default_theme_keys_ready = 0;
@@ -540,9 +565,13 @@ raster_cache::debug_snapshot raster_cache::get_debug_snapshot() const {
     const qint64 snapshot_now_ms = now_ms();
 
     for (auto it = ready_results.cbegin(); it != ready_results.cend(); ++it) {
-        const qint64 result_bytes = estimate_result_bytes(it.value());
+        const debug_entry_accounting accounting
+            = debug_entry_accounting_cache.value(
+                it.key(), make_debug_entry_accounting(it.key(), it.value())
+            );
+        const qint64 result_bytes = accounting.cache_accounted_bytes;
         const int bucket_px = it.key().target_bucket_px;
-        const int result_images = count_result_images(it.value());
+        const int result_images = accounting.image_count;
         const int subsystem_id
             = subsystem_id_for(it.key().name_space, it.key().kind);
         fallback_active_theme_keys_ready
@@ -577,11 +606,10 @@ raster_cache::debug_snapshot raster_cache::get_debug_snapshot() const {
         const displayed_entry_observation observation
             = displayed_entry_observations.value(it.key());
         const qint64 displayed_at_ms = observation.last_seen_ms;
-        qint64 widget_local_estimated_for_entry = 0;
-        if (it.key().kind == resource_kind::single_svg) {
-            widget_local_estimated_for_entry = result_bytes;
-            widget_local_rasterized_bytes_estimated += result_bytes;
-        }
+        qint64 widget_local_estimated_for_entry
+            = it.key().kind == resource_kind::single_svg
+            ? accounting.widget_local_display_bytes_estimated
+            : 0;
 
         if (displayed_at_ms > 0
             && (snapshot_now_ms - displayed_at_ms)
@@ -589,14 +617,12 @@ raster_cache::debug_snapshot raster_cache::get_debug_snapshot() const {
             displayed_ready_entries += 1;
             displayed_ready_images += result_images;
             if (it.key().kind == resource_kind::card_sheet_faces) {
-                widget_local_rasterized_bytes_estimated += result_bytes;
-                const qint64 scaled_estimated
-                    = estimate_widget_local_scaled_bytes(
-                        it.key(), result_bytes
-                    );
-                widget_local_scaled_bytes_estimated += scaled_estimated;
+                widget_local_rasterized_bytes_estimated
+                    += accounting.widget_local_rasterized_bytes_estimated;
+                widget_local_scaled_bytes_estimated
+                    += accounting.widget_local_scaled_bytes_estimated;
                 widget_local_estimated_for_entry
-                    = result_bytes + scaled_estimated;
+                    = accounting.widget_local_display_bytes_estimated;
             }
 
             const quint32 consumers = observation.consumer_mask == 0
@@ -876,8 +902,13 @@ bool raster_cache::erase_result(const entry_key& key) {
         return false;
     }
 
-    const qint64 removed_bytes = estimate_result_bytes(it.value());
-    const int removed_images = count_result_images(it.value());
+    const auto accounting_it = debug_entry_accounting_cache.constFind(key);
+    const debug_entry_accounting accounting
+        = accounting_it != debug_entry_accounting_cache.cend()
+        ? accounting_it.value()
+        : make_debug_entry_accounting(key, it.value());
+    const qint64 removed_bytes = accounting.cache_accounted_bytes;
+    const int removed_images = accounting.image_count;
     ready_bytes -= removed_bytes;
     ready_images -= removed_images;
     lifetime_deltas.entries_removed += 1;
@@ -888,6 +919,8 @@ bool raster_cache::erase_result(const entry_key& key) {
     interval_deltas.images_removed += removed_images;
     ready_results.remove(key);
     displayed_entry_observations.remove(key);
+    debug_entry_accounting_cache.remove(key);
+    apply_debug_entry_accounting_remove(key, accounting);
     emit_debug_snapshot();
     return true;
 }
@@ -906,8 +939,14 @@ void raster_cache::enforce_namespace_limit(cache_namespace name_space) {
             continue;
         }
 
-        const qint64 removed_bytes = estimate_result_bytes(old_it.value());
-        const int removed_images = count_result_images(old_it.value());
+        const auto accounting_it
+            = debug_entry_accounting_cache.constFind(oldest);
+        const debug_entry_accounting accounting
+            = accounting_it != debug_entry_accounting_cache.cend()
+            ? accounting_it.value()
+            : make_debug_entry_accounting(oldest, old_it.value());
+        const qint64 removed_bytes = accounting.cache_accounted_bytes;
+        const int removed_images = accounting.image_count;
         ready_bytes -= removed_bytes;
         ready_images -= removed_images;
         lifetime_deltas.entries_removed += 1;
@@ -918,6 +957,8 @@ void raster_cache::enforce_namespace_limit(cache_namespace name_space) {
         interval_deltas.images_removed += removed_images;
         ready_results.remove(oldest);
         displayed_entry_observations.remove(oldest);
+        debug_entry_accounting_cache.remove(oldest);
+        apply_debug_entry_accounting_remove(oldest, accounting);
     }
 }
 
@@ -929,6 +970,60 @@ void raster_cache::update_high_water_marks() {
 }
 
 qint64 raster_cache::now_ms() { return QDateTime::currentMSecsSinceEpoch(); }
+
+raster_cache::debug_entry_accounting raster_cache::make_debug_entry_accounting(
+    const entry_key& key, const result& value
+) {
+    const qint64 cache_accounted_bytes = estimate_result_bytes(value);
+    const int image_count = count_result_images(value);
+
+    qint64 widget_local_rasterized_bytes_estimated = 0;
+    qint64 widget_local_scaled_bytes_estimated = 0;
+    if (key.kind == resource_kind::single_svg) {
+        widget_local_rasterized_bytes_estimated = cache_accounted_bytes;
+    } else if (key.kind == resource_kind::card_sheet_faces) {
+        widget_local_rasterized_bytes_estimated = cache_accounted_bytes;
+        widget_local_scaled_bytes_estimated
+            = estimate_widget_local_scaled_bytes(key, cache_accounted_bytes);
+    }
+
+    return debug_entry_accounting {
+        .cache_accounted_bytes = cache_accounted_bytes,
+        .image_count = image_count,
+        .widget_local_rasterized_bytes_estimated
+        = widget_local_rasterized_bytes_estimated,
+        .widget_local_scaled_bytes_estimated
+        = widget_local_scaled_bytes_estimated,
+        .widget_local_display_bytes_estimated
+        = widget_local_rasterized_bytes_estimated
+            + widget_local_scaled_bytes_estimated,
+    };
+}
+
+void raster_cache::apply_debug_entry_accounting_add(
+    const entry_key& key, const debug_entry_accounting& accounting
+) {
+    if (key.kind != resource_kind::single_svg) {
+        return;
+    }
+
+    widget_local_always_rasterized_bytes_estimated
+        += accounting.widget_local_rasterized_bytes_estimated;
+}
+
+void raster_cache::apply_debug_entry_accounting_remove(
+    const entry_key& key, const debug_entry_accounting& accounting
+) {
+    if (key.kind != resource_kind::single_svg) {
+        return;
+    }
+
+    widget_local_always_rasterized_bytes_estimated = std::max<qint64>(
+        0,
+        widget_local_always_rasterized_bytes_estimated
+            - accounting.widget_local_rasterized_bytes_estimated
+    );
+}
 
 void raster_cache::add_timing_sample(
     debug_timing_accumulator& accumulator, qint64 value_ms

@@ -44,6 +44,7 @@ void card_sheet_tests::contains_expected_elements() {
 void card_sheet_tests::source_path_switches_between_themes() {
     struct source_restore_guard {
         QString source;
+
         ~source_restore_guard() { set_card_sheet_source_path(source); }
     } guard { card_sheet_source_path() };
 
@@ -65,7 +66,8 @@ void card_sheet_tests::source_path_switches_between_themes() {
     QVERIFY(ratio_two.second > 0);
 }
 
-void card_sheet_tests::required_ids_and_fallback_resolution_are_deterministic() {
+void card_sheet_tests::
+    required_ids_and_fallback_resolution_are_deterministic() {
     const QStringList required_ids = required_card_element_ids_with_back();
     QVERIFY(!required_ids.isEmpty());
     QCOMPARE(
@@ -80,14 +82,13 @@ void card_sheet_tests::required_ids_and_fallback_resolution_are_deterministic() 
     QCOMPARE(active_resolution.placeholder_keys, 0);
 
     card_sheet_fallback_resolution active_raster_resolution;
-    const QVector<QImage> active_images = rasterize_required_card_faces_with_fallback(
-        str_label("assets/cards_1.svg"), QSize(72, 72),
-        &active_raster_resolution
-    );
+    const QVector<QImage> active_images
+        = rasterize_required_card_faces_with_fallback(
+            str_label("assets/cards_1.svg"), QSize(72, 72),
+            &active_raster_resolution
+        );
     QCOMPARE(active_images.size(), required_ids.size());
-    QCOMPARE(
-        active_raster_resolution.active_theme_keys, required_ids.size()
-    );
+    QCOMPARE(active_raster_resolution.active_theme_keys, required_ids.size());
     QCOMPARE(active_raster_resolution.default_theme_keys, 0);
     QCOMPARE(active_raster_resolution.placeholder_keys, 0);
     for (const QImage& image : active_images) {

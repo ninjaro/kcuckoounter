@@ -15,6 +15,10 @@ class QGroupBox;
 class QPlainTextEdit;
 class QTabWidget;
 class resource_monitor;
+class monitor_line_chart_widget;
+class monitor_pie_chart_widget;
+class monitor_geometry_schematic_widget;
+class monitor_resize_history_widget;
 
 class main_window : public BaseMainWindow {
     Q_OBJECT
@@ -84,12 +88,16 @@ private:
     QCheckBox* resource_monitor_show_activity_pending_series;
     QCheckBox* resource_monitor_show_activity_in_flight_series;
     QCheckBox* resource_monitor_show_activity_events_series;
-    QPlainTextEdit* resource_monitor_primary_chart_text;
-    QPlainTextEdit* resource_monitor_secondary_chart_text;
+    monitor_line_chart_widget* resource_monitor_primary_chart_view;
+    monitor_line_chart_widget* resource_monitor_ratio_chart_view;
+    monitor_line_chart_widget* resource_monitor_secondary_chart_view;
+    monitor_pie_chart_widget* resource_monitor_composition_chart_view;
     QGroupBox* resource_monitor_timeline_group;
     QGroupBox* resource_monitor_diagnostics_group;
     QPlainTextEdit* resource_monitor_timeline_text;
     QPlainTextEdit* resource_monitor_diagnostics_text;
+    monitor_geometry_schematic_widget* resource_monitor_geometry_view;
+    monitor_resize_history_widget* resource_monitor_resize_history_view;
     QPlainTextEdit* resource_monitor_geometry_text;
     QPlainTextEdit* resource_monitor_resize_history_text;
 #endif

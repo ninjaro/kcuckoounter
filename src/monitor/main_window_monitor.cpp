@@ -1,9 +1,11 @@
 #include "main_window.hpp"
 
 #include "arch/str_label.hpp"
+#include "monitor/monitor_visual_widgets.hpp"
 #include "monitor/raster_cache_debug_strings.hpp"
 #include "monitor/resource_monitor.hpp"
 
+#include <QCheckBox>
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
@@ -12,8 +14,8 @@
 #include <QLabel>
 #include <QPainter>
 #include <QPalette>
-#include <QPlainTextEdit>
 #include <QPixmap>
+#include <QPlainTextEdit>
 #include <QStandardPaths>
 #include <QStringList>
 #include <QTimeZone>
@@ -31,107 +33,8 @@ QString format_px_size(const QSize& size) {
     return QStringLiteral("%1x%2").arg(size.width()).arg(size.height());
 }
 
-int scale_to_cells(int value, int full_value, int max_cells) {
-    if (value <= 0 || full_value <= 0 || max_cells <= 0) {
-        return 0;
-    }
-    return std::clamp(
-        static_cast<int>(
-            std::llround((double(value) / double(full_value)) * max_cells)
-        ),
-        1, max_cells
-    );
-}
-
-QString build_lower_left_geometry_schematic(
-    const geometry_debug_snapshot& geometry
-) {
-    constexpr int width_cells = 48;
-    constexpr int height_cells = 16;
-
-    QVector<QString> rows(
-        height_cells, QString(width_cells, QLatin1Char(' '))
-    );
-
-    for (int x = 0; x < width_cells; ++x) {
-        rows[height_cells - 1][x] = QLatin1Char('_');
-    }
-    for (int y = 0; y < height_cells; ++y) {
-        rows[y][0] = QLatin1Char('|');
-    }
-    rows[height_cells - 1][0] = QLatin1Char('+');
-
-    const int max_width = std::max(
-        1,
-        std::max({
-            geometry.window_size.width(), geometry.layout_size.width(),
-            geometry.display_card_size.width(), geometry.cache_raster_size.width(),
-            geometry.preloaded_raster_size.width()
-        })
-    );
-    const int max_height = std::max(
-        1,
-        std::max({
-            geometry.window_size.height(), geometry.layout_size.height(),
-            geometry.display_card_size.height(), geometry.cache_raster_size.height(),
-            geometry.preloaded_raster_size.height()
-        })
-    );
-
-    auto draw_rect = [&rows](const QSize& size, int full_width, int full_height,
-                             QChar edge) {
-        if (size.width() <= 0 || size.height() <= 0) {
-            return;
-        }
-
-        const int drawable_width = width_cells - 2;
-        const int drawable_height = height_cells - 2;
-        const int rect_width
-            = scale_to_cells(size.width(), full_width, drawable_width);
-        const int rect_height
-            = scale_to_cells(size.height(), full_height, drawable_height);
-        if (rect_width <= 0 || rect_height <= 0) {
-            return;
-        }
-
-        const int x0 = 1;
-        const int y_bottom = height_cells - 2;
-        const int x1 = std::min(width_cells - 1, x0 + rect_width - 1);
-        const int y_top = std::max(0, y_bottom - rect_height + 1);
-
-        for (int x = x0; x <= x1; ++x) {
-            rows[y_top][x] = edge;
-            rows[y_bottom][x] = edge;
-        }
-        for (int y = y_top; y <= y_bottom; ++y) {
-            rows[y][x0] = edge;
-            rows[y][x1] = edge;
-        }
-    };
-
-    draw_rect(geometry.window_size, max_width, max_height, QLatin1Char('W'));
-    draw_rect(geometry.layout_size, max_width, max_height, QLatin1Char('L'));
-    draw_rect(
-        geometry.display_card_size, max_width, max_height, QLatin1Char('D')
-    );
-    draw_rect(geometry.cache_raster_size, max_width, max_height, QLatin1Char('C'));
-    draw_rect(
-        geometry.preloaded_raster_size, max_width, max_height, QLatin1Char('P')
-    );
-
-    QStringList lines;
-    lines.append(
-        QStringLiteral("Lower-left anchored schematic (origin = bottom-left)")
-    );
-    for (const QString& row : rows) {
-        lines.append(row);
-    }
-    lines.append(
-        QStringLiteral(
-            "Legend: W=window L=layout D=display-card C=cache-raster P=preloaded-raster"
-        )
-    );
-    return lines.join(QLatin1Char('\n'));
+double bytes_to_mib_value(qint64 bytes) {
+    return static_cast<double>(bytes) / (1024.0 * 1024.0);
 }
 
 } // namespace
@@ -182,8 +85,10 @@ void main_window::on_export_process_memory_report_triggered() {
 }
 
 void main_window::on_export_monitor_charts_triggered() {
-    if (resource_monitor_primary_chart_text == nullptr
-        || resource_monitor_secondary_chart_text == nullptr) {
+    if (resource_monitor_primary_chart_view == nullptr
+        || resource_monitor_ratio_chart_view == nullptr
+        || resource_monitor_secondary_chart_view == nullptr
+        || resource_monitor_composition_chart_view == nullptr) {
         return;
     }
 
@@ -204,24 +109,53 @@ void main_window::on_export_monitor_charts_triggered() {
         output_path += QStringLiteral(".png");
     }
 
-    const QPixmap primary
-        = resource_monitor_primary_chart_text->viewport()->grab();
-    const QPixmap secondary
-        = resource_monitor_secondary_chart_text->viewport()->grab();
-    if (primary.isNull() || secondary.isNull()) {
+    const QVector<QPixmap> dashboard_charts = {
+        resource_monitor_primary_chart_view->grab(),
+        resource_monitor_ratio_chart_view->grab(),
+        resource_monitor_secondary_chart_view->grab(),
+        resource_monitor_composition_chart_view->grab(),
+    };
+
+    for (const QPixmap& chart : dashboard_charts) {
+        if (!chart.isNull()) {
+            continue;
+        }
         qWarning() << "Unable to export monitor charts: chart pixmap is null";
         return;
     }
 
     const int spacing_px = 12;
-    const int width_px = std::max(primary.width(), secondary.width());
-    const int height_px = primary.height() + spacing_px + secondary.height();
+    int width_px = 0;
+    int height_px = 0;
+    for (qsizetype index = 0; index < dashboard_charts.size(); ++index) {
+        const QPixmap& chart = dashboard_charts.at(index);
+        width_px = std::max(width_px, chart.width());
+        height_px += chart.height();
+        if (index + 1 < dashboard_charts.size()) {
+            height_px += spacing_px;
+        }
+    }
+
+    if (width_px <= 0 || height_px <= 0) {
+        qWarning() << "Unable to export monitor charts: invalid composed size";
+        return;
+    }
+
     QPixmap composed(width_px, height_px);
-    composed.fill(resource_monitor_primary_chart_text->palette().color(QPalette::Base));
+    composed.fill(
+        resource_monitor_primary_chart_view->palette().color(QPalette::Base)
+    );
 
     QPainter painter(&composed);
-    painter.drawPixmap(0, 0, primary);
-    painter.drawPixmap(0, primary.height() + spacing_px, secondary);
+    int y_offset_px = 0;
+    for (qsizetype index = 0; index < dashboard_charts.size(); ++index) {
+        const QPixmap& chart = dashboard_charts.at(index);
+        painter.drawPixmap(0, y_offset_px, chart);
+        y_offset_px += chart.height();
+        if (index + 1 < dashboard_charts.size()) {
+            y_offset_px += spacing_px;
+        }
+    }
     painter.end();
 
     if (!composed.save(output_path, "PNG")) {
@@ -233,9 +167,8 @@ void main_window::on_export_monitor_charts_triggered() {
 }
 
 void main_window::on_add_monitor_marker_triggered() {
-    const QString timestamp = QDateTime::currentDateTimeUtc().toString(
-        QStringLiteral("hh:mm:ss")
-    );
+    const QString timestamp
+        = QDateTime::currentDateTimeUtc().toString(QStringLiteral("hh:mm:ss"));
     add_debug_marker(QStringLiteral("manual_marker_%1").arg(timestamp));
 }
 
@@ -321,10 +254,14 @@ void main_window::refresh_resource_monitor_view() {
         || resource_monitor_summary_process_card == nullptr
         || resource_monitor_summary_stock_card == nullptr
         || resource_monitor_summary_activity_card == nullptr
-        || resource_monitor_primary_chart_text == nullptr
-        || resource_monitor_secondary_chart_text == nullptr
+        || resource_monitor_primary_chart_view == nullptr
+        || resource_monitor_ratio_chart_view == nullptr
+        || resource_monitor_secondary_chart_view == nullptr
+        || resource_monitor_composition_chart_view == nullptr
         || resource_monitor_timeline_text == nullptr
         || resource_monitor_diagnostics_text == nullptr
+        || resource_monitor_geometry_view == nullptr
+        || resource_monitor_resize_history_view == nullptr
         || resource_monitor_geometry_text == nullptr
         || resource_monitor_resize_history_text == nullptr
         || debug_telemetry_collector == nullptr) {
@@ -338,13 +275,37 @@ void main_window::refresh_resource_monitor_view() {
         resource_monitor_summary_process_card->setText(no_data);
         resource_monitor_summary_stock_card->setText(no_data);
         resource_monitor_summary_activity_card->setText(no_data);
-        resource_monitor_primary_chart_text->setPlainText(no_data);
-        resource_monitor_secondary_chart_text->setPlainText(no_data);
+        resource_monitor_primary_chart_view->set_series(
+            QVector<monitor_line_chart_widget::series>()
+        );
+        resource_monitor_primary_chart_view->set_footer_lines(
+            QStringList() << no_data
+        );
+        resource_monitor_ratio_chart_view->set_series(
+            QVector<monitor_line_chart_widget::series>()
+        );
+        resource_monitor_ratio_chart_view->set_footer_lines(
+            QStringList() << no_data
+        );
+        resource_monitor_secondary_chart_view->set_series(
+            QVector<monitor_line_chart_widget::series>()
+        );
+        resource_monitor_secondary_chart_view->set_footer_lines(
+            QStringList() << no_data
+        );
+        resource_monitor_composition_chart_view->set_slices(
+            QVector<monitor_pie_chart_widget::slice>()
+        );
+        resource_monitor_composition_chart_view->set_footer_text(no_data);
         resource_monitor_timeline_text->setPlainText(
             str_label("No timeline rows yet.")
         );
         resource_monitor_diagnostics_text->setPlainText(
             str_label("No diagnostics data yet.")
+        );
+        resource_monitor_geometry_view->clear_snapshot();
+        resource_monitor_resize_history_view->set_entries(
+            QVector<monitor_resize_history_widget::resize_entry>()
         );
         resource_monitor_geometry_text->setPlainText(
             str_label("No geometry telemetry yet.")
@@ -363,7 +324,7 @@ void main_window::refresh_resource_monitor_view() {
         : 0;
 
     const auto to_mib = [](qint64 bytes) {
-        return QString::number(double(bytes) / (1024.0 * 1024.0), 'f', 2);
+        return QString::number(bytes_to_mib_value(bytes), 'f', 2);
     };
 
     resource_monitor_summary_memory_card->setText(
@@ -414,173 +375,187 @@ void main_window::refresh_resource_monitor_view() {
     const QVector<resource_monitor::event_timeline_entry> event_rows
         = debug_telemetry_collector->event_timeline();
 
-    auto build_series_line =
-        [](const QString& label,
-           const QVector<resource_monitor::cache_timeline_entry>& rows,
-           qint64 (*value_fn)(const resource_monitor::cache_timeline_entry&),
-           bool (*is_available_fn)(
-               const resource_monitor::cache_timeline_entry&
-           )
-           = nullptr) {
-            if (rows.isEmpty()) {
-                return QStringLiteral("- ") + label + QStringLiteral(": n/a");
-            }
+    auto append_series_if_checked
+        = [&cache_rows](
+              QCheckBox* toggle, const QString& label, const QColor& color,
+              auto value_fn, auto available_fn,
+              QVector<monitor_line_chart_widget::series>* output_series
+          ) {
+              if (toggle == nullptr || output_series == nullptr
+                  || !toggle->isChecked()) {
+                  return;
+              }
 
-            QVector<qint64> values;
-            values.reserve(rows.size());
-            qint64 min_value = std::numeric_limits<qint64>::max();
-            qint64 max_value = std::numeric_limits<qint64>::min();
-            for (const auto& row : rows) {
-                if (is_available_fn != nullptr && !is_available_fn(row)) {
-                    continue;
-                }
-                const qint64 value = value_fn(row);
-                values.push_back(value);
-                min_value = std::min(min_value, value);
-                max_value = std::max(max_value, value);
-            }
+              monitor_line_chart_widget::series line;
+              line.label = label;
+              line.color = color;
+              line.values.reserve(cache_rows.size());
 
-            if (values.isEmpty()) {
-                return QStringLiteral("- ") + label
-                    + QStringLiteral(": unavailable");
-            }
+              for (const auto& row : cache_rows) {
+                  if (available_fn(row)) {
+                      line.values.push_back(value_fn(row));
+                  } else {
+                      line.values.push_back(
+                          std::numeric_limits<double>::quiet_NaN()
+                      );
+                  }
+              }
 
-            const QString ramps = QString::fromUtf8("▁▂▃▄▅▆▇█");
-            QString spark;
-            const int start = std::max(0, int(values.size() - 20));
-            const qint64 span = std::max<qint64>(1, max_value - min_value);
-            for (int i = start; i < values.size(); ++i) {
-                const qint64 value = values.at(i);
-                const int idx = std::clamp(
-                    int((double(value - min_value) / double(span)) * 7.0), 0, 7
-                );
-                spark.append(ramps.at(idx));
-            }
+              output_series->push_back(line);
+          };
 
-            const qint64 latest_value = values.constLast();
-            const qint64 baseline_value = values.at(start);
-            const qint64 delta = latest_value - baseline_value;
-            const QString delta_sign
-                = delta >= 0 ? QStringLiteral("+") : QString();
+    const auto always_available
+        = [](const resource_monitor::cache_timeline_entry&) { return true; };
 
-            return QStringLiteral("- ") + label + QStringLiteral(": latest=")
-                + QString::number(latest_value) + QStringLiteral(" Δ=")
-                + delta_sign + QString::number(delta) + QStringLiteral(" min=")
-                + QString::number(min_value) + QStringLiteral(" max=")
-                + QString::number(max_value) + QStringLiteral(" | ") + spark;
-        };
-
-    QStringList primary_chart;
-    primary_chart.append(str_label("Primary memory chart (last 20 snapshots)"));
-    primary_chart.append(
-        str_label("Measured/accounted/estimated series stay separate.")
+    QVector<monitor_line_chart_widget::series> primary_series;
+    append_series_if_checked(
+        resource_monitor_show_cache_bytes_series,
+        str_label("Cache-accounted bytes"), QColor(52, 111, 196),
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return bytes_to_mib_value(row.cache_snapshot.ready_bytes);
+        },
+        always_available, &primary_series
     );
-    if (resource_monitor_show_cache_bytes_series != nullptr
-        && resource_monitor_show_cache_bytes_series->isChecked()) {
-        primary_chart.append(build_series_line(
-            str_label("Cache-accounted bytes"), cache_rows,
-            [](const resource_monitor::cache_timeline_entry& row) {
-                return row.cache_snapshot.ready_bytes;
-            }
-        ));
-    }
-    if (resource_monitor_show_widget_local_series != nullptr
-        && resource_monitor_show_widget_local_series->isChecked()) {
-        primary_chart.append(build_series_line(
-            str_label("Widget-local estimated bytes"), cache_rows,
-            [](const resource_monitor::cache_timeline_entry& row) {
-                return row.cache_snapshot.widget_local_display_bytes_estimated;
-            }
-        ));
-    }
-    if (resource_monitor_show_process_rss_series != nullptr
-        && resource_monitor_show_process_rss_series->isChecked()) {
-        primary_chart.append(build_series_line(
-            str_label("Process RSS bytes (OS)"), cache_rows,
-            [](const resource_monitor::cache_timeline_entry& row) {
-                return row.process_rss_bytes;
-            },
-            [](const resource_monitor::cache_timeline_entry& row) {
-                return row.process_rss_bytes >= 0;
-            }
-        ));
-    }
-    if (resource_monitor_show_gap_bytes_series != nullptr
-        && resource_monitor_show_gap_bytes_series->isChecked()) {
-        primary_chart.append(build_series_line(
-            str_label("Measured-accounted gap bytes (derived)"), cache_rows,
-            [](const resource_monitor::cache_timeline_entry& row) {
-                return row.process_rss_bytes >= 0
-                    ? row.process_rss_bytes - row.cache_snapshot.ready_bytes
-                    : 0;
-            },
-            [](const resource_monitor::cache_timeline_entry& row) {
-                return row.process_rss_bytes >= 0;
-            }
-        ));
-    }
-    if (resource_monitor_show_accounted_to_measured_ratio_series != nullptr
-        && resource_monitor_show_accounted_to_measured_ratio_series
-               ->isChecked()) {
-        primary_chart.append(build_series_line(
-            str_label("Accounted/measured ratio permille (derived)"),
-            cache_rows,
-            [](const resource_monitor::cache_timeline_entry& row) {
-                if (row.process_rss_bytes <= 0) {
-                    return qint64(0);
-                }
-                return (row.cache_snapshot.ready_bytes * 1000)
-                    / row.process_rss_bytes;
-            },
-            [](const resource_monitor::cache_timeline_entry& row) {
-                return row.process_rss_bytes > 0;
-            }
-        ));
-    }
-    resource_monitor_primary_chart_text->setPlainText(
-        primary_chart.join(QLatin1Char('\n'))
+    append_series_if_checked(
+        resource_monitor_show_widget_local_series,
+        str_label("Widget-local estimated bytes"), QColor(216, 140, 52),
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return bytes_to_mib_value(
+                row.cache_snapshot.widget_local_display_bytes_estimated
+            );
+        },
+        always_available, &primary_series
+    );
+    append_series_if_checked(
+        resource_monitor_show_process_rss_series,
+        str_label("Process RSS bytes (OS)"), QColor(52, 168, 110),
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return bytes_to_mib_value(row.process_rss_bytes);
+        },
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return row.process_rss_bytes >= 0;
+        },
+        &primary_series
+    );
+    append_series_if_checked(
+        resource_monitor_show_gap_bytes_series,
+        str_label("Measured-accounted gap bytes (derived)"),
+        QColor(196, 72, 88),
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return bytes_to_mib_value(
+                row.process_rss_bytes - row.cache_snapshot.ready_bytes
+            );
+        },
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return row.process_rss_bytes >= 0;
+        },
+        &primary_series
     );
 
-    QStringList secondary_chart;
-    secondary_chart.append(
-        str_label("Secondary counts/activity chart (last 20 snapshots)")
+    resource_monitor_primary_chart_view->set_series(primary_series);
+    resource_monitor_primary_chart_view->set_footer_lines(
+        QStringList() << str_label(
+            "Measured/accounted/estimated/derived remain distinct."
+        ) << str_label("Samples: %1").arg(cache_rows.size())
     );
-    if (resource_monitor_show_activity_displayed_series != nullptr
-        && resource_monitor_show_activity_displayed_series->isChecked()) {
-        secondary_chart.append(build_series_line(
-            str_label("Displayed-recent entries"), cache_rows,
-            [](const resource_monitor::cache_timeline_entry& row) {
-                return qint64(row.cache_snapshot.displayed_ready_entries);
-            }
-        ));
-    }
-    if (resource_monitor_show_activity_pending_series != nullptr
-        && resource_monitor_show_activity_pending_series->isChecked()) {
-        secondary_chart.append(build_series_line(
-            str_label("Pending families"), cache_rows,
-            [](const resource_monitor::cache_timeline_entry& row) {
-                return qint64(row.cache_snapshot.pending_families);
-            }
-        ));
-    }
-    if (resource_monitor_show_activity_in_flight_series != nullptr
-        && resource_monitor_show_activity_in_flight_series->isChecked()) {
-        secondary_chart.append(build_series_line(
-            str_label("In-flight families"), cache_rows,
-            [](const resource_monitor::cache_timeline_entry& row) {
-                return qint64(row.cache_snapshot.in_flight_families);
-            }
-        ));
-    }
+
+    QVector<monitor_line_chart_widget::series> ratio_series;
+    append_series_if_checked(
+        resource_monitor_show_accounted_to_measured_ratio_series,
+        str_label("Accounted/measured ratio (derived %)"), QColor(122, 94, 220),
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return (double(row.cache_snapshot.ready_bytes) * 100.0)
+                / double(row.process_rss_bytes);
+        },
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return row.process_rss_bytes > 0;
+        },
+        &ratio_series
+    );
+
+    resource_monitor_ratio_chart_view->set_series(ratio_series);
+    resource_monitor_ratio_chart_view->set_footer_lines(
+        QStringList() << str_label(
+            "Derived comparison series; not ownership attribution."
+        )
+    );
+
+    QVector<monitor_line_chart_widget::series> secondary_series;
+    append_series_if_checked(
+        resource_monitor_show_activity_displayed_series,
+        str_label("Displayed-recent entries"), QColor(44, 150, 198),
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return double(row.cache_snapshot.displayed_ready_entries);
+        },
+        always_available, &secondary_series
+    );
+    append_series_if_checked(
+        resource_monitor_show_activity_pending_series,
+        str_label("Pending families"), QColor(224, 132, 36),
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return double(row.cache_snapshot.pending_families);
+        },
+        always_available, &secondary_series
+    );
+    append_series_if_checked(
+        resource_monitor_show_activity_in_flight_series,
+        str_label("In-flight families"), QColor(92, 102, 222),
+        [](const resource_monitor::cache_timeline_entry& row) {
+            return double(row.cache_snapshot.in_flight_families);
+        },
+        always_available, &secondary_series
+    );
+
+    QStringList secondary_footer;
+    secondary_footer.append(
+        str_label("Activity counters only; byte ownership is in primary chart.")
+    );
     if (resource_monitor_show_activity_events_series != nullptr
         && resource_monitor_show_activity_events_series->isChecked()) {
-        secondary_chart.append(
-            str_label("- Event markers total: %1").arg(event_rows.size())
+        secondary_footer.append(
+            str_label("Event markers total: %1").arg(event_rows.size())
         );
     }
-    resource_monitor_secondary_chart_text->setPlainText(
-        secondary_chart.join(QLatin1Char('\n'))
+    resource_monitor_secondary_chart_view->set_series(secondary_series);
+    resource_monitor_secondary_chart_view->set_footer_lines(secondary_footer);
+
+    QVector<monitor_pie_chart_widget::slice> composition_slices;
+    if (snapshot.displayed_ready_entries > 0) {
+        composition_slices.push_back(
+            {
+                str_label("Displayed-recent entries"),
+                QColor(44, 150, 198),
+                double(snapshot.displayed_ready_entries),
+            }
+        );
+    }
+    if (snapshot.cached_only_ready_entries > 0) {
+        composition_slices.push_back(
+            {
+                str_label("Cached-only entries"),
+                QColor(120, 128, 140),
+                double(snapshot.cached_only_ready_entries),
+            }
+        );
+    }
+    const int other_ready_entries = std::max(
+        0,
+        snapshot.ready_entries - snapshot.displayed_ready_entries
+            - snapshot.cached_only_ready_entries
     );
+    if (other_ready_entries > 0) {
+        composition_slices.push_back(
+            {
+                str_label("Other ready entries"),
+                QColor(170, 102, 190),
+                double(other_ready_entries),
+            }
+        );
+    }
+    resource_monitor_composition_chart_view->set_slices(composition_slices);
+    resource_monitor_composition_chart_view->set_footer_text(str_label(
+        "Entry-count composition (unique stock subsets), not byte totals."
+    ));
 
     QStringList timeline_lines;
     timeline_lines.append(str_label("Latest timeline rows (up to 12):"));
@@ -664,10 +639,9 @@ void main_window::refresh_resource_monitor_view() {
     if (debug_telemetry_collector->has_geometry_snapshot()) {
         const geometry_debug_snapshot geometry
             = debug_telemetry_collector->latest_geometry_snapshot();
+        resource_monitor_geometry_view->set_snapshot(geometry);
         geometry_lines.append(
-            str_label(
-                "Slots: %1 total / %2 visible | window=%3 | layout=%4"
-            )
+            str_label("Slots: %1 total / %2 visible | window=%3 | layout=%4")
                 .arg(geometry.slot_count)
                 .arg(geometry.visible_slot_count)
                 .arg(format_px_size(geometry.window_size))
@@ -698,14 +672,18 @@ void main_window::refresh_resource_monitor_view() {
             )
                 .arg(geometry.coverage_percent)
                 .arg(geometry.coverage_window_ms)
-                .arg(geometry.prewarm_in_flight ? str_label("yes")
-                                                : str_label("no"))
+                .arg(
+                    geometry.prewarm_in_flight ? str_label("yes")
+                                               : str_label("no")
+                )
                 .arg(geometry.active_generation_id)
                 .arg(geometry.warming_generation_id)
         );
-        geometry_lines.append(QString());
-        geometry_lines.append(build_lower_left_geometry_schematic(geometry));
+        geometry_lines.append(
+            str_label("Schematic view above is lower-left anchored.")
+        );
     } else {
+        resource_monitor_geometry_view->clear_snapshot();
         geometry_lines.append(
             str_label("No geometry snapshots have been collected yet.")
         );
@@ -716,17 +694,32 @@ void main_window::refresh_resource_monitor_view() {
 
     const QVector<resource_monitor::resize_history_entry> resize_history_rows
         = debug_telemetry_collector->resize_history();
+    QVector<monitor_resize_history_widget::resize_entry> resize_visual_rows;
+    resize_visual_rows.reserve(resize_history_rows.size());
+    for (const auto& row : resize_history_rows) {
+        monitor_resize_history_widget::resize_entry visual_row;
+        visual_row.timestamp_ms = row.transition_end_timestamp_ms > 0
+            ? row.transition_end_timestamp_ms
+            : row.transition_start_timestamp_ms;
+        visual_row.prewarm_completion_ms = row.prewarm_completion_ms;
+        visual_row.old_active_bucket_px = row.old_active_bucket_px;
+        visual_row.new_active_bucket_px = row.new_active_bucket_px;
+        visual_row.old_window_size = row.old_window_size;
+        visual_row.new_window_size = row.new_window_size;
+        resize_visual_rows.push_back(visual_row);
+    }
+    resource_monitor_resize_history_view->set_entries(resize_visual_rows);
+
     QStringList resize_lines;
     resize_lines.append(str_label("Recent resize transitions"));
     const QString resize_log_path
         = debug_telemetry_collector->resize_history_log_path();
-    resize_lines.append(
-        str_label("Append-only log stream: %1")
-            .arg(
-                resize_log_path.isEmpty() ? str_label("not initialized yet")
-                                          : resize_log_path
-            )
-    );
+    resize_lines.append(str_label("Append-only log stream: %1")
+                            .arg(
+                                resize_log_path.isEmpty()
+                                    ? str_label("not initialized yet")
+                                    : resize_log_path
+                            ));
 
     if (resize_history_rows.isEmpty()) {
         resize_lines.append(
@@ -739,15 +732,13 @@ void main_window::refresh_resource_monitor_view() {
             const QString started_at
                 = QDateTime::fromMSecsSinceEpoch(
                       row.transition_start_timestamp_ms, QTimeZone::UTC
-                  )
+                )
                       .toString(QStringLiteral("hh:mm:ss.zzz"));
-            const QString ended_at = QDateTime::fromMSecsSinceEpoch(
-                                         row.transition_end_timestamp_ms,
-                                         QTimeZone::UTC
-            )
-                                         .toString(
-                                             QStringLiteral("hh:mm:ss.zzz")
-                                         );
+            const QString ended_at
+                = QDateTime::fromMSecsSinceEpoch(
+                      row.transition_end_timestamp_ms, QTimeZone::UTC
+                )
+                      .toString(QStringLiteral("hh:mm:ss.zzz"));
             resize_lines.append(
                 str_label(
                     "[resize] t=%1 -> %2 window=%3 -> %4 bucket(active "
@@ -790,8 +781,7 @@ void main_window::refresh_resource_monitor_view() {
                             : str_label("unavailable")
                     )
                     .arg(to_mib(row.after_cache_accounted_ready_bytes))
-                    .arg(to_mib(row.after_widget_local_display_bytes_estimated)
-                    )
+                    .arg(to_mib(row.after_widget_local_display_bytes_estimated))
                     .arg(to_mib(row.after_measured_accounted_gap_bytes))
             );
         }

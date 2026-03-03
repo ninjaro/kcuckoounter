@@ -397,12 +397,12 @@ void resource_monitor_tests::exports_process_sampling_interval_metadata() {
                 QStringLiteral("auto_process_report_rss_growth_threshold_bytes")
         )
             .toInteger(),
-        static_cast<qint64>(128 * 1024 * 1024)
+        static_cast<qint64>(192 * 1024 * 1024)
     );
     QCOMPARE(
         root.value(QStringLiteral("auto_process_report_cooldown_ms"))
             .toInteger(),
-        static_cast<qint64>(10 * 60 * 1000)
+        static_cast<qint64>(12 * 60 * 1000)
     );
     QVERIFY(
         root.contains(QStringLiteral("auto_process_report_baseline_rss_bytes"))
@@ -427,7 +427,7 @@ void resource_monitor_tests::exports_process_sampling_interval_metadata() {
                        "auto_process_report_consecutive_growth_hits_required"
                    ))
             .toInteger(),
-        static_cast<qint64>(3)
+        static_cast<qint64>(4)
     );
 
     const QJsonObject semantics
@@ -484,12 +484,14 @@ void resource_monitor_tests::exposes_auto_process_report_runtime_state() {
         = collector.current_auto_process_report_runtime_state();
     QCOMPARE(
         realistic_state.rss_growth_threshold_bytes,
-        static_cast<qint64>(64 * 1024 * 1024)
+        static_cast<qint64>(96 * 1024 * 1024)
     );
-    QCOMPARE(realistic_state.cooldown_ms, static_cast<qint64>(5 * 60 * 1000));
-    QCOMPARE(realistic_state.consecutive_growth_hits_required, static_cast<qint64>(2));
+    QCOMPARE(realistic_state.cooldown_ms, static_cast<qint64>(8 * 60 * 1000));
+    QCOMPARE(
+        realistic_state.consecutive_growth_hits_required, static_cast<qint64>(3)
+    );
     QCOMPARE(realistic_state.window_ms, static_cast<qint64>(60 * 60 * 1000));
-    QCOMPARE(realistic_state.window_max_exports, static_cast<qint64>(3));
+    QCOMPARE(realistic_state.window_max_exports, static_cast<qint64>(2));
 
     collector.set_debug_cadence_mode(
         resource_monitor::debug_cadence_mode::instrumented
@@ -498,25 +500,28 @@ void resource_monitor_tests::exposes_auto_process_report_runtime_state() {
         = collector.current_auto_process_report_runtime_state();
     QCOMPARE(
         instrumented_state.rss_growth_threshold_bytes,
-        static_cast<qint64>(128 * 1024 * 1024)
+        static_cast<qint64>(192 * 1024 * 1024)
     );
     QCOMPARE(
-        instrumented_state.cooldown_ms,
-        static_cast<qint64>(10 * 60 * 1000)
+        instrumented_state.cooldown_ms, static_cast<qint64>(12 * 60 * 1000)
     );
     QCOMPARE(
         instrumented_state.consecutive_growth_hits_required,
-        static_cast<qint64>(3)
+        static_cast<qint64>(4)
     );
     QCOMPARE(instrumented_state.window_ms, static_cast<qint64>(60 * 60 * 1000));
-    QCOMPARE(instrumented_state.window_max_exports, static_cast<qint64>(6));
+    QCOMPARE(instrumented_state.window_max_exports, static_cast<qint64>(4));
 
     collector.set_auto_process_report_policy_for_tests(4096, 777, 4);
     const auto override_state
         = collector.current_auto_process_report_runtime_state();
-    QCOMPARE(override_state.rss_growth_threshold_bytes, static_cast<qint64>(4096));
+    QCOMPARE(
+        override_state.rss_growth_threshold_bytes, static_cast<qint64>(4096)
+    );
     QCOMPARE(override_state.cooldown_ms, static_cast<qint64>(777));
-    QCOMPARE(override_state.consecutive_growth_hits_required, static_cast<qint64>(4));
+    QCOMPARE(
+        override_state.consecutive_growth_hits_required, static_cast<qint64>(4)
+    );
 }
 
 void resource_monitor_tests::samples_process_memory_and_exports_it() {
@@ -551,8 +556,12 @@ void resource_monitor_tests::samples_process_memory_and_exports_it() {
     QVERIFY(root.contains(QStringLiteral("process_memory_rss_available")));
     QVERIFY(root.contains(QStringLiteral("process_memory_sample_interval_ms")));
     QVERIFY(root.contains(QStringLiteral("auto_process_report_window_ms")));
-    QVERIFY(root.contains(QStringLiteral("auto_process_report_window_max_exports")));
-    QVERIFY(root.contains(QStringLiteral("auto_process_report_window_exports_used")));
+    QVERIFY(
+        root.contains(QStringLiteral("auto_process_report_window_max_exports"))
+    );
+    QVERIFY(
+        root.contains(QStringLiteral("auto_process_report_window_exports_used"))
+    );
     QVERIFY(root.contains(QStringLiteral("telemetry_semantics")));
 
     const QJsonObject semantics
@@ -752,7 +761,8 @@ void resource_monitor_tests::
     );
 }
 
-void resource_monitor_tests::auto_export_requires_configured_consecutive_growth_hits() {
+void resource_monitor_tests::
+    auto_export_requires_configured_consecutive_growth_hits() {
     raster_cache cache_service;
     resource_monitor collector(nullptr, 8);
     collector.attach_cache_service(&cache_service);
@@ -807,11 +817,9 @@ void resource_monitor_tests::auto_export_requires_configured_consecutive_growth_
 
     const QJsonObject root = document.object();
     QCOMPARE(
-        root.value(
-                QStringLiteral(
-                    "auto_process_report_consecutive_growth_hits_required"
-                )
-        )
+        root.value(QStringLiteral(
+                       "auto_process_report_consecutive_growth_hits_required"
+                   ))
             .toInteger(),
         static_cast<qint64>(3)
     );
@@ -853,13 +861,13 @@ void resource_monitor_tests::auto_export_is_rate_limited_by_mode_window() {
         });
     };
 
-    for (int index = 0; index < 3; ++index) {
+    for (int index = 0; index < 2; ++index) {
         insert_svg_result(100 + index * 16, index + 1);
         QTRY_VERIFY(process_export_spy.count() >= (index + 1));
     }
 
     const qsizetype rate_limit_count = process_export_spy.count();
-    QCOMPARE(rate_limit_count, static_cast<qsizetype>(3));
+    QCOMPARE(rate_limit_count, static_cast<qsizetype>(2));
 
     insert_svg_result(200, 10);
     QTest::qWait(120);
@@ -869,8 +877,8 @@ void resource_monitor_tests::auto_export_is_rate_limited_by_mode_window() {
     QCOMPARE(process_export_spy.count(), rate_limit_count);
 
     const auto state = collector.current_auto_process_report_runtime_state();
-    QCOMPARE(state.window_max_exports, static_cast<qint64>(3));
-    QCOMPARE(state.window_exports_used, static_cast<qint64>(3));
+    QCOMPARE(state.window_max_exports, static_cast<qint64>(2));
+    QCOMPARE(state.window_exports_used, static_cast<qint64>(2));
     QCOMPARE(state.window_ms, static_cast<qint64>(60 * 60 * 1000));
 }
 
@@ -941,37 +949,37 @@ void resource_monitor_tests::tracks_memory_class_deltas_between_snapshots() {
     QVERIFY(latest_json.contains(
         QStringLiteral("widget_local_display_bytes_estimated_delta")
     ));
-    QVERIFY(latest_json.contains(
-        QStringLiteral("cache_entries_added_interval")
-    ));
-    QVERIFY(latest_json.contains(
-        QStringLiteral("cache_entries_removed_interval")
-    ));
-    QVERIFY(latest_json.contains(
-        QStringLiteral("cache_images_added_interval")
-    ));
-    QVERIFY(latest_json.contains(
-        QStringLiteral("cache_images_removed_interval")
-    ));
     QVERIFY(
-        latest_json.contains(QStringLiteral("cache_bytes_added_interval"))
+        latest_json.contains(QStringLiteral("cache_entries_added_interval"))
     );
-    QVERIFY(latest_json.contains(QStringLiteral("cache_bytes_removed_interval")));
-    QVERIFY(latest_json.contains(QStringLiteral(
-        "widget_local_display_bytes_materialized_interval"
-    )));
-    QVERIFY(latest_json.contains(QStringLiteral(
-        "widget_local_display_bytes_released_interval"
-    )));
+    QVERIFY(
+        latest_json.contains(QStringLiteral("cache_entries_removed_interval"))
+    );
+    QVERIFY(
+        latest_json.contains(QStringLiteral("cache_images_added_interval"))
+    );
+    QVERIFY(
+        latest_json.contains(QStringLiteral("cache_images_removed_interval"))
+    );
+    QVERIFY(latest_json.contains(QStringLiteral("cache_bytes_added_interval")));
+    QVERIFY(
+        latest_json.contains(QStringLiteral("cache_bytes_removed_interval"))
+    );
+    QVERIFY(latest_json.contains(
+        QStringLiteral("widget_local_display_bytes_materialized_interval")
+    ));
+    QVERIFY(latest_json.contains(
+        QStringLiteral("widget_local_display_bytes_released_interval")
+    ));
     QVERIFY(
         latest_json.contains(QStringLiteral("process_memory_rss_bytes_delta"))
     );
-    QVERIFY(latest_json.contains(QStringLiteral(
-        "process_memory_rss_bytes_growth_interval"
-    )));
-    QVERIFY(latest_json.contains(QStringLiteral(
-        "process_memory_rss_bytes_drop_interval"
-    )));
+    QVERIFY(latest_json.contains(
+        QStringLiteral("process_memory_rss_bytes_growth_interval")
+    ));
+    QVERIFY(latest_json.contains(
+        QStringLiteral("process_memory_rss_bytes_drop_interval")
+    ));
 }
 
 void resource_monitor_tests::
@@ -993,10 +1001,7 @@ void resource_monitor_tests::
 
     QVERIFY(collector.has_geometry_snapshot());
     QVERIFY(collector.geometry_timeline_size() >= 1);
-    QCOMPARE(
-        collector.latest_geometry_snapshot().window_size,
-        QSize(640, 400)
-    );
+    QCOMPARE(collector.latest_geometry_snapshot().window_size, QSize(640, 400));
 
     geometry_debug_snapshot geometry_update
         = collector.latest_geometry_snapshot();
@@ -1011,15 +1016,15 @@ void resource_monitor_tests::
     geometry_update.active_generation_id = 3;
     geometry_update.warming_generation_id = 0;
     geometry_update.prewarm_in_flight = false;
-    QVERIFY(QMetaObject::invokeMethod(
-        &collector, "on_geometry_debug_snapshot_updated",
-        Qt::DirectConnection, Q_ARG(geometry_debug_snapshot, geometry_update)
-    ));
-
-    QCOMPARE(
-        collector.latest_geometry_snapshot().window_size,
-        QSize(960, 620)
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &collector, "on_geometry_debug_snapshot_updated",
+            Qt::DirectConnection,
+            Q_ARG(geometry_debug_snapshot, geometry_update)
+        )
     );
+
+    QCOMPARE(collector.latest_geometry_snapshot().window_size, QSize(960, 620));
 
     const resize_transition_debug_event transition {
         .timestamp_ms = geometry_update.timestamp_ms,
@@ -1031,10 +1036,12 @@ void resource_monitor_tests::
         .new_warming_bucket_px = 0,
         .geometry_after_resize = geometry_update,
     };
-    QVERIFY(QMetaObject::invokeMethod(
-        &collector, "on_resize_transition_recorded", Qt::DirectConnection,
-        Q_ARG(resize_transition_debug_event, transition)
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &collector, "on_resize_transition_recorded", Qt::DirectConnection,
+            Q_ARG(resize_transition_debug_event, transition)
+        )
+    );
 
     QTRY_VERIFY(resize_spy.count() >= 1);
     QVERIFY(collector.resize_history_size() >= 1);
@@ -1070,10 +1077,13 @@ void resource_monitor_tests::exports_geometry_and_resize_history_sections() {
     geometry_update.active_bucket_px = 240;
     geometry_update.warming_bucket_px = 0;
     geometry_update.prewarm_in_flight = false;
-    QVERIFY(QMetaObject::invokeMethod(
-        &collector, "on_geometry_debug_snapshot_updated",
-        Qt::DirectConnection, Q_ARG(geometry_debug_snapshot, geometry_update)
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &collector, "on_geometry_debug_snapshot_updated",
+            Qt::DirectConnection,
+            Q_ARG(geometry_debug_snapshot, geometry_update)
+        )
+    );
 
     const resize_transition_debug_event transition {
         .timestamp_ms = geometry_update.timestamp_ms,
@@ -1085,10 +1095,12 @@ void resource_monitor_tests::exports_geometry_and_resize_history_sections() {
         .new_warming_bucket_px = 0,
         .geometry_after_resize = geometry_update,
     };
-    QVERIFY(QMetaObject::invokeMethod(
-        &collector, "on_resize_transition_recorded", Qt::DirectConnection,
-        Q_ARG(resize_transition_debug_event, transition)
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &collector, "on_resize_transition_recorded", Qt::DirectConnection,
+            Q_ARG(resize_transition_debug_event, transition)
+        )
+    );
 
     QTemporaryDir temp_dir;
     QVERIFY(temp_dir.isValid());

@@ -295,12 +295,21 @@ private:
         qint64 max_elapsed_ms = 0;
     };
 
+    struct debug_entry_accounting {
+        qint64 cache_accounted_bytes = 0;
+        int image_count = 0;
+        qint64 widget_local_rasterized_bytes_estimated = 0;
+        qint64 widget_local_scaled_bytes_estimated = 0;
+        qint64 widget_local_display_bytes_estimated = 0;
+    };
+
     QHash<entry_key, result> ready_results;
     QHash<cache_namespace, QQueue<entry_key>> ready_entry_order;
     QHash<cache_namespace, int> namespace_entry_limits;
     QHash<family_key, family_state> families;
     qint64 ready_bytes = 0;
     int ready_images = 0;
+    qint64 widget_local_always_rasterized_bytes_estimated = 0;
     int high_water_ready_entries = 0;
     qint64 high_water_ready_bytes = 0;
     int high_water_ready_images = 0;
@@ -319,6 +328,7 @@ private:
     };
 
     QHash<entry_key, displayed_entry_observation> displayed_entry_observations;
+    QHash<entry_key, debug_entry_accounting> debug_entry_accounting_cache;
 
     static constexpr qint64 displayed_entry_window_ms = 2000;
 
@@ -327,6 +337,14 @@ private:
     static int count_result_images(const result& value);
     void update_high_water_marks();
     static qint64 now_ms();
+    static debug_entry_accounting
+    make_debug_entry_accounting(const entry_key& key, const result& value);
+    void apply_debug_entry_accounting_add(
+        const entry_key& key, const debug_entry_accounting& accounting
+    );
+    void apply_debug_entry_accounting_remove(
+        const entry_key& key, const debug_entry_accounting& accounting
+    );
     static void
     add_timing_sample(debug_timing_accumulator& accumulator, qint64 value_ms);
     static qint64

@@ -147,7 +147,8 @@ struct theme_preview_scope_parse {
     bool valid;
 };
 
-theme_preview_scope_parse parse_theme_preview_render_scope(const QString& scope) {
+theme_preview_scope_parse
+parse_theme_preview_render_scope(const QString& scope) {
     const QString prefix = QStringLiteral("subset:");
     if (!scope.startsWith(prefix)) {
         return { {}, 0, 0, false };
@@ -167,17 +168,15 @@ theme_preview_scope_parse parse_theme_preview_render_scope(const QString& scope)
 
     const QString element_id = payload.left(instance_index).trimmed();
     bool instance_ok = false;
-    const qint64 instance_id = payload
-                                   .mid(
-                                       instance_index + 2,
-                                       generation_index - (instance_index + 2)
-                                   )
-                                   .toLongLong(&instance_ok);
+    const qint64 instance_id
+        = payload
+              .mid(instance_index + 2, generation_index - (instance_index + 2))
+              .toLongLong(&instance_ok);
     bool generation_ok = false;
     const qint64 generation_id
         = payload.mid(generation_index + 2).toLongLong(&generation_ok);
-    if (!instance_ok || !generation_ok || instance_id <= 0
-        || generation_id <= 0 || element_id.isEmpty()) {
+    if (!instance_ok || !generation_ok || instance_id <= 0 || generation_id <= 0
+        || element_id.isEmpty()) {
         return { {}, 0, 0, false };
     }
 
@@ -962,8 +961,7 @@ raster_cache::entry_key settings_template_widget::theme_preview_entry_key(
         .name_space = raster_cache::cache_namespace::settings,
         .kind = raster_cache::resource_kind::card_sheet_faces,
         .source_id = source_id,
-        .render_scope
-        = theme_preview_generation_render_scope(
+        .render_scope = theme_preview_generation_render_scope(
             element_id, theme_preview_instance_id, generation_id
         ),
         .target_bucket_px = target_bucket_px,
@@ -1047,7 +1045,8 @@ void settings_template_widget::ensure_theme_preview_generation(
     if (active_matches) {
         if (warming_theme_preview_generation_id > 0) {
             retire_theme_preview_generation(
-                warming_theme_preview_source_id, warming_theme_preview_bucket_px,
+                warming_theme_preview_source_id,
+                warming_theme_preview_bucket_px,
                 warming_theme_preview_generation_id
             );
             warming_theme_preview_source_id.clear();
@@ -1123,7 +1122,8 @@ bool settings_template_widget::try_cutover_theme_preview_generation() {
     return true;
 }
 
-std::optional<QImage> settings_template_widget::request_theme_preview_face_image(
+std::optional<QImage>
+settings_template_widget::request_theme_preview_face_image(
     int card_index, int suit_index, const QSize& size,
     raster_cache::debug_consumer_scope consumer,
     QSet<raster_cache::entry_key>& tracked_keys
@@ -1132,7 +1132,8 @@ std::optional<QImage> settings_template_widget::request_theme_preview_face_image
         return std::nullopt;
     }
 
-    const QString element_id = theme_preview_render_scope(card_index, suit_index);
+    const QString element_id
+        = theme_preview_render_scope(card_index, suit_index);
     if (element_id.isEmpty()) {
         return std::nullopt;
     }
@@ -1174,7 +1175,8 @@ std::optional<QImage> settings_template_widget::request_theme_preview_face_image
             active_theme_preview_source_id, active_theme_preview_bucket_px,
             active_theme_preview_generation_id, element_id
         );
-        const std::optional<raster_cache::result> ready = service.get_if_ready(key);
+        const std::optional<raster_cache::result> ready
+            = service.get_if_ready(key);
         if (ready.has_value() && !ready->face_images.isEmpty()
             && !ready->face_images[0].isNull()) {
             active_fallback = ready->face_images[0];
@@ -1246,7 +1248,8 @@ std::optional<QImage> settings_template_widget::request_theme_preview_face_image
             active_theme_preview_source_id, active_theme_preview_bucket_px,
             active_theme_preview_generation_id, element_id
         );
-        const std::optional<raster_cache::result> ready = service.get_if_ready(key);
+        const std::optional<raster_cache::result> ready
+            = service.get_if_ready(key);
         if (ready.has_value() && !ready->face_images.isEmpty()
             && !ready->face_images[0].isNull()) {
             note_displayed_theme_preview_entry(key, consumer, tracked_keys);
@@ -1392,7 +1395,8 @@ void settings_template_widget::on_theme_preview_render_finished() {
 
     auto& service = settings_theme_preview_cache_service();
     const QImage image = theme_preview_render_watcher.result();
-    const bool key_is_expected = parsed.valid && is_theme_preview_key_relevant(key);
+    const bool key_is_expected
+        = parsed.valid && is_theme_preview_key_relevant(key);
     if (!image.isNull() && key_is_expected) {
         const raster_cache::result ready {
             .key = key,
@@ -1534,7 +1538,8 @@ QPixmap settings_template_widget::request_weighted_preview_card(
         return {};
     }
     return build_weighted_card_preview(
-        *base_face, card_index, suit_index, size, strategies[strategy_index].weights
+        *base_face, card_index, suit_index, size,
+        strategies[strategy_index].weights
     );
 }
 
@@ -1599,7 +1604,8 @@ bool settings_template_widget::is_theme_preview_key_relevant(
     if (parsed.generation_id == active_theme_preview_generation_id) {
         return key.source_id == active_theme_preview_source_id
             && key.target_bucket_px == active_theme_preview_bucket_px
-            && active_theme_preview_requested_element_ids.contains(parsed.element_id
+            && active_theme_preview_requested_element_ids.contains(
+                parsed.element_id
             );
     }
     if (parsed.generation_id == warming_theme_preview_generation_id) {

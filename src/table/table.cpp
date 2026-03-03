@@ -33,9 +33,7 @@ rasterize_all_card_faces(const QString& source_path, int bucket_px) {
     );
 }
 
-raster_cache::family_key family_for_entry(
-    const raster_cache::entry_key& key
-) {
+raster_cache::family_key family_for_entry(const raster_cache::entry_key& key) {
     return raster_cache::family_key {
         .name_space = key.name_space,
         .kind = key.kind,
@@ -261,8 +259,7 @@ void table::paintEvent(QPaintEvent* event) {
 }
 
 void table::resizeEvent(QResizeEvent* event) {
-    const QSize old_window_size
-        = event != nullptr ? event->oldSize() : QSize();
+    const QSize old_window_size = event != nullptr ? event->oldSize() : QSize();
     const int old_active_bucket_px = active_shared_bucket_px;
     const int old_warming_bucket_px = warming_shared_bucket_px;
 
@@ -351,7 +348,9 @@ const raster_cache* table::shared_raster_cache_service() const {
 }
 
 geometry_debug_snapshot table::current_geometry_debug_snapshot() const {
-    return build_geometry_debug_snapshot(raster_cache_service.get_debug_snapshot());
+    return build_geometry_debug_snapshot(
+        raster_cache_service.get_debug_snapshot()
+    );
 }
 
 QString table::generation_render_scope(qint64 generation_id) {
@@ -365,7 +364,8 @@ qint64 table::generation_id_from_render_scope(const QString& render_scope) {
     }
 
     bool ok = false;
-    const qint64 generation_id = render_scope.mid(prefix.size()).toLongLong(&ok);
+    const qint64 generation_id
+        = render_scope.mid(prefix.size()).toLongLong(&ok);
     if (!ok || generation_id <= 0) {
         return 0;
     }
@@ -411,8 +411,9 @@ void table::begin_warming_generation(
     const qint64 superseded_generation_id = warming_shared_generation_id;
     retire_warming_generation();
     if (active_shared_faces_key.has_value()
-        && generation_id_from_render_scope(active_shared_faces_key->render_scope)
-            == superseded_generation_id) {
+        && generation_id_from_render_scope(
+               active_shared_faces_key->render_scope
+           ) == superseded_generation_id) {
         shared_faces_refresh_queued = true;
     }
 
@@ -489,7 +490,8 @@ void table::cutover_to_ready_generation(const raster_cache::entry_key& key) {
         = raster_cache_service.get_if_ready(key);
     const qsizetype required_faces_count
         = required_card_element_ids_with_back().size();
-    if (!ready.has_value() || ready->face_images.size() < required_faces_count) {
+    if (!ready.has_value()
+        || ready->face_images.size() < required_faces_count) {
         return;
     }
 
@@ -561,10 +563,9 @@ void table::on_shared_rasterization_requested(int target_cache_px) {
 
     if (!has_active_generation || !active_generation_matches) {
         begin_warming_generation(desired_source_id, target_cache_px);
-    } else if (
-        warming_shared_generation_id > 0
-        && (warming_card_sheet_source_id != desired_source_id
-            || warming_shared_bucket_px != target_cache_px)) {
+    } else if (warming_shared_generation_id > 0
+               && (warming_card_sheet_source_id != desired_source_id
+                   || warming_shared_bucket_px != target_cache_px)) {
         begin_warming_generation(desired_source_id, target_cache_px);
     }
 
@@ -631,12 +632,12 @@ void table::on_shared_rasterization_finished() {
         if (warming_shared_generation_id > 0
             && generation_id_from_render_scope(
                    finish.next_entry_to_start->render_scope
-               )
-                != warming_shared_generation_id) {
-            const raster_cache::entry_key restarted_key = entry_key_for_generation(
-                warming_card_sheet_source_id, warming_shared_bucket_px,
-                warming_shared_generation_id
-            );
+               ) != warming_shared_generation_id) {
+            const raster_cache::entry_key restarted_key
+                = entry_key_for_generation(
+                    warming_card_sheet_source_id, warming_shared_bucket_px,
+                    warming_shared_generation_id
+                );
             start_shared_raster_for_key(restarted_key);
         } else {
             start_shared_raster_for_key(*finish.next_entry_to_start);
@@ -714,14 +715,16 @@ void table::apply_shared_card_faces_from_entry(
         return;
     }
 
-    const qint64 generation_id = generation_id_from_render_scope(key.render_scope);
+    const qint64 generation_id
+        = generation_id_from_render_scope(key.render_scope);
     if (generation_id <= 0) {
         return;
     }
 
     const bool is_warming_generation
         = generation_id == warming_shared_generation_id;
-    const bool is_active_generation = generation_id == active_shared_generation_id;
+    const bool is_active_generation
+        = generation_id == active_shared_generation_id;
     if (!is_warming_generation && !is_active_generation) {
         return;
     }
@@ -735,7 +738,8 @@ void table::apply_shared_card_faces_from_entry(
         = raster_cache_service.get_if_ready(key);
     const qsizetype required_faces_count
         = required_card_element_ids_with_back().size();
-    if (!ready.has_value() || ready->face_images.size() < required_faces_count) {
+    if (!ready.has_value()
+        || ready->face_images.size() < required_faces_count) {
         return;
     }
     raster_cache_service.note_entry_displayed(
@@ -835,9 +839,11 @@ geometry_debug_snapshot table::build_geometry_debug_snapshot(
 
         ++visible_slot_count;
         const QRect slot_rect = slot_widget->geometry();
-        layout_bounds = layout_bounds.isNull() ? slot_rect
-                                               : layout_bounds.united(slot_rect);
-        max_display_card_width = std::max(max_display_card_width, slot_rect.width());
+        layout_bounds = layout_bounds.isNull()
+            ? slot_rect
+            : layout_bounds.united(slot_rect);
+        max_display_card_width
+            = std::max(max_display_card_width, slot_rect.width());
         max_display_card_height
             = std::max(max_display_card_height, slot_rect.height());
     }
@@ -851,7 +857,8 @@ geometry_debug_snapshot table::build_geometry_debug_snapshot(
         }
     }
     if (cache_raster_size.isEmpty() && active_shared_bucket_px > 0) {
-        cache_raster_size = QSize(active_shared_bucket_px, active_shared_bucket_px);
+        cache_raster_size
+            = QSize(active_shared_bucket_px, active_shared_bucket_px);
     }
 
     QSize preloaded_raster_size;

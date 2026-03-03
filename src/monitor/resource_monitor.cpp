@@ -66,8 +66,12 @@ QJsonObject geometry_snapshot_to_json(const geometry_debug_snapshot& snapshot) {
     object.insert(
         QStringLiteral("visible_slot_count"), snapshot.visible_slot_count
     );
-    object.insert(QStringLiteral("window_size"), size_to_json(snapshot.window_size));
-    object.insert(QStringLiteral("layout_size"), size_to_json(snapshot.layout_size));
+    object.insert(
+        QStringLiteral("window_size"), size_to_json(snapshot.window_size)
+    );
+    object.insert(
+        QStringLiteral("layout_size"), size_to_json(snapshot.layout_size)
+    );
     object.insert(
         QStringLiteral("display_card_size"),
         size_to_json(snapshot.display_card_size)
@@ -76,7 +80,9 @@ QJsonObject geometry_snapshot_to_json(const geometry_debug_snapshot& snapshot) {
         QStringLiteral("display_card_need_short_px"),
         snapshot.display_card_need_short_px
     );
-    object.insert(QStringLiteral("active_bucket_px"), snapshot.active_bucket_px);
+    object.insert(
+        QStringLiteral("active_bucket_px"), snapshot.active_bucket_px
+    );
     object.insert(
         QStringLiteral("warming_bucket_px"), snapshot.warming_bucket_px
     );
@@ -88,7 +94,9 @@ QJsonObject geometry_snapshot_to_json(const geometry_debug_snapshot& snapshot) {
         QStringLiteral("preloaded_raster_size"),
         size_to_json(snapshot.preloaded_raster_size)
     );
-    object.insert(QStringLiteral("coverage_percent"), snapshot.coverage_percent);
+    object.insert(
+        QStringLiteral("coverage_percent"), snapshot.coverage_percent
+    );
     object.insert(
         QStringLiteral("coverage_window_ms"), snapshot.coverage_window_ms
     );
@@ -1062,8 +1070,8 @@ resource_monitor::resource_monitor(QObject* parent, int max_timeline_entries)
     , current_process_rss_unavailable_reason(
           process_memory_unavailable_reason()
       )
-    , auto_process_dump_rss_growth_threshold_bytes(64 * 1024 * 1024)
-    , auto_process_dump_cooldown_ms(5 * 60 * 1000)
+    , auto_process_dump_rss_growth_threshold_bytes(96 * 1024 * 1024)
+    , auto_process_dump_cooldown_ms(8 * 60 * 1000)
     , auto_process_dump_policy_override_for_tests(false)
     , auto_process_dump_consecutive_growth_hits_required_override(1)
     , auto_process_dump_last_trigger_ms(0)
@@ -1258,7 +1266,8 @@ resource_monitor::current_auto_process_report_runtime_state() const {
         ),
         .consecutive_growth_hits_required
         = auto_process_dump_consecutive_growth_hits_required(),
-        .consecutive_growth_hits_current = auto_process_dump_consecutive_growth_hits,
+        .consecutive_growth_hits_current
+        = auto_process_dump_consecutive_growth_hits,
         .window_ms = auto_process_dump_window_ms_effective(),
         .window_max_exports = auto_process_dump_window_max_exports_effective(),
         .window_exports_used = auto_process_dump_window_exports_used,
@@ -1323,7 +1332,8 @@ void resource_monitor::export_debug_snapshot_async(const QString& output_path) {
         = auto_process_dump_consecutive_growth_hits_required(),
         .auto_process_report_consecutive_growth_hits_current
         = auto_process_dump_consecutive_growth_hits,
-        .auto_process_report_window_ms = auto_process_dump_window_ms_effective(),
+        .auto_process_report_window_ms
+        = auto_process_dump_window_ms_effective(),
         .auto_process_report_window_max_exports
         = auto_process_dump_window_max_exports_effective(),
         .auto_process_report_window_exports_used
@@ -1493,7 +1503,8 @@ bool resource_monitor::export_debug_snapshot_sync(
         = auto_process_dump_consecutive_growth_hits_required(),
         .auto_process_report_consecutive_growth_hits_current
         = auto_process_dump_consecutive_growth_hits,
-        .auto_process_report_window_ms = auto_process_dump_window_ms_effective(),
+        .auto_process_report_window_ms
+        = auto_process_dump_window_ms_effective(),
         .auto_process_report_window_max_exports
         = auto_process_dump_window_max_exports_effective(),
         .auto_process_report_window_exports_used
@@ -1647,7 +1658,8 @@ void resource_monitor::on_resize_transition_recorded(
     pending_resize_transition_state = pending_resize_transition {
         .transition = event,
         .before_process_rss_bytes = before_process_rss_bytes,
-        .before_cache_accounted_ready_bytes = before_cache_accounted_ready_bytes,
+        .before_cache_accounted_ready_bytes
+        = before_cache_accounted_ready_bytes,
         .before_widget_local_display_bytes_estimated
         = before_widget_local_display_bytes_estimated,
         .before_measured_accounted_gap_bytes
@@ -1664,8 +1676,7 @@ void resource_monitor::maybe_finalize_pending_resize_transition(
         return;
     }
 
-    const pending_resize_transition& pending
-        = *pending_resize_transition_state;
+    const pending_resize_transition& pending = *pending_resize_transition_state;
     const bool window_size_applied
         = !pending.transition.new_window_size.isValid()
         || snapshot.window_size == pending.transition.new_window_size;
@@ -1676,23 +1687,21 @@ void resource_monitor::maybe_finalize_pending_resize_transition(
         = pending.transition.new_warming_bucket_px <= 0
         && pending.transition.new_active_bucket_px
             == pending.transition.old_active_bucket_px;
-    const bool prewarm_drained
-        = snapshot.warming_generation_id <= 0 && snapshot.warming_bucket_px <= 0;
+    const bool prewarm_drained = snapshot.warming_generation_id <= 0
+        && snapshot.warming_bucket_px <= 0;
 
     if (!window_size_applied || !active_bucket_applied
         || (!no_prewarm_expected && !prewarm_drained)) {
         return;
     }
 
-    const qint64 transition_end_timestamp_ms
-        = snapshot.timestamp_ms > 0 ? snapshot.timestamp_ms
-                                    : QDateTime::currentMSecsSinceEpoch();
+    const qint64 transition_end_timestamp_ms = snapshot.timestamp_ms > 0
+        ? snapshot.timestamp_ms
+        : QDateTime::currentMSecsSinceEpoch();
     const qint64 prewarm_completion_ms = no_prewarm_expected
         ? 0
         : std::max<qint64>(
-              0,
-              transition_end_timestamp_ms
-                  - pending.transition.timestamp_ms
+              0, transition_end_timestamp_ms - pending.transition.timestamp_ms
           );
     finalize_pending_resize_transition(
         transition_end_timestamp_ms, prewarm_completion_ms
@@ -1780,8 +1789,9 @@ void resource_monitor::append_resize_history_entry_async(
               .toUtf8();
     QThreadPool::globalInstance()->start([output_path, line]() {
         QFile file(output_path);
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)
-            ) {
+        if (!file.open(
+                QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text
+            )) {
             return;
         }
         file.write(line);
@@ -2070,10 +2080,10 @@ resource_monitor::auto_process_dump_consecutive_growth_hits_required() const {
 
     switch (cadence_mode) {
     case debug_cadence_mode::instrumented:
-        return 3;
+        return 4;
     case debug_cadence_mode::realistic:
     default:
-        return 2;
+        return 3;
     }
 }
 
@@ -2081,13 +2091,14 @@ qint64 resource_monitor::auto_process_dump_window_ms_effective() const {
     return 60 * 60 * 1000;
 }
 
-qint64 resource_monitor::auto_process_dump_window_max_exports_effective() const {
+qint64
+resource_monitor::auto_process_dump_window_max_exports_effective() const {
     switch (cadence_mode) {
     case debug_cadence_mode::instrumented:
-        return 6;
+        return 4;
     case debug_cadence_mode::realistic:
     default:
-        return 3;
+        return 2;
     }
 }
 
@@ -2099,10 +2110,10 @@ qint64 resource_monitor::
 
     switch (cadence_mode) {
     case debug_cadence_mode::instrumented:
-        return 128 * 1024 * 1024;
+        return 192 * 1024 * 1024;
     case debug_cadence_mode::realistic:
     default:
-        return 64 * 1024 * 1024;
+        return 96 * 1024 * 1024;
     }
 }
 
@@ -2113,9 +2124,9 @@ qint64 resource_monitor::auto_process_dump_cooldown_ms_effective() const {
 
     switch (cadence_mode) {
     case debug_cadence_mode::instrumented:
-        return 10 * 60 * 1000;
+        return 12 * 60 * 1000;
     case debug_cadence_mode::realistic:
     default:
-        return 5 * 60 * 1000;
+        return 8 * 60 * 1000;
     }
 }

@@ -852,6 +852,111 @@ void raster_cache_tests::display_lifecycle_hooks_update_consumer_rollups() {
     QVERIFY(snapshot.consumer_summaries.isEmpty());
 }
 
+void raster_cache_tests::
+    widget_local_accounting_tracks_entry_lifecycle_transitions() {
+    raster_cache service;
+
+    const raster_cache::entry_key svg_key = make_entry(128);
+    const raster_cache::entry_key face_key = make_face_entry(160);
+
+    service.insert_or_update_result(
+        raster_cache::result {
+            .key = svg_key,
+            .raster_size = QSize(128, 128),
+            .generation = 1,
+            .timestamp_ms = 0,
+            .use_count = 0,
+            .single_image
+            = QImage(128, 128, QImage::Format_ARGB32_Premultiplied),
+            .face_images = {},
+        }
+    );
+
+    service.insert_or_update_result(
+        raster_cache::result {
+            .key = face_key,
+            .raster_size = QSize(160, 160),
+            .generation = 1,
+            .timestamp_ms = 0,
+            .use_count = 0,
+            .single_image = {},
+            .face_images = {
+                QImage(160, 160, QImage::Format_ARGB32_Premultiplied),
+                QImage(160, 160, QImage::Format_ARGB32_Premultiplied),
+            },
+        }
+    );
+
+    const raster_cache::debug_snapshot snapshot_cached_only
+        = service.get_debug_snapshot();
+    const qint64 cached_only_widget_local
+        = snapshot_cached_only.widget_local_display_bytes_estimated;
+    QVERIFY(cached_only_widget_local > 0);
+    QCOMPARE(snapshot_cached_only.displayed_ready_entries, 0);
+    QCOMPARE(snapshot_cached_only.cached_only_ready_entries, 2);
+
+    service.note_entry_displayed(
+        face_key, raster_cache::debug_consumer_scope::table_slots
+    );
+    service.note_entry_displayed(
+        face_key, raster_cache::debug_consumer_scope::settings_theme_carousel
+    );
+
+    const raster_cache::debug_snapshot snapshot_displayed
+        = service.get_debug_snapshot();
+    QVERIFY(
+        snapshot_displayed.widget_local_display_bytes_estimated
+        > cached_only_widget_local
+    );
+    QVERIFY(snapshot_displayed.widget_local_scaled_bytes_estimated > 0);
+    QCOMPARE(snapshot_displayed.displayed_ready_entries, 1);
+
+    service.note_entry_no_longer_displayed(
+        face_key, raster_cache::debug_consumer_scope::table_slots
+    );
+    service.note_entry_no_longer_displayed(
+        face_key, raster_cache::debug_consumer_scope::settings_theme_carousel
+    );
+
+    const raster_cache::debug_snapshot snapshot_display_cleared
+        = service.get_debug_snapshot();
+    QCOMPARE(
+        snapshot_display_cleared.widget_local_display_bytes_estimated,
+        cached_only_widget_local
+    );
+    QCOMPARE(snapshot_display_cleared.displayed_ready_entries, 0);
+
+    service.insert_or_update_result(
+        raster_cache::result {
+            .key = svg_key,
+            .raster_size = QSize(192, 192),
+            .generation = 2,
+            .timestamp_ms = 1,
+            .use_count = 0,
+            .single_image
+            = QImage(192, 192, QImage::Format_ARGB32_Premultiplied),
+            .face_images = {},
+        }
+    );
+
+    const raster_cache::debug_snapshot snapshot_svg_updated
+        = service.get_debug_snapshot();
+    QVERIFY(
+        snapshot_svg_updated.widget_local_display_bytes_estimated
+        > snapshot_display_cleared.widget_local_display_bytes_estimated
+    );
+
+    QVERIFY(service.erase_result(svg_key));
+    const raster_cache::debug_snapshot snapshot_svg_erased
+        = service.get_debug_snapshot();
+    QCOMPARE(
+        snapshot_svg_erased.widget_local_display_bytes_estimated, qint64(0)
+    );
+    QCOMPARE(
+        snapshot_svg_erased.widget_local_rasterized_bytes_estimated, qint64(0)
+    );
+}
+
 void raster_cache_tests::interval_deltas_can_be_taken_and_reset() {
     raster_cache service;
 

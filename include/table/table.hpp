@@ -54,7 +54,8 @@ signals:
     void game_over();
     void dialog_opened();
     void score_adjusted(int correct_delta, int total_delta);
-    void debug_geometry_snapshot_updated(const geometry_debug_snapshot& snapshot);
+    void
+    debug_geometry_snapshot_updated(const geometry_debug_snapshot& snapshot);
     void debug_resize_transition_recorded(
         const resize_transition_debug_event& event
     );
@@ -96,7 +97,8 @@ private:
     std::optional<raster_cache::entry_key> active_shared_faces_key;
     std::optional<raster_cache::entry_key> displayed_shared_faces_key;
     std::optional<raster_cache::entry_key> warming_shared_faces_key;
-    raster_cache::result::debug_fallback_usage active_shared_faces_fallback_usage;
+    raster_cache::result::debug_fallback_usage
+        active_shared_faces_fallback_usage;
     bool shared_faces_refresh_queued;
     QString active_card_sheet_source_id;
     int active_shared_bucket_px;
@@ -114,7 +116,8 @@ private:
     raster_cache::entry_key entry_key_for_generation(
         const QString& source_id, int target_bucket_px, qint64 generation_id
     ) const;
-    void begin_warming_generation(const QString& source_id, int target_bucket_px);
+    void
+    begin_warming_generation(const QString& source_id, int target_bucket_px);
     void retire_warming_generation();
     bool start_shared_raster_for_key(const raster_cache::entry_key& key);
     void cutover_to_ready_generation(const raster_cache::entry_key& key);

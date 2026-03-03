@@ -2,10 +2,10 @@
 #define KCUCKOOUNTER_CARD_HELPERS_CARD_SHEET_HPP
 
 #include <QImage>
+#include <QSize>
 #include <QString>
 #include <QStringList>
 #include <QVector>
-#include <QSize>
 #include <utility>
 
 struct card_sheet_fallback_resolution {

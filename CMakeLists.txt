@@ -122,6 +122,7 @@ set(kcuckoounter_sources
         src/settings/theme_settings.cpp
         src/monitor/resource_monitor.cpp
         src/monitor/raster_cache_debug_strings.cpp
+        src/monitor/monitor_visual_widgets.cpp
         src/monitor/main_window_monitor.cpp
         src/monitor/main_window_monitor_setup.cpp
 )
@@ -152,6 +153,7 @@ set(kcuckoounter_headers
         include/monitor/resource_monitor.hpp
         include/monitor/geometry_debug_telemetry.hpp
         include/monitor/raster_cache_debug_strings.hpp
+        include/monitor/monitor_visual_widgets.hpp
 )
 
 set(kcuckoounter_qt_libs

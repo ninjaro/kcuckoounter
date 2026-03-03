@@ -29,6 +29,7 @@ private slots:
     void debug_snapshot_includes_size_buckets_and_largest_entries();
     void debug_snapshot_includes_displayed_split_and_task_toplists();
     void display_lifecycle_hooks_update_consumer_rollups();
+    void widget_local_accounting_tracks_entry_lifecycle_transitions();
 };
 
 #endif // KCUCKOOUNTER_TESTS_RASTER_CACHE_TESTS_HPP

@@ -1,8 +1,8 @@
 #ifndef KCUCKOOUNTER_MONITOR_RESOURCE_MONITOR_HPP
 #define KCUCKOOUNTER_MONITOR_RESOURCE_MONITOR_HPP
 
-#include "monitor/geometry_debug_telemetry.hpp"
 #include "image/raster_cache.hpp"
+#include "monitor/geometry_debug_telemetry.hpp"
 
 #include <QFutureWatcher>
 #include <QObject>
@@ -176,12 +176,10 @@ signals:
 private slots:
     void
     on_cache_snapshot_updated(const raster_cache::debug_snapshot& snapshot);
-    void on_geometry_debug_snapshot_updated(
-        const geometry_debug_snapshot& snapshot
-    );
-    void on_resize_transition_recorded(
-        const resize_transition_debug_event& event
-    );
+    void
+    on_geometry_debug_snapshot_updated(const geometry_debug_snapshot& snapshot);
+    void
+    on_resize_transition_recorded(const resize_transition_debug_event& event);
 
 private:
     struct pending_resize_transition {
@@ -223,8 +221,9 @@ private:
     void push_event_entry(
         event_timeline_entry::event_kind kind, const QString& label
     );
-    void
-    maybe_finalize_pending_resize_transition(const geometry_debug_snapshot& snapshot);
+    void maybe_finalize_pending_resize_transition(
+        const geometry_debug_snapshot& snapshot
+    );
     void finalize_pending_resize_transition(
         qint64 transition_end_timestamp_ms, qint64 prewarm_completion_ms
     );

@@ -3,8 +3,8 @@
 #include "arch/str_label.hpp"
 
 #include <QImage>
-#include <QRect>
 #include <QPainter>
+#include <QRect>
 #include <QRectF>
 #include <QSvgRenderer>
 
@@ -73,7 +73,7 @@ QImage normalize_rendered_card_to_base_frame(
         || element_bounds.width() <= 0.0 || element_bounds.height() <= 0.0
         || base_bounds.width() <= 0.0 || base_bounds.height() <= 0.0) {
         return image;
-        }
+    }
 
     const qreal extra_width
         = std::max(0.0, element_bounds.width() - base_bounds.width());
@@ -91,13 +91,11 @@ QImage normalize_rendered_card_to_base_frame(
     const int max_trim_x = std::max(0, (image.width() - 1) / 2);
     const int max_trim_y = std::max(0, (image.height() - 1) / 2);
 
-    const int trim_left = std::clamp(
-        static_cast<int>(std::lround(trim_x)), 0, max_trim_x
-    );
+    const int trim_left
+        = std::clamp(static_cast<int>(std::lround(trim_x)), 0, max_trim_x);
     const int trim_right = trim_left;
-    const int trim_top = std::clamp(
-        static_cast<int>(std::lround(trim_y)), 0, max_trim_y
-    );
+    const int trim_top
+        = std::clamp(static_cast<int>(std::lround(trim_y)), 0, max_trim_y);
     const int trim_bottom = trim_top;
 
     const int cropped_width = image.width() - trim_left - trim_right;
@@ -113,7 +111,9 @@ QImage normalize_rendered_card_to_base_frame(
     const QImage cropped = image.copy(crop_rect);
     return cropped.isNull()
         ? image
-        : cropped.scaled(image.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation);
+        : cropped.scaled(
+              image.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation
+          );
 }
 
 struct card_sheet_cache {
@@ -186,7 +186,8 @@ card_sheet_cache cached_card_sheet_for_source(const QString& source_path) {
 }
 
 QVector<resolved_required_element> resolve_required_elements(
-    const QString& preferred_source_path, card_sheet_fallback_resolution* resolution
+    const QString& preferred_source_path,
+    card_sheet_fallback_resolution* resolution
 ) {
     const QString active_source = preferred_source_path.isEmpty()
         ? default_card_sheet_source_path()
@@ -350,13 +351,13 @@ QVector<QImage> rasterize_required_card_faces_with_fallback(
     }
 
     const QString base_id = str_label("base");
-    const QRectF active_base_bounds = active_renderer.isValid()
-        && active_renderer.elementExists(base_id)
+    const QRectF active_base_bounds
+        = active_renderer.isValid() && active_renderer.elementExists(base_id)
         ? active_renderer.boundsOnElement(base_id)
         : QRectF();
     const QRectF fallback_base_bounds = fallback_enabled
-        && fallback_renderer.isValid()
-        && fallback_renderer.elementExists(base_id)
+            && fallback_renderer.isValid()
+            && fallback_renderer.elementExists(base_id)
         ? fallback_renderer.boundsOnElement(base_id)
         : QRectF();
 
@@ -367,9 +368,8 @@ QVector<QImage> rasterize_required_card_faces_with_fallback(
         if (resolved.source_kind == resolved_source_kind::active_theme
             && active_renderer.isValid()) {
             renderer = &active_renderer;
-        } else if (
-            resolved.source_kind == resolved_source_kind::default_theme
-            && fallback_enabled && fallback_renderer.isValid()) {
+        } else if (resolved.source_kind == resolved_source_kind::default_theme
+                   && fallback_enabled && fallback_renderer.isValid()) {
             renderer = &fallback_renderer;
         }
 
@@ -391,7 +391,9 @@ QVector<QImage> rasterize_required_card_faces_with_fallback(
         renderer->render(&painter, resolved.element_id, target_rect);
         painter.end();
 
-        image = normalize_rendered_card_to_base_frame(image, element_bounds, base_bounds);
+        image = normalize_rendered_card_to_base_frame(
+            image, element_bounds, base_bounds
+        );
         images.push_back(image);
     }
 
