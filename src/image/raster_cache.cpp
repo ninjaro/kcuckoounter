@@ -1,4 +1,5 @@
 #include "image/raster_cache.hpp"
+#include "arch/num_helpers.hpp"
 
 #include <QtGlobal>
 
@@ -10,12 +11,6 @@
 #include <limits>
 
 namespace {
-
-int size_to_int(qsizetype value) {
-    return value > static_cast<qsizetype>(std::numeric_limits<int>::max())
-        ? std::numeric_limits<int>::max()
-        : static_cast<int>(value);
-}
 
 size_t combine_hash(size_t lhs, size_t rhs) {
     return lhs ^ (rhs + 0x9e3779b9 + (lhs << 6U) + (lhs >> 2U));
@@ -93,7 +88,7 @@ qint64 raster_cache::estimate_result_bytes(const result& value) {
 
 int raster_cache::count_result_images(const result& value) {
     return (value.single_image.isNull() ? 0 : 1)
-        + size_to_int(value.face_images.size());
+        + num_helpers::to_int(value.face_images.size());
 }
 
 bool raster_cache::entry_key::operator==(const entry_key& other) const {
@@ -873,7 +868,7 @@ raster_cache::debug_snapshot raster_cache::get_debug_snapshot() const {
         .deadline_ready_early = deadline_counters.ready_early,
         .deadline_ready_on_time = deadline_counters.ready_on_time,
         .deadline_ready_late = deadline_counters.ready_late,
-        .unique_size_buckets = size_to_int(size_buckets.size()),
+        .unique_size_buckets = num_helpers::to_int(size_buckets.size()),
         .size_buckets = size_buckets,
         .largest_entries = largest_entries,
         .top_requested_entries = top_requested_entries,

@@ -16,7 +16,10 @@ case "$mode" in
     bin="$ROOT_DIR/build-kde/kcuckoounter"
     ;;
   nonkde|nokde)
-    bin="$ROOT_DIR/build-nokde/kcuckoounter"
+    bin="$ROOT_DIR/build-nonkde/kcuckoounter"
+    if [ ! -x "$bin" ] && [ -x "$ROOT_DIR/build-nokde/kcuckoounter" ]; then
+      bin="$ROOT_DIR/build-nokde/kcuckoounter"
+    fi
     ;;
   *)
     die "usage: $0 {kde|nonkde}"

@@ -49,6 +49,7 @@ main_window::main_window(BaseWidget* parent)
     , add_monitor_marker_action(nullptr)
     , realistic_cadence_mode_action(nullptr)
     , instrumented_cadence_mode_action(nullptr)
+    , toggle_debug_broadcaster_action(nullptr)
     , toggle_resource_monitor_action(nullptr)
     , resource_monitor_window(nullptr)
     , resource_monitor_tabs(nullptr)
@@ -60,11 +61,11 @@ main_window::main_window(BaseWidget* parent)
     , resource_monitor_show_widget_local_series(nullptr)
     , resource_monitor_show_process_rss_series(nullptr)
     , resource_monitor_show_gap_bytes_series(nullptr)
-    , resource_monitor_show_accounted_to_measured_ratio_series(nullptr)
-    , resource_monitor_show_activity_displayed_series(nullptr)
-    , resource_monitor_show_activity_pending_series(nullptr)
-    , resource_monitor_show_activity_in_flight_series(nullptr)
-    , resource_monitor_show_activity_events_series(nullptr)
+    , resource_monitor_show_ratio_series(nullptr)
+    , resource_monitor_show_displayed_series(nullptr)
+    , resource_monitor_show_pending_series(nullptr)
+    , resource_monitor_show_flight_series(nullptr)
+    , resource_monitor_show_event_series(nullptr)
     , resource_monitor_primary_chart_view(nullptr)
     , resource_monitor_ratio_chart_view(nullptr)
     , resource_monitor_secondary_chart_view(nullptr)
@@ -77,6 +78,7 @@ main_window::main_window(BaseWidget* parent)
     , resource_monitor_resize_history_view(nullptr)
     , resource_monitor_geometry_text(nullptr)
     , resource_monitor_resize_history_text(nullptr)
+    , resource_monitor_refresh_pending(false)
 #endif
     , quiz_started(false)
     , quiz_paused(false)
@@ -729,11 +731,17 @@ void main_window::update_status_text() {
         const bool instrumented
             = debug_telemetry_collector->get_debug_cadence_mode()
             == resource_monitor::debug_cadence_mode::instrumented;
-        debug_mode_suffix = str_label("  Debug cadence: %1")
-                                .arg(
-                                    instrumented ? str_label("instrumented")
-                                                 : str_label("realistic")
-                                );
+        const bool broadcaster_enabled
+            = debug_telemetry_collector->is_debug_broadcaster_enabled();
+        debug_mode_suffix
+            = str_label("  Debug cadence: %1  Broadcaster: %2")
+                  .arg(
+                      instrumented ? str_label("instrumented")
+                                   : str_label("realistic")
+                  )
+                  .arg(
+                      broadcaster_enabled ? str_label("on") : str_label("off")
+                  );
     }
 #endif
 

@@ -40,8 +40,10 @@ private slots:
     void on_add_monitor_marker_triggered();
     void on_set_realistic_cadence_mode_triggered();
     void on_set_instrumented_cadence_mode_triggered();
+    void on_toggle_debug_broadcaster_triggered(bool checked);
     void on_toggle_resource_monitor_triggered(bool checked);
     void on_resource_monitor_visibility_changed(bool visible);
+    void on_resource_monitor_data_changed();
 #endif
 
 private:
@@ -72,6 +74,7 @@ private:
     BaseAction* add_monitor_marker_action;
     BaseAction* realistic_cadence_mode_action;
     BaseAction* instrumented_cadence_mode_action;
+    BaseAction* toggle_debug_broadcaster_action;
     BaseAction* toggle_resource_monitor_action;
     QDialog* resource_monitor_window;
     QTabWidget* resource_monitor_tabs;
@@ -83,11 +86,11 @@ private:
     QCheckBox* resource_monitor_show_widget_local_series;
     QCheckBox* resource_monitor_show_process_rss_series;
     QCheckBox* resource_monitor_show_gap_bytes_series;
-    QCheckBox* resource_monitor_show_accounted_to_measured_ratio_series;
-    QCheckBox* resource_monitor_show_activity_displayed_series;
-    QCheckBox* resource_monitor_show_activity_pending_series;
-    QCheckBox* resource_monitor_show_activity_in_flight_series;
-    QCheckBox* resource_monitor_show_activity_events_series;
+    QCheckBox* resource_monitor_show_ratio_series;
+    QCheckBox* resource_monitor_show_displayed_series;
+    QCheckBox* resource_monitor_show_pending_series;
+    QCheckBox* resource_monitor_show_flight_series;
+    QCheckBox* resource_monitor_show_event_series;
     monitor_line_chart_widget* resource_monitor_primary_chart_view;
     monitor_line_chart_widget* resource_monitor_ratio_chart_view;
     monitor_line_chart_widget* resource_monitor_secondary_chart_view;
@@ -100,6 +103,7 @@ private:
     monitor_resize_history_widget* resource_monitor_resize_history_view;
     QPlainTextEdit* resource_monitor_geometry_text;
     QPlainTextEdit* resource_monitor_resize_history_text;
+    bool resource_monitor_refresh_pending;
 #endif
     bool quiz_started;
     bool quiz_paused;

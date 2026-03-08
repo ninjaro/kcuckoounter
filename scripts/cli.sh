@@ -16,14 +16,17 @@ Commands:
                                    Run the app
   run-mem {kde|nonkde}              Run the app with memory usage statistics
   leaks {kde|nonkde} [--tests]      Run ASan leak checks (optionally via tests)
+  deps {desktop|android|all}        Check required local CLI dependencies
   format                            Run clang-format over sources
+  format-check                      Verify formatting without modifying files
+  naming-check {changed|all}        Validate naming-policy word-count limits
   android env                       Print Android env export guidance
   android deps {emulator|device|build}
                                    Check Android SDK dependencies
   android build                     Build the Android APK
   android run-emulator              Install/run on emulator (start if needed)
   android run-device                Install/run on a connected device
-  check                             Format, test (kde+nonkde), and optional Android build
+  check                             deps+format-check+test and optional Android build
   help                              Show this help
 EOF
 }
@@ -45,10 +48,19 @@ case "$cmd" in
     "$SCRIPT_DIR/run_mem_stats.sh" "${1:-}"
     ;;
   leaks)
-    "$SCRIPT_DIR/check_leaks.sh" "${1:-nonkde}" "${2:-}"
+    "$SCRIPT_DIR/check_leaks.sh" "$@"
+    ;;
+  deps)
+    "$SCRIPT_DIR/deps.sh" "${1:-desktop}"
     ;;
   format)
-    "$SCRIPT_DIR/format.sh"
+    "$SCRIPT_DIR/format.sh" apply
+    ;;
+  format-check)
+    "$SCRIPT_DIR/format.sh" check
+    ;;
+  naming-check)
+    "$SCRIPT_DIR/check_naming.sh" "${1:-changed}"
     ;;
   android)
     sub="${1:-}"
@@ -75,7 +87,8 @@ case "$cmd" in
     esac
     ;;
   check)
-    "$SCRIPT_DIR/format.sh"
+    "$SCRIPT_DIR/deps.sh" desktop
+    "$SCRIPT_DIR/format.sh" check
     "$SCRIPT_DIR/test.sh" all
     ANDROID_OPTIONAL=1 "$SCRIPT_DIR/android/build.sh"
     ;;

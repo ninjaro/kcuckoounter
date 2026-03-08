@@ -1,15 +1,67 @@
 #include "include/resource_monitor_tests.hpp"
 
+#include "monitor/debug_probe_core.hpp"
 #include "monitor/resource_monitor.hpp"
 #include "table/table.hpp"
 
 #include <QCoreApplication>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocalSocket>
+#include <QSet>
 #include <QTemporaryDir>
 #include <QtTest/QtTest>
+
+namespace {
+
+QSet<QString> parse_message_families_from_jsonl(const QByteArray& jsonl) {
+    QSet<QString> families;
+    const QList<QByteArray> lines = jsonl.split('\n');
+    for (const QByteArray& line : lines) {
+        const QByteArray trimmed = line.trimmed();
+        if (trimmed.isEmpty()) {
+            continue;
+        }
+
+        const QJsonDocument document = QJsonDocument::fromJson(trimmed);
+        if (!document.isObject()) {
+            continue;
+        }
+
+        const QJsonObject protocol
+            = document.object().value(QStringLiteral("protocol_v1")).toObject();
+        const QString family
+            = protocol.value(QStringLiteral("message_family")).toString();
+        if (!family.isEmpty()) {
+            families.insert(family);
+        }
+    }
+    return families;
+}
+
+QVector<QJsonObject>
+parse_protocol_messages_from_jsonl(const QByteArray& jsonl) {
+    QVector<QJsonObject> messages;
+    const QList<QByteArray> lines = jsonl.split('\n');
+    for (const QByteArray& line : lines) {
+        const QByteArray trimmed = line.trimmed();
+        if (trimmed.isEmpty()) {
+            continue;
+        }
+
+        const QJsonDocument document = QJsonDocument::fromJson(trimmed);
+        if (!document.isObject()) {
+            continue;
+        }
+        messages.push_back(document.object());
+    }
+    return messages;
+}
+
+} // namespace
 
 void resource_monitor_tests::collects_initial_snapshot_when_attached() {
     raster_cache cache_service;
@@ -122,10 +174,26 @@ void resource_monitor_tests::exports_snapshot_asynchronously() {
     const QJsonObject root = document.object();
     QVERIFY(root.contains(QStringLiteral("cache_timeline")));
     QVERIFY(root.contains(QStringLiteral("event_timeline")));
+    QVERIFY(root.contains(QStringLiteral("protocol_v1")));
     QCOMPARE(
         root.value(QStringLiteral("debug_cadence_mode")).toString(),
         QStringLiteral("realistic")
     );
+    const QJsonObject protocol
+        = root.value(QStringLiteral("protocol_v1")).toObject();
+    QCOMPARE(
+        protocol.value(QStringLiteral("message_family")).toString(),
+        QStringLiteral("snapshot")
+    );
+    const QJsonObject identity
+        = protocol.value(QStringLiteral("identity")).toObject();
+    QVERIFY(identity.contains(QStringLiteral("app")));
+    QVERIFY(identity.contains(QStringLiteral("pid")));
+    QVERIFY(identity.contains(QStringLiteral("session")));
+    QVERIFY(identity.contains(QStringLiteral("build")));
+    QVERIFY(identity.contains(QStringLiteral("protocol_version")));
+    QVERIFY(identity.contains(QStringLiteral("debug_flags")));
+    QVERIFY(identity.contains(QStringLiteral("instrumentation_mode")));
 
     const resource_monitor::export_request_metadata metadata
         = collector.latest_export_metadata();
@@ -677,6 +745,7 @@ void resource_monitor_tests::exports_process_memory_detail_report_on_demand() {
     ));
     QVERIFY(root.contains(QStringLiteral("status_bytes_available")));
     QVERIFY(root.contains(QStringLiteral("smaps_rollup_bytes_available")));
+    QVERIFY(root.contains(QStringLiteral("protocol_v1")));
 
     const QJsonObject status
         = root.value(QStringLiteral("status_bytes")).toObject();
@@ -694,6 +763,16 @@ void resource_monitor_tests::exports_process_memory_detail_report_on_demand() {
             .toString(),
         QStringLiteral("source_label")
     );
+    const QJsonObject protocol
+        = root.value(QStringLiteral("protocol_v1")).toObject();
+    QCOMPARE(
+        protocol.value(QStringLiteral("message_family")).toString(),
+        QStringLiteral("snapshot")
+    );
+    QVERIFY(protocol.contains(QStringLiteral("capabilities")));
+    QVERIFY(protocol.value(QStringLiteral("identity"))
+                .toObject()
+                .contains(QStringLiteral("instrumentation_mode")));
 
     const bool collector_rss_available
         = root.value(QStringLiteral("collector_latest_process_rss_available"))
@@ -880,6 +959,167 @@ void resource_monitor_tests::auto_export_is_rate_limited_by_mode_window() {
     QCOMPARE(state.window_max_exports, static_cast<qint64>(2));
     QCOMPARE(state.window_exports_used, static_cast<qint64>(2));
     QCOMPARE(state.window_ms, static_cast<qint64>(60 * 60 * 1000));
+}
+
+void resource_monitor_tests::periodically_collects_when_cache_is_stable() {
+    raster_cache cache_service;
+    resource_monitor collector(nullptr, 16);
+    collector.attach_cache_service(&cache_service);
+    collector.set_debug_cadence_mode(
+        resource_monitor::debug_cadence_mode::instrumented
+    );
+
+    const int initial_timeline_size = collector.timeline_size();
+    QVERIFY(initial_timeline_size >= 1);
+
+    QTRY_VERIFY_WITH_TIMEOUT(
+        collector.timeline_size() > initial_timeline_size, 4000
+    );
+
+    const QVector<resource_monitor::cache_timeline_entry> timeline
+        = collector.cache_timeline();
+    QVERIFY(timeline.size() > initial_timeline_size);
+    QCOMPARE(
+        timeline.constLast().cache_snapshot.snapshot_sequence,
+        timeline.constFirst().cache_snapshot.snapshot_sequence
+    );
+}
+
+void resource_monitor_tests::
+    broadcasts_protocol_messages_over_local_ipc_when_enabled() {
+    raster_cache cache_service;
+    resource_monitor collector(nullptr, 32);
+    collector.attach_cache_service(&cache_service);
+
+    const QJsonObject initial_broadcaster_state
+        = collector.debug_broadcaster_runtime_state();
+    if (!initial_broadcaster_state.value(QStringLiteral("compile_time_enabled"))
+             .toBool()) {
+        QSKIP("debug broadcaster is compile-time disabled in this build");
+    }
+
+    collector.set_debug_broadcaster_enabled(true);
+    if (!collector.is_debug_broadcaster_enabled()) {
+        QSKIP("unable to enable local IPC broadcaster in this environment");
+    }
+
+    const QString endpoint_name = collector.debug_broadcaster_endpoint_name();
+    QVERIFY(!endpoint_name.isEmpty());
+
+    QLocalSocket socket;
+    socket.connectToServer(endpoint_name);
+    QVERIFY2(socket.waitForConnected(3000), qPrintable(socket.errorString()));
+
+    QByteArray received_jsonl;
+    auto wait_for_families
+        = [&socket, &received_jsonl](
+              const QSet<QString>& required_families, int timeout_ms
+          ) {
+              QElapsedTimer timer;
+              timer.start();
+              while (timer.elapsed() < timeout_ms) {
+                  socket.waitForReadyRead(100);
+                  received_jsonl.append(socket.readAll());
+
+                  const QSet<QString> seen_families
+                      = parse_message_families_from_jsonl(received_jsonl);
+                  bool all_present = true;
+                  for (const QString& family : required_families) {
+                      if (!seen_families.contains(family)) {
+                          all_present = false;
+                          break;
+                      }
+                  }
+                  if (all_present) {
+                      return true;
+                  }
+              }
+              return false;
+          };
+
+    QVERIFY(wait_for_families(
+        QSet<QString> {
+            QStringLiteral("hello"),
+            QStringLiteral("capabilities"),
+            QStringLiteral("snapshot"),
+        },
+        3000
+    ));
+
+    collector.add_manual_marker(QStringLiteral("ipc_marker_check"));
+    cache_service.insert_or_update_result(raster_cache::result {
+        .key =
+            {
+                .name_space = raster_cache::cache_namespace::main,
+                .kind = raster_cache::resource_kind::single_svg,
+                .source_id = QStringLiteral("assets/cuckoo.svg"),
+                .render_scope = QStringLiteral("full"),
+                .target_bucket_px = 192,
+            },
+        .raster_size = QSize(192, 192),
+        .generation = 2,
+        .timestamp_ms = 25,
+        .use_count = 1,
+        .single_image = QImage(192, 192, QImage::Format_ARGB32_Premultiplied),
+        .face_images = {},
+    });
+
+    QVERIFY(wait_for_families(
+        QSet<QString> {
+            QStringLiteral("marker"),
+            QStringLiteral("sample_batch"),
+            QStringLiteral("event_batch"),
+        },
+        3000
+    ));
+
+    const QVector<QJsonObject> messages
+        = parse_protocol_messages_from_jsonl(received_jsonl);
+    QVERIFY(!messages.isEmpty());
+
+    QJsonObject sample_batch_message;
+    for (const QJsonObject& message : messages) {
+        const QJsonObject protocol
+            = message.value(QStringLiteral("protocol_v1")).toObject();
+        if (protocol.value(QStringLiteral("message_family")).toString()
+            == QStringLiteral("sample_batch")) {
+            sample_batch_message = message;
+        }
+    }
+    QVERIFY(!sample_batch_message.isEmpty());
+
+    const QJsonArray samples
+        = sample_batch_message.value(QStringLiteral("samples")).toArray();
+    QVERIFY(!samples.isEmpty());
+    const QJsonArray required_hint_fields
+        = debug_probe_core::protocol_required_metric_hint_fields_v1();
+    for (const QJsonValue& sample_value : samples) {
+        const QJsonObject sample = sample_value.toObject();
+        const QString metric_id
+            = sample.value(QStringLiteral("metric_id")).toString();
+        if (metric_id.isEmpty()) {
+            continue;
+        }
+
+        const QJsonObject metric_hint
+            = sample.value(QStringLiteral("metric_hint")).toObject();
+        QVERIFY2(
+            !metric_hint.isEmpty(),
+            qPrintable(QStringLiteral("missing metric_hint for metric '%1'")
+                           .arg(metric_id))
+        );
+        for (const QJsonValue& field_value : required_hint_fields) {
+            const QString field = field_value.toString();
+            QVERIFY2(
+                metric_hint.contains(field),
+                qPrintable(QStringLiteral(
+                               "metric_hint missing required field '%1' for "
+                               "metric '%2'"
+                )
+                               .arg(field, metric_id))
+            );
+        }
+    }
 }
 
 void resource_monitor_tests::tracks_memory_class_deltas_between_snapshots() {

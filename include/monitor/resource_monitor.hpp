@@ -2,114 +2,33 @@
 #define KCUCKOOUNTER_MONITOR_RESOURCE_MONITOR_HPP
 
 #include "image/raster_cache.hpp"
+#include "monitor/debug_probe_core.hpp"
 #include "monitor/geometry_debug_telemetry.hpp"
 
+#include <QElapsedTimer>
 #include <QFutureWatcher>
+#include <QJsonObject>
 #include <QObject>
 #include <QString>
+#include <QStringList>
+#include <QTimer>
 #include <QVector>
 
 #include <optional>
+
+class debug_broadcaster;
 
 class resource_monitor : public QObject {
     Q_OBJECT
 
 public:
-    struct resize_history_entry {
-        qint64 collector_sequence = 0;
-        qint64 transition_start_timestamp_ms = 0;
-        qint64 transition_end_timestamp_ms = 0;
-        qint64 prewarm_completion_ms = -1;
-        QSize old_window_size;
-        QSize new_window_size;
-        int old_active_bucket_px = 0;
-        int new_active_bucket_px = 0;
-        int old_warming_bucket_px = 0;
-        int new_warming_bucket_px = 0;
-        geometry_debug_snapshot geometry_after_resize;
-        qint64 before_process_rss_bytes = -1;
-        qint64 after_process_rss_bytes = -1;
-        qint64 before_cache_accounted_ready_bytes = 0;
-        qint64 after_cache_accounted_ready_bytes = 0;
-        qint64 before_widget_local_display_bytes_estimated = 0;
-        qint64 after_widget_local_display_bytes_estimated = 0;
-        qint64 before_measured_accounted_gap_bytes = 0;
-        qint64 after_measured_accounted_gap_bytes = 0;
-    };
-
-    enum class debug_cadence_mode {
-        realistic,
-        instrumented,
-    };
-
-    struct cache_timeline_entry {
-        qint64 collector_sequence = 0;
-        raster_cache::debug_snapshot cache_snapshot;
-        int cache_entries_added_interval = 0;
-        int cache_entries_removed_interval = 0;
-        qint64 cache_bytes_added_interval = 0;
-        qint64 cache_bytes_removed_interval = 0;
-        int cache_images_added_interval = 0;
-        int cache_images_removed_interval = 0;
-        qint64 cache_accounted_ready_bytes_delta = 0;
-        qint64 widget_local_display_bytes_estimated_delta = 0;
-        qint64 widget_local_display_bytes_materialized_interval = 0;
-        qint64 widget_local_display_bytes_released_interval = 0;
-        qint64 process_rss_bytes = -1;
-        qint64 process_rss_bytes_delta = 0;
-        qint64 process_rss_bytes_growth_interval = 0;
-        qint64 process_rss_bytes_drop_interval = 0;
-    };
-
-    struct event_timeline_entry {
-        enum class event_kind {
-            cache_snapshot,
-            manual_marker,
-        };
-
-        qint64 collector_sequence = 0;
-        event_kind kind = event_kind::cache_snapshot;
-        qint64 timestamp_ms = 0;
-        QString label;
-    };
-
-    struct export_request_metadata {
-        qint64 collector_sequence = 0;
-        int cache_timeline_size = 0;
-        int event_timeline_size = 0;
-        int geometry_timeline_size = 0;
-        int resize_history_size = 0;
-        QString resize_history_log_path;
-        qint64 latest_process_rss_bytes = -1;
-        QString process_memory_source;
-        QString process_memory_unavailable_reason;
-        qint64 process_memory_sample_interval_ms = 0;
-        qint64 auto_process_report_rss_growth_threshold_bytes = 0;
-        qint64 auto_process_report_cooldown_ms = 0;
-        qint64 auto_process_report_baseline_rss_bytes = -1;
-        qint64 auto_process_report_rss_growth_since_baseline_bytes = 0;
-        qint64 auto_process_report_last_trigger_utc_ms = 0;
-        qint64 auto_process_report_cooldown_remaining_ms = 0;
-        qint64 auto_process_report_consecutive_growth_hits_required = 0;
-        qint64 auto_process_report_consecutive_growth_hits_current = 0;
-        qint64 auto_process_report_window_ms = 0;
-        qint64 auto_process_report_window_max_exports = 0;
-        qint64 auto_process_report_window_exports_used = 0;
-    };
-
-    struct auto_process_report_runtime_state {
-        qint64 rss_growth_threshold_bytes = 0;
-        qint64 cooldown_ms = 0;
-        qint64 baseline_rss_bytes = -1;
-        qint64 rss_growth_since_baseline_bytes = 0;
-        qint64 last_trigger_utc_ms = 0;
-        qint64 cooldown_remaining_ms = 0;
-        qint64 consecutive_growth_hits_required = 0;
-        qint64 consecutive_growth_hits_current = 0;
-        qint64 window_ms = 0;
-        qint64 window_max_exports = 0;
-        qint64 window_exports_used = 0;
-    };
+    using resize_history_entry = debug_probe_core::resize_history_entry;
+    using debug_cadence_mode = debug_probe_core::debug_cadence_mode;
+    using cache_timeline_entry = debug_probe_core::cache_timeline_entry;
+    using event_timeline_entry = debug_probe_core::event_timeline_entry;
+    using export_request_metadata = debug_probe_core::export_request_metadata;
+    using auto_process_report_runtime_state
+        = debug_probe_core::auto_process_report_runtime_state;
 
     enum class process_memory_report_trigger {
         manual_on_demand,
@@ -144,6 +63,10 @@ public:
     current_auto_process_report_runtime_state() const;
     qint64 latest_process_rss_bytes() const;
     qint64 process_memory_sample_interval_ms() const;
+    void set_debug_broadcaster_enabled(bool enabled);
+    bool is_debug_broadcaster_enabled() const;
+    QString debug_broadcaster_endpoint_name() const;
+    QJsonObject debug_broadcaster_runtime_state() const;
     void export_debug_snapshot_async(const QString& output_path);
     void export_process_memory_report_async(const QString& output_path);
     bool export_debug_snapshot_sync(
@@ -172,6 +95,7 @@ signals:
     void process_memory_report_export_finished(
         const QString& output_path, bool success, const QString& error_message
     );
+    void debug_broadcaster_state_changed();
 
 private slots:
     void
@@ -180,6 +104,7 @@ private slots:
     on_geometry_debug_snapshot_updated(const geometry_debug_snapshot& snapshot);
     void
     on_resize_transition_recorded(const resize_transition_debug_event& event);
+    void on_periodic_collection_tick();
 
 private:
     struct pending_resize_transition {
@@ -217,6 +142,13 @@ private:
     qint64 auto_process_dump_consecutive_growth_hits;
     qint64 auto_process_dump_window_start_ms;
     qint64 auto_process_dump_window_exports_used;
+    QString protocol_app_name;
+    QString protocol_session_id;
+    QString protocol_build_id;
+    QStringList protocol_debug_flags;
+    debug_broadcaster* telemetry_broadcaster;
+    QElapsedTimer broadcaster_monotonic_clock;
+    QTimer process_sampling_timer;
 
     void push_event_entry(
         event_timeline_entry::event_kind kind, const QString& label
@@ -242,6 +174,16 @@ private:
     qint64 auto_process_dump_window_ms_effective() const;
     qint64 auto_process_dump_window_max_exports_effective() const;
     static QString cadence_mode_to_string(debug_cadence_mode mode);
+    qint64 broadcaster_monotonic_timestamp_ms() const;
+    debug_probe_core::protocol_identity broadcaster_protocol_identity() const;
+    void publish_broadcaster_session_start();
+    void publish_broadcaster_session_end(const QString& reason);
+    void publish_broadcaster_sample_batch(const cache_timeline_entry& entry);
+    void publish_broadcaster_event(const event_timeline_entry& entry);
+    void publish_broadcaster_snapshot_now();
+    void publish_broadcaster_warning(
+        const QString& warning_code, const QString& warning_message
+    );
     void export_process_memory_report_async(
         const QString& output_path, process_memory_report_trigger trigger
     );

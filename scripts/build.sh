@@ -28,14 +28,14 @@ case "$mode" in
     build_desktop "kde" "ON"
     ;;
   nonkde|nokde)
-    build_desktop "nokde" "OFF"
+    build_desktop "nonkde" "OFF"
     ;;
   android)
     "$SCRIPT_DIR/android/build.sh"
     ;;
   all)
     build_desktop "kde" "ON"
-    build_desktop "nokde" "OFF"
+    build_desktop "nonkde" "OFF"
     ANDROID_OPTIONAL=1 "$SCRIPT_DIR/android/build.sh"
     ;;
   *)

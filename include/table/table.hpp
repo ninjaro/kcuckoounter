@@ -107,6 +107,7 @@ private:
     int warming_shared_bucket_px;
     qint64 warming_shared_generation_id;
     qint64 next_shared_generation_id;
+    QSet<raster_cache::entry_key> retained_shared_faces_keys;
     int rasterization_delay_ms() const;
     int compute_max_card_face_need_short_px() const;
     void update_shared_card_face_need(bool immediate = false);
@@ -122,6 +123,9 @@ private:
     bool start_shared_raster_for_key(const raster_cache::entry_key& key);
     void cutover_to_ready_generation(const raster_cache::entry_key& key);
     void apply_shared_card_faces_from_entry(const raster_cache::entry_key& key);
+    void remember_shared_faces_key(const raster_cache::entry_key& key);
+    void forget_shared_faces_key(const raster_cache::entry_key& key);
+    void enforce_shared_generation_bounds();
     void update_layout();
     void on_pick_timeout();
     void update_rasterization_state(table_slot* slot, bool busy);

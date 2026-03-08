@@ -5,28 +5,57 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 
-mode="${1:-nonkde}"
+usage() {
+  cat <<'EOF'
+Usage: ./scripts/check_leaks.sh [kde|nonkde] [--tests]
+
+Options:
+  kde|nonkde   Build/runtime mode (default: nonkde)
+  --tests      Run leak checks via unit tests instead of launching the app
+  -h, --help   Show this help
+EOF
+}
+
+mode="nonkde"
 run_tests=false
 
-if [[ "${2:-}" == "--tests" ]]; then
-  run_tests=true
-fi
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    kde)
+      mode="kde"
+      ;;
+    nonkde|nokde)
+      mode="nonkde"
+      ;;
+    --tests)
+      run_tests=true
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      die "unknown option: $1 (use --help for usage)"
+      ;;
+    *)
+      die "unknown argument: $1 (use --help for usage)"
+      ;;
+  esac
+  shift
+done
 
-case "$mode" in
-  kde)
-    build_dir="$ROOT_DIR/build-leakcheck-kde"
-    kde_flag="ON"
-    bin="$build_dir/kcuckoounter"
-    ;;
-  nonkde|nokde)
-    build_dir="$ROOT_DIR/build-leakcheck-nokde"
-    kde_flag="OFF"
-    bin="$build_dir/kcuckoounter"
-    ;;
-  *)
-    die "usage: $0 {kde|nonkde} [--tests]"
-    ;;
-esac
+if [[ "$mode" == "kde" ]]; then
+  build_dir="$ROOT_DIR/build-leakcheck-kde"
+  kde_flag="ON"
+else
+  build_dir="$ROOT_DIR/build-leakcheck-nonkde"
+  kde_flag="OFF"
+fi
+bin="$build_dir/kcuckoounter"
 
 sanitizer_flags="-fsanitize=address,undefined -fno-omit-frame-pointer -fno-sanitize-recover=all"
 

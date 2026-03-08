@@ -33,9 +33,15 @@ private slots:
     /// @brief Verifies shared-cache generation cutover keeps bounded active +
     /// warming entries under rapid source churn.
     void shared_cache_generation_cutover_stays_bounded();
+    /// @brief Verifies generation cutover leaves a single visible generation
+    /// after warmup drains.
+    void shared_generation_cutover_keeps_single_visible_generation();
     /// @brief Verifies theme apply does not leave stale shared-face in-flight
     /// state.
     void theme_apply_while_shared_worker_busy_clears_stale_in_flight();
+    /// @brief Verifies theme/resize transitions stay non-blocking while
+    /// shared-face warming runs.
+    void theme_and_resize_transitions_are_non_blocking();
 };
 
 #endif // KCUCKOOUNTER_TESTS_TABLE_TESTS_HPP

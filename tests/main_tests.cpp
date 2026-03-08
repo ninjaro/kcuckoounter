@@ -4,8 +4,13 @@
 #include "include/card_packer_tests.hpp"
 #include "include/card_sheet_tests.hpp"
 #include "include/card_widget_tests.hpp"
+#include "include/cli_scripts_tests.hpp"
+#include "include/debug_broadcaster_tests.hpp"
+#include "include/debug_probe_core_tests.hpp"
 #include "include/image_cacher_tests.hpp"
 #include "include/infinity_spinbox_tests.hpp"
+#include "include/monitor_parity_checker_tests.hpp"
+#include "include/monitor_visual_widgets_tests.hpp"
 #include "include/preview_carousel_tests.hpp"
 #include "include/raster_cache_tests.hpp"
 #include "include/rasterization_runner_tests.hpp"
@@ -27,6 +32,26 @@ int main(int argc, char** argv) {
     }
     {
         card_widget_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        cli_scripts_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        debug_broadcaster_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        debug_probe_core_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        monitor_visual_widgets_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        monitor_parity_checker_tests t;
         status |= QTest::qExec(&t, argc, argv);
     }
     {

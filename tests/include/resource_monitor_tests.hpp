@@ -20,6 +20,8 @@ private slots:
     void auto_exports_process_memory_detail_when_rss_growth_threshold_is_hit();
     void auto_export_requires_configured_consecutive_growth_hits();
     void auto_export_is_rate_limited_by_mode_window();
+    void periodically_collects_when_cache_is_stable();
+    void broadcasts_protocol_messages_over_local_ipc_when_enabled();
     void tracks_memory_class_deltas_between_snapshots();
     void collects_geometry_snapshots_and_resize_history_from_table();
     void exports_geometry_and_resize_history_sections();

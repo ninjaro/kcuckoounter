@@ -13,8 +13,9 @@ parallel="${PARALLEL:-$(nproc_safe)}"
 run_tests() {
   local name="$1"
   local kde_flag="$2"
+  local junit_output_override="${3:-}"
   local build_dir="$ROOT_DIR/build-$name"
-  local junit_output="${JUNIT_OUTPUT:-}"
+  local junit_output="${junit_output_override:-${JUNIT_OUTPUT:-}}"
 
   cmake -S "$ROOT_DIR" -B "$build_dir" \
     -DCMAKE_INSTALL_PREFIX="$install_prefix" \
@@ -31,16 +32,35 @@ run_tests() {
   fi
 }
 
+junit_output_for_mode() {
+  local base_path="$1"
+  local mode_name="$2"
+  if [[ -z "$base_path" ]]; then
+    echo ""
+    return 0
+  fi
+
+  local extension="${base_path##*.}"
+  if [[ "$extension" == "$base_path" ]]; then
+    echo "${base_path}-${mode_name}.xml"
+    return 0
+  fi
+
+  local stem="${base_path%.*}"
+  echo "${stem}-${mode_name}.${extension}"
+}
+
 case "$mode" in
   kde)
     run_tests "kde" "ON"
     ;;
   nonkde|nokde)
-    run_tests "nokde" "OFF"
+    run_tests "nonkde" "OFF"
     ;;
   all)
-    run_tests "kde" "ON"
-    run_tests "nokde" "OFF"
+    junit_base="${JUNIT_OUTPUT:-}"
+    run_tests "kde" "ON" "$(junit_output_for_mode "$junit_base" "kde")"
+    run_tests "nonkde" "OFF" "$(junit_output_for_mode "$junit_base" "nonkde")"
     ;;
   *)
     die "usage: $0 {kde|nonkde|all}"

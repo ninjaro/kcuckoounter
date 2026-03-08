@@ -1,8 +1,11 @@
 #include "monitor/resource_monitor.hpp"
 
-#include "monitor/raster_cache_debug_strings.hpp"
+#include "arch/num_helpers.hpp"
+#include "monitor/debug_broadcaster.hpp"
+#include "monitor/debug_probe_core.hpp"
 #include "table/table.hpp"
 
+#include <QCoreApplication>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -13,6 +16,7 @@
 #include <QStandardPaths>
 #include <QTextStream>
 #include <QThreadPool>
+#include <QUuid>
 #include <QtConcurrent>
 #include <QtGlobal>
 
@@ -21,10 +25,25 @@
 
 namespace {
 
-int size_to_int(qsizetype value) {
-    return value > static_cast<qsizetype>(std::numeric_limits<int>::max())
-        ? std::numeric_limits<int>::max()
-        : static_cast<int>(value);
+QString effective_protocol_app_name() {
+    const QString app_name = QCoreApplication::applicationName().trimmed();
+    return app_name.isEmpty() ? QStringLiteral("kcuckoounter") : app_name;
+}
+
+QString effective_protocol_build_id() {
+    const QString app_version
+        = QCoreApplication::applicationVersion().trimmed();
+    return app_version.isEmpty() ? QStringLiteral("dev") : app_version;
+}
+
+QStringList default_protocol_debug_flags() {
+    QStringList flags;
+#if defined(NDEBUG)
+    flags.push_back(QStringLiteral("release_build"));
+#else
+    flags.push_back(QStringLiteral("debug_build"));
+#endif
+    return flags;
 }
 
 QString process_memory_report_trigger_to_string(
@@ -39,163 +58,8 @@ QString process_memory_report_trigger_to_string(
     }
 }
 
-QString cadence_mode_to_string(resource_monitor::debug_cadence_mode mode) {
-    switch (mode) {
-    case resource_monitor::debug_cadence_mode::instrumented:
-        return QStringLiteral("instrumented");
-    case resource_monitor::debug_cadence_mode::realistic:
-    default:
-        return QStringLiteral("realistic");
-    }
-}
-
 QString process_memory_source_for_rss(qint64 rss_bytes);
 QString process_memory_unavailable_reason();
-
-QJsonObject size_to_json(const QSize& size) {
-    QJsonObject object;
-    object.insert(QStringLiteral("width"), size.width());
-    object.insert(QStringLiteral("height"), size.height());
-    return object;
-}
-
-QJsonObject geometry_snapshot_to_json(const geometry_debug_snapshot& snapshot) {
-    QJsonObject object;
-    object.insert(QStringLiteral("timestamp_ms"), snapshot.timestamp_ms);
-    object.insert(QStringLiteral("slot_count"), snapshot.slot_count);
-    object.insert(
-        QStringLiteral("visible_slot_count"), snapshot.visible_slot_count
-    );
-    object.insert(
-        QStringLiteral("window_size"), size_to_json(snapshot.window_size)
-    );
-    object.insert(
-        QStringLiteral("layout_size"), size_to_json(snapshot.layout_size)
-    );
-    object.insert(
-        QStringLiteral("display_card_size"),
-        size_to_json(snapshot.display_card_size)
-    );
-    object.insert(
-        QStringLiteral("display_card_need_short_px"),
-        snapshot.display_card_need_short_px
-    );
-    object.insert(
-        QStringLiteral("active_bucket_px"), snapshot.active_bucket_px
-    );
-    object.insert(
-        QStringLiteral("warming_bucket_px"), snapshot.warming_bucket_px
-    );
-    object.insert(
-        QStringLiteral("cache_raster_size"),
-        size_to_json(snapshot.cache_raster_size)
-    );
-    object.insert(
-        QStringLiteral("preloaded_raster_size"),
-        size_to_json(snapshot.preloaded_raster_size)
-    );
-    object.insert(
-        QStringLiteral("coverage_percent"), snapshot.coverage_percent
-    );
-    object.insert(
-        QStringLiteral("coverage_window_ms"), snapshot.coverage_window_ms
-    );
-    object.insert(
-        QStringLiteral("unique_size_buckets"), snapshot.unique_size_buckets
-    );
-    object.insert(
-        QStringLiteral("prewarm_in_flight"), snapshot.prewarm_in_flight
-    );
-    object.insert(
-        QStringLiteral("active_generation_id"), snapshot.active_generation_id
-    );
-    object.insert(
-        QStringLiteral("warming_generation_id"), snapshot.warming_generation_id
-    );
-    return object;
-}
-
-QJsonObject resize_history_entry_to_json(
-    const resource_monitor::resize_history_entry& entry
-) {
-    QJsonObject object;
-    object.insert(
-        QStringLiteral("collector_sequence"), entry.collector_sequence
-    );
-    object.insert(
-        QStringLiteral("transition_start_timestamp_ms"),
-        entry.transition_start_timestamp_ms
-    );
-    object.insert(
-        QStringLiteral("transition_end_timestamp_ms"),
-        entry.transition_end_timestamp_ms
-    );
-    object.insert(
-        QStringLiteral("prewarm_completion_ms"), entry.prewarm_completion_ms
-    );
-    object.insert(
-        QStringLiteral("old_window_size"), size_to_json(entry.old_window_size)
-    );
-    object.insert(
-        QStringLiteral("new_window_size"), size_to_json(entry.new_window_size)
-    );
-    object.insert(
-        QStringLiteral("old_active_bucket_px"), entry.old_active_bucket_px
-    );
-    object.insert(
-        QStringLiteral("new_active_bucket_px"), entry.new_active_bucket_px
-    );
-    object.insert(
-        QStringLiteral("old_warming_bucket_px"), entry.old_warming_bucket_px
-    );
-    object.insert(
-        QStringLiteral("new_warming_bucket_px"), entry.new_warming_bucket_px
-    );
-    object.insert(
-        QStringLiteral("geometry_after_resize"),
-        geometry_snapshot_to_json(entry.geometry_after_resize)
-    );
-    object.insert(
-        QStringLiteral("before_process_rss_bytes_measured"),
-        entry.before_process_rss_bytes
-    );
-    object.insert(
-        QStringLiteral("after_process_rss_bytes_measured"),
-        entry.after_process_rss_bytes
-    );
-    object.insert(
-        QStringLiteral("before_cache_accounted_ready_bytes"),
-        entry.before_cache_accounted_ready_bytes
-    );
-    object.insert(
-        QStringLiteral("after_cache_accounted_ready_bytes"),
-        entry.after_cache_accounted_ready_bytes
-    );
-    object.insert(
-        QStringLiteral("before_widget_local_display_bytes_estimated"),
-        entry.before_widget_local_display_bytes_estimated
-    );
-    object.insert(
-        QStringLiteral("after_widget_local_display_bytes_estimated"),
-        entry.after_widget_local_display_bytes_estimated
-    );
-    object.insert(
-        QStringLiteral("before_measured_accounted_gap_bytes_derived"),
-        entry.before_measured_accounted_gap_bytes
-    );
-    object.insert(
-        QStringLiteral("after_measured_accounted_gap_bytes_derived"),
-        entry.after_measured_accounted_gap_bytes
-    );
-    return object;
-}
-
-QString resize_history_entry_to_jsonl_line(
-    const resource_monitor::resize_history_entry& entry
-) {
-    const QJsonDocument document(resize_history_entry_to_json(entry));
-    return QString::fromUtf8(document.toJson(QJsonDocument::Compact));
-}
 
 QString write_debug_snapshot_json(
     const QString& output_path,
@@ -206,543 +70,10 @@ QString write_debug_snapshot_json(
     const QVector<resource_monitor::resize_history_entry>& resize_entries,
     resource_monitor::debug_cadence_mode export_mode
 ) {
-    QJsonObject root;
-    root.insert(
-        QStringLiteral("collector_sequence"), metadata.collector_sequence
+    const QJsonObject root = debug_probe_core::build_snapshot_export_json(
+        metadata, cache_entries, event_entries, geometry_entries,
+        resize_entries, export_mode
     );
-    root.insert(
-        QStringLiteral("cache_timeline_size"), metadata.cache_timeline_size
-    );
-    root.insert(
-        QStringLiteral("event_timeline_size"), metadata.event_timeline_size
-    );
-    root.insert(
-        QStringLiteral("geometry_timeline_size"),
-        metadata.geometry_timeline_size
-    );
-    root.insert(
-        QStringLiteral("resize_history_size"), metadata.resize_history_size
-    );
-    root.insert(
-        QStringLiteral("resize_history_log_path"),
-        metadata.resize_history_log_path
-    );
-    root.insert(
-        QStringLiteral("debug_cadence_mode"),
-        cadence_mode_to_string(export_mode)
-    );
-    root.insert(
-        QStringLiteral("process_memory_rss_bytes"),
-        metadata.latest_process_rss_bytes
-    );
-    root.insert(
-        QStringLiteral("process_memory_rss_source"),
-        metadata.process_memory_source
-    );
-    root.insert(
-        QStringLiteral("process_memory_rss_available"),
-        metadata.latest_process_rss_bytes >= 0
-    );
-    if (metadata.latest_process_rss_bytes < 0) {
-        root.insert(
-            QStringLiteral("process_memory_rss_unavailable_reason"),
-            metadata.process_memory_unavailable_reason
-        );
-    }
-    root.insert(
-        QStringLiteral("process_memory_sample_interval_ms"),
-        metadata.process_memory_sample_interval_ms
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_rss_growth_threshold_bytes"),
-        metadata.auto_process_report_rss_growth_threshold_bytes
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_cooldown_ms"),
-        metadata.auto_process_report_cooldown_ms
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_baseline_rss_bytes"),
-        metadata.auto_process_report_baseline_rss_bytes
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_rss_growth_since_baseline_bytes"),
-        metadata.auto_process_report_rss_growth_since_baseline_bytes
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_last_trigger_utc_ms"),
-        metadata.auto_process_report_last_trigger_utc_ms
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_cooldown_remaining_ms"),
-        metadata.auto_process_report_cooldown_remaining_ms
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_consecutive_growth_hits_required"),
-        metadata.auto_process_report_consecutive_growth_hits_required
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_consecutive_growth_hits_current"),
-        metadata.auto_process_report_consecutive_growth_hits_current
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_window_ms"),
-        metadata.auto_process_report_window_ms
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_window_max_exports"),
-        metadata.auto_process_report_window_max_exports
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_window_exports_used"),
-        metadata.auto_process_report_window_exports_used
-    );
-    QJsonObject telemetry_semantics;
-    telemetry_semantics.insert(
-        QStringLiteral("cache_accounted_ready_bytes"),
-        QStringLiteral("accounted")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("widget_local_display_bytes_estimated"),
-        QStringLiteral("estimated")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("process_memory_rss_bytes"), QStringLiteral("measured")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("fallback_active_theme_keys_ready"),
-        QStringLiteral("accounted_required_key_resolution")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("fallback_default_theme_keys_ready"),
-        QStringLiteral("accounted_required_key_resolution")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("fallback_placeholder_keys_ready"),
-        QStringLiteral("accounted_required_key_resolution")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("process_memory_rss_source"),
-        QStringLiteral("source_label")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("process_memory_sample_interval_ms"),
-        QStringLiteral("derived_from_debug_cadence_mode")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_rss_growth_threshold_bytes"),
-        QStringLiteral("derived_from_debug_cadence_mode_unless_test_override")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_cooldown_ms"),
-        QStringLiteral("derived_from_debug_cadence_mode_unless_test_override")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_baseline_rss_bytes"),
-        QStringLiteral("collector_runtime_state")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_rss_growth_since_baseline_bytes"),
-        QStringLiteral("collector_runtime_state")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_last_trigger_utc_ms"),
-        QStringLiteral("collector_runtime_state")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_cooldown_remaining_ms"),
-        QStringLiteral("collector_runtime_state")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_consecutive_growth_hits_required"),
-        QStringLiteral("derived_from_debug_cadence_mode_unless_test_override")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_consecutive_growth_hits_current"),
-        QStringLiteral("collector_runtime_state")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_window_ms"),
-        QStringLiteral("derived_from_debug_cadence_mode_unless_test_override")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_window_max_exports"),
-        QStringLiteral("derived_from_debug_cadence_mode_unless_test_override")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("auto_process_report_window_exports_used"),
-        QStringLiteral("collector_runtime_state")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("displayed_recent_note"),
-        QStringLiteral(
-            "displayed_recent_* fields are window-based recent-use heuristics"
-        )
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("geometry_debug_snapshot"),
-        QStringLiteral("aggregated_table_geometry_telemetry")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("resize_history_before_after_memory"),
-        QStringLiteral("before_after_measured_accounted_estimated_derived")
-    );
-    telemetry_semantics.insert(
-        QStringLiteral("resize_history_log_stream"),
-        QStringLiteral("append_only_jsonl")
-    );
-    root.insert(QStringLiteral("telemetry_semantics"), telemetry_semantics);
-
-    QJsonArray cache_array;
-    for (const auto& entry : cache_entries) {
-        QJsonObject object;
-        object.insert(
-            QStringLiteral("collector_sequence"), entry.collector_sequence
-        );
-        object.insert(
-            QStringLiteral("snapshot_sequence"),
-            entry.cache_snapshot.snapshot_sequence
-        );
-        object.insert(
-            QStringLiteral("ready_entries"), entry.cache_snapshot.ready_entries
-        );
-        object.insert(
-            QStringLiteral("ready_bytes"),
-            static_cast<qint64>(entry.cache_snapshot.ready_bytes)
-        );
-        object.insert(
-            QStringLiteral("cache_accounted_ready_bytes"),
-            static_cast<qint64>(entry.cache_snapshot.ready_bytes)
-        );
-        object.insert(
-            QStringLiteral("cache_accounted_ready_bytes_delta"),
-            entry.cache_accounted_ready_bytes_delta
-        );
-        object.insert(
-            QStringLiteral("cache_entries_added_interval"),
-            entry.cache_entries_added_interval
-        );
-        object.insert(
-            QStringLiteral("cache_entries_removed_interval"),
-            entry.cache_entries_removed_interval
-        );
-        object.insert(
-            QStringLiteral("cache_bytes_added_interval"),
-            entry.cache_bytes_added_interval
-        );
-        object.insert(
-            QStringLiteral("cache_bytes_removed_interval"),
-            entry.cache_bytes_removed_interval
-        );
-        object.insert(
-            QStringLiteral("cache_images_added_interval"),
-            entry.cache_images_added_interval
-        );
-        object.insert(
-            QStringLiteral("cache_images_removed_interval"),
-            entry.cache_images_removed_interval
-        );
-        object.insert(
-            QStringLiteral("widget_local_rasterized_bytes_estimated"),
-            static_cast<qint64>(
-                entry.cache_snapshot.widget_local_rasterized_bytes_estimated
-            )
-        );
-        object.insert(
-            QStringLiteral("widget_local_scaled_bytes_estimated"),
-            static_cast<qint64>(
-                entry.cache_snapshot.widget_local_scaled_bytes_estimated
-            )
-        );
-        object.insert(
-            QStringLiteral("widget_local_display_bytes_estimated"),
-            static_cast<qint64>(
-                entry.cache_snapshot.widget_local_display_bytes_estimated
-            )
-        );
-        object.insert(
-            QStringLiteral("fallback_active_theme_keys_ready"),
-            entry.cache_snapshot.fallback_active_theme_keys_ready
-        );
-        object.insert(
-            QStringLiteral("fallback_default_theme_keys_ready"),
-            entry.cache_snapshot.fallback_default_theme_keys_ready
-        );
-        object.insert(
-            QStringLiteral("fallback_placeholder_keys_ready"),
-            entry.cache_snapshot.fallback_placeholder_keys_ready
-        );
-        object.insert(
-            QStringLiteral("widget_local_display_bytes_estimated_delta"),
-            entry.widget_local_display_bytes_estimated_delta
-        );
-        object.insert(
-            QStringLiteral("widget_local_display_bytes_materialized_interval"),
-            entry.widget_local_display_bytes_materialized_interval
-        );
-        object.insert(
-            QStringLiteral("widget_local_display_bytes_released_interval"),
-            entry.widget_local_display_bytes_released_interval
-        );
-        object.insert(
-            QStringLiteral("process_memory_rss_bytes"), entry.process_rss_bytes
-        );
-        object.insert(
-            QStringLiteral("process_memory_rss_bytes_delta"),
-            entry.process_rss_bytes_delta
-        );
-        object.insert(
-            QStringLiteral("process_memory_rss_bytes_growth_interval"),
-            entry.process_rss_bytes_growth_interval
-        );
-        object.insert(
-            QStringLiteral("process_memory_rss_bytes_drop_interval"),
-            entry.process_rss_bytes_drop_interval
-        );
-        object.insert(
-            QStringLiteral("ready_images"), entry.cache_snapshot.ready_images
-        );
-        object.insert(
-            QStringLiteral("displayed_ready_entries"),
-            entry.cache_snapshot.displayed_ready_entries
-        );
-        object.insert(
-            QStringLiteral("displayed_recent_entries"),
-            entry.cache_snapshot.displayed_ready_entries
-        );
-        object.insert(
-            QStringLiteral("cached_only_ready_entries"),
-            entry.cache_snapshot.cached_only_ready_entries
-        );
-        object.insert(
-            QStringLiteral("displayed_ready_images"),
-            entry.cache_snapshot.displayed_ready_images
-        );
-        object.insert(
-            QStringLiteral("displayed_recent_images"),
-            entry.cache_snapshot.displayed_ready_images
-        );
-        object.insert(
-            QStringLiteral("cached_only_ready_images"),
-            entry.cache_snapshot.cached_only_ready_images
-        );
-        object.insert(
-            QStringLiteral("displayed_entry_window_ms"),
-            static_cast<qint64>(entry.cache_snapshot.displayed_entry_window_ms)
-        );
-        object.insert(
-            QStringLiteral("displayed_entry_coverage_percent"),
-            entry.cache_snapshot.displayed_entry_coverage_percent
-        );
-
-        QJsonArray bucket_array;
-        for (const auto& bucket : entry.cache_snapshot.size_buckets) {
-            QJsonObject bucket_object;
-            bucket_object.insert(
-                QStringLiteral("target_bucket_px"), bucket.target_bucket_px
-            );
-            bucket_object.insert(
-                QStringLiteral("entry_count"), bucket.entry_count
-            );
-            bucket_object.insert(
-                QStringLiteral("total_bytes"),
-                static_cast<qint64>(bucket.total_bytes)
-            );
-            bucket_array.push_back(bucket_object);
-        }
-        object.insert(
-            QStringLiteral("unique_size_buckets"),
-            entry.cache_snapshot.unique_size_buckets
-        );
-        object.insert(QStringLiteral("size_buckets"), bucket_array);
-
-        QJsonArray largest_array;
-        for (const auto& largest : entry.cache_snapshot.largest_entries) {
-            QJsonObject largest_object;
-            largest_object.insert(
-                QStringLiteral("name_space"),
-                cache_namespace_to_string(largest.name_space)
-            );
-            largest_object.insert(
-                QStringLiteral("kind"), resource_kind_to_string(largest.kind)
-            );
-            largest_object.insert(
-                QStringLiteral("source_id"), largest.source_id
-            );
-            largest_object.insert(
-                QStringLiteral("render_scope"), largest.render_scope
-            );
-            largest_object.insert(
-                QStringLiteral("target_bucket_px"), largest.target_bucket_px
-            );
-            largest_object.insert(
-                QStringLiteral("estimated_bytes"),
-                static_cast<qint64>(largest.estimated_bytes)
-            );
-            largest_array.push_back(largest_object);
-        }
-        object.insert(QStringLiteral("largest_entries"), largest_array);
-
-        QJsonArray requested_array;
-        for (const auto& requested :
-             entry.cache_snapshot.top_requested_entries) {
-            QJsonObject requested_object;
-            requested_object.insert(
-                QStringLiteral("name_space"),
-                cache_namespace_to_string(requested.name_space)
-            );
-            requested_object.insert(
-                QStringLiteral("kind"), resource_kind_to_string(requested.kind)
-            );
-            requested_object.insert(
-                QStringLiteral("source_id"), requested.source_id
-            );
-            requested_object.insert(
-                QStringLiteral("render_scope"), requested.render_scope
-            );
-            requested_object.insert(
-                QStringLiteral("target_bucket_px"), requested.target_bucket_px
-            );
-            requested_object.insert(
-                QStringLiteral("request_count"), requested.request_count
-            );
-            requested_array.push_back(requested_object);
-        }
-        object.insert(QStringLiteral("top_requested_entries"), requested_array);
-
-        QJsonArray expensive_array;
-        for (const auto& expensive : entry.cache_snapshot.top_expensive_tasks) {
-            QJsonObject expensive_object;
-            expensive_object.insert(
-                QStringLiteral("stage"),
-                expensive.stage
-                        == raster_cache::debug_snapshot::timing_stage::
-                            coalesced_wait
-                    ? QStringLiteral("coalesced_wait")
-                    : QStringLiteral("raster_lifecycle")
-            );
-            expensive_object.insert(
-                QStringLiteral("name_space"),
-                cache_namespace_to_string(expensive.name_space)
-            );
-            expensive_object.insert(
-                QStringLiteral("kind"), resource_kind_to_string(expensive.kind)
-            );
-            expensive_object.insert(
-                QStringLiteral("source_id"), expensive.source_id
-            );
-            expensive_object.insert(
-                QStringLiteral("render_scope"), expensive.render_scope
-            );
-            expensive_object.insert(
-                QStringLiteral("target_bucket_px"), expensive.target_bucket_px
-            );
-            expensive_object.insert(
-                QStringLiteral("completed_samples"), expensive.completed_samples
-            );
-            expensive_object.insert(
-                QStringLiteral("avg_elapsed_ms"),
-                static_cast<qint64>(expensive.avg_elapsed_ms)
-            );
-            expensive_object.insert(
-                QStringLiteral("max_elapsed_ms"),
-                static_cast<qint64>(expensive.max_elapsed_ms)
-            );
-            expensive_array.push_back(expensive_object);
-        }
-        object.insert(QStringLiteral("top_expensive_tasks"), expensive_array);
-
-        QJsonArray subsystem_array;
-        for (const auto& subsystem : entry.cache_snapshot.subsystem_summaries) {
-            QJsonObject subsystem_object;
-            subsystem_object.insert(
-                QStringLiteral("name_space"),
-                cache_namespace_to_string(subsystem.name_space)
-            );
-            subsystem_object.insert(
-                QStringLiteral("kind"), resource_kind_to_string(subsystem.kind)
-            );
-            subsystem_object.insert(
-                QStringLiteral("ready_entries"), subsystem.ready_entries
-            );
-            subsystem_object.insert(
-                QStringLiteral("ready_bytes"), subsystem.ready_bytes
-            );
-            subsystem_object.insert(
-                QStringLiteral("request_samples"), subsystem.request_samples
-            );
-            subsystem_object.insert(
-                QStringLiteral("timing_samples"), subsystem.timing_samples
-            );
-            subsystem_object.insert(
-                QStringLiteral("timing_max_elapsed_ms"),
-                subsystem.timing_max_elapsed_ms
-            );
-            subsystem_array.push_back(subsystem_object);
-        }
-        object.insert(QStringLiteral("subsystem_summaries"), subsystem_array);
-
-        QJsonArray consumer_array;
-        for (const auto& consumer : entry.cache_snapshot.consumer_summaries) {
-            QJsonObject consumer_object;
-            consumer_object.insert(
-                QStringLiteral("consumer"),
-                debug_consumer_scope_to_string(consumer.consumer)
-            );
-            consumer_object.insert(
-                QStringLiteral("displayed_recent_entries"),
-                consumer.displayed_recent_entries
-            );
-            consumer_object.insert(
-                QStringLiteral("displayed_recent_images"),
-                consumer.displayed_recent_images
-            );
-            consumer_object.insert(
-                QStringLiteral("displayed_recent_ready_bytes"),
-                consumer.displayed_recent_ready_bytes
-            );
-            consumer_object.insert(
-                QStringLiteral("displayed_recent_widget_local_bytes_estimated"),
-                consumer.displayed_recent_widget_local_bytes_estimated
-            );
-            consumer_array.push_back(consumer_object);
-        }
-        object.insert(QStringLiteral("consumer_summaries"), consumer_array);
-        cache_array.push_back(object);
-    }
-    root.insert(QStringLiteral("cache_timeline"), cache_array);
-
-    QJsonArray event_array;
-    for (const auto& entry : event_entries) {
-        QJsonObject object;
-        object.insert(
-            QStringLiteral("collector_sequence"), entry.collector_sequence
-        );
-        object.insert(QStringLiteral("timestamp_ms"), entry.timestamp_ms);
-        object.insert(
-            QStringLiteral("kind"),
-            entry.kind
-                    == resource_monitor::event_timeline_entry::event_kind::
-                        cache_snapshot
-                ? QStringLiteral("cache_snapshot")
-                : QStringLiteral("manual_marker")
-        );
-        object.insert(QStringLiteral("label"), entry.label);
-        event_array.push_back(object);
-    }
-    root.insert(QStringLiteral("event_timeline"), event_array);
-
-    QJsonArray geometry_array;
-    for (const auto& entry : geometry_entries) {
-        geometry_array.push_back(geometry_snapshot_to_json(entry));
-    }
-    root.insert(QStringLiteral("geometry_timeline"), geometry_array);
-
-    QJsonArray resize_array;
-    for (const auto& entry : resize_entries) {
-        resize_array.push_back(resize_history_entry_to_json(entry));
-    }
-    root.insert(QStringLiteral("resize_history_recent"), resize_array);
 
     const QJsonDocument document(root);
     QFile file(output_path);
@@ -876,6 +207,10 @@ QString write_process_memory_report_json(
     qint64 auto_process_report_consecutive_growth_hits_current,
     qint64 latest_process_rss_bytes, const QString& latest_process_rss_source,
     const QString& latest_process_rss_unavailable_reason,
+    const QString& protocol_app_name, qint64 protocol_process_id,
+    const QString& protocol_session_id, const QString& protocol_build_id,
+    const QString& protocol_version, const QStringList& protocol_debug_flags,
+    const QString& protocol_instrumentation_mode,
     resource_monitor::process_memory_report_trigger trigger
 ) {
     const process_status_sample status_sample = read_process_status_sample();
@@ -885,152 +220,53 @@ QString write_process_memory_report_json(
         || status_sample.vm_swap_bytes >= 0;
     const bool has_smaps_rollup = !smaps_rollup.isEmpty();
 
-    QJsonObject root;
-    root.insert(
-        QStringLiteral("report_kind"),
-        QStringLiteral("process_memory_detail_on_demand")
-    );
-    root.insert(
-        QStringLiteral("captured_at_utc_ms"),
-        QDateTime::currentDateTimeUtc().toMSecsSinceEpoch()
-    );
-    root.insert(
-        QStringLiteral("debug_cadence_mode"),
-        cadence_mode_to_string(cadence_mode)
-    );
-    root.insert(
-        QStringLiteral("process_memory_sample_interval_ms"),
-        process_sample_interval_ms
-    );
-    root.insert(
-        QStringLiteral("collector_latest_process_rss_bytes"),
-        latest_process_rss_bytes
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_rss_growth_threshold_bytes"),
-        auto_process_report_rss_growth_threshold_bytes
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_cooldown_ms"),
-        auto_process_report_cooldown_ms
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_baseline_rss_bytes"),
-        auto_process_report_baseline_rss_bytes
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_rss_growth_since_baseline_bytes"),
-        auto_process_report_rss_growth_since_baseline_bytes
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_last_trigger_utc_ms"),
-        auto_process_report_last_trigger_utc_ms
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_cooldown_remaining_ms"),
-        auto_process_report_cooldown_remaining_ms
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_consecutive_growth_hits_required"),
-        auto_process_report_consecutive_growth_hits_required
-    );
-    root.insert(
-        QStringLiteral("auto_process_report_consecutive_growth_hits_current"),
-        auto_process_report_consecutive_growth_hits_current
-    );
-    root.insert(
-        QStringLiteral("collector_latest_process_rss_source"),
-        latest_process_rss_source
-    );
-    root.insert(
-        QStringLiteral("collector_latest_process_rss_available"),
-        latest_process_rss_bytes >= 0
-    );
-    if (latest_process_rss_bytes < 0) {
-        root.insert(
-            QStringLiteral("collector_latest_process_rss_unavailable_reason"),
-            latest_process_rss_unavailable_reason
-        );
-    }
+    const debug_probe_core::process_memory_report_inputs inputs {
+        .cadence_mode = cadence_mode,
+        .captured_at_utc_ms
+        = QDateTime::currentDateTimeUtc().toMSecsSinceEpoch(),
+        .process_memory_sample_interval_ms = process_sample_interval_ms,
+        .auto_process_report_rss_growth_threshold_bytes
+        = auto_process_report_rss_growth_threshold_bytes,
+        .auto_process_report_cooldown_ms = auto_process_report_cooldown_ms,
+        .auto_process_report_baseline_rss_bytes
+        = auto_process_report_baseline_rss_bytes,
+        .auto_process_report_rss_growth_since_baseline_bytes
+        = auto_process_report_rss_growth_since_baseline_bytes,
+        .auto_process_report_last_trigger_utc_ms
+        = auto_process_report_last_trigger_utc_ms,
+        .auto_process_report_cooldown_remaining_ms
+        = auto_process_report_cooldown_remaining_ms,
+        .auto_process_report_consecutive_growth_hits_required
+        = auto_process_report_consecutive_growth_hits_required,
+        .auto_process_report_consecutive_growth_hits_current
+        = auto_process_report_consecutive_growth_hits_current,
+        .latest_process_rss_bytes = latest_process_rss_bytes,
+        .latest_process_rss_source = latest_process_rss_source,
+        .latest_process_rss_unavailable_reason
+        = latest_process_rss_unavailable_reason,
+        .report_trigger_label
+        = process_memory_report_trigger_to_string(trigger),
+        .status_vm_rss_bytes = status_sample.vm_rss_bytes,
+        .status_vm_hwm_bytes = status_sample.vm_hwm_bytes,
+        .status_vm_size_bytes = status_sample.vm_size_bytes,
+        .status_vm_swap_bytes = status_sample.vm_swap_bytes,
+        .status_bytes_available = has_status,
+        .status_bytes_unavailable_reason = process_memory_unavailable_reason(),
+        .smaps_rollup_bytes = smaps_rollup,
+        .smaps_rollup_bytes_available = has_smaps_rollup,
+        .smaps_rollup_bytes_unavailable_reason
+        = QStringLiteral("proc_smaps_rollup_unreadable_or_unsupported"),
+        .protocol_app_name = protocol_app_name,
+        .protocol_process_id = protocol_process_id,
+        .protocol_session_id = protocol_session_id,
+        .protocol_build_id = protocol_build_id,
+        .protocol_version = protocol_version,
+        .protocol_debug_flags = protocol_debug_flags,
+        .protocol_instrumentation_mode = protocol_instrumentation_mode,
+    };
 
-    QJsonObject status_object;
-    status_object.insert(QStringLiteral("VmRSS"), status_sample.vm_rss_bytes);
-    status_object.insert(QStringLiteral("VmHWM"), status_sample.vm_hwm_bytes);
-    status_object.insert(QStringLiteral("VmSize"), status_sample.vm_size_bytes);
-    status_object.insert(QStringLiteral("VmSwap"), status_sample.vm_swap_bytes);
-    root.insert(QStringLiteral("status_bytes"), status_object);
-    root.insert(QStringLiteral("status_bytes_available"), has_status);
-    if (!has_status) {
-        root.insert(
-            QStringLiteral("status_bytes_unavailable_reason"),
-            process_memory_unavailable_reason()
-        );
-    }
-
-    root.insert(QStringLiteral("smaps_rollup_bytes"), smaps_rollup);
-    root.insert(
-        QStringLiteral("smaps_rollup_bytes_available"), has_smaps_rollup
-    );
-    if (!has_smaps_rollup) {
-        root.insert(
-            QStringLiteral("smaps_rollup_bytes_unavailable_reason"),
-            QStringLiteral("proc_smaps_rollup_unreadable_or_unsupported")
-        );
-    }
-
-    QJsonObject semantics;
-    semantics.insert(
-        QStringLiteral("report_trigger"),
-        process_memory_report_trigger_to_string(trigger)
-    );
-    semantics.insert(
-        QStringLiteral("collector_latest_process_rss_bytes"),
-        QStringLiteral("lightweight_sampled")
-    );
-    semantics.insert(
-        QStringLiteral("collector_latest_process_rss_source"),
-        QStringLiteral("source_label")
-    );
-    semantics.insert(
-        QStringLiteral("status_bytes"), QStringLiteral("measured_proc_status")
-    );
-    semantics.insert(
-        QStringLiteral("smaps_rollup_bytes"),
-        QStringLiteral("measured_proc_smaps_rollup_on_demand")
-    );
-    semantics.insert(
-        QStringLiteral("auto_process_report_rss_growth_threshold_bytes"),
-        QStringLiteral("derived_from_debug_cadence_mode_unless_test_override")
-    );
-    semantics.insert(
-        QStringLiteral("auto_process_report_cooldown_ms"),
-        QStringLiteral("derived_from_debug_cadence_mode_unless_test_override")
-    );
-    semantics.insert(
-        QStringLiteral("auto_process_report_baseline_rss_bytes"),
-        QStringLiteral("collector_runtime_state")
-    );
-    semantics.insert(
-        QStringLiteral("auto_process_report_rss_growth_since_baseline_bytes"),
-        QStringLiteral("collector_runtime_state")
-    );
-    semantics.insert(
-        QStringLiteral("auto_process_report_last_trigger_utc_ms"),
-        QStringLiteral("collector_runtime_state")
-    );
-    semantics.insert(
-        QStringLiteral("auto_process_report_cooldown_remaining_ms"),
-        QStringLiteral("collector_runtime_state")
-    );
-    semantics.insert(
-        QStringLiteral("auto_process_report_consecutive_growth_hits_required"),
-        QStringLiteral("derived_from_debug_cadence_mode_unless_test_override")
-    );
-    semantics.insert(
-        QStringLiteral("auto_process_report_consecutive_growth_hits_current"),
-        QStringLiteral("collector_runtime_state")
-    );
-    root.insert(QStringLiteral("telemetry_semantics"), semantics);
+    const QJsonObject root
+        = debug_probe_core::build_process_memory_report_json(inputs);
 
     const QJsonDocument document(root);
     QFile file(output_path);
@@ -1070,19 +306,69 @@ resource_monitor::resource_monitor(QObject* parent, int max_timeline_entries)
     , current_process_rss_unavailable_reason(
           process_memory_unavailable_reason()
       )
-    , auto_process_dump_rss_growth_threshold_bytes(96 * 1024 * 1024)
-    , auto_process_dump_cooldown_ms(8 * 60 * 1000)
+    , auto_process_dump_rss_growth_threshold_bytes(
+          debug_probe_core::auto_process_report_policy_for_mode(
+              debug_cadence_mode::realistic
+          )
+              .rss_growth_threshold_bytes
+      )
+    , auto_process_dump_cooldown_ms(
+          debug_probe_core::auto_process_report_policy_for_mode(
+              debug_cadence_mode::realistic
+          )
+              .cooldown_ms
+      )
     , auto_process_dump_policy_override_for_tests(false)
     , auto_process_dump_consecutive_growth_hits_required_override(1)
     , auto_process_dump_last_trigger_ms(0)
     , auto_process_dump_baseline_rss_bytes(-1)
     , auto_process_dump_consecutive_growth_hits(0)
     , auto_process_dump_window_start_ms(0)
-    , auto_process_dump_window_exports_used(0) {
+    , auto_process_dump_window_exports_used(0)
+    , protocol_app_name(effective_protocol_app_name())
+    , protocol_session_id(QUuid::createUuid().toString(QUuid::WithoutBraces))
+    , protocol_build_id(effective_protocol_build_id())
+    , protocol_debug_flags(default_protocol_debug_flags())
+    , telemetry_broadcaster(new debug_broadcaster(this))
+    , broadcaster_monotonic_clock()
+    , process_sampling_timer() {
     cache_timeline_entries.reserve(timeline_limit);
     event_timeline_entries.reserve(timeline_limit);
     geometry_timeline_entries.reserve(timeline_limit);
     resize_history_entries.reserve(timeline_limit);
+    broadcaster_monotonic_clock.start();
+
+    if (telemetry_broadcaster != nullptr) {
+        QObject::connect(
+            telemetry_broadcaster,
+            &debug_broadcaster::listener_connection_changed, this,
+            [this](bool connected) {
+                if (connected) {
+                    publish_broadcaster_session_start();
+                    publish_broadcaster_snapshot_now();
+                }
+                emit debug_broadcaster_state_changed();
+            }
+        );
+        QObject::connect(
+            telemetry_broadcaster, &debug_broadcaster::warning_raised, this,
+            [this](
+                const QString& warning_code, const QString& warning_message
+            ) {
+                Q_UNUSED(warning_code);
+                Q_UNUSED(warning_message);
+                emit debug_broadcaster_state_changed();
+            }
+        );
+    }
+
+    process_sampling_timer.setSingleShot(false);
+    process_sampling_timer.setInterval(250);
+    QObject::connect(
+        &process_sampling_timer, &QTimer::timeout, this,
+        &resource_monitor::on_periodic_collection_tick
+    );
+    process_sampling_timer.start();
 }
 
 void resource_monitor::attach_cache_service(raster_cache* cache_service) {
@@ -1164,19 +450,19 @@ void resource_monitor::attach_table_service(QObject* table_service) {
 int resource_monitor::max_timeline_entries() const { return timeline_limit; }
 
 int resource_monitor::timeline_size() const {
-    return size_to_int(cache_timeline_entries.size());
+    return num_helpers::to_int(cache_timeline_entries.size());
 }
 
 int resource_monitor::event_timeline_size() const {
-    return size_to_int(event_timeline_entries.size());
+    return num_helpers::to_int(event_timeline_entries.size());
 }
 
 int resource_monitor::geometry_timeline_size() const {
-    return size_to_int(geometry_timeline_entries.size());
+    return num_helpers::to_int(geometry_timeline_entries.size());
 }
 
 int resource_monitor::resize_history_size() const {
-    return size_to_int(resize_history_entries.size());
+    return num_helpers::to_int(resize_history_entries.size());
 }
 
 bool resource_monitor::has_cache_snapshot() const {
@@ -1282,6 +568,70 @@ qint64 resource_monitor::process_memory_sample_interval_ms() const {
     return process_sample_interval_ms_for_mode();
 }
 
+void resource_monitor::set_debug_broadcaster_enabled(bool enabled) {
+    if (telemetry_broadcaster == nullptr) {
+        return;
+    }
+
+    const bool was_enabled = telemetry_broadcaster->is_enabled();
+    if (was_enabled && !enabled) {
+        publish_broadcaster_session_end(QStringLiteral("disabled_by_user"));
+    }
+
+    telemetry_broadcaster->set_enabled(enabled);
+    if (telemetry_broadcaster->is_enabled()) {
+        publish_broadcaster_session_start();
+        publish_broadcaster_snapshot_now();
+    }
+
+    emit debug_broadcaster_state_changed();
+}
+
+bool resource_monitor::is_debug_broadcaster_enabled() const {
+    return telemetry_broadcaster != nullptr
+        && telemetry_broadcaster->is_enabled();
+}
+
+QString resource_monitor::debug_broadcaster_endpoint_name() const {
+    const QJsonObject state = debug_broadcaster_runtime_state();
+    return state.value(QStringLiteral("endpoint_name")).toString();
+}
+
+QJsonObject resource_monitor::debug_broadcaster_runtime_state() const {
+    QJsonObject object;
+    if (telemetry_broadcaster == nullptr) {
+        return object;
+    }
+
+    const debug_broadcaster::runtime_state state
+        = telemetry_broadcaster->state();
+    object.insert(
+        QStringLiteral("compile_time_enabled"), state.compile_time_enabled
+    );
+    object.insert(QStringLiteral("runtime_enabled"), state.runtime_enabled);
+    object.insert(
+        QStringLiteral("listener_connected"), state.listener_connected
+    );
+    object.insert(QStringLiteral("endpoint_name"), state.endpoint_name);
+    object.insert(QStringLiteral("queued_messages"), state.queued_messages);
+    object.insert(QStringLiteral("queued_bytes"), state.queued_bytes);
+    object.insert(QStringLiteral("sent_messages"), state.sent_messages);
+    object.insert(
+        QStringLiteral("dropped_low_priority_messages"),
+        state.dropped_low_priority_messages
+    );
+    object.insert(
+        QStringLiteral("dropped_medium_priority_messages"),
+        state.dropped_medium_priority_messages
+    );
+    object.insert(
+        QStringLiteral("dropped_high_priority_messages"),
+        state.dropped_high_priority_messages
+    );
+    object.insert(QStringLiteral("write_error_count"), state.write_error_count);
+    return object;
+}
+
 void resource_monitor::set_auto_process_report_policy_for_tests(
     qint64 rss_growth_threshold_bytes, qint64 cooldown_ms,
     qint64 consecutive_growth_hits_required
@@ -1303,10 +653,14 @@ void resource_monitor::set_auto_process_report_policy_for_tests(
 void resource_monitor::export_debug_snapshot_async(const QString& output_path) {
     const export_request_metadata metadata {
         .collector_sequence = collector_sequence,
-        .cache_timeline_size = size_to_int(cache_timeline_entries.size()),
-        .event_timeline_size = size_to_int(event_timeline_entries.size()),
-        .geometry_timeline_size = size_to_int(geometry_timeline_entries.size()),
-        .resize_history_size = size_to_int(resize_history_entries.size()),
+        .cache_timeline_size
+        = num_helpers::to_int(cache_timeline_entries.size()),
+        .event_timeline_size
+        = num_helpers::to_int(event_timeline_entries.size()),
+        .geometry_timeline_size
+        = num_helpers::to_int(geometry_timeline_entries.size()),
+        .resize_history_size
+        = num_helpers::to_int(resize_history_entries.size()),
         .resize_history_log_path = resize_history_log_stream_path,
         .latest_process_rss_bytes = current_process_rss_bytes,
         .process_memory_source = current_process_rss_source,
@@ -1338,8 +692,16 @@ void resource_monitor::export_debug_snapshot_async(const QString& output_path) {
         = auto_process_dump_window_max_exports_effective(),
         .auto_process_report_window_exports_used
         = auto_process_dump_window_exports_used,
+        .protocol_app_name = protocol_app_name,
+        .protocol_process_id = QCoreApplication::applicationPid(),
+        .protocol_session_id = protocol_session_id,
+        .protocol_build_id = protocol_build_id,
+        .protocol_version = debug_probe_core::protocol_version_string(),
+        .protocol_debug_flags = protocol_debug_flags,
+        .protocol_instrumentation_mode = cadence_mode_to_string(cadence_mode),
     };
     last_export_metadata = metadata;
+    publish_broadcaster_snapshot_now();
 
     const QVector<cache_timeline_entry> cache_entries = cache_timeline_entries;
     const QVector<event_timeline_entry> event_entries = event_timeline_entries;
@@ -1446,6 +808,15 @@ void resource_monitor::export_process_memory_report_async(
     const QString latest_rss_source = current_process_rss_source;
     const QString latest_rss_unavailable_reason
         = current_process_rss_unavailable_reason;
+    const QString protocol_app = protocol_app_name;
+    const qint64 protocol_pid = QCoreApplication::applicationPid();
+    const QString protocol_session = protocol_session_id;
+    const QString protocol_build = protocol_build_id;
+    const QString protocol_version
+        = debug_probe_core::protocol_version_string();
+    const QStringList protocol_flags = protocol_debug_flags;
+    const QString protocol_instrumentation_mode
+        = cadence_mode_to_string(export_mode);
     active_process_report_export_watcher->setFuture(
         QtConcurrent::run([output_path, export_mode, sample_interval_ms,
                            auto_rss_growth_threshold_bytes, auto_cooldown_ms,
@@ -1455,7 +826,9 @@ void resource_monitor::export_process_memory_report_async(
                            auto_consecutive_growth_hits_required,
                            auto_consecutive_growth_hits_current, latest_rss,
                            latest_rss_source, latest_rss_unavailable_reason,
-                           trigger]() {
+                           protocol_app, protocol_pid, protocol_session,
+                           protocol_build, protocol_version, protocol_flags,
+                           protocol_instrumentation_mode, trigger]() {
             return write_process_memory_report_json(
                 output_path, export_mode, sample_interval_ms,
                 auto_rss_growth_threshold_bytes, auto_cooldown_ms,
@@ -1463,7 +836,10 @@ void resource_monitor::export_process_memory_report_async(
                 auto_last_trigger_utc_ms, auto_cooldown_remaining_ms,
                 auto_consecutive_growth_hits_required,
                 auto_consecutive_growth_hits_current, latest_rss,
-                latest_rss_source, latest_rss_unavailable_reason, trigger
+                latest_rss_source, latest_rss_unavailable_reason, protocol_app,
+                protocol_pid, protocol_session, protocol_build,
+                protocol_version, protocol_flags, protocol_instrumentation_mode,
+                trigger
             );
         })
     );
@@ -1474,10 +850,14 @@ bool resource_monitor::export_debug_snapshot_sync(
 ) const {
     const export_request_metadata metadata {
         .collector_sequence = collector_sequence,
-        .cache_timeline_size = size_to_int(cache_timeline_entries.size()),
-        .event_timeline_size = size_to_int(event_timeline_entries.size()),
-        .geometry_timeline_size = size_to_int(geometry_timeline_entries.size()),
-        .resize_history_size = size_to_int(resize_history_entries.size()),
+        .cache_timeline_size
+        = num_helpers::to_int(cache_timeline_entries.size()),
+        .event_timeline_size
+        = num_helpers::to_int(event_timeline_entries.size()),
+        .geometry_timeline_size
+        = num_helpers::to_int(geometry_timeline_entries.size()),
+        .resize_history_size
+        = num_helpers::to_int(resize_history_entries.size()),
         .resize_history_log_path = resize_history_log_stream_path,
         .latest_process_rss_bytes = current_process_rss_bytes,
         .process_memory_source = current_process_rss_source,
@@ -1509,6 +889,13 @@ bool resource_monitor::export_debug_snapshot_sync(
         = auto_process_dump_window_max_exports_effective(),
         .auto_process_report_window_exports_used
         = auto_process_dump_window_exports_used,
+        .protocol_app_name = protocol_app_name,
+        .protocol_process_id = QCoreApplication::applicationPid(),
+        .protocol_session_id = protocol_session_id,
+        .protocol_build_id = protocol_build_id,
+        .protocol_version = debug_probe_core::protocol_version_string(),
+        .protocol_debug_flags = protocol_debug_flags,
+        .protocol_instrumentation_mode = cadence_mode_to_string(cadence_mode),
     };
 
     const QString error = write_debug_snapshot_json(
@@ -1537,6 +924,10 @@ bool resource_monitor::export_process_memory_report_sync(
         auto_process_dump_consecutive_growth_hits_required(),
         auto_process_dump_consecutive_growth_hits, current_process_rss_bytes,
         current_process_rss_source, current_process_rss_unavailable_reason,
+        protocol_app_name, QCoreApplication::applicationPid(),
+        protocol_session_id, protocol_build_id,
+        debug_probe_core::protocol_version_string(), protocol_debug_flags,
+        cadence_mode_to_string(cadence_mode),
         process_memory_report_trigger::manual_on_demand
     );
     if (error_message != nullptr) {
@@ -1613,6 +1004,7 @@ void resource_monitor::on_cache_snapshot_updated(
     push_event_entry(
         event_timeline_entry::event_kind::cache_snapshot, QString()
     );
+    publish_broadcaster_sample_batch(entry);
 
     if (!geometry_timeline_entries.isEmpty()) {
         maybe_finalize_pending_resize_transition(
@@ -1667,6 +1059,20 @@ void resource_monitor::on_resize_transition_recorded(
     };
 
     maybe_finalize_pending_resize_transition(event.geometry_after_resize);
+}
+
+void resource_monitor::on_periodic_collection_tick() {
+    if (observed_cache_service == nullptr) {
+        return;
+    }
+
+    const qint64 previous_sample_timestamp_ms = last_process_sample_ms;
+    refresh_process_memory_sample_if_needed();
+    if (last_process_sample_ms <= previous_sample_timestamp_ms) {
+        return;
+    }
+
+    on_cache_snapshot_updated(observed_cache_service->get_debug_snapshot());
 }
 
 void resource_monitor::maybe_finalize_pending_resize_transition(
@@ -1785,7 +1191,8 @@ void resource_monitor::append_resize_history_entry_async(
 
     const QString output_path = resize_history_log_stream_path;
     const QByteArray line
-        = (resize_history_entry_to_jsonl_line(entry) + QLatin1Char('\n'))
+        = (debug_probe_core::resize_history_entry_to_jsonl_line(entry)
+           + QLatin1Char('\n'))
               .toUtf8();
     QThreadPool::globalInstance()->start([output_path, line]() {
         QFile file(output_path);
@@ -1856,10 +1263,366 @@ void resource_monitor::push_event_entry(
     }
 
     emit event_recorded(entry);
+    publish_broadcaster_event(entry);
 }
 
 QString resource_monitor::cadence_mode_to_string(debug_cadence_mode mode) {
-    return ::cadence_mode_to_string(mode);
+    return debug_probe_core::cadence_mode_to_string(mode);
+}
+
+qint64 resource_monitor::broadcaster_monotonic_timestamp_ms() const {
+    if (!broadcaster_monotonic_clock.isValid()) {
+        return 0;
+    }
+    return broadcaster_monotonic_clock.elapsed();
+}
+
+debug_probe_core::protocol_identity
+resource_monitor::broadcaster_protocol_identity() const {
+    return debug_probe_core::protocol_identity {
+        .app_name = protocol_app_name,
+        .process_id = QCoreApplication::applicationPid(),
+        .session_id = protocol_session_id,
+        .build_id = protocol_build_id,
+        .protocol_version = debug_probe_core::protocol_version_string(),
+        .debug_flags = protocol_debug_flags,
+        .instrumentation_mode = cadence_mode_to_string(cadence_mode),
+    };
+}
+
+void resource_monitor::publish_broadcaster_session_start() {
+    if (!is_debug_broadcaster_enabled() || telemetry_broadcaster == nullptr) {
+        return;
+    }
+
+    const debug_probe_core::protocol_identity identity
+        = broadcaster_protocol_identity();
+
+    QJsonObject hello_payload;
+    hello_payload.insert(
+        QStringLiteral("session_start_utc_ms"),
+        QDateTime::currentDateTimeUtc().toMSecsSinceEpoch()
+    );
+    hello_payload.insert(
+        QStringLiteral("debug_cadence_mode"),
+        cadence_mode_to_string(cadence_mode)
+    );
+    hello_payload.insert(
+        QStringLiteral("process_memory_sample_interval_ms"),
+        process_sample_interval_ms_for_mode()
+    );
+
+    telemetry_broadcaster->publish_json(
+        debug_probe_core::build_protocol_message_v1(
+            QStringLiteral("hello"), identity,
+            broadcaster_monotonic_timestamp_ms(), hello_payload
+        ),
+        debug_broadcaster::message_priority::high, false
+    );
+
+    QJsonObject capabilities_payload;
+    capabilities_payload.insert(
+        QStringLiteral("capabilities"),
+        debug_probe_core::protocol_capabilities_v1()
+    );
+    telemetry_broadcaster->publish_json(
+        debug_probe_core::build_protocol_message_v1(
+            QStringLiteral("capabilities"), identity,
+            broadcaster_monotonic_timestamp_ms(), capabilities_payload
+        ),
+        debug_broadcaster::message_priority::high, false
+    );
+}
+
+void resource_monitor::publish_broadcaster_session_end(const QString& reason) {
+    if (!is_debug_broadcaster_enabled() || telemetry_broadcaster == nullptr) {
+        return;
+    }
+
+    QJsonObject payload;
+    payload.insert(QStringLiteral("reason"), reason);
+    payload.insert(
+        QStringLiteral("session_end_utc_ms"),
+        QDateTime::currentDateTimeUtc().toMSecsSinceEpoch()
+    );
+    payload.insert(QStringLiteral("collector_sequence"), collector_sequence);
+
+    telemetry_broadcaster->publish_json(
+        debug_probe_core::build_protocol_message_v1(
+            QStringLiteral("goodbye"), broadcaster_protocol_identity(),
+            broadcaster_monotonic_timestamp_ms(), payload
+        ),
+        debug_broadcaster::message_priority::high, false
+    );
+}
+
+void resource_monitor::publish_broadcaster_sample_batch(
+    const cache_timeline_entry& entry
+) {
+    if (!is_debug_broadcaster_enabled() || telemetry_broadcaster == nullptr) {
+        return;
+    }
+
+    QJsonArray samples;
+    auto append_int_sample
+        = [&samples, &entry](const QString& metric_id, qint64 value) {
+              QJsonObject sample;
+              sample.insert(QStringLiteral("metric_id"), metric_id);
+              sample.insert(QStringLiteral("value"), value);
+              const QJsonObject metric_hint
+                  = debug_probe_core::protocol_metric_hint_for_id_v1(metric_id);
+              if (!metric_hint.isEmpty()) {
+                  sample.insert(QStringLiteral("metric_hint"), metric_hint);
+              }
+              sample.insert(
+                  QStringLiteral("collector_sequence"), entry.collector_sequence
+              );
+              sample.insert(
+                  QStringLiteral("snapshot_sequence"),
+                  entry.cache_snapshot.snapshot_sequence
+              );
+              samples.push_back(sample);
+          };
+
+    append_int_sample(
+        QStringLiteral("cache_accounted_ready_bytes"),
+        entry.cache_snapshot.ready_bytes
+    );
+    append_int_sample(
+        QStringLiteral("widget_local_display_bytes_estimated"),
+        entry.cache_snapshot.widget_local_display_bytes_estimated
+    );
+    append_int_sample(
+        QStringLiteral("displayed_recent_entries"),
+        entry.cache_snapshot.displayed_ready_entries
+    );
+    append_int_sample(
+        QStringLiteral("cached_only_ready_entries"),
+        entry.cache_snapshot.cached_only_ready_entries
+    );
+    if (has_geometry_snapshot()) {
+        const geometry_debug_snapshot geometry = latest_geometry_snapshot();
+        append_int_sample(
+            QStringLiteral("active_generation_id"),
+            geometry.active_generation_id
+        );
+        append_int_sample(
+            QStringLiteral("warming_generation_id"),
+            geometry.warming_generation_id
+        );
+    }
+
+    if (entry.process_rss_bytes >= 0) {
+        append_int_sample(
+            QStringLiteral("process_memory_rss_bytes"), entry.process_rss_bytes
+        );
+        append_int_sample(
+            QStringLiteral("measured_accounted_gap_bytes_derived"),
+            entry.process_rss_bytes - entry.cache_snapshot.ready_bytes
+        );
+
+        if (entry.process_rss_bytes > 0) {
+            QJsonObject ratio_sample;
+            const QString ratio_metric_id
+                = QStringLiteral("accounted_to_measured_ratio_percent_derived");
+            ratio_sample.insert(QStringLiteral("metric_id"), ratio_metric_id);
+            ratio_sample.insert(
+                QStringLiteral("value"),
+                (double(entry.cache_snapshot.ready_bytes) * 100.0)
+                    / double(entry.process_rss_bytes)
+            );
+            const QJsonObject ratio_metric_hint
+                = debug_probe_core::protocol_metric_hint_for_id_v1(
+                    ratio_metric_id
+                );
+            if (!ratio_metric_hint.isEmpty()) {
+                ratio_sample.insert(
+                    QStringLiteral("metric_hint"), ratio_metric_hint
+                );
+            }
+            ratio_sample.insert(
+                QStringLiteral("collector_sequence"), entry.collector_sequence
+            );
+            ratio_sample.insert(
+                QStringLiteral("snapshot_sequence"),
+                entry.cache_snapshot.snapshot_sequence
+            );
+            samples.push_back(ratio_sample);
+        }
+    }
+
+    QJsonObject payload;
+    payload.insert(
+        QStringLiteral("sample_count"), static_cast<qint64>(samples.size())
+    );
+    payload.insert(QStringLiteral("samples"), samples);
+    payload.insert(
+        QStringLiteral("telemetry_semantics"),
+        debug_probe_core::snapshot_telemetry_semantics()
+    );
+
+    telemetry_broadcaster->publish_json(
+        debug_probe_core::build_protocol_message_v1(
+            QStringLiteral("sample_batch"), broadcaster_protocol_identity(),
+            broadcaster_monotonic_timestamp_ms(), payload
+        ),
+        debug_broadcaster::message_priority::low, true
+    );
+}
+
+void resource_monitor::publish_broadcaster_event(
+    const event_timeline_entry& entry
+) {
+    if (!is_debug_broadcaster_enabled() || telemetry_broadcaster == nullptr) {
+        return;
+    }
+
+    if (entry.kind == event_timeline_entry::event_kind::manual_marker) {
+        QJsonObject payload;
+        payload.insert(QStringLiteral("label"), entry.label);
+        payload.insert(QStringLiteral("timestamp_ms"), entry.timestamp_ms);
+        payload.insert(
+            QStringLiteral("collector_sequence"), entry.collector_sequence
+        );
+
+        telemetry_broadcaster->publish_json(
+            debug_probe_core::build_protocol_message_v1(
+                QStringLiteral("marker"), broadcaster_protocol_identity(),
+                broadcaster_monotonic_timestamp_ms(), payload
+            ),
+            debug_broadcaster::message_priority::high, false
+        );
+        return;
+    }
+
+    QJsonObject event_object;
+    event_object.insert(
+        QStringLiteral("kind"), QStringLiteral("cache_snapshot")
+    );
+    event_object.insert(QStringLiteral("timestamp_ms"), entry.timestamp_ms);
+    event_object.insert(
+        QStringLiteral("collector_sequence"), entry.collector_sequence
+    );
+
+    QJsonArray events;
+    events.push_back(event_object);
+
+    QJsonObject payload;
+    payload.insert(
+        QStringLiteral("event_count"), static_cast<qint64>(events.size())
+    );
+    payload.insert(QStringLiteral("events"), events);
+
+    telemetry_broadcaster->publish_json(
+        debug_probe_core::build_protocol_message_v1(
+            QStringLiteral("event_batch"), broadcaster_protocol_identity(),
+            broadcaster_monotonic_timestamp_ms(), payload
+        ),
+        debug_broadcaster::message_priority::low, true
+    );
+}
+
+void resource_monitor::publish_broadcaster_snapshot_now() {
+    if (!is_debug_broadcaster_enabled() || telemetry_broadcaster == nullptr) {
+        return;
+    }
+
+    QJsonObject snapshot;
+    snapshot.insert(QStringLiteral("collector_sequence"), collector_sequence);
+    snapshot.insert(
+        QStringLiteral("cache_timeline_size"),
+        static_cast<qint64>(cache_timeline_entries.size())
+    );
+    snapshot.insert(
+        QStringLiteral("event_timeline_size"),
+        static_cast<qint64>(event_timeline_entries.size())
+    );
+    snapshot.insert(
+        QStringLiteral("geometry_timeline_size"),
+        static_cast<qint64>(geometry_timeline_entries.size())
+    );
+    snapshot.insert(
+        QStringLiteral("resize_history_size"),
+        static_cast<qint64>(resize_history_entries.size())
+    );
+
+    if (has_cache_snapshot()) {
+        const cache_timeline_entry latest = latest_cache_snapshot();
+        snapshot.insert(
+            QStringLiteral("cache_accounted_ready_bytes"),
+            latest.cache_snapshot.ready_bytes
+        );
+        snapshot.insert(
+            QStringLiteral("widget_local_display_bytes_estimated"),
+            latest.cache_snapshot.widget_local_display_bytes_estimated
+        );
+        snapshot.insert(
+            QStringLiteral("displayed_recent_entries"),
+            latest.cache_snapshot.displayed_ready_entries
+        );
+        snapshot.insert(
+            QStringLiteral("cached_only_ready_entries"),
+            latest.cache_snapshot.cached_only_ready_entries
+        );
+        snapshot.insert(
+            QStringLiteral("process_memory_rss_bytes"), latest.process_rss_bytes
+        );
+    }
+
+    if (has_geometry_snapshot()) {
+        const geometry_debug_snapshot geometry = latest_geometry_snapshot();
+        snapshot.insert(
+            QStringLiteral("active_generation_id"),
+            geometry.active_generation_id
+        );
+        snapshot.insert(
+            QStringLiteral("warming_generation_id"),
+            geometry.warming_generation_id
+        );
+        snapshot.insert(
+            QStringLiteral("geometry"),
+            debug_probe_core::geometry_snapshot_to_json(geometry)
+        );
+    }
+
+    QJsonObject payload;
+    payload.insert(QStringLiteral("snapshot"), snapshot);
+    payload.insert(
+        QStringLiteral("telemetry_semantics"),
+        debug_probe_core::snapshot_telemetry_semantics()
+    );
+
+    telemetry_broadcaster->publish_json(
+        debug_probe_core::build_protocol_message_v1(
+            QStringLiteral("snapshot"), broadcaster_protocol_identity(),
+            broadcaster_monotonic_timestamp_ms(), payload
+        ),
+        debug_broadcaster::message_priority::high, false
+    );
+}
+
+void resource_monitor::publish_broadcaster_warning(
+    const QString& warning_code, const QString& warning_message
+) {
+    if (!is_debug_broadcaster_enabled() || telemetry_broadcaster == nullptr) {
+        return;
+    }
+
+    QJsonObject payload;
+    payload.insert(QStringLiteral("warning_code"), warning_code);
+    payload.insert(QStringLiteral("warning_message"), warning_message);
+    payload.insert(
+        QStringLiteral("timestamp_utc_ms"),
+        QDateTime::currentDateTimeUtc().toMSecsSinceEpoch()
+    );
+
+    telemetry_broadcaster->publish_json(
+        debug_probe_core::build_protocol_message_v1(
+            QStringLiteral("warning"), broadcaster_protocol_identity(),
+            broadcaster_monotonic_timestamp_ms(), payload
+        ),
+        debug_broadcaster::message_priority::high, false
+    );
 }
 
 void resource_monitor::maybe_trigger_auto_process_report(
@@ -2039,13 +1802,7 @@ void resource_monitor::refresh_process_memory_sample_if_needed() {
 }
 
 qint64 resource_monitor::process_sample_interval_ms_for_mode() const {
-    switch (cadence_mode) {
-    case debug_cadence_mode::instrumented:
-        return 1000;
-    case debug_cadence_mode::realistic:
-    default:
-        return 5000;
-    }
+    return debug_probe_core::process_sample_interval_ms_for_mode(cadence_mode);
 }
 
 qint64
@@ -2077,29 +1834,19 @@ resource_monitor::auto_process_dump_consecutive_growth_hits_required() const {
     if (auto_process_dump_policy_override_for_tests) {
         return auto_process_dump_consecutive_growth_hits_required_override;
     }
-
-    switch (cadence_mode) {
-    case debug_cadence_mode::instrumented:
-        return 4;
-    case debug_cadence_mode::realistic:
-    default:
-        return 3;
-    }
+    return debug_probe_core::auto_process_report_policy_for_mode(cadence_mode)
+        .consecutive_growth_hits_required;
 }
 
 qint64 resource_monitor::auto_process_dump_window_ms_effective() const {
-    return 60 * 60 * 1000;
+    return debug_probe_core::auto_process_report_policy_for_mode(cadence_mode)
+        .window_ms;
 }
 
 qint64
 resource_monitor::auto_process_dump_window_max_exports_effective() const {
-    switch (cadence_mode) {
-    case debug_cadence_mode::instrumented:
-        return 4;
-    case debug_cadence_mode::realistic:
-    default:
-        return 2;
-    }
+    return debug_probe_core::auto_process_report_policy_for_mode(cadence_mode)
+        .window_max_exports;
 }
 
 qint64 resource_monitor::
@@ -2107,26 +1854,14 @@ qint64 resource_monitor::
     if (auto_process_dump_policy_override_for_tests) {
         return auto_process_dump_rss_growth_threshold_bytes;
     }
-
-    switch (cadence_mode) {
-    case debug_cadence_mode::instrumented:
-        return 192 * 1024 * 1024;
-    case debug_cadence_mode::realistic:
-    default:
-        return 96 * 1024 * 1024;
-    }
+    return debug_probe_core::auto_process_report_policy_for_mode(cadence_mode)
+        .rss_growth_threshold_bytes;
 }
 
 qint64 resource_monitor::auto_process_dump_cooldown_ms_effective() const {
     if (auto_process_dump_policy_override_for_tests) {
         return auto_process_dump_cooldown_ms;
     }
-
-    switch (cadence_mode) {
-    case debug_cadence_mode::instrumented:
-        return 12 * 60 * 1000;
-    case debug_cadence_mode::realistic:
-    default:
-        return 8 * 60 * 1000;
-    }
+    return debug_probe_core::auto_process_report_policy_for_mode(cadence_mode)
+        .cooldown_ms;
 }

@@ -74,7 +74,8 @@ table::table(BaseWidget* parent)
     , warming_card_sheet_source_id()
     , warming_shared_bucket_px(0)
     , warming_shared_generation_id(0)
-    , next_shared_generation_id(1) {
+    , next_shared_generation_id(1)
+    , retained_shared_faces_keys() {
     setMinimumHeight(88);
     QObject::connect(
         &main_faces_runner, &rasterization_runner::rasterization_requested,
@@ -384,9 +385,65 @@ raster_cache::entry_key table::entry_key_for_generation(
     };
 }
 
+void table::remember_shared_faces_key(const raster_cache::entry_key& key) {
+    if (key.name_space != raster_cache::cache_namespace::main
+        || key.kind != raster_cache::resource_kind::card_sheet_faces
+        || generation_id_from_render_scope(key.render_scope) <= 0) {
+        return;
+    }
+    retained_shared_faces_keys.insert(key);
+}
+
+void table::forget_shared_faces_key(const raster_cache::entry_key& key) {
+    retained_shared_faces_keys.remove(key);
+}
+
+void table::enforce_shared_generation_bounds() {
+    QSet<raster_cache::entry_key> keep_keys;
+    if (active_shared_generation_id > 0
+        && !active_card_sheet_source_id.isEmpty()
+        && active_shared_bucket_px > 0) {
+        keep_keys.insert(entry_key_for_generation(
+            active_card_sheet_source_id, active_shared_bucket_px,
+            active_shared_generation_id
+        ));
+    }
+    if (warming_shared_generation_id > 0
+        && !warming_card_sheet_source_id.isEmpty()
+        && warming_shared_bucket_px > 0) {
+        keep_keys.insert(entry_key_for_generation(
+            warming_card_sheet_source_id, warming_shared_bucket_px,
+            warming_shared_generation_id
+        ));
+    }
+    if (displayed_shared_faces_key.has_value()) {
+        keep_keys.insert(*displayed_shared_faces_key);
+    }
+    if (active_shared_faces_key.has_value()) {
+        keep_keys.insert(*active_shared_faces_key);
+    }
+    if (warming_shared_faces_key.has_value()) {
+        keep_keys.insert(*warming_shared_faces_key);
+    }
+
+    QVector<raster_cache::entry_key> stale_keys;
+    stale_keys.reserve(retained_shared_faces_keys.size());
+    for (const raster_cache::entry_key& key : retained_shared_faces_keys) {
+        if (!keep_keys.contains(key)) {
+            stale_keys.push_back(key);
+        }
+    }
+
+    for (const raster_cache::entry_key& stale_key : stale_keys) {
+        raster_cache_service.erase_result(stale_key);
+        retained_shared_faces_keys.remove(stale_key);
+    }
+}
+
 void table::retire_warming_generation() {
     if (warming_shared_faces_key.has_value()) {
         raster_cache_service.erase_result(*warming_shared_faces_key);
+        forget_shared_faces_key(*warming_shared_faces_key);
         warming_shared_faces_key.reset();
     }
 
@@ -424,6 +481,8 @@ void table::begin_warming_generation(
         warming_card_sheet_source_id, warming_shared_bucket_px,
         warming_shared_generation_id
     );
+    remember_shared_faces_key(*warming_shared_faces_key);
+    enforce_shared_generation_bounds();
 }
 
 bool table::start_shared_raster_for_key(const raster_cache::entry_key& key) {
@@ -431,6 +490,7 @@ bool table::start_shared_raster_for_key(const raster_cache::entry_key& key) {
         || generation_id_from_render_scope(key.render_scope) <= 0) {
         return false;
     }
+    remember_shared_faces_key(key);
 
     const raster_cache::request req {
         .name_space = key.name_space,
@@ -482,6 +542,7 @@ bool table::start_shared_raster_for_key(const raster_cache::entry_key& key) {
         main_faces_runner.set_cached_short_px(key.target_bucket_px);
     }
 
+    enforce_shared_generation_bounds();
     return true;
 }
 
@@ -502,12 +563,14 @@ void table::cutover_to_ready_generation(const raster_cache::entry_key& key) {
             raster_cache::debug_consumer_scope::table_slots
         );
         raster_cache_service.erase_result(*displayed_shared_faces_key);
+        forget_shared_faces_key(*displayed_shared_faces_key);
     }
 
     raster_cache_service.note_entry_displayed(
         key, raster_cache::debug_consumer_scope::table_slots
     );
     displayed_shared_faces_key = key;
+    remember_shared_faces_key(key);
 
     for (table_slot* slot_widget : slot_widgets) {
         if (slot_widget != nullptr) {
@@ -532,6 +595,7 @@ void table::cutover_to_ready_generation(const raster_cache::entry_key& key) {
         warming_shared_generation_id = 0;
     }
 
+    enforce_shared_generation_bounds();
     emit_geometry_debug_snapshot();
 }
 
@@ -621,8 +685,10 @@ void table::on_shared_rasterization_finished() {
             .fallback_usage = active_shared_faces_fallback_usage,
         };
         raster_cache_service.insert_or_update_result(ready);
+        remember_shared_faces_key(key);
     } else if (!generation_is_still_expected) {
         raster_cache_service.erase_result(key);
+        forget_shared_faces_key(key);
     }
 
     const raster_cache::family_key family = family_for_entry(key);
@@ -649,6 +715,7 @@ void table::on_shared_rasterization_finished() {
         update_shared_card_face_need(true);
     }
 
+    enforce_shared_generation_bounds();
     refresh_rasterization_busy_state();
     emit_geometry_debug_snapshot();
 }
@@ -704,6 +771,7 @@ void table::clear_shared_card_faces() {
         }
     }
 
+    enforce_shared_generation_bounds();
     emit_geometry_debug_snapshot();
 }
 
@@ -746,6 +814,7 @@ void table::apply_shared_card_faces_from_entry(
         key, raster_cache::debug_consumer_scope::table_slots
     );
     displayed_shared_faces_key = key;
+    remember_shared_faces_key(key);
     for (table_slot* slot_widget : slot_widgets) {
         if (slot_widget != nullptr) {
             slot_widget->set_shared_card_faces(
@@ -753,6 +822,7 @@ void table::apply_shared_card_faces_from_entry(
             );
         }
     }
+    enforce_shared_generation_bounds();
 }
 
 void table::update_layout() {

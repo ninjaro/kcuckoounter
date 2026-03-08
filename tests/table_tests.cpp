@@ -9,6 +9,7 @@
 #include "arch/str_label.hpp"
 #include "table/card_widget.hpp"
 
+#include <QElapsedTimer>
 #include <QFrame>
 #include <QLabel>
 #include <QtTest/QtTest>
@@ -373,6 +374,57 @@ void table_tests::shared_cache_generation_cutover_stays_bounded() {
     QVERIFY(snapshot.in_flight_families <= 1);
 }
 
+void table_tests::shared_generation_cutover_keeps_single_visible_generation() {
+    struct source_restore_guard {
+        QString source;
+
+        ~source_restore_guard() { set_card_sheet_source_path(source); }
+    } guard { card_sheet_source_path() };
+
+    set_card_sheet_source_path(str_label("assets/cards_0.svg"));
+
+    table table_widget;
+    table_widget.resize(900, 700);
+    table_widget.set_slot_count(3);
+    table_widget.show();
+    QCoreApplication::processEvents();
+
+    const bool invoked = QMetaObject::invokeMethod(
+        &table_widget, "on_shared_rasterization_requested",
+        Qt::DirectConnection, Q_ARG(int, 256)
+    );
+    QVERIFY(invoked);
+    QTRY_VERIFY_WITH_TIMEOUT(table_widget.is_rasterization_busy(), 4000);
+    QTRY_VERIFY_WITH_TIMEOUT(!table_widget.is_rasterization_busy(), 10000);
+
+    set_card_sheet_source_path(str_label("assets/cards_1.svg"));
+    table_widget.apply_theme();
+    QTRY_VERIFY_WITH_TIMEOUT(table_widget.is_rasterization_busy(), 4000);
+    QTRY_VERIFY_WITH_TIMEOUT(!table_widget.is_rasterization_busy(), 10000);
+
+    const geometry_debug_snapshot geometry
+        = table_widget.current_geometry_debug_snapshot();
+    QVERIFY(geometry.active_generation_id > 0);
+    QCOMPARE(geometry.warming_generation_id, qint64(0));
+
+    const raster_cache::debug_snapshot snapshot
+        = table_widget.shared_raster_cache_service()->get_debug_snapshot();
+    QVERIFY(snapshot.ready_entries <= 2);
+    QVERIFY(snapshot.in_flight_families <= 1);
+
+    const QList<table_slot*> slot_list
+        = table_widget.findChildren<table_slot*>();
+    int visible_slot_count = 0;
+    for (table_slot* slot : slot_list) {
+        if (slot == nullptr || !slot->isVisible()) {
+            continue;
+        }
+        ++visible_slot_count;
+        QVERIFY(slot->has_shared_card_faces());
+    }
+    QVERIFY(visible_slot_count > 0);
+}
+
 void table_tests::
     theme_apply_while_shared_worker_busy_clears_stale_in_flight() {
     struct source_restore_guard {
@@ -405,4 +457,48 @@ void table_tests::
     const auto snapshot
         = table_widget.shared_raster_cache_service()->get_debug_snapshot();
     QVERIFY(snapshot.in_flight_families <= 1);
+}
+
+void table_tests::theme_and_resize_transitions_are_non_blocking() {
+    struct source_restore_guard {
+        QString source;
+
+        ~source_restore_guard() { set_card_sheet_source_path(source); }
+    } guard { card_sheet_source_path() };
+
+    set_card_sheet_source_path(str_label("assets/cards_0.svg"));
+
+    table table_widget;
+    table_widget.resize(920, 720);
+    table_widget.set_slot_count(4);
+    table_widget.show();
+    QCoreApplication::processEvents();
+
+    const bool invoked = QMetaObject::invokeMethod(
+        &table_widget, "on_shared_rasterization_requested",
+        Qt::DirectConnection, Q_ARG(int, 1024)
+    );
+    QVERIFY(invoked);
+    QTRY_VERIFY_WITH_TIMEOUT(table_widget.is_rasterization_busy(), 4000);
+
+    set_card_sheet_source_path(str_label("assets/cards_2.svg"));
+    QElapsedTimer theme_timer;
+    theme_timer.start();
+    table_widget.apply_theme();
+    const qint64 theme_apply_elapsed_ms = theme_timer.elapsed();
+
+    QElapsedTimer resize_timer;
+    resize_timer.start();
+    table_widget.resize(1000, 760);
+    QCoreApplication::processEvents();
+    const qint64 resize_elapsed_ms = resize_timer.elapsed();
+
+    QVERIFY(theme_apply_elapsed_ms < 350);
+    QVERIFY(resize_elapsed_ms < 350);
+
+    QTRY_VERIFY_WITH_TIMEOUT(!table_widget.is_rasterization_busy(), 15000);
+    const geometry_debug_snapshot geometry
+        = table_widget.current_geometry_debug_snapshot();
+    QVERIFY(geometry.active_generation_id > 0);
+    QCOMPARE(geometry.warming_generation_id, qint64(0));
 }

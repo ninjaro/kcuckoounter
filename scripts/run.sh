@@ -20,7 +20,10 @@ case "$mode" in
     exec "$bin"
     ;;
   nonkde|nokde)
-    bin="$ROOT_DIR/build-nokde/kcuckoounter"
+    bin="$ROOT_DIR/build-nonkde/kcuckoounter"
+    if [ ! -x "$bin" ] && [ -x "$ROOT_DIR/build-nokde/kcuckoounter" ]; then
+      bin="$ROOT_DIR/build-nokde/kcuckoounter"
+    fi
     if [ ! -x "$bin" ]; then
       die "binary $bin not found; run ./scripts/cli.sh build nonkde first"
     fi

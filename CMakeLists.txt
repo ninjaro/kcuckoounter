@@ -77,6 +77,7 @@ find_package(Qt6 ${qt_min_version} CONFIG REQUIRED
         COMPONENTS
         Core
         Concurrent
+        Network
         Svg
         Widgets
         Test
@@ -120,7 +121,10 @@ set(kcuckoounter_sources
         src/settings/strategy_data.cpp
         src/settings/theme_palette.cpp
         src/settings/theme_settings.cpp
+        src/monitor/debug_probe_core.cpp
+        src/monitor/debug_broadcaster.cpp
         src/monitor/resource_monitor.cpp
+        src/monitor/monitor_parity_checker.cpp
         src/monitor/raster_cache_debug_strings.cpp
         src/monitor/monitor_visual_widgets.cpp
         src/monitor/main_window_monitor.cpp
@@ -150,15 +154,35 @@ set(kcuckoounter_headers
         include/settings/strategy_data.hpp
         include/settings/theme_palette.hpp
         include/settings/theme_settings.hpp
+        include/monitor/debug_probe_core.hpp
+        include/monitor/debug_broadcaster.hpp
         include/monitor/resource_monitor.hpp
+        include/monitor/monitor_parity_checker.hpp
         include/monitor/geometry_debug_telemetry.hpp
         include/monitor/raster_cache_debug_strings.hpp
+        include/monitor/monitor_visual_widgets.hpp
+)
+
+set(external_monitor_sources
+        src/external_monitor_main.cpp
+        src/monitor/external_monitor_window.cpp
+        src/monitor/debug_probe_core.cpp
+        src/monitor/raster_cache_debug_strings.cpp
+        src/monitor/monitor_visual_widgets.cpp
+)
+
+set(external_monitor_headers
+        include/monitor/external_monitor_window.hpp
+        include/monitor/debug_probe_core.hpp
+        include/monitor/raster_cache_debug_strings.hpp
+        include/monitor/geometry_debug_telemetry.hpp
         include/monitor/monitor_visual_widgets.hpp
 )
 
 set(kcuckoounter_qt_libs
         Qt6::Core
         Qt6::Concurrent
+        Qt6::Network
         Qt6::Svg
         Qt6::Widgets
 )
@@ -213,6 +237,53 @@ endif ()
 
 qt_finalize_executable(kcuckoounter)
 
+if (NOT ANDROID)
+    qt_add_executable(external_monitor_app
+            MANUAL_FINALIZATION
+            ${external_monitor_sources}
+            ${external_monitor_headers}
+    )
+
+    target_include_directories(external_monitor_app
+            PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+
+    target_link_libraries(external_monitor_app
+            PRIVATE
+            Qt6::Core
+            Qt6::Network
+            Qt6::Widgets
+    )
+
+    qt_finalize_executable(external_monitor_app)
+
+    qt_add_executable(monitor_parity_check
+            MANUAL_FINALIZATION
+            src/monitor_parity_check_main.cpp
+            src/monitor/monitor_parity_checker.cpp
+            src/monitor/debug_probe_core.cpp
+            src/monitor/raster_cache_debug_strings.cpp
+            include/monitor/monitor_parity_checker.hpp
+            include/monitor/debug_probe_core.hpp
+            include/monitor/raster_cache_debug_strings.hpp
+            include/monitor/geometry_debug_telemetry.hpp
+    )
+
+    target_include_directories(monitor_parity_check
+            PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+    )
+
+    target_link_libraries(monitor_parity_check
+            PRIVATE
+            Qt6::Core
+            Qt6::Gui
+    )
+
+    qt_finalize_executable(monitor_parity_check)
+endif ()
+
 add_custom_command(
         TARGET kcuckoounter POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -232,6 +303,12 @@ endif ()
 
 if (NOT ANDROID)
     install(TARGETS kcuckoounter ${install_args})
+    if (TARGET external_monitor_app)
+        install(TARGETS external_monitor_app ${install_args})
+    endif ()
+    if (TARGET monitor_parity_check)
+        install(TARGETS monitor_parity_check ${install_args})
+    endif ()
 endif ()
 
 if (NOT ANDROID AND BUILD_UNIT_TESTS)
@@ -239,6 +316,11 @@ if (NOT ANDROID AND BUILD_UNIT_TESTS)
             tests/include/card_packer_tests.hpp
             tests/include/card_sheet_tests.hpp
             tests/include/card_widget_tests.hpp
+            tests/include/cli_scripts_tests.hpp
+            tests/include/debug_broadcaster_tests.hpp
+            tests/include/debug_probe_core_tests.hpp
+            tests/include/monitor_visual_widgets_tests.hpp
+            tests/include/monitor_parity_checker_tests.hpp
             tests/include/preview_carousel_tests.hpp
             tests/include/table_tests.hpp
             tests/include/infinity_spinbox_tests.hpp
@@ -253,6 +335,11 @@ if (NOT ANDROID AND BUILD_UNIT_TESTS)
             tests/card_packer_tests.cpp
             tests/card_sheet_tests.cpp
             tests/card_widget_tests.cpp
+            tests/cli_scripts_tests.cpp
+            tests/debug_broadcaster_tests.cpp
+            tests/debug_probe_core_tests.cpp
+            tests/monitor_visual_widgets_tests.cpp
+            tests/monitor_parity_checker_tests.cpp
             tests/preview_carousel_tests.cpp
             tests/table_tests.cpp
             tests/infinity_spinbox_tests.cpp
@@ -285,6 +372,10 @@ if (NOT ANDROID AND BUILD_UNIT_TESTS)
     add_test(
             NAME kcuckoounter_unittests
             COMMAND kcuckoounter_unittests
+    )
+    set_tests_properties(
+            kcuckoounter_unittests PROPERTIES
+            ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
     )
 
     add_custom_command(

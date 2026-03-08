@@ -1,6 +1,8 @@
 #include "main_window.hpp"
 
 #include "arch/str_label.hpp"
+#include "monitor/monitor_chart_helpers.hpp"
+#include "monitor/monitor_shared_helpers.hpp"
 #include "monitor/monitor_visual_widgets.hpp"
 #include "monitor/raster_cache_debug_strings.hpp"
 #include "monitor/resource_monitor.hpp"
@@ -23,21 +25,6 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
-
-namespace {
-
-QString format_px_size(const QSize& size) {
-    if (size.width() <= 0 || size.height() <= 0) {
-        return QStringLiteral("n/a");
-    }
-    return QStringLiteral("%1x%2").arg(size.width()).arg(size.height());
-}
-
-double bytes_to_mib_value(qint64 bytes) {
-    return static_cast<double>(bytes) / (1024.0 * 1024.0);
-}
-
-} // namespace
 
 #ifndef NDEBUG
 void main_window::on_export_debug_snapshot_triggered() {
@@ -198,6 +185,27 @@ void main_window::on_set_instrumented_cadence_mode_triggered() {
     update_status_text();
 }
 
+void main_window::on_toggle_debug_broadcaster_triggered(bool checked) {
+    if (debug_telemetry_collector == nullptr) {
+        return;
+    }
+
+    debug_telemetry_collector->set_debug_broadcaster_enabled(checked);
+    const bool enabled
+        = debug_telemetry_collector->is_debug_broadcaster_enabled();
+
+    if (toggle_debug_broadcaster_action != nullptr) {
+        toggle_debug_broadcaster_action->setChecked(enabled);
+    }
+
+    add_debug_marker(
+        enabled ? QStringLiteral("debug_broadcaster_enabled")
+                : QStringLiteral("debug_broadcaster_disabled")
+    );
+    update_status_text();
+    refresh_resource_monitor_view();
+}
+
 void main_window::add_debug_marker(const QString& label) const {
     if (debug_telemetry_collector == nullptr) {
         return;
@@ -245,8 +253,24 @@ void main_window::on_resource_monitor_visibility_changed(bool visible) {
     }
 
     if (visible) {
+        resource_monitor_refresh_pending = false;
         refresh_resource_monitor_view();
+        return;
     }
+    resource_monitor_refresh_pending = true;
+}
+
+void main_window::on_resource_monitor_data_changed() {
+    if (resource_monitor_window == nullptr) {
+        return;
+    }
+    if (!resource_monitor_window->isVisible()) {
+        resource_monitor_refresh_pending = true;
+        return;
+    }
+
+    resource_monitor_refresh_pending = false;
+    refresh_resource_monitor_view();
 }
 
 void main_window::refresh_resource_monitor_view() {
@@ -267,6 +291,13 @@ void main_window::refresh_resource_monitor_view() {
         || debug_telemetry_collector == nullptr) {
         return;
     }
+
+    if (resource_monitor_window != nullptr
+        && !resource_monitor_window->isVisible()) {
+        resource_monitor_refresh_pending = true;
+        return;
+    }
+    resource_monitor_refresh_pending = false;
 
     if (!debug_telemetry_collector->has_cache_snapshot()) {
         const QString no_data
@@ -319,25 +350,45 @@ void main_window::refresh_resource_monitor_view() {
     const resource_monitor::cache_timeline_entry latest
         = debug_telemetry_collector->latest_cache_snapshot();
     const raster_cache::debug_snapshot& snapshot = latest.cache_snapshot;
+    const QJsonObject broadcaster_state
+        = debug_telemetry_collector->debug_broadcaster_runtime_state();
+    const qint64 dropped_low
+        = broadcaster_state
+              .value(QStringLiteral("dropped_low_priority_messages"))
+              .toInteger();
+    const qint64 dropped_medium
+        = broadcaster_state
+              .value(QStringLiteral("dropped_medium_priority_messages"))
+              .toInteger();
+    const qint64 dropped_high
+        = broadcaster_state
+              .value(QStringLiteral("dropped_high_priority_messages"))
+              .toInteger();
+    const qint64 dropped_total = dropped_low + dropped_medium + dropped_high;
+    const qint64 queued_messages
+        = broadcaster_state.value(QStringLiteral("queued_messages"))
+              .toInteger();
     const qint64 measured_vs_accounted_gap_bytes = latest.process_rss_bytes >= 0
         ? latest.process_rss_bytes - snapshot.ready_bytes
         : 0;
-
-    const auto to_mib = [](qint64 bytes) {
-        return QString::number(bytes_to_mib_value(bytes), 'f', 2);
-    };
 
     resource_monitor_summary_memory_card->setText(
         str_label(
             "Memory classes\nCache-accounted: %1 MiB\nWidget-local est: %2 "
             "MiB\nMeasured-accounted gap: %3"
         )
-            .arg(to_mib(snapshot.ready_bytes))
-            .arg(to_mib(snapshot.widget_local_display_bytes_estimated))
+            .arg(monitor_shared::mib_text(snapshot.ready_bytes))
+            .arg(
+                monitor_shared::mib_text(
+                    snapshot.widget_local_display_bytes_estimated
+                )
+            )
             .arg(
                 latest.process_rss_bytes >= 0
                     ? str_label("%1 MiB").arg(
-                          to_mib(measured_vs_accounted_gap_bytes)
+                          monitor_shared::mib_text(
+                              measured_vs_accounted_gap_bytes
+                          )
                       )
                     : str_label("unavailable")
             )
@@ -345,8 +396,9 @@ void main_window::refresh_resource_monitor_view() {
     resource_monitor_summary_process_card->setText(
         str_label("Process (OS-measured)\nRSS: %1 MiB\nSample interval: %2 ms")
             .arg(
-                latest.process_rss_bytes >= 0 ? to_mib(latest.process_rss_bytes)
-                                              : str_label("unavailable")
+                latest.process_rss_bytes >= 0
+                    ? monitor_shared::mib_text(latest.process_rss_bytes)
+                    : str_label("unavailable")
             )
             .arg(debug_telemetry_collector->process_memory_sample_interval_ms())
     );
@@ -362,12 +414,17 @@ void main_window::refresh_resource_monitor_view() {
     resource_monitor_summary_activity_card->setText(
         str_label(
             "Activity / flow\nPending families: %1 | In-flight families: %2\n"
-            "Interval bytes +%3/-%4"
+            "Interval bytes +%3/-%4 | queue=%5\nFidelity drops "
+            "(low/med/high): %6/%7/%8"
         )
             .arg(snapshot.pending_families)
             .arg(snapshot.in_flight_families)
             .arg(snapshot.interval_deltas.bytes_added)
             .arg(snapshot.interval_deltas.bytes_removed)
+            .arg(queued_messages)
+            .arg(dropped_low)
+            .arg(dropped_medium)
+            .arg(dropped_high)
     );
 
     const QVector<resource_monitor::cache_timeline_entry> cache_rows
@@ -375,74 +432,42 @@ void main_window::refresh_resource_monitor_view() {
     const QVector<resource_monitor::event_timeline_entry> event_rows
         = debug_telemetry_collector->event_timeline();
 
-    auto append_series_if_checked
-        = [&cache_rows](
-              QCheckBox* toggle, const QString& label, const QColor& color,
-              auto value_fn, auto available_fn,
-              QVector<monitor_line_chart_widget::series>* output_series
-          ) {
-              if (toggle == nullptr || output_series == nullptr
-                  || !toggle->isChecked()) {
-                  return;
-              }
-
-              monitor_line_chart_widget::series line;
-              line.label = label;
-              line.color = color;
-              line.values.reserve(cache_rows.size());
-
-              for (const auto& row : cache_rows) {
-                  if (available_fn(row)) {
-                      line.values.push_back(value_fn(row));
-                  } else {
-                      line.values.push_back(
-                          std::numeric_limits<double>::quiet_NaN()
-                      );
-                  }
-              }
-
-              output_series->push_back(line);
-          };
-
-    const auto always_available
-        = [](const resource_monitor::cache_timeline_entry&) { return true; };
-
     QVector<monitor_line_chart_widget::series> primary_series;
-    append_series_if_checked(
-        resource_monitor_show_cache_bytes_series,
-        str_label("Cache-accounted bytes"), QColor(52, 111, 196),
+    monitor_chart_helpers::append_if_checked(
+        cache_rows, resource_monitor_show_cache_bytes_series,
+        str_label("Cache-accounted bytes"), monitor_palette::blue(),
         [](const resource_monitor::cache_timeline_entry& row) {
-            return bytes_to_mib_value(row.cache_snapshot.ready_bytes);
+            return monitor_shared::to_mib(row.cache_snapshot.ready_bytes);
         },
-        always_available, &primary_series
+        monitor_chart_helpers::always_available, &primary_series
     );
-    append_series_if_checked(
-        resource_monitor_show_widget_local_series,
-        str_label("Widget-local estimated bytes"), QColor(216, 140, 52),
+    monitor_chart_helpers::append_if_checked(
+        cache_rows, resource_monitor_show_widget_local_series,
+        str_label("Widget-local estimated bytes"), monitor_palette::orange(),
         [](const resource_monitor::cache_timeline_entry& row) {
-            return bytes_to_mib_value(
+            return monitor_shared::to_mib(
                 row.cache_snapshot.widget_local_display_bytes_estimated
             );
         },
-        always_available, &primary_series
+        monitor_chart_helpers::always_available, &primary_series
     );
-    append_series_if_checked(
-        resource_monitor_show_process_rss_series,
-        str_label("Process RSS bytes (OS)"), QColor(52, 168, 110),
+    monitor_chart_helpers::append_if_checked(
+        cache_rows, resource_monitor_show_process_rss_series,
+        str_label("Process RSS bytes (OS)"), monitor_palette::green(),
         [](const resource_monitor::cache_timeline_entry& row) {
-            return bytes_to_mib_value(row.process_rss_bytes);
+            return monitor_shared::to_mib(row.process_rss_bytes);
         },
         [](const resource_monitor::cache_timeline_entry& row) {
             return row.process_rss_bytes >= 0;
         },
         &primary_series
     );
-    append_series_if_checked(
-        resource_monitor_show_gap_bytes_series,
+    monitor_chart_helpers::append_if_checked(
+        cache_rows, resource_monitor_show_gap_bytes_series,
         str_label("Measured-accounted gap bytes (derived)"),
-        QColor(196, 72, 88),
+        monitor_palette::red(),
         [](const resource_monitor::cache_timeline_entry& row) {
-            return bytes_to_mib_value(
+            return monitor_shared::to_mib(
                 row.process_rss_bytes - row.cache_snapshot.ready_bytes
             );
         },
@@ -460,9 +485,10 @@ void main_window::refresh_resource_monitor_view() {
     );
 
     QVector<monitor_line_chart_widget::series> ratio_series;
-    append_series_if_checked(
-        resource_monitor_show_accounted_to_measured_ratio_series,
-        str_label("Accounted/measured ratio (derived %)"), QColor(122, 94, 220),
+    monitor_chart_helpers::append_if_checked(
+        cache_rows, resource_monitor_show_ratio_series,
+        str_label("Accounted/measured ratio (derived %)"),
+        monitor_palette::purple(),
         [](const resource_monitor::cache_timeline_entry& row) {
             return (double(row.cache_snapshot.ready_bytes) * 100.0)
                 / double(row.process_rss_bytes);
@@ -481,37 +507,37 @@ void main_window::refresh_resource_monitor_view() {
     );
 
     QVector<monitor_line_chart_widget::series> secondary_series;
-    append_series_if_checked(
-        resource_monitor_show_activity_displayed_series,
-        str_label("Displayed-recent entries"), QColor(44, 150, 198),
+    monitor_chart_helpers::append_if_checked(
+        cache_rows, resource_monitor_show_displayed_series,
+        str_label("Displayed-recent entries"), monitor_palette::sky_blue(),
         [](const resource_monitor::cache_timeline_entry& row) {
             return double(row.cache_snapshot.displayed_ready_entries);
         },
-        always_available, &secondary_series
+        monitor_chart_helpers::always_available, &secondary_series
     );
-    append_series_if_checked(
-        resource_monitor_show_activity_pending_series,
-        str_label("Pending families"), QColor(224, 132, 36),
+    monitor_chart_helpers::append_if_checked(
+        cache_rows, resource_monitor_show_pending_series,
+        str_label("Pending families"), monitor_palette::orange(),
         [](const resource_monitor::cache_timeline_entry& row) {
             return double(row.cache_snapshot.pending_families);
         },
-        always_available, &secondary_series
+        monitor_chart_helpers::always_available, &secondary_series
     );
-    append_series_if_checked(
-        resource_monitor_show_activity_in_flight_series,
-        str_label("In-flight families"), QColor(92, 102, 222),
+    monitor_chart_helpers::append_if_checked(
+        cache_rows, resource_monitor_show_flight_series,
+        str_label("In-flight families"), monitor_palette::blue(),
         [](const resource_monitor::cache_timeline_entry& row) {
             return double(row.cache_snapshot.in_flight_families);
         },
-        always_available, &secondary_series
+        monitor_chart_helpers::always_available, &secondary_series
     );
 
     QStringList secondary_footer;
     secondary_footer.append(
         str_label("Activity counters only; byte ownership is in primary chart.")
     );
-    if (resource_monitor_show_activity_events_series != nullptr
-        && resource_monitor_show_activity_events_series->isChecked()) {
+    if (resource_monitor_show_event_series != nullptr
+        && resource_monitor_show_event_series->isChecked()) {
         secondary_footer.append(
             str_label("Event markers total: %1").arg(event_rows.size())
         );
@@ -524,7 +550,7 @@ void main_window::refresh_resource_monitor_view() {
         composition_slices.push_back(
             {
                 str_label("Displayed-recent entries"),
-                QColor(44, 150, 198),
+                monitor_palette::sky_blue(),
                 double(snapshot.displayed_ready_entries),
             }
         );
@@ -533,7 +559,7 @@ void main_window::refresh_resource_monitor_view() {
         composition_slices.push_back(
             {
                 str_label("Cached-only entries"),
-                QColor(120, 128, 140),
+                monitor_palette::gray(),
                 double(snapshot.cached_only_ready_entries),
             }
         );
@@ -547,7 +573,7 @@ void main_window::refresh_resource_monitor_view() {
         composition_slices.push_back(
             {
                 str_label("Other ready entries"),
-                QColor(170, 102, 190),
+                monitor_palette::purple(),
                 double(other_ready_entries),
             }
         );
@@ -630,6 +656,56 @@ void main_window::refresh_resource_monitor_view() {
             .arg(snapshot.subsystem_summaries.size())
             .arg(snapshot.consumer_summaries.size())
     );
+    diagnostics_lines.append(str_label("Broadcaster state"));
+    diagnostics_lines.append(
+        str_label("Enabled: %1 | Listener connected: %2 | Endpoint: %3")
+            .arg(
+                broadcaster_state.value(QStringLiteral("runtime_enabled"))
+                        .toBool()
+                    ? str_label("yes")
+                    : str_label("no")
+            )
+            .arg(
+                broadcaster_state.value(QStringLiteral("listener_connected"))
+                        .toBool()
+                    ? str_label("yes")
+                    : str_label("no")
+            )
+            .arg(
+                broadcaster_state.value(QStringLiteral("endpoint_name"))
+                        .toString()
+                        .isEmpty()
+                    ? str_label("n/a")
+                    : broadcaster_state.value(QStringLiteral("endpoint_name"))
+                          .toString()
+            )
+    );
+    diagnostics_lines.append(
+        str_label(
+            "Queue msgs/bytes: %1 / %2 | Sent: %3 | Dropped low/med/high: "
+            "%4/%5/%6 | Write errors: %7"
+        )
+            .arg(broadcaster_state.value(QStringLiteral("queued_messages"))
+                     .toInteger())
+            .arg(broadcaster_state.value(QStringLiteral("queued_bytes"))
+                     .toInteger())
+            .arg(broadcaster_state.value(QStringLiteral("sent_messages"))
+                     .toInteger())
+            .arg(broadcaster_state
+                     .value(QStringLiteral("dropped_low_priority_messages"))
+                     .toInteger())
+            .arg(broadcaster_state
+                     .value(QStringLiteral("dropped_medium_priority_messages"))
+                     .toInteger())
+            .arg(broadcaster_state
+                     .value(QStringLiteral("dropped_high_priority_messages"))
+                     .toInteger())
+            .arg(broadcaster_state.value(QStringLiteral("write_error_count"))
+                     .toInteger())
+    );
+    diagnostics_lines.append(
+        str_label("Dropped total (fidelity indicator): %1").arg(dropped_total)
+    );
     resource_monitor_diagnostics_text->setPlainText(
         diagnostics_lines.join(QLatin1Char('\n'))
     );
@@ -644,15 +720,15 @@ void main_window::refresh_resource_monitor_view() {
             str_label("Slots: %1 total / %2 visible | window=%3 | layout=%4")
                 .arg(geometry.slot_count)
                 .arg(geometry.visible_slot_count)
-                .arg(format_px_size(geometry.window_size))
-                .arg(format_px_size(geometry.layout_size))
+                .arg(monitor_shared::size_px_text(geometry.window_size))
+                .arg(monitor_shared::size_px_text(geometry.layout_size))
         );
         geometry_lines.append(
             str_label(
                 "Display-card=%1 (need short px=%2) | active bucket=%3 | "
                 "warming bucket=%4"
             )
-                .arg(format_px_size(geometry.display_card_size))
+                .arg(monitor_shared::size_px_text(geometry.display_card_size))
                 .arg(geometry.display_card_need_short_px)
                 .arg(geometry.active_bucket_px)
                 .arg(geometry.warming_bucket_px)
@@ -661,8 +737,10 @@ void main_window::refresh_resource_monitor_view() {
             str_label(
                 "Cache raster=%1 | preloaded raster=%2 | unique buckets=%3"
             )
-                .arg(format_px_size(geometry.cache_raster_size))
-                .arg(format_px_size(geometry.preloaded_raster_size))
+                .arg(monitor_shared::size_px_text(geometry.cache_raster_size))
+                .arg(
+                    monitor_shared::size_px_text(geometry.preloaded_raster_size)
+                )
                 .arg(geometry.unique_size_buckets)
         );
         geometry_lines.append(
@@ -679,9 +757,10 @@ void main_window::refresh_resource_monitor_view() {
                 .arg(geometry.active_generation_id)
                 .arg(geometry.warming_generation_id)
         );
-        geometry_lines.append(
-            str_label("Schematic view above is lower-left anchored.")
-        );
+        geometry_lines.append(str_label(
+            "Schematic uses proportion-preserving scaling; shaded region "
+            "shows preload spread between cache and preloaded rasters."
+        ));
     } else {
         resource_monitor_geometry_view->clear_snapshot();
         geometry_lines.append(
@@ -746,8 +825,8 @@ void main_window::refresh_resource_monitor_view() {
                 )
                     .arg(started_at)
                     .arg(ended_at)
-                    .arg(format_px_size(row.old_window_size))
-                    .arg(format_px_size(row.new_window_size))
+                    .arg(monitor_shared::size_px_text(row.old_window_size))
+                    .arg(monitor_shared::size_px_text(row.new_window_size))
                     .arg(row.old_active_bucket_px)
                     .arg(row.new_active_bucket_px)
                     .arg(row.old_warming_bucket_px)
@@ -761,14 +840,26 @@ void main_window::refresh_resource_monitor_view() {
                 )
                     .arg(
                         row.before_process_rss_bytes >= 0
-                            ? to_mib(row.before_process_rss_bytes)
+                            ? monitor_shared::mib_text(
+                                  row.before_process_rss_bytes
+                              )
                             : str_label("unavailable")
                     )
-                    .arg(to_mib(row.before_cache_accounted_ready_bytes))
                     .arg(
-                        to_mib(row.before_widget_local_display_bytes_estimated)
+                        monitor_shared::mib_text(
+                            row.before_cache_accounted_ready_bytes
+                        )
                     )
-                    .arg(to_mib(row.before_measured_accounted_gap_bytes))
+                    .arg(
+                        monitor_shared::mib_text(
+                            row.before_widget_local_display_bytes_estimated
+                        )
+                    )
+                    .arg(
+                        monitor_shared::mib_text(
+                            row.before_measured_accounted_gap_bytes
+                        )
+                    )
             );
             resize_lines.append(
                 str_label(
@@ -777,12 +868,26 @@ void main_window::refresh_resource_monitor_view() {
                 )
                     .arg(
                         row.after_process_rss_bytes >= 0
-                            ? to_mib(row.after_process_rss_bytes)
+                            ? monitor_shared::mib_text(
+                                  row.after_process_rss_bytes
+                              )
                             : str_label("unavailable")
                     )
-                    .arg(to_mib(row.after_cache_accounted_ready_bytes))
-                    .arg(to_mib(row.after_widget_local_display_bytes_estimated))
-                    .arg(to_mib(row.after_measured_accounted_gap_bytes))
+                    .arg(
+                        monitor_shared::mib_text(
+                            row.after_cache_accounted_ready_bytes
+                        )
+                    )
+                    .arg(
+                        monitor_shared::mib_text(
+                            row.after_widget_local_display_bytes_estimated
+                        )
+                    )
+                    .arg(
+                        monitor_shared::mib_text(
+                            row.after_measured_accounted_gap_bytes
+                        )
+                    )
             );
         }
     }
