@@ -1,5 +1,0 @@
-# Legacy identifiers temporarily exempted from naming word-count limits.
-# Keep this list short and remove entries as staged renames land.
-
-before_widget_local_display_bytes_estimated
-after_widget_local_display_bytes_estimated
