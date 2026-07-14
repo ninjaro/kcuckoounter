@@ -56,7 +56,7 @@ public:
      *
      * @see set_infinity_mode()
      */
-    bool infinity_mode() const;
+    [[nodiscard]] bool infinity_mode() const;
 
 protected:
     /**
@@ -75,7 +75,7 @@ protected:
      *
      * @return A QString containing the text to display in the editor.
      */
-    QString textFromValue(int value) const override;
+    [[nodiscard]] QString textFromValue(int value) const override;
 
 private:
     /**

@@ -1,5 +1,6 @@
 #include "image/card_preview_carousel.hpp"
 
+#include <QAccessible>
 #include <QHBoxLayout>
 #include <QResizeEvent>
 #include <QStyle>
@@ -12,6 +13,7 @@ card_preview_carousel::card_preview_carousel(BaseWidget* parent)
     : BaseWidget(parent)
     , cached_cards()
     , card_provider()
+    , card_accessible_name_provider()
     , card_labels()
     , first_index(0)
     , visible_count_value(5)
@@ -35,15 +37,28 @@ card_preview_carousel::card_preview_carousel(BaseWidget* parent)
     previous_button->setArrowType(Qt::LeftArrow);
     previous_button->setAutoRaise(true);
     previous_button->setEnabled(false);
+    previous_button->setObjectName(QStringLiteral("carousel_previous_button"));
+    previous_button->setAccessibleName(QStringLiteral("Previous cards"));
+    previous_button->setAccessibleDescription(
+        QStringLiteral("Show the previous cards in the preview")
+    );
+    previous_button->setToolTip(QStringLiteral("Previous cards"));
     layout->addWidget(previous_button);
 
     cards_layout->setContentsMargins(0, 0, 0, 0);
     cards_layout->setSpacing(card_spacing_value);
+    cards_container->setAccessibleName(QStringLiteral("Card previews"));
     layout->addWidget(cards_container, 1);
 
     next_button->setArrowType(Qt::RightArrow);
     next_button->setAutoRaise(true);
     next_button->setEnabled(false);
+    next_button->setObjectName(QStringLiteral("carousel_next_button"));
+    next_button->setAccessibleName(QStringLiteral("Next cards"));
+    next_button->setAccessibleDescription(
+        QStringLiteral("Show the next cards in the preview")
+    );
+    next_button->setToolTip(QStringLiteral("Next cards"));
     layout->addWidget(next_button);
 
     QObject::connect(
@@ -74,6 +89,13 @@ void card_preview_carousel::set_card_provider(
     card_provider = std::move(provider);
     cached_cards = QVector<QPixmap>(total_cards_value);
     first_index = 0;
+    refresh_view();
+}
+
+void card_preview_carousel::set_card_accessible_name_provider(
+    std::function<QString(int)> provider
+) {
+    card_accessible_name_provider = std::move(provider);
     refresh_view();
 }
 
@@ -203,6 +225,7 @@ void card_preview_carousel::rebuild_labels() {
         auto label = new QLabel(cards_container);
         label->setAlignment(Qt::AlignCenter);
         label->setScaledContents(true);
+        label->setAccessibleName(QStringLiteral("Card preview %1").arg(i + 1));
         if (card_size.isValid()) {
             label->setFixedSize(card_size);
         }
@@ -301,6 +324,17 @@ void card_preview_carousel::refresh_view() {
             continue;
         }
         const int card_index = (first_index + i) % total_cards;
+        const QString semantic_name = card_accessible_name_provider
+            ? card_accessible_name_provider(card_index).trimmed()
+            : QString();
+        label->setAccessibleName(
+            semantic_name.isEmpty()
+                ? QStringLiteral("Card preview %1").arg(card_index + 1)
+                : semantic_name
+        );
+        label->setAccessibleDescription(QStringLiteral("Preview card %1 of %2")
+                                            .arg(card_index + 1)
+                                            .arg(total_cards));
         if (!keep_cache.isEmpty() && card_index >= 0
             && card_index < keep_cache.size()) {
             keep_cache[card_index] = true;
@@ -352,4 +386,14 @@ void card_preview_carousel::refresh_view() {
 
     previous_button->setEnabled(total_cards_value > 1);
     next_button->setEnabled(total_cards_value > 1);
+    cards_container->setAccessibleDescription(
+        QStringLiteral("Showing %1 card previews starting with item %2 of %3")
+            .arg(label_count)
+            .arg(first_index + 1)
+            .arg(total_cards)
+    );
+    QAccessibleEvent accessibility_event(
+        cards_container, QAccessible::DescriptionChanged
+    );
+    QAccessible::updateAccessibility(&accessibility_event);
 }

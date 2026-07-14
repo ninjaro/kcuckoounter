@@ -177,9 +177,9 @@ public:
     };
 
     static QString cadence_mode_to_string(debug_cadence_mode mode);
-    static qint64 process_sample_interval_ms_for_mode(debug_cadence_mode mode);
+    static qint64 sample_interval_ms_for_mode(debug_cadence_mode mode);
     static auto_process_report_policy
-    auto_process_report_policy_for_mode(debug_cadence_mode mode);
+    auto_report_policy_for_mode(debug_cadence_mode mode);
     static QJsonObject build_protocol_message_v1(
         const QString& message_family, const protocol_identity& identity,
         qint64 monotonic_timestamp_ms, const QJsonObject& payload
@@ -187,24 +187,29 @@ public:
     static QString protocol_version_string();
     static QJsonArray protocol_message_families_v1();
     static QJsonArray protocol_required_identity_fields_v1();
-    static QJsonArray protocol_required_metric_hint_fields_v1();
-    static QJsonArray protocol_card_image_domain_hint_fields_v1();
+    static QJsonArray required_metric_hint_fields_v1();
+    static QJsonArray card_image_domain_hints_v1();
     static QJsonArray protocol_metric_catalog_v1();
-    static QJsonObject protocol_metric_hint_for_id_v1(const QString& metric_id);
+    static QJsonObject metric_hint_for_id_v1(const QString& metric_id);
     static QJsonObject protocol_capabilities_v1();
     static metric_point_v1
-    metric_point_from_sample_batch_v1(const QJsonArray& samples);
+    point_from_sample_batch_v1(const QJsonArray& samples);
     static metric_point_v1
-    metric_point_from_snapshot_payload_v1(const QJsonObject& snapshot_payload);
+    point_from_snapshot_payload_v1(const QJsonObject& snapshot_payload);
     static void merge_metric_point_v1(
         metric_point_v1* target, const metric_point_v1& update
     );
     static QJsonObject
     geometry_snapshot_to_json(const geometry_debug_snapshot& snapshot);
     static QJsonObject
+    cache_snapshot_to_live_json(const raster_cache::debug_snapshot& snapshot);
+    static QJsonObject resize_transition_to_live_json(
+        const resize_transition_debug_event& transition
+    );
+    static QJsonObject
     resize_history_entry_to_json(const resize_history_entry& entry);
     static QString
-    resize_history_entry_to_jsonl_line(const resize_history_entry& entry);
+    resize_entry_to_jsonl_line(const resize_history_entry& entry);
     static QJsonObject build_snapshot_export_json(
         const export_request_metadata& metadata,
         const QVector<cache_timeline_entry>& cache_entries,

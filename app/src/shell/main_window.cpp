@@ -7,6 +7,9 @@
 #include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
 #include "monitor/resource_monitor.hpp"
+#include "settings/preferences.hpp"
+#include "settings/theme_palette.hpp"
+#include "settings/theme_settings.hpp"
 
 #include <QAbstractButton>
 #include <QDialog>
@@ -63,7 +66,7 @@ main_window::main_window(BaseWidget* parent)
     setup_ui();
 }
 
-main_window::~main_window() { }
+main_window::~main_window() { persist_setup_preferences(); }
 
 void main_window::update_start_pause_action(bool paused) const {
     if (start_pause_action == nullptr) {
@@ -104,7 +107,9 @@ void main_window::setup_game_actions() {
     );
 
     start_pause_action = new BaseAction(str_label("Start"), this);
-    register_shell_action(start_pause_action, QStringLiteral("game_start_pause"));
+    register_shell_action(
+        start_pause_action, QStringLiteral("game_start_pause")
+    );
     start_pause_action->setIcon(
         icon_loader::themed(
             { "media-playback-start", "media-playback-play", "play" },
@@ -149,6 +154,11 @@ void main_window::setup_game_actions() {
 }
 
 void main_window::setup_ui() {
+    const trainer_preferences preferences = load_trainer_preferences();
+    theme_settings::set_base_color(
+        theme_palette_registry::option(preferences.palette).base_color()
+    );
+
     setup_platform_shell();
 
     auto central_widget = new BaseWidget(this);
@@ -167,7 +177,7 @@ void main_window::setup_ui() {
     table_slots_count = new BaseSpinBox(setup_widget);
     table_slots_count->setMinimum(1);
     table_slots_count->setMaximum(16);
-    table_slots_count->setValue(4);
+    table_slots_count->setValue(preferences.slot_count);
     android_ui::apply_spin_box_style(table_slots_count);
 
     quiz_type = new BaseComboBox(setup_widget);
@@ -175,6 +185,7 @@ void main_window::setup_ui() {
         QStringList() << str_label("Single question")
                       << str_label("Multi question")
     );
+    quiz_type->setCurrentIndex(preferences.quiz_type);
     android_ui::apply_combo_box_style(quiz_type);
 
     wait_for_answers
@@ -182,11 +193,12 @@ void main_window::setup_ui() {
     wait_for_answers->setToolTip(
         str_label("Pause the game while waiting for quiz answers")
     );
+    wait_for_answers->setChecked(preferences.wait_for_answers);
     android_ui::apply_check_box_style(wait_for_answers);
 
     allow_skipping
         = new BaseCheckBox(str_label("Allow skipping questions"), setup_widget);
-    allow_skipping->setChecked(true);
+    allow_skipping->setChecked(preferences.allow_skipping);
     allow_skipping->setToolTip(
         str_label("Enable the skip button during quizzes")
     );
@@ -197,6 +209,7 @@ void main_window::setup_ui() {
         QStringList() << str_label("Sequential") << str_label("Random")
                       << str_label("Simultaneous")
     );
+    dealing_mode->setCurrentIndex(preferences.dealing_mode);
     android_ui::apply_combo_box_style(dealing_mode);
 
     form_layout->addRow(str_label("Table slots"), table_slots_count);
@@ -232,6 +245,9 @@ void main_window::setup_ui() {
 
     finalize_platform_shell();
     setup_status_surface(main_layout);
+    if (speed_slider != nullptr) {
+        speed_slider->setValue(preferences.pickup_interval_ms);
+    }
 
     clock_timer = new BaseClock(this);
     if (table_widget != nullptr && clock_timer != nullptr) {
@@ -276,6 +292,10 @@ void main_window::setup_ui() {
             speed_slider, &QSlider::valueChanged, this,
             &main_window::on_speed_slider_value_changed
         );
+        QObject::connect(
+            speed_slider, &QSlider::sliderReleased, this,
+            &main_window::persist_setup_preferences
+        );
     }
 
     if (dealing_mode != nullptr) {
@@ -294,6 +314,19 @@ void main_window::setup_ui() {
             &main_window::on_quiz_type_changed
         );
         on_quiz_type_changed(quiz_type->currentIndex());
+    }
+
+    if (wait_for_answers != nullptr) {
+        QObject::connect(
+            wait_for_answers, &BaseCheckBox::toggled, this,
+            [this](bool) { persist_setup_preferences(); }
+        );
+    }
+    if (allow_skipping != nullptr) {
+        QObject::connect(
+            allow_skipping, &BaseCheckBox::toggled, this,
+            [this](bool) { persist_setup_preferences(); }
+        );
     }
 
     if (table_slots_count != nullptr) {
@@ -318,7 +351,8 @@ void main_window::setup_ui() {
 
     if (setup_dialog != nullptr) {
         time_interface::single_shot(
-            0, setup_dialog, std::bind_front(&main_window::open_setup_dialog, this)
+            0, setup_dialog,
+            std::bind_front(&main_window::open_setup_dialog, this)
         );
         QObject::connect(
             setup_dialog, &QDialog::rejected, this,
@@ -364,6 +398,7 @@ void main_window::on_dealing_mode_changed(int index) {
     if (table_widget != nullptr) {
         table_widget->set_dealing_mode(index);
     }
+    persist_setup_preferences();
 }
 
 void main_window::on_quiz_type_changed(int index) {
@@ -372,17 +407,38 @@ void main_window::on_quiz_type_changed(int index) {
     }
 
     const bool is_multi_question = index == 1;
-    wait_for_answers->setChecked(is_multi_question);
+    if (is_multi_question) {
+        wait_for_answers->setChecked(true);
+    }
     wait_for_answers->setEnabled(!is_multi_question);
+    persist_setup_preferences();
 }
 
 void main_window::on_table_slot_count_changed(int value) {
+    persist_setup_preferences();
     if (table_widget == nullptr) {
         return;
     }
 
     table_widget->set_slot_count(value);
     table_widget->schedule_card_preload();
+}
+
+void main_window::persist_setup_preferences() const {
+    if (table_slots_count == nullptr || quiz_type == nullptr
+        || wait_for_answers == nullptr || allow_skipping == nullptr
+        || dealing_mode == nullptr || speed_slider == nullptr) {
+        return;
+    }
+
+    trainer_preferences preferences = load_trainer_preferences();
+    preferences.slot_count = table_slots_count->value();
+    preferences.quiz_type = quiz_type->currentIndex();
+    preferences.wait_for_answers = wait_for_answers->isChecked();
+    preferences.allow_skipping = allow_skipping->isChecked();
+    preferences.dealing_mode = dealing_mode->currentIndex();
+    preferences.pickup_interval_ms = speed_slider->value();
+    save_trainer_preferences(preferences);
 }
 
 void main_window::open_setup_dialog() {
@@ -495,7 +551,9 @@ void main_window::on_start_pause_triggered() {
 }
 
 void main_window::on_finish_triggered() {
-    if (table_widget != nullptr && quiz_started && !quiz_paused) {
+    const bool restore_running_quiz
+        = table_widget != nullptr && quiz_started && !quiz_paused;
+    if (restore_running_quiz) {
         table_widget->set_paused(true);
         quiz_paused = true;
         if (start_pause_action != nullptr) {
@@ -513,6 +571,18 @@ void main_window::on_finish_triggered() {
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No
     );
     if (answer != QMessageBox::Yes) {
+        if (restore_running_quiz) {
+            table_widget->set_paused(false);
+            quiz_paused = false;
+            if (start_pause_action != nullptr) {
+                update_start_pause_action(false);
+            }
+            if (clock_timer != nullptr) {
+                clock_timer->start(true);
+                refresh_clock_label();
+            }
+            update_status_text();
+        }
         return;
     }
 
@@ -616,7 +686,7 @@ void main_window::on_settings_triggered() {
     );
     QObject::connect(
         close_button, &QAbstractButton::clicked, this,
-        &main_window::on_settings_save_and_close_requested
+        &main_window::on_settings_commit_requested
     );
     dialog_layout->addWidget(button_box);
 
@@ -633,7 +703,7 @@ void main_window::on_settings_triggered() {
 
 void main_window::on_show_highscores_triggered() { show_platform_highscores(); }
 
-void main_window::on_settings_save_and_close_requested() {
+void main_window::on_settings_commit_requested() {
     if (appearance_settings_widget != nullptr) {
         appearance_settings_widget->apply_theme_settings();
     }

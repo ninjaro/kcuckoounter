@@ -6,7 +6,12 @@
 
 #include "shell/main_window.hpp"
 
+#include "arch/asset_locator.hpp"
 #include "arch/str_label.hpp"
+
+#ifndef ECOSYSTEM_PROJECT_VERSION
+#define ECOSYSTEM_PROJECT_VERSION "0.1.0"
+#endif
 
 #ifdef KC_KDE
 #include <KAboutData>
@@ -15,13 +20,16 @@
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
-    app.setWindowIcon(QIcon(str_label("assets/favicon.ico")));
+    QApplication::setWindowIcon(
+        QIcon(bundled_asset_path(QStringLiteral("favicon.ico")))
+    );
 
 #ifdef KC_KDE
     KLocalizedString::setApplicationDomain("kcuckoounter");
 
     KAboutData about_data(
-        str_label("kcuckoounter"), str_label("kcuckoounter"), str_label("1.0"),
+        str_label("kcuckoounter"), str_label("kcuckoounter"),
+        QStringLiteral(ECOSYSTEM_PROJECT_VERSION),
         str_label("A tool for card counting training."), KAboutLicense::MIT,
         str_label("(c) 2025, Yaroslav Riabtsev"), QString(),
         str_label("https://github.com/ninjaro/kcuckoounter"),
@@ -43,7 +51,9 @@ int main(int argc, char* argv[]) {
 #else
     QCoreApplication::setApplicationName(str_label("kcuckoounter"));
     QCoreApplication::setOrganizationName(str_label("kcuckoounter"));
-    QCoreApplication::setApplicationVersion(str_label("1.0"));
+    QCoreApplication::setApplicationVersion(
+        QStringLiteral(ECOSYSTEM_PROJECT_VERSION)
+    );
 
     QCommandLineParser parser;
     parser.setApplicationDescription(

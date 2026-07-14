@@ -101,7 +101,7 @@ private:
     qreal selection_phase;
 
     struct discard_card {
-        qreal rotation_deg;
+        qreal rotation_deg {};
         QPointF offset;
     };
 
@@ -129,7 +129,7 @@ private:
     void update_card_jitter();
     void update_table_marking();
     QSize card_face_target_size() const;
-    QSize raster_cache_size(const QSize& target_size) const;
+    static QSize raster_cache_size(const QSize& target_size);
     void update_card_faces(const QSize& target_size);
     void record_discard();
     qreal highlight_strength() const;
@@ -141,10 +141,10 @@ private:
     );
     void set_rasterizing(bool active);
     void on_rasterization_finished();
-    void apply_card_transform(
+    static void apply_card_transform(
         QPainter& painter, const QRectF& oriented_card_rect,
         qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset
-    ) const;
+    );
     void draw_table_marking(
         QPainter& painter, const QRectF& slot_frame_rect, qreal min_dim
     ) const;
@@ -152,26 +152,26 @@ private:
         QPainter& painter, const QRectF& oriented_card_rect,
         qreal slot_rotation_deg
     ) const;
-    void draw_card_shape(
+    static void draw_card_shape(
         QPainter& painter, const QRectF& oriented_card_rect,
         qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
         const QColor& fill, const QColor& border
-    ) const;
-    void draw_card_pixmap(
+    );
+    static void draw_card_pixmap(
         QPainter& painter, const QRectF& oriented_card_rect,
         qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
         const QPixmap& pixmap
-    ) const;
-    void draw_card_text(
+    );
+    static void draw_card_text(
         QPainter& painter, const QRectF& oriented_card_rect,
         qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
         const QString& text
-    ) const;
-    void draw_card_center_text(
+    );
+    static void draw_card_center_text(
         QPainter& painter, const QRectF& oriented_card_rect,
         qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
         const QString& text
-    ) const;
+    );
     void draw_card_extra_lines(
         QPainter& painter, const QRectF& oriented_card_rect,
         qreal slot_rotation_deg, const QStringList& extra_lines

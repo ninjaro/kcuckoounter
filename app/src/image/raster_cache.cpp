@@ -15,7 +15,7 @@ size_t raster_cache_combine_hash(size_t lhs, size_t rhs) {
 }
 
 QString raster_cache::normalize_render_scope(const QString& raw_scope) {
-    const QString simplified = raw_scope.simplified();
+    QString simplified = raw_scope.simplified();
     if (!simplified.startsWith(QStringLiteral("subset:"))) {
         return simplified;
     }
@@ -151,7 +151,7 @@ bool raster_cache::compare_expensive_tasks(
 }
 
 qint64 raster_cache::estimate_result_bytes(const result& value) {
-    qint64 bytes = static_cast<qint64>(value.single_image.sizeInBytes());
+    auto bytes = static_cast<qint64>(value.single_image.sizeInBytes());
     for (const QImage& image : value.face_images) {
         bytes += static_cast<qint64>(image.sizeInBytes());
     }
@@ -197,7 +197,7 @@ raster_cache::raster_cache(QObject* parent)
     , families()
     , ready_bytes(0)
     , ready_images(0)
-    , widget_local_always_rasterized_bytes_estimated(0) { }
+    , local_raster_bytes_estimated(0) { }
 
 std::optional<raster_cache::result>
 raster_cache::get_if_ready(const entry_key& key) const {
@@ -214,8 +214,8 @@ raster_cache::get_if_ready(const entry_key& key) const {
 }
 
 std::optional<raster_cache::result>
-raster_cache::get_if_ready_with_namespace_fallback(const entry_key& key) const {
-    const std::optional<result> direct = get_if_ready(key);
+raster_cache::get_ready_with_namespace_fallback(const entry_key& key) const {
+    std::optional<result> direct = get_if_ready(key);
     if (direct.has_value()) {
         return direct;
     }
@@ -488,7 +488,7 @@ raster_cache::take_pending_latest(const family_key& key) {
         return std::nullopt;
     }
 
-    const entry_key pending = it->pending_entry;
+    entry_key pending = it->pending_entry;
     const qint64 coalesced_wait_ms
         = std::max<qint64>(0, now_ms() - it->pending_submitted_ms);
     add_timing_sample(coalesced_wait_accumulator, coalesced_wait_ms);
@@ -619,7 +619,7 @@ raster_cache::debug_snapshot raster_cache::get_debug_snapshot() const {
     int displayed_ready_images = 0;
     int cached_only_ready_images = 0;
     qint64 widget_local_rasterized_bytes_estimated
-        = widget_local_always_rasterized_bytes_estimated;
+        = local_raster_bytes_estimated;
     qint64 widget_local_scaled_bytes_estimated = 0;
     int fallback_active_theme_keys_ready = 0;
     int fallback_default_theme_keys_ready = 0;
@@ -840,6 +840,12 @@ raster_cache::debug_snapshot raster_cache::get_debug_snapshot() const {
         }
     }
 
+    int ready_order_entries = 0;
+    for (auto it = ready_entry_order.cbegin(); it != ready_entry_order.cend();
+         ++it) {
+        ready_order_entries += static_cast<int>(it.value().size());
+    }
+
     const int ready_entries_now = ready_entry_count();
     const int displayed_entry_coverage_percent = ready_entries_now > 0
         ? ((displayed_ready_entries * 100) / ready_entries_now)
@@ -885,6 +891,10 @@ raster_cache::debug_snapshot raster_cache::get_debug_snapshot() const {
         .deadline_ready_on_time = deadline_counters.ready_on_time,
         .deadline_ready_late = deadline_counters.ready_late,
         .unique_size_buckets = num_helpers::to_int(size_buckets.size()),
+        .ready_order_entries = ready_order_entries,
+        .diagnostic_request_entries
+        = num_helpers::to_int(request_counts.size()),
+        .diagnostic_timing_entries = num_helpers::to_int(task_timing.size()),
         .size_buckets = size_buckets,
         .largest_entries = largest_entries,
         .top_requested_entries = top_requested_entries,
@@ -909,53 +919,13 @@ void raster_cache::set_namespace_entry_limit(
 
 bool raster_cache::erase_result(const entry_key& key) {
     const auto it = ready_results.constFind(key);
-    if (it == ready_results.cend()) {
-        return false;
-    }
-
-    const auto accounting_it = debug_entry_accounting_cache.constFind(key);
-    const debug_entry_accounting accounting
-        = accounting_it != debug_entry_accounting_cache.cend()
-        ? accounting_it.value()
-        : make_debug_entry_accounting(key, it.value());
-    const qint64 removed_bytes = accounting.cache_accounted_bytes;
-    const int removed_images = accounting.image_count;
-    ready_bytes -= removed_bytes;
-    ready_images -= removed_images;
-    lifetime_deltas.entries_removed += 1;
-    lifetime_deltas.bytes_removed += removed_bytes;
-    lifetime_deltas.images_removed += removed_images;
-    interval_deltas.entries_removed += 1;
-    interval_deltas.bytes_removed += removed_bytes;
-    interval_deltas.images_removed += removed_images;
-    ready_results.remove(key);
-    displayed_entry_observations.remove(key);
-    debug_entry_accounting_cache.remove(key);
-    apply_debug_entry_accounting_remove(key, accounting);
-    emit_debug_snapshot();
-    return true;
-}
-
-void raster_cache::enforce_namespace_limit(cache_namespace name_space) {
-    const int limit = namespace_entry_limits.value(name_space, -1);
-    if (limit < 0) {
-        return;
-    }
-
-    QQueue<entry_key>& queue = ready_entry_order[name_space];
-    while (ready_entry_count(name_space) > limit && !queue.isEmpty()) {
-        const entry_key oldest = queue.dequeue();
-        const auto old_it = ready_results.constFind(oldest);
-        if (old_it == ready_results.cend()) {
-            continue;
-        }
-
-        const auto accounting_it
-            = debug_entry_accounting_cache.constFind(oldest);
+    const bool had_ready_result = it != ready_results.cend();
+    if (had_ready_result) {
+        const auto accounting_it = debug_entry_accounting_cache.constFind(key);
         const debug_entry_accounting accounting
             = accounting_it != debug_entry_accounting_cache.cend()
             ? accounting_it.value()
-            : make_debug_entry_accounting(oldest, old_it.value());
+            : make_debug_entry_accounting(key, it.value());
         const qint64 removed_bytes = accounting.cache_accounted_bytes;
         const int removed_images = accounting.image_count;
         ready_bytes -= removed_bytes;
@@ -966,11 +936,52 @@ void raster_cache::enforce_namespace_limit(cache_namespace name_space) {
         interval_deltas.entries_removed += 1;
         interval_deltas.bytes_removed += removed_bytes;
         interval_deltas.images_removed += removed_images;
-        ready_results.remove(oldest);
-        displayed_entry_observations.remove(oldest);
-        debug_entry_accounting_cache.remove(oldest);
-        apply_debug_entry_accounting_remove(oldest, accounting);
+        ready_results.remove(key);
+        apply_debug_entry_accounting_remove(key, accounting);
     }
+
+    const bool metadata_removed = remove_entry_metadata(key);
+    if (had_ready_result || metadata_removed) {
+        emit_debug_snapshot();
+    }
+    return had_ready_result;
+}
+
+void raster_cache::enforce_namespace_limit(cache_namespace name_space) {
+    const int limit = namespace_entry_limits.value(name_space, -1);
+    if (limit < 0) {
+        return;
+    }
+
+    QQueue<entry_key>& queue = ready_entry_order[name_space];
+    while (ready_entry_count(name_space) > limit && !queue.isEmpty()) {
+        const entry_key oldest = queue.head();
+        if (!erase_result(oldest)) {
+            queue.removeAll(oldest);
+        }
+    }
+}
+
+bool raster_cache::remove_entry_metadata(const entry_key& key) {
+    bool removed = request_counts.remove(key) > 0;
+
+    for (auto it = task_timing.begin(); it != task_timing.end();) {
+        if (it.key().entry == key) {
+            it = task_timing.erase(it);
+            removed = true;
+        } else {
+            ++it;
+        }
+    }
+
+    auto order_it = ready_entry_order.find(key.name_space);
+    if (order_it != ready_entry_order.end()) {
+        removed = order_it->removeAll(key) > 0 || removed;
+    }
+
+    removed = displayed_entry_observations.remove(key) > 0 || removed;
+    removed = debug_entry_accounting_cache.remove(key) > 0 || removed;
+    return removed;
 }
 
 void raster_cache::update_high_water_marks() {
@@ -1018,7 +1029,7 @@ void raster_cache::apply_debug_entry_accounting_add(
         return;
     }
 
-    widget_local_always_rasterized_bytes_estimated
+    local_raster_bytes_estimated
         += accounting.widget_local_rasterized_bytes_estimated;
 }
 
@@ -1029,9 +1040,9 @@ void raster_cache::apply_debug_entry_accounting_remove(
         return;
     }
 
-    widget_local_always_rasterized_bytes_estimated = std::max<qint64>(
+    local_raster_bytes_estimated = std::max<qint64>(
         0,
-        widget_local_always_rasterized_bytes_estimated
+        local_raster_bytes_estimated
             - accounting.widget_local_rasterized_bytes_estimated
     );
 }

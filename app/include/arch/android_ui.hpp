@@ -15,9 +15,7 @@ enum class android_button_profile {
 namespace android_ui {
 
 BasePushButton* create_button(BaseWidget* parent = nullptr);
-void apply_button_style(
-    BasePushButton* button, android_button_profile profile
-);
+void apply_button_style(BasePushButton* button, android_button_profile profile);
 void apply_spin_box_style(BaseSpinBox* spin_box);
 void apply_combo_box_style(BaseComboBox* combo_box);
 void apply_check_box_style(BaseCheckBox* check_box);

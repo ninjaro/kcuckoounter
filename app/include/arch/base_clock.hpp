@@ -26,13 +26,13 @@ public:
     void pause();
     void stop();
     void reset();
-    bool is_active() const;
+    [[nodiscard]] bool is_active() const;
 
     void restart_elapsed();
-    qint64 elapsed_time_ms() const;
-    double elapsed_time_sec() const;
-    QString time_string_mm_ss() const;
-    QString time_string_hh_mm_ss() const;
+    [[nodiscard]] qint64 elapsed_time_ms() const;
+    [[nodiscard]] double elapsed_time_sec() const;
+    [[nodiscard]] QString time_string_mm_ss() const;
+    [[nodiscard]] QString time_string_hh_mm_ss() const;
 
     static void single_shot(
         int interval_ms, QObject* context, std::function<void()> handler

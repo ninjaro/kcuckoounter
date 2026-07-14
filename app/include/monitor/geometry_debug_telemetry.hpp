@@ -3,6 +3,7 @@
 
 #include <QMetaType>
 #include <QSize>
+#include <QString>
 #include <QtGlobal>
 
 struct geometry_debug_snapshot {
@@ -13,8 +14,14 @@ struct geometry_debug_snapshot {
     QSize layout_size;
     QSize display_card_size;
     int display_card_need_short_px = 0;
+    qreal device_pixel_ratio = 1.0;
     int active_bucket_px = 0;
     int warming_bucket_px = 0;
+    int cache_window_minimum_need_px = 0;
+    int cache_window_maximum_need_px = 0;
+    int requested_target_bucket_px = 0;
+    QString cache_decision;
+    QString cache_trigger;
     QSize cache_raster_size;
     QSize preloaded_raster_size;
     int coverage_percent = 0;

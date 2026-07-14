@@ -59,9 +59,7 @@ QString score_comment(
 }
 
 QString recorded_score_comment(
-    int position,
-    int score_correct,
-    int score_total,
+    int position, int score_correct, int score_total,
     const BaseClock* clock_timer
 ) {
     return str_label("Recorded at #%1  %2")
@@ -127,7 +125,8 @@ void main_window::finalize_platform_shell() {
     game_menu->addSeparator();
 
     auto* quit_action = KStandardAction::quit(
-        QCoreApplication::instance(), &QCoreApplication::quit, actionCollection()
+        QCoreApplication::instance(), &QCoreApplication::quit,
+        actionCollection()
     );
     if (quit_action != nullptr) {
         game_menu->addAction(quit_action);
@@ -289,9 +288,11 @@ void main_window::record_platform_score() {
         return;
     }
 
-    score_dialog.setComment(main_window_kde_score_support::recorded_score_comment(
-        highscore_position, score_correct, score_total, clock_timer
-    ));
+    score_dialog.setComment(
+        main_window_kde_score_support::recorded_score_comment(
+            highscore_position, score_correct, score_total, clock_timer
+        )
+    );
     score_dialog.exec();
 }
 

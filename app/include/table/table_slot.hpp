@@ -23,7 +23,7 @@ public:
     ~table_slot() override;
 
     void set_swap_selected(bool selected);
-    bool swap_selected() const;
+    [[nodiscard]] bool swap_selected() const;
     void set_rotated(bool rotated);
     void set_allow_skipping(bool allow);
 
@@ -34,18 +34,18 @@ public:
     void trigger_highlight(int duration_ms);
     void tick_highlight(int delta_ms);
     void prepare_card_faces();
-    int card_face_need_short_px() const;
+    [[nodiscard]] int card_face_need_short_px() const;
     void set_shared_card_faces(
         const QVector<QImage>& face_images, const QSize& raster_size
     );
     void clear_shared_card_faces();
-    bool has_shared_card_faces() const;
+    [[nodiscard]] bool has_shared_card_faces() const;
     void set_shared_card_faces_mode(bool enabled);
     void apply_theme();
     void apply_settings_from(const table_slot& source);
     void set_copy_button_text(const QString& text);
-    bool is_deck_exhausted() const;
-    bool is_quiz_prompt_active() const;
+    [[nodiscard]] bool is_deck_exhausted() const;
+    [[nodiscard]] bool is_quiz_prompt_active() const;
 
 signals:
     void swap_clicked(table_slot* slot);
@@ -116,17 +116,18 @@ private:
     void setup_overlay();
     void update_overlay_layout();
     void update_settings_button_state(bool dialog_open = false);
-    void update_infinity_state(BaseCheckBox* check_box, BaseSpinBox* spin_box);
-    bool is_infinity_enabled() const;
-    bool is_training_enabled() const;
+    static void
+    update_infinity_state(BaseCheckBox* check_box, BaseSpinBox* spin_box);
+    [[nodiscard]] bool is_infinity_enabled() const;
+    [[nodiscard]] bool is_training_enabled() const;
     void show_quiz_prompt();
     void clear_quiz_prompt();
     void show_quiz_feedback(const QString& message, bool show_continue);
     void update_quiz_controls_visibility();
-    void update_strategy_weights(const QString& strategy_name);
+    void update_strategy_weights();
     void sync_card_display_settings();
     void update_action_button_state();
-    void apply_palette_to_widget(
+    static void apply_palette_to_widget(
         BaseWidget* widget, const QColor& panel_color,
         const QColor& accent_color, const QColor& input_color
     );

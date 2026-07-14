@@ -30,10 +30,15 @@ QString card_label_from_index(int index);
 QString card_element_id_from_index(int index);
 const QStringList& card_element_ids();
 QString card_back_element_id();
-QStringList required_card_element_ids_with_back();
+QStringList required_card_ids_with_back();
+QImage rasterize_card_face_with_fallback(
+    const QString& preferred_source_path, const QString& logical_element_id,
+    const QSize& raster_size,
+    card_sheet_fallback_resolution* resolution = nullptr
+);
 card_sheet_fallback_resolution
 resolve_required_card_face_sources(const QString& preferred_source_path);
-QVector<QImage> rasterize_required_card_faces_with_fallback(
+QVector<QImage> rasterize_card_faces_with_fallback(
     const QString& preferred_source_path, const QSize& raster_size,
     card_sheet_fallback_resolution* resolution = nullptr
 );

@@ -1,8 +1,10 @@
 #include "table/table_slot.hpp"
 
 #include "arch/android_ui.hpp"
+#include "arch/asset_locator.hpp"
 #include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
+#include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
 #include "settings/theme_settings.hpp"
@@ -25,10 +27,13 @@
 
 #include <algorithm>
 
-static QVector<int> weights_for_strategy_name(const QString& strategy_name) {
-    const QVector<strategy_data> strategies = load_strategies();
-    for (const auto& strategy : strategies) {
-        if (strategy.name == strategy_name) {
+static QVector<int> weights_for_strategy_slug(const QString& strategy_slug) {
+    const strategy_catalog& repository = strategy_repository();
+    if (!repository.is_valid()) {
+        return {};
+    }
+    for (const strategy_data& strategy : repository.strategies) {
+        if (strategy.slug == strategy_slug) {
             return strategy.weights;
         }
     }
@@ -150,7 +155,7 @@ void table_slot::start_quiz(int quiz_type_index) {
     if (card_widget_internal != nullptr) {
         card_widget_internal->set_hide_cards(false);
         card_widget_internal->set_table_marking_source(
-            str_label("assets/cuckoo.svg")
+            bundled_asset_path(QStringLiteral("cuckoo.svg"))
         );
     }
 
@@ -163,7 +168,7 @@ void table_slot::clear_quiz() {
         card_widget_internal->clear_quiz();
         card_widget_internal->set_hide_cards(false);
         card_widget_internal->set_table_marking_source(
-            str_label("assets/cuckoo.svg")
+            bundled_asset_path(QStringLiteral("cuckoo.svg"))
         );
     }
     quiz_prompt_active = false;
@@ -401,6 +406,8 @@ void table_slot::setup_overlay() {
 
     quiz_weight_label = new QLabel(str_label("Weight"), quiz_bar_widget);
     quiz_spin_box = new BaseSpinBox(quiz_bar_widget);
+    quiz_weight_label->setBuddy(quiz_spin_box);
+    quiz_spin_box->setAccessibleName(str_label("Card-count answer"));
     quiz_spin_box->setObjectName(QStringLiteral("quiz_spin_box"));
     quiz_spin_box->setRange(-9999, 9999);
     quiz_spin_box->setValue(0);
@@ -417,6 +424,7 @@ void table_slot::setup_overlay() {
     quiz_skip_button->setText(str_label("Skip"));
     quiz_skip_button->setToolTip(str_label("Skip this question"));
     quiz_feedback_label = new QLabel(quiz_bar_widget);
+    quiz_feedback_label->setAccessibleName(str_label("Answer feedback"));
     quiz_feedback_label->setObjectName(QStringLiteral("quiz_feedback_label"));
     quiz_feedback_label->setWordWrap(true);
     quiz_feedback_label->setVisible(false);
@@ -655,11 +663,6 @@ void table_slot::update_overlay_layout() {
         overlay_layout->addStretch();
         overlay_layout->addWidget(quiz_bar_widget, 0, Qt::AlignCenter);
         overlay_layout->addStretch();
-    } else if (is_rotated) {
-        overlay_layout->addWidget(settings_bar_widget, 0, Qt::AlignCenter);
-        overlay_layout->addStretch();
-        overlay_layout->addWidget(swap_bar_widget, 0, Qt::AlignCenter);
-        overlay_layout->addWidget(quiz_bar_widget, 0, Qt::AlignCenter);
     } else {
         overlay_layout->addWidget(settings_bar_widget, 0, Qt::AlignCenter);
         overlay_layout->addStretch();
@@ -838,8 +841,7 @@ void table_slot::on_settings_button_clicked() {
         );
         QObject::connect(
             dialog_infinity_check_box, &BaseCheckBox::toggled, this,
-            [this, dialog_infinity_check_box,
-             dialog_deck_count_spin_box](bool) {
+            [dialog_infinity_check_box, dialog_deck_count_spin_box](bool) {
                 update_infinity_state(
                     dialog_infinity_check_box, dialog_deck_count_spin_box
                 );
@@ -983,8 +985,20 @@ void table_slot::on_training_check_box_toggled(bool checked) {
 void table_slot::on_strategy_name_changed(const QString& text) {
     if (card_widget_internal != nullptr) {
         card_widget_internal->set_strategy_name(text);
-        update_strategy_weights(text);
+        update_strategy_weights();
     }
+
+    if (strategy_combo_box == nullptr
+        || strategy_combo_box->currentIndex() < 0) {
+        return;
+    }
+    const int index = strategy_combo_box->currentIndex();
+    trainer_preferences preferences = load_trainer_preferences();
+    preferences.preferred_strategy_slug
+        = strategy_combo_box->itemData(index).toString();
+    preferences.preferred_strategy_id
+        = strategy_combo_box->itemData(index, Qt::UserRole + 1).toInt();
+    save_trainer_preferences(preferences);
 }
 
 void table_slot::update_infinity_state(
@@ -1030,10 +1044,13 @@ void table_slot::show_quiz_prompt() {
     if (quiz_bar_widget != nullptr) {
         quiz_bar_widget->show();
     }
+    if (quiz_spin_box != nullptr) {
+        quiz_spin_box->setFocus(Qt::OtherFocusReason);
+    }
     if (card_widget_internal != nullptr) {
         card_widget_internal->set_hide_cards(true);
         card_widget_internal->set_table_marking_source(
-            str_label("assets/mad.svg")
+            bundled_asset_path(QStringLiteral("mad.svg"))
         );
     }
     if (!is_training_enabled()) {
@@ -1057,7 +1074,7 @@ void table_slot::clear_quiz_prompt() {
     if (card_widget_internal != nullptr) {
         card_widget_internal->set_hide_cards(false);
         card_widget_internal->set_table_marking_source(
-            str_label("assets/cuckoo.svg")
+            bundled_asset_path(QStringLiteral("cuckoo.svg"))
         );
     }
     set_paused(current_phase == slot_phase::paused);
@@ -1200,7 +1217,7 @@ void table_slot::sync_card_display_settings() {
     if (strategy_combo_box != nullptr) {
         const QString strategy_name = strategy_combo_box->currentText();
         card_widget_internal->set_strategy_name(strategy_name);
-        update_strategy_weights(strategy_name);
+        update_strategy_weights();
     }
 }
 
@@ -1242,11 +1259,11 @@ void table_slot::show_template_dialog(
     dialog.exec();
 }
 
-void table_slot::update_strategy_weights(const QString& strategy_name) {
-    if (card_widget_internal == nullptr) {
+void table_slot::update_strategy_weights() {
+    if (card_widget_internal == nullptr || strategy_combo_box == nullptr) {
         return;
     }
     card_widget_internal->set_strategy_weights(
-        weights_for_strategy_name(strategy_name)
+        weights_for_strategy_slug(strategy_combo_box->currentData().toString())
     );
 }

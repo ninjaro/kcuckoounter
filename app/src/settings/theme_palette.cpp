@@ -45,8 +45,8 @@ theme_palette_option::theme_palette_option(
     QVector<QColor> swatches
 )
     : label_(std::move(label))
-    , base_color_(std::move(base_color))
-    , accent_color_(std::move(accent_color))
+    , base_color_(base_color)
+    , accent_color_(accent_color)
     , swatches_(std::move(swatches)) { }
 
 const QString& theme_palette_option::label() const { return label_; }

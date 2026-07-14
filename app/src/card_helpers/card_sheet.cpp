@@ -1,5 +1,6 @@
 #include "card_helpers/card_sheet.hpp"
 
+#include "arch/asset_locator.hpp"
 #include "arch/str_label.hpp"
 
 #include <QDir>
@@ -14,6 +15,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 static constexpr int k_ranks_per_suit = 13;
 static constexpr int k_suits_count = 4;
@@ -21,12 +23,13 @@ static constexpr int k_standard_deck_count = k_ranks_per_suit * k_suits_count;
 static constexpr int k_joker_count = 2;
 
 static const QString& default_card_sheet_source_value() {
-    static const QString source = str_label("assets/cards_0.svg");
+    static const QString source
+        = bundled_asset_path(QStringLiteral("cards_0.svg"));
     return source;
 }
 
 static QString bundled_card_theme_path(int theme_index) {
-    return str_label("assets/cards_%1.svg").arg(theme_index);
+    return bundled_asset_path(QStringLiteral("cards_%1.svg").arg(theme_index));
 }
 
 static QString bundled_card_theme_label(int theme_index) {
@@ -53,7 +56,7 @@ static bool card_theme_source_is_reachable(const QString& source_path) {
 }
 
 static QString installed_card_theme_root_name(const QFileInfo& directory_info) {
-    const QString base_name = directory_info.fileName();
+    QString base_name = directory_info.fileName();
     if (!base_name.startsWith(QStringLiteral("svg-"))) {
         return base_name;
     }
@@ -65,18 +68,21 @@ static QString installed_card_theme_label(
 ) {
     QSettings settings(index_path, QSettings::IniFormat);
     settings.beginGroup(QStringLiteral("KDE Backdeck"));
-    const QString name = settings.value(QStringLiteral("Name")).toString().trimmed();
+    const QString name
+        = settings.value(QStringLiteral("Name")).toString().trimmed();
     settings.endGroup();
     return name.isEmpty() ? fallback_label : name;
 }
 
 static QString installed_card_theme_svg_path(const QFileInfo& directory_info) {
     const QDir deck_dir(directory_info.absoluteFilePath());
-    const QString index_path = deck_dir.filePath(QStringLiteral("index.desktop"));
+    const QString index_path
+        = deck_dir.filePath(QStringLiteral("index.desktop"));
     if (QFileInfo::exists(index_path)) {
         QSettings settings(index_path, QSettings::IniFormat);
         settings.beginGroup(QStringLiteral("KDE Backdeck"));
-        const QString svg_name = settings.value(QStringLiteral("SVG")).toString().trimmed();
+        const QString svg_name
+            = settings.value(QStringLiteral("SVG")).toString().trimmed();
         settings.endGroup();
         if (!svg_name.isEmpty()) {
             const QString svg_path = deck_dir.filePath(svg_name);
@@ -95,7 +101,7 @@ static QString installed_card_theme_svg_path(const QFileInfo& directory_info) {
             return file_info.absoluteFilePath();
         }
     }
-    return QString();
+    return {};
 }
 
 static bool card_theme_option_label_less(
@@ -112,11 +118,13 @@ static QVector<card_theme_option> build_available_card_themes() {
             continue;
         }
 
-        themes.push_back(card_theme_option {
-            .label = bundled_card_theme_label(theme_index),
-            .source_path = source_path,
-            .installed = false,
-        });
+        themes.push_back(
+            card_theme_option {
+                .label = bundled_card_theme_label(theme_index),
+                .source_path = source_path,
+                .installed = false,
+            }
+        );
     }
 
     QVector<card_theme_option> installed_themes;
@@ -145,16 +153,19 @@ static QVector<card_theme_option> build_available_card_themes() {
                 continue;
             }
 
-            const QString index_path = QDir(deck_dir.absoluteFilePath())
-                                           .filePath(QStringLiteral("index.desktop"));
+            const QString index_path
+                = QDir(deck_dir.absoluteFilePath())
+                      .filePath(QStringLiteral("index.desktop"));
             const QString label = installed_card_theme_label(
                 index_path, installed_card_theme_root_name(deck_dir)
             );
-            installed_themes.push_back(card_theme_option {
-                .label = str_label("KDE Games: %1").arg(label),
-                .source_path = source_path,
-                .installed = true,
-            });
+            installed_themes.push_back(
+                card_theme_option {
+                    .label = str_label("KDE Games: %1").arg(label),
+                    .source_path = source_path,
+                    .installed = true,
+                }
+            );
             seen_sources.push_back(source_path);
         }
     }
@@ -191,6 +202,178 @@ static const QStringList& suit_ids() {
     return ids;
 }
 
+static void append_unique(QStringList& values, const QString& value) {
+    if (value.isEmpty() || values.contains(value)) {
+        return;
+    }
+    values.append(value);
+}
+
+static int suit_index_from_token(const QString& token) {
+    const QString normalized = token.toLower();
+    const QStringList& suits = suit_ids();
+    for (int index = 0; index < suits.size(); ++index) {
+        if (normalized == suits.at(index)) {
+            return index;
+        }
+    }
+    return -1;
+}
+
+static std::optional<int> rank_index_from_token(const QString& token) {
+    const QString normalized = token.toLower();
+    bool ok = false;
+    const int numeric_rank = normalized.toInt(&ok);
+    if (ok && numeric_rank >= 1 && numeric_rank <= 10) {
+        return numeric_rank - 1;
+    }
+    if (normalized == QStringLiteral("a")
+        || normalized == QStringLiteral("ace")) {
+        return 0;
+    }
+    if (normalized == QStringLiteral("j")
+        || normalized == QStringLiteral("jack")) {
+        return 10;
+    }
+    if (normalized == QStringLiteral("q")
+        || normalized == QStringLiteral("queen")) {
+        return 11;
+    }
+    if (normalized == QStringLiteral("k")
+        || normalized == QStringLiteral("king")) {
+        return 12;
+    }
+    return std::nullopt;
+}
+
+static QString canonical_rank_token(int rank_index) {
+    if (rank_index >= 0 && rank_index <= 9) {
+        return QString::number(rank_index + 1);
+    }
+    if (rank_index == 10) {
+        return str_label("jack");
+    }
+    if (rank_index == 11) {
+        return str_label("queen");
+    }
+    if (rank_index == 12) {
+        return str_label("king");
+    }
+    return {};
+}
+
+static QStringList rank_aliases(int rank_index) {
+    QStringList aliases;
+    append_unique(aliases, canonical_rank_token(rank_index));
+    if (rank_index == 0) {
+        append_unique(aliases, str_label("a"));
+        append_unique(aliases, str_label("ace"));
+    } else if (rank_index == 10) {
+        append_unique(aliases, str_label("j"));
+    } else if (rank_index == 11) {
+        append_unique(aliases, str_label("q"));
+    } else if (rank_index == 12) {
+        append_unique(aliases, str_label("k"));
+    }
+    return aliases;
+}
+
+struct parsed_card_element_id {
+    bool valid = false;
+    int rank_index = -1;
+    int suit_index = -1;
+};
+
+static parsed_card_element_id parse_card_element_id(const QString& element_id) {
+    const QStringList parts
+        = element_id.toLower().split(QChar('_'), Qt::SkipEmptyParts);
+    if (parts.size() != 2) {
+        return {};
+    }
+
+    const int first_suit = suit_index_from_token(parts.at(0));
+    const std::optional<int> second_rank = rank_index_from_token(parts.at(1));
+    if (first_suit >= 0 && second_rank.has_value()) {
+        return {
+            .valid = true,
+            .rank_index = *second_rank,
+            .suit_index = first_suit,
+        };
+    }
+
+    const std::optional<int> first_rank = rank_index_from_token(parts.at(0));
+    const int second_suit = suit_index_from_token(parts.at(1));
+    if (first_rank.has_value() && second_suit >= 0) {
+        return {
+            .valid = true,
+            .rank_index = *first_rank,
+            .suit_index = second_suit,
+        };
+    }
+
+    return {};
+}
+
+static QStringList
+candidate_card_element_ids(const QString& logical_element_id) {
+    QStringList candidates;
+    append_unique(candidates, logical_element_id);
+
+    const QString normalized = logical_element_id.toLower();
+    if (normalized == QStringLiteral("back")) {
+        append_unique(candidates, str_label("card_back"));
+        append_unique(candidates, str_label("cardback"));
+        return candidates;
+    }
+    if (normalized == QStringLiteral("base")) {
+        append_unique(candidates, str_label("card_base"));
+        return candidates;
+    }
+    if (normalized == QStringLiteral("joker_black")) {
+        append_unique(candidates, str_label("black_joker"));
+        append_unique(candidates, str_label("joker_1"));
+        append_unique(candidates, str_label("joker1"));
+        return candidates;
+    }
+    if (normalized == QStringLiteral("joker_red")) {
+        append_unique(candidates, str_label("red_joker"));
+        append_unique(candidates, str_label("joker_2"));
+        append_unique(candidates, str_label("joker2"));
+        return candidates;
+    }
+
+    const parsed_card_element_id parsed
+        = parse_card_element_id(logical_element_id);
+    if (!parsed.valid) {
+        return candidates;
+    }
+
+    const QString& suit = suit_ids().at(parsed.suit_index);
+    const QStringList aliases = rank_aliases(parsed.rank_index);
+    for (const QString& rank : aliases) {
+        append_unique(candidates, str_label("%1_%2").arg(suit, rank));
+        append_unique(candidates, str_label("%1_%2").arg(rank, suit));
+    }
+    return candidates;
+}
+
+static QString resolve_element_id_for_renderer(
+    const QSvgRenderer& renderer, const QString& logical_element_id
+) {
+    if (!renderer.isValid()) {
+        return {};
+    }
+
+    const QStringList candidates
+        = candidate_card_element_ids(logical_element_id);
+    for (const QString& candidate : candidates) {
+        if (renderer.elementExists(candidate)) {
+            return candidate;
+        }
+    }
+    return {};
+}
+
 static QString rank_suit_element_id(int rank_index, int suit_index) {
     const auto& suit_list = suit_ids();
     if (rank_index < 0 || rank_index >= k_ranks_per_suit) {
@@ -216,7 +399,7 @@ static QString rank_suit_element_id(int rank_index, int suit_index) {
     return {};
 }
 
-static QImage normalize_rendered_card_to_base_frame(
+static QImage normalize_card_to_base_frame(
     const QImage& image, const QRectF& element_bounds, const QRectF& base_bounds
 ) {
     if (image.isNull() || !element_bounds.isValid() || !base_bounds.isValid()
@@ -278,7 +461,7 @@ enum class resolved_source_kind {
 };
 
 struct resolved_required_element {
-    QString element_id;
+    QString render_element_id;
     resolved_source_kind source_kind = resolved_source_kind::placeholder;
 };
 
@@ -294,19 +477,20 @@ struct cached_sheet_state {
 };
 
 static card_sheet_cache
-build_card_sheet_cache_for_source(const QString& source_path) {
+build_sheet_cache_for_source(const QString& source_path) {
     const std::pair<int, int> fallback_ratio { 88, 63 };
     QSvgRenderer renderer(source_path);
     if (!renderer.isValid()) {
         return { false, fallback_ratio };
     }
 
-    const QStringList ids = required_card_element_ids_with_back();
+    const QStringList ids = required_card_ids_with_back();
     for (const QString& id : ids) {
-        if (id.isEmpty() || !renderer.elementExists(id)) {
+        const QString render_id = resolve_element_id_for_renderer(renderer, id);
+        if (render_id.isEmpty()) {
             continue;
         }
-        const QRectF bounds = renderer.boundsOnElement(id);
+        const QRectF bounds = renderer.boundsOnElement(render_id);
         if (!bounds.isValid() || bounds.width() <= 0.0
             || bounds.height() <= 0.0) {
             continue;
@@ -324,14 +508,15 @@ build_card_sheet_cache_for_source(const QString& source_path) {
     return { true, fallback_ratio };
 }
 
-static card_sheet_cache cached_card_sheet_for_source(const QString& source_path) {
+static card_sheet_cache
+cached_card_sheet_for_source(const QString& source_path) {
     static cached_sheet_state state;
     if (state.has_value && state.source == source_path) {
         return state.cache;
     }
 
     state.source = source_path;
-    state.cache = build_card_sheet_cache_for_source(source_path);
+    state.cache = build_sheet_cache_for_source(source_path);
     state.has_value = true;
     return state.cache;
 }
@@ -354,23 +539,31 @@ static QVector<resolved_required_element> resolve_required_elements(
 
     card_sheet_fallback_resolution local_resolution;
     QVector<resolved_required_element> resolved_elements;
-    const QStringList required_ids = required_card_element_ids_with_back();
+    const QStringList required_ids = required_card_ids_with_back();
     resolved_elements.reserve(required_ids.size());
     for (const QString& element_id : required_ids) {
         resolved_required_element resolved {
-            .element_id = element_id,
+            .render_element_id = {},
             .source_kind = resolved_source_kind::placeholder,
         };
 
-        if (!element_id.isEmpty() && active_renderer.isValid()
-            && active_renderer.elementExists(element_id)) {
+        const QString active_render_id
+            = resolve_element_id_for_renderer(active_renderer, element_id);
+        if (!active_render_id.isEmpty()) {
+            resolved.render_element_id = active_render_id;
             resolved.source_kind = resolved_source_kind::active_theme;
             local_resolution.active_theme_keys += 1;
-        } else if (!element_id.isEmpty() && fallback_enabled
-                   && fallback_renderer.isValid()
-                   && fallback_renderer.elementExists(element_id)) {
-            resolved.source_kind = resolved_source_kind::default_theme;
-            local_resolution.default_theme_keys += 1;
+        } else if (fallback_enabled) {
+            const QString fallback_render_id = resolve_element_id_for_renderer(
+                fallback_renderer, element_id
+            );
+            if (fallback_render_id.isEmpty()) {
+                local_resolution.placeholder_keys += 1;
+            } else {
+                resolved.render_element_id = fallback_render_id;
+                resolved.source_kind = resolved_source_kind::default_theme;
+                local_resolution.default_theme_keys += 1;
+            }
         } else {
             local_resolution.placeholder_keys += 1;
         }
@@ -384,12 +577,126 @@ static QVector<resolved_required_element> resolve_required_elements(
     return resolved_elements;
 }
 
+static resolved_required_element resolve_single_required_element(
+    const QString& preferred_source_path, const QString& logical_element_id,
+    QSvgRenderer& active_renderer, QSvgRenderer& fallback_renderer,
+    card_sheet_fallback_resolution* resolution
+) {
+    const QString active_source = preferred_source_path.isEmpty()
+        ? default_card_sheet_source_path()
+        : preferred_source_path;
+    const QString fallback_source = default_card_sheet_source_path();
+    const bool fallback_enabled = active_source != fallback_source;
+
+    card_sheet_fallback_resolution local_resolution;
+    resolved_required_element resolved {
+        .render_element_id = {},
+        .source_kind = resolved_source_kind::placeholder,
+    };
+
+    const QString active_render_id
+        = resolve_element_id_for_renderer(active_renderer, logical_element_id);
+    if (!active_render_id.isEmpty()) {
+        resolved.render_element_id = active_render_id;
+        resolved.source_kind = resolved_source_kind::active_theme;
+        local_resolution.active_theme_keys = 1;
+    } else if (fallback_enabled) {
+        const QString fallback_render_id = resolve_element_id_for_renderer(
+            fallback_renderer, logical_element_id
+        );
+        if (!fallback_render_id.isEmpty()) {
+            resolved.render_element_id = fallback_render_id;
+            resolved.source_kind = resolved_source_kind::default_theme;
+            local_resolution.default_theme_keys = 1;
+        } else {
+            local_resolution.placeholder_keys = 1;
+        }
+    } else {
+        local_resolution.placeholder_keys = 1;
+    }
+
+    if (resolution != nullptr) {
+        *resolution = local_resolution;
+    }
+    return resolved;
+}
+
+static QImage render_resolved_card_face(
+    QSvgRenderer& renderer, const QString& render_element_id,
+    const QSize& raster_size
+) {
+    if (raster_size.isEmpty() || render_element_id.isEmpty()
+        || !renderer.isValid() || !renderer.elementExists(render_element_id)) {
+        return {};
+    }
+
+    const QString base_id
+        = resolve_element_id_for_renderer(renderer, str_label("base"));
+    const QRectF element_bounds = renderer.boundsOnElement(render_element_id);
+    const QRectF base_bounds
+        = base_id.isEmpty() ? QRectF() : renderer.boundsOnElement(base_id);
+
+    QImage image(raster_size, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    renderer.render(
+        &painter, render_element_id,
+        QRectF(QPointF(0.0, 0.0), QSizeF(raster_size))
+    );
+    painter.end();
+
+    return normalize_card_to_base_frame(image, element_bounds, base_bounds);
+}
+
+QImage rasterize_card_face_with_fallback(
+    const QString& preferred_source_path, const QString& logical_element_id,
+    const QSize& raster_size, card_sheet_fallback_resolution* resolution
+) {
+    if (logical_element_id.isEmpty() || raster_size.isEmpty()) {
+        if (resolution != nullptr) {
+            *resolution = card_sheet_fallback_resolution {};
+        }
+        return {};
+    }
+
+    const QString active_source = preferred_source_path.isEmpty()
+        ? default_card_sheet_source_path()
+        : preferred_source_path;
+    const QString fallback_source = default_card_sheet_source_path();
+    QSvgRenderer active_renderer(active_source);
+    QSvgRenderer fallback_renderer;
+    const bool fallback_enabled = active_source != fallback_source;
+    if (fallback_enabled) {
+        fallback_renderer.load(fallback_source);
+    }
+
+    const resolved_required_element resolved = resolve_single_required_element(
+        preferred_source_path, logical_element_id, active_renderer,
+        fallback_renderer, resolution
+    );
+    QSvgRenderer* renderer = nullptr;
+    if (resolved.source_kind == resolved_source_kind::active_theme) {
+        renderer = &active_renderer;
+    } else if (
+        resolved.source_kind == resolved_source_kind::default_theme
+        && fallback_enabled
+    ) {
+        renderer = &fallback_renderer;
+    }
+
+    if (renderer == nullptr) {
+        return {};
+    }
+    return render_resolved_card_face(
+        *renderer, resolved.render_element_id, raster_size
+    );
+}
+
 static QStringList build_card_element_ids() {
     QStringList list;
     list.reserve(k_standard_deck_count + k_joker_count);
     for (int suit_index = 0; suit_index < k_suits_count; ++suit_index) {
-        for (int rank_index = 0; rank_index < k_ranks_per_suit;
-             ++rank_index) {
+        for (int rank_index = 0; rank_index < k_ranks_per_suit; ++rank_index) {
             list.append(rank_suit_element_id(rank_index, suit_index));
         }
     }
@@ -405,7 +712,8 @@ QString default_card_sheet_source_path() {
 }
 
 const QVector<card_theme_option>& available_card_themes() {
-    static const QVector<card_theme_option> themes = build_available_card_themes();
+    static const QVector<card_theme_option> themes
+        = build_available_card_themes();
     return themes;
 }
 
@@ -464,7 +772,7 @@ const QStringList& card_element_ids() {
 
 QString card_back_element_id() { return str_label("back"); }
 
-QStringList required_card_element_ids_with_back() {
+QStringList required_card_ids_with_back() {
     QStringList ids = card_element_ids();
     const QString back_id = card_back_element_id();
     if (!back_id.isEmpty()) {
@@ -480,7 +788,7 @@ resolve_required_card_face_sources(const QString& preferred_source_path) {
     return resolution;
 }
 
-QVector<QImage> rasterize_required_card_faces_with_fallback(
+QVector<QImage> rasterize_card_faces_with_fallback(
     const QString& preferred_source_path, const QSize& raster_size,
     card_sheet_fallback_resolution* resolution
 ) {
@@ -507,51 +815,27 @@ QVector<QImage> rasterize_required_card_faces_with_fallback(
         fallback_renderer.load(fallback_source);
     }
 
-    const QString base_id = str_label("base");
-    const QRectF active_base_bounds
-        = active_renderer.isValid() && active_renderer.elementExists(base_id)
-        ? active_renderer.boundsOnElement(base_id)
-        : QRectF();
-    const QRectF fallback_base_bounds = fallback_enabled
-            && fallback_renderer.isValid()
-            && fallback_renderer.elementExists(base_id)
-        ? fallback_renderer.boundsOnElement(base_id)
-        : QRectF();
-
     images.reserve(resolved_elements.size());
-    const QRectF target_rect(QPointF(0.0, 0.0), QSizeF(raster_size));
     for (const resolved_required_element& resolved : resolved_elements) {
         QSvgRenderer* renderer = nullptr;
         if (resolved.source_kind == resolved_source_kind::active_theme
             && active_renderer.isValid()) {
             renderer = &active_renderer;
-        } else if (resolved.source_kind == resolved_source_kind::default_theme
-                   && fallback_enabled && fallback_renderer.isValid()) {
+        } else if (
+            resolved.source_kind == resolved_source_kind::default_theme
+            && fallback_enabled && fallback_renderer.isValid()
+        ) {
             renderer = &fallback_renderer;
         }
 
-        if (renderer == nullptr || resolved.element_id.isEmpty()
-            || !renderer->elementExists(resolved.element_id)) {
+        if (renderer == nullptr || resolved.render_element_id.isEmpty()) {
             images.push_back(QImage());
             continue;
         }
 
-        const QRectF element_bounds
-            = renderer->boundsOnElement(resolved.element_id);
-        const QRectF& base_bounds = renderer == &active_renderer
-            ? active_base_bounds
-            : fallback_base_bounds;
-
-        QImage image(raster_size, QImage::Format_ARGB32_Premultiplied);
-        image.fill(Qt::transparent);
-        QPainter painter(&image);
-        renderer->render(&painter, resolved.element_id, target_rect);
-        painter.end();
-
-        image = normalize_rendered_card_to_base_frame(
-            image, element_bounds, base_bounds
-        );
-        images.push_back(image);
+        images.push_back(render_resolved_card_face(
+            *renderer, resolved.render_element_id, raster_size
+        ));
     }
 
     return images;

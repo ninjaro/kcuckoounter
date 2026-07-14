@@ -37,13 +37,13 @@ private slots:
     void on_finish_triggered();
     void on_show_highscores_triggered();
     void on_settings_triggered();
-    void on_settings_save_and_close_requested();
+    void on_settings_commit_requested();
     void on_settings_dialog_finished(int result);
     void on_export_debug_snapshot_triggered();
-    void on_export_process_memory_report_triggered();
+    void on_export_process_report();
     void on_add_monitor_marker_triggered();
-    void on_set_realistic_cadence_mode_triggered();
-    void on_set_instrumented_cadence_mode_triggered();
+    void on_realistic_cadence_selected();
+    void on_instrumented_cadence_selected();
     void on_toggle_debug_broadcaster_triggered(bool checked);
     void on_application_about_to_quit();
 
@@ -91,9 +91,7 @@ private:
     void setup_platform_shell();
     void finalize_platform_shell();
     void setup_status_surface(BaseVBoxLayout* main_layout);
-    void register_shell_action(
-        BaseAction* action, const QString& action_name
-    );
+    void register_shell_action(BaseAction* action, const QString& action_name);
     void insert_shell_separator();
     void update_status_text();
     void refresh_clock_label() const;
@@ -104,11 +102,12 @@ private:
     void show_game_over_dialog();
     void start_quiz_from_ui();
     void pause_for_dialog();
-    QString debug_status_suffix() const;
+    [[nodiscard]] QString debug_status_suffix() const;
     void add_debug_marker(const QString& label) const;
     void sync_debug_cadence_mode_actions() const;
     void setup_debug_monitoring();
     void dump_debug_telemetry_on_exit() const;
+    void persist_setup_preferences() const;
 };
 
 #endif // KCUCKOOUNTER_MAIN_WINDOW_HPP

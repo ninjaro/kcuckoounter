@@ -57,7 +57,7 @@ void main_window::setup_debug_monitoring() {
     ));
     QObject::connect(
         export_process_memory_report_action, &BaseAction::triggered, this,
-        &main_window::on_export_process_memory_report_triggered
+        &main_window::on_export_process_report
     );
 
     add_monitor_marker_action = new BaseAction(str_label("Add marker"), this);
@@ -103,7 +103,7 @@ void main_window::setup_debug_monitoring() {
     cadence_action_group->addAction(realistic_cadence_mode_action);
     QObject::connect(
         realistic_cadence_mode_action, &BaseAction::triggered, this,
-        &main_window::on_set_realistic_cadence_mode_triggered
+        &main_window::on_realistic_cadence_selected
     );
 
     instrumented_cadence_mode_action
@@ -116,7 +116,7 @@ void main_window::setup_debug_monitoring() {
     cadence_action_group->addAction(instrumented_cadence_mode_action);
     QObject::connect(
         instrumented_cadence_mode_action, &BaseAction::triggered, this,
-        &main_window::on_set_instrumented_cadence_mode_triggered
+        &main_window::on_instrumented_cadence_selected
     );
 
     sync_debug_cadence_mode_actions();

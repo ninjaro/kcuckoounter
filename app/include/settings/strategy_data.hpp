@@ -1,6 +1,7 @@
 #ifndef KCUCKOOUNTER_SETTINGS_STRATEGY_DATA_HPP
 #define KCUCKOOUNTER_SETTINGS_STRATEGY_DATA_HPP
 
+#include <QByteArray>
 #include <QMap>
 #include <QString>
 #include <QStringList>
@@ -31,7 +32,16 @@ struct strategy_data {
     QVector<strategy_reference> references;
 };
 
-QVector<strategy_data> load_strategies();
-QMap<QString, QString> load_strategy_key_descriptions();
+struct strategy_catalog {
+    QVector<strategy_data> strategies;
+    QMap<QString, QString> key_descriptions;
+    QStringList diagnostics;
+
+    [[nodiscard]] bool is_valid() const;
+    [[nodiscard]] QString diagnostic_summary() const;
+};
+
+strategy_catalog parse_strategy_catalog(const QByteArray& json_data);
+const strategy_catalog& strategy_repository();
 
 #endif // KCUCKOOUNTER_SETTINGS_STRATEGY_DATA_HPP

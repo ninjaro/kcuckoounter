@@ -46,11 +46,11 @@ public:
     };
 
     struct entry_key {
-        cache_namespace name_space;
-        resource_kind kind;
+        cache_namespace name_space { cache_namespace::main };
+        resource_kind kind { resource_kind::single_svg };
         QString source_id;
         QString render_scope;
-        int target_bucket_px;
+        int target_bucket_px {};
 
         bool operator==(const entry_key& other) const;
     };
@@ -80,7 +80,7 @@ public:
         QVector<QImage> face_images;
         debug_fallback_usage fallback_usage {};
 
-        bool is_ready() const;
+        [[nodiscard]] bool is_ready() const;
     };
 
     enum class request_state {
@@ -91,13 +91,13 @@ public:
     };
 
     struct submit_outcome {
-        request_state state;
+        request_state state { request_state::cache_hit };
         entry_key key;
         std::optional<result> ready_result;
     };
 
     struct finish_outcome {
-        bool accepted_completion;
+        bool accepted_completion {};
         std::optional<entry_key> next_entry_to_start;
     };
 
@@ -205,6 +205,9 @@ public:
         int deadline_ready_on_time = 0;
         int deadline_ready_late = 0;
         int unique_size_buckets = 0;
+        int ready_order_entries = 0;
+        int diagnostic_request_entries = 0;
+        int diagnostic_timing_entries = 0;
         QVector<debug_size_bucket> size_buckets;
         QVector<debug_largest_entry> largest_entries;
         QVector<debug_requested_entry> top_requested_entries;
@@ -223,9 +226,10 @@ public:
 
     explicit raster_cache(QObject* parent = nullptr);
 
-    std::optional<result> get_if_ready(const entry_key& key) const;
-    std::optional<result>
-    get_if_ready_with_namespace_fallback(const entry_key& key) const;
+    [[nodiscard]] std::optional<result>
+    get_if_ready(const entry_key& key) const;
+    [[nodiscard]] std::optional<result>
+    get_ready_with_namespace_fallback(const entry_key& key) const;
     void insert_or_update_result(const result& new_result);
 
     submit_outcome submit_request(const request& req);
@@ -233,7 +237,7 @@ public:
         const family_key& key, const entry_key& completed_entry
     );
 
-    bool is_in_flight(const family_key& key) const;
+    [[nodiscard]] bool is_in_flight(const family_key& key) const;
     void mark_in_flight(const family_key& key, const entry_key& active_key);
     void clear_in_flight(const family_key& key);
 
@@ -241,9 +245,9 @@ public:
     set_pending_latest(const family_key& key, const entry_key& pending_key);
     std::optional<entry_key> take_pending_latest(const family_key& key);
 
-    int ready_entry_count() const;
-    int ready_entry_count(cache_namespace name_space) const;
-    int in_flight_count() const;
+    [[nodiscard]] int ready_entry_count() const;
+    [[nodiscard]] int ready_entry_count(cache_namespace name_space) const;
+    [[nodiscard]] int in_flight_count() const;
     void note_entry_displayed(
         const entry_key& key,
         debug_consumer_scope consumer = debug_consumer_scope::unknown
@@ -254,7 +258,7 @@ public:
     );
     void set_namespace_entry_limit(cache_namespace name_space, int limit);
     bool erase_result(const entry_key& key);
-    debug_snapshot get_debug_snapshot() const;
+    [[nodiscard]] debug_snapshot get_debug_snapshot() const;
     debug_delta_counters take_interval_deltas();
 
 signals:
@@ -310,7 +314,7 @@ private:
     QHash<family_key, family_state> families;
     qint64 ready_bytes = 0;
     int ready_images = 0;
-    qint64 widget_local_always_rasterized_bytes_estimated = 0;
+    qint64 local_raster_bytes_estimated = 0;
     int high_water_ready_entries = 0;
     qint64 high_water_ready_bytes = 0;
     int high_water_ready_images = 0;
@@ -333,9 +337,10 @@ private:
 
     static constexpr qint64 displayed_entry_window_ms = 2000;
     static constexpr double widget_scaled_layer_ratio_estimate
-        = 1.0 / (1.75 * 1.75);
+        = 1.0 / (1.25 * 1.25);
 
     void enforce_namespace_limit(cache_namespace name_space);
+    bool remove_entry_metadata(const entry_key& key);
     static qint64 estimate_result_bytes(const result& value);
     static qint64 estimate_widget_local_scaled_bytes(
         const entry_key& key, qint64 cache_accounted_bytes

@@ -1,5 +1,6 @@
 #include "table/card_widget.hpp"
 
+#include "arch/asset_locator.hpp"
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
 #include "settings/theme_settings.hpp"
@@ -63,7 +64,7 @@ card_widget::blend_color(const QColor& from, const QColor& to, qreal strength) {
 QVector<QImage> card_widget::rasterize_card_faces(
     const QString& source, const QSize& raster_size
 ) {
-    return rasterize_required_card_faces_with_fallback(source, raster_size);
+    return rasterize_card_faces_with_fallback(source, raster_size);
 }
 
 void card_rasterize_watcher::waitForFinished() {
@@ -97,7 +98,7 @@ card_widget::card_widget(BaseWidget* parent)
     , highlight_remaining_ms(0)
     , highlight_active(false)
     , hide_cards_flag(false)
-    , table_marking(str_label("assets/cuckoo.svg"))
+    , table_marking(bundled_asset_path(QStringLiteral("cuckoo.svg")))
     , card_sheet_source(card_sheet_source_path())
     , card_sheet_renderer()
     , card_faces()
@@ -117,6 +118,8 @@ card_widget::card_widget(BaseWidget* parent)
         selection_timer.get(), &time_interface::timeout, this,
         &card_widget::update_selection_pulse
     );
+    setAccessibleName(str_label("Playing card"));
+    setAccessibleDescription(str_label("Empty card slot"));
     QObject::connect(
         &rasterize_watcher, &QFutureWatcher<QVector<QImage>>::finished, this,
         &card_widget::on_rasterization_finished
@@ -154,9 +157,7 @@ void card_widget::start_quiz(
         requested_decks_count = 1;
     }
 
-    picker.setup(
-        total_per_deck, requested_decks_count, infinity_enabled_flag
-    );
+    picker.setup(total_per_deck, requested_decks_count, infinity_enabled_flag);
     cards_per_deck = total_per_deck;
     decks_count = requested_decks_count;
     infinity_enabled = infinity_enabled_flag;
@@ -256,6 +257,13 @@ void card_widget::advance_card() {
 
     record_discard();
     picker.advance();
+    const int current_card_index = picker.current_card_index();
+    setAccessibleDescription(
+        current_card_index >= 0
+            ? str_label("Current card: %1")
+                  .arg(card_label_from_index(current_card_index))
+            : str_label("Card back")
+    );
     ++picks_since_rasterize;
     update_card_jitter();
     update();
@@ -628,7 +636,7 @@ QSize card_widget::card_face_target_size() const {
     const QRectF slot_rect = rect().adjusted(3.0, 3.0, -3.0, -3.0);
     const qreal min_dim = std::min(slot_rect.width(), slot_rect.height());
     if (min_dim <= 0.0) {
-        return QSize();
+        return {};
     }
     const qreal frame_margin = std::clamp(min_dim * 0.05, 4.0, 10.0);
     const QRectF slot_frame_rect = slot_rect.adjusted(
@@ -638,7 +646,7 @@ QSize card_widget::card_face_target_size() const {
     const QRectF card_rect
         = slot_frame_rect.adjusted(inset, inset, -inset, -inset);
     if (card_rect.isEmpty()) {
-        return QSize();
+        return {};
     }
     const bool slot_is_horizontal = !slot_rotated;
     const QSizeF oriented_card_size = slot_is_horizontal
@@ -647,9 +655,9 @@ QSize card_widget::card_face_target_size() const {
     return oriented_card_size.toSize().expandedTo(QSize(1, 1));
 }
 
-QSize card_widget::raster_cache_size(const QSize& target_size) const {
+QSize card_widget::raster_cache_size(const QSize& target_size) {
     if (target_size.isEmpty()) {
-        return QSize();
+        return {};
     }
     const qreal base_scale = 1.75;
     const qreal min_side = std::min(target_size.width(), target_size.height());
@@ -662,7 +670,7 @@ QSize card_widget::raster_cache_size(const QSize& target_size) const {
     const int height = std::max(
         1, static_cast<int>(std::ceil(target_size.height() * scale))
     );
-    return QSize(width, height);
+    return { width, height };
 }
 
 void card_widget::update_card_faces(const QSize& target_size) {
@@ -791,7 +799,7 @@ void card_widget::set_rasterizing(bool active) {
 void card_widget::apply_card_transform(
     QPainter& painter, const QRectF& oriented_card_rect,
     qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset
-) const {
+) {
     const QPointF transform_center = oriented_card_rect.center() + offset;
     painter.translate(transform_center);
     painter.rotate(rotation_deg + slot_rotation_deg);
@@ -841,12 +849,12 @@ void card_widget::draw_table_marking(
 
 QString card_widget::current_index_text() const {
     if (!show_card_indexing_flag) {
-        return QString();
+        return {};
     }
 
     const int position = picker.current_position();
     if (position < 0) {
-        return QString();
+        return {};
     }
 
     const int current_value = position + 1;
@@ -890,7 +898,7 @@ void card_widget::draw_card_shape(
     QPainter& painter, const QRectF& oriented_card_rect,
     qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
     const QColor& fill, const QColor& border
-) const {
+) {
     painter.save();
     apply_card_transform(
         painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
@@ -905,7 +913,7 @@ void card_widget::draw_card_pixmap(
     QPainter& painter, const QRectF& oriented_card_rect,
     qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
     const QPixmap& pixmap
-) const {
+) {
     painter.save();
     apply_card_transform(
         painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
@@ -918,7 +926,7 @@ void card_widget::draw_card_text(
     QPainter& painter, const QRectF& oriented_card_rect,
     qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
     const QString& text
-) const {
+) {
     QFont font = painter.font();
     font.setBold(true);
     font.setPointSizeF(compute_font_point_size(oriented_card_rect));
@@ -943,7 +951,7 @@ void card_widget::draw_card_center_text(
     QPainter& painter, const QRectF& oriented_card_rect,
     qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
     const QString& text
-) const {
+) {
     QFont font = painter.font();
     font.setBold(true);
     font.setPointSizeF(compute_font_point_size(oriented_card_rect));

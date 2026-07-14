@@ -19,11 +19,8 @@ public:
 };
 
 QString button_style_sheet(
-    int minimum_height,
-    int vertical_padding,
-    int horizontal_padding,
-    int border_radius,
-    int font_weight
+    int minimum_height, int vertical_padding, int horizontal_padding,
+    int border_radius, int font_weight
 ) {
     return QString(
                "QPushButton {"
@@ -32,7 +29,7 @@ QString button_style_sheet(
                " border-radius: %4px;"
                " font-weight: %5;"
                "}"
-           )
+    )
         .arg(minimum_height)
         .arg(vertical_padding)
         .arg(horizontal_padding)
@@ -76,9 +73,7 @@ void apply_android_spin_box_style(BaseSpinBox* spin_box) {
     }
 
     spin_box->setMinimumHeight(40);
-    spin_box->setStyleSheet(
-        QStringLiteral("QSpinBox { padding: 6px 10px; }")
-    );
+    spin_box->setStyleSheet(QStringLiteral("QSpinBox { padding: 6px 10px; }"));
 }
 
 void apply_android_combo_box_style(BaseComboBox* combo_box) {

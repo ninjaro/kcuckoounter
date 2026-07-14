@@ -35,7 +35,7 @@ void main_window::on_export_debug_snapshot_triggered() {
 #endif
 }
 
-void main_window::on_export_process_memory_report_triggered() {
+void main_window::on_export_process_report() {
 #if defined(NDEBUG)
     return;
 #else
@@ -71,7 +71,7 @@ void main_window::on_add_monitor_marker_triggered() {
 #endif
 }
 
-void main_window::on_set_realistic_cadence_mode_triggered() {
+void main_window::on_realistic_cadence_selected() {
 #if defined(NDEBUG)
     return;
 #else
@@ -88,7 +88,7 @@ void main_window::on_set_realistic_cadence_mode_triggered() {
 #endif
 }
 
-void main_window::on_set_instrumented_cadence_mode_triggered() {
+void main_window::on_instrumented_cadence_selected() {
 #if defined(NDEBUG)
     return;
 #else
@@ -168,7 +168,7 @@ QString main_window::debug_status_suffix() const {
     return QString();
 #else
     if (debug_telemetry_collector == nullptr) {
-        return QString();
+        return {};
     }
 
     const bool instrumented
@@ -177,10 +177,7 @@ QString main_window::debug_status_suffix() const {
     const bool broadcaster_enabled
         = debug_telemetry_collector->is_debug_broadcaster_enabled();
     return str_label("  Debug cadence: %1  Broadcaster: %2")
-        .arg(
-            instrumented ? str_label("instrumented")
-                         : str_label("realistic")
-        )
+        .arg(instrumented ? str_label("instrumented") : str_label("realistic"))
         .arg(broadcaster_enabled ? str_label("on") : str_label("off"));
 #endif
 }

@@ -22,10 +22,10 @@ public:
     explicit settings_shared_state(QObject* parent = nullptr);
 
     void set_default_suit(int index);
-    int default_suit() const;
+    [[nodiscard]] int default_suit() const;
 
     void set_table_color_index(int index);
-    int table_color_index() const;
+    [[nodiscard]] int table_color_index() const;
 
 signals:
     void default_suit_changed(int index);
@@ -64,7 +64,7 @@ private:
     void setup_ui(const QString& selected_strategy);
     void setup_strategy_ui(const QString& selected_strategy);
     void setup_appearance_ui();
-    void sync_theme_combo_box_with_shared_state(int index);
+    void sync_theme_combo_shared_state(int index);
     void on_theme_source_button_clicked(QAbstractButton* button);
     void update_strategy_details(int index);
     void update_theme_carousel(int suit_index);
@@ -72,15 +72,13 @@ private:
     QString selected_theme_source_id() const;
     void update_weights_carousel(int suit_index);
     void update_suit_selection(int index);
-    QPixmap request_active_theme_preview_card(
-        int card_index, const QSize& size
-    );
+    QPixmap
+    request_active_theme_preview_card(int card_index, const QSize& size);
     QPixmap request_theme_preview_card(
         int card_index, int suit_index, const QSize& size
     );
-    QPixmap request_active_weighted_preview_card(
-        int card_index, const QSize& size
-    );
+    QPixmap
+    request_active_weighted_preview_card(int card_index, const QSize& size);
     QPixmap request_weighted_preview_card(
         int card_index, int suit_index, const QSize& size
     );
@@ -95,17 +93,16 @@ private:
     bool
     is_theme_preview_key_relevant(const raster_cache::entry_key& key) const;
     void prune_pending_theme_preview_queue();
-    void
-    on_theme_preview_cache_result_updated(const raster_cache::entry_key& key);
+    void on_theme_preview_cache_updated(const raster_cache::entry_key& key);
     void flush_coalesced_preview_refresh();
-    void clear_all_displayed_theme_preview_entries();
+    void clear_displayed_theme_entries();
     void mark_preview_refresh_pending(bool theme_preview, bool weights_preview);
-    void note_displayed_theme_preview_entry(
+    static void note_displayed_theme_preview_entry(
         const raster_cache::entry_key& key,
         raster_cache::debug_consumer_scope consumer,
         QSet<raster_cache::entry_key>& tracked_keys
     );
-    void clear_displayed_theme_preview_entries(
+    static void clear_displayed_theme_preview_entries(
         raster_cache::debug_consumer_scope consumer,
         QSet<raster_cache::entry_key>& tracked_keys
     );
@@ -128,7 +125,8 @@ private:
         const QString& source_id, int target_bucket_px, qint64 generation_id
     );
     static QImage render_theme_preview_face_image(
-        const QString& source_id, const QString& element_id, int target_bucket_px
+        const QString& source_id, const QString& element_id,
+        int target_bucket_px
     );
 
     settings_tab_kind tab_kind;
@@ -157,11 +155,11 @@ private:
     QString active_theme_preview_source_id;
     int active_theme_preview_bucket_px;
     qint64 active_theme_preview_generation_id;
-    QSet<QString> active_theme_preview_requested_element_ids;
+    QSet<QString> active_preview_element_ids;
     QString warming_theme_preview_source_id;
     int warming_theme_preview_bucket_px;
     qint64 warming_theme_preview_generation_id;
-    QSet<QString> warming_theme_preview_requested_element_ids;
+    QSet<QString> warming_preview_element_ids;
     qint64 next_theme_preview_generation_id;
     QFutureWatcher<QImage> theme_preview_render_watcher;
     std::optional<raster_cache::entry_key> active_theme_preview_render_key;

@@ -10,7 +10,10 @@
 
 class image_cacher {
 public:
-    explicit image_cacher(const QString& source_path_value = QString());
+    explicit image_cacher(
+        const QString& source_path_value = QString(),
+        raster_cache* cache_service = nullptr
+    );
     ~image_cacher();
 
     void set_source(const QString& new_source_path);
@@ -18,12 +21,12 @@ public:
     void set_base_scale(qreal new_base_scale);
     void set_min_short_px(int new_min_short_px);
     void set_cache_namespace(raster_cache::cache_namespace new_namespace);
-    raster_cache::cache_namespace cache_namespace() const;
+    [[nodiscard]] raster_cache::cache_namespace cache_namespace() const;
 
-    QSize display_size() const;
-    const QPixmap& pixmap() const;
-    bool is_ready() const;
-    bool has_source() const;
+    [[nodiscard]] QSize display_size() const;
+    [[nodiscard]] const QPixmap& pixmap() const;
+    [[nodiscard]] bool is_ready() const;
+    [[nodiscard]] bool has_source() const;
 
 private:
     QString source_path;
@@ -33,11 +36,13 @@ private:
     qreal base_scale;
     int min_short_px;
     raster_cache::cache_namespace name_space;
+    raster_cache* cache_service_value;
     std::optional<raster_cache::entry_key> displayed_entry_key;
 
-    QSize raster_cache_size(const QSize& desired_size) const;
+    [[nodiscard]] QSize raster_cache_size(const QSize& desired_size) const;
+    [[nodiscard]] raster_cache& cache_service() const;
     void clear_display_tracking();
-    void rasterize();
+    void rasterize(bool force = false);
 };
 
 #endif // KCUCKOOUNTER_IMAGE_IMAGE_CACHER_HPP

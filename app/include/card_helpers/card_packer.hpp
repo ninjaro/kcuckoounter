@@ -321,7 +321,8 @@ private:
      * @return The maximal theoretical uniform scale factor by pure area
      *         considerations.
      */
-    double max_scale(double width, double height, size_t count) const;
+    [[nodiscard]] double
+    max_scale(double width, double height, size_t count) const;
 
     /**
      * @brief Target number of cards requested by the caller.

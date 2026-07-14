@@ -13,12 +13,12 @@ public:
     void advance();
     void mark_depleted();
 
-    bool has_cards() const;
-    int current_card_index() const;
-    int current_position() const;
-    int total_cards() const;
-    bool is_depleted() const;
-    int card_index_at(int position) const;
+    [[nodiscard]] bool has_cards() const;
+    [[nodiscard]] int current_card_index() const;
+    [[nodiscard]] int current_position() const;
+    [[nodiscard]] int total_cards() const;
+    [[nodiscard]] bool is_depleted() const;
+    [[nodiscard]] int card_index_at(int position) const;
 
 private:
     void fill_deck(int cards_per_deck, int decks_count);

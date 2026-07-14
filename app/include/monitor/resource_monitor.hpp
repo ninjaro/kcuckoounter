@@ -5,6 +5,7 @@
 #include "monitor/debug_probe_core.hpp"
 #include "monitor/geometry_debug_telemetry.hpp"
 
+#include <QByteArray>
 #include <QElapsedTimer>
 #include <QFutureWatcher>
 #include <QJsonObject>
@@ -17,6 +18,7 @@
 #include <optional>
 
 class debug_broadcaster;
+class resize_history_writer;
 
 class resource_monitor : public QObject {
     Q_OBJECT
@@ -38,35 +40,37 @@ public:
     explicit resource_monitor(
         QObject* parent = nullptr, int max_timeline_entries = 256
     );
+    ~resource_monitor() override;
 
     void attach_cache_service(raster_cache* cache_service);
     void attach_table_service(QObject* table_service);
-    int max_timeline_entries() const;
-    int timeline_size() const;
-    int event_timeline_size() const;
-    int geometry_timeline_size() const;
-    int resize_history_size() const;
-    bool has_cache_snapshot() const;
-    bool has_geometry_snapshot() const;
-    cache_timeline_entry latest_cache_snapshot() const;
-    geometry_debug_snapshot latest_geometry_snapshot() const;
-    QVector<cache_timeline_entry> cache_timeline() const;
-    QVector<event_timeline_entry> event_timeline() const;
-    QVector<geometry_debug_snapshot> geometry_timeline() const;
-    QVector<resize_history_entry> resize_history() const;
-    QString resize_history_log_path() const;
+    [[nodiscard]] int max_timeline_entries() const;
+    [[nodiscard]] int timeline_size() const;
+    [[nodiscard]] int event_timeline_size() const;
+    [[nodiscard]] int geometry_timeline_size() const;
+    [[nodiscard]] int resize_history_size() const;
+    [[nodiscard]] bool has_cache_snapshot() const;
+    [[nodiscard]] bool has_geometry_snapshot() const;
+    [[nodiscard]] cache_timeline_entry latest_cache_snapshot() const;
+    [[nodiscard]] geometry_debug_snapshot latest_geometry_snapshot() const;
+    [[nodiscard]] QVector<cache_timeline_entry> cache_timeline() const;
+    [[nodiscard]] QVector<event_timeline_entry> event_timeline() const;
+    [[nodiscard]] QVector<geometry_debug_snapshot> geometry_timeline() const;
+    [[nodiscard]] QVector<resize_history_entry> resize_history() const;
+    [[nodiscard]] QString resize_history_log_path() const;
+    [[nodiscard]] QJsonObject resize_history_writer_runtime_state() const;
     void add_manual_marker(const QString& label);
     void set_debug_cadence_mode(debug_cadence_mode mode);
-    debug_cadence_mode get_debug_cadence_mode() const;
-    export_request_metadata latest_export_metadata() const;
-    auto_process_report_runtime_state
-    current_auto_process_report_runtime_state() const;
-    qint64 latest_process_rss_bytes() const;
-    qint64 process_memory_sample_interval_ms() const;
+    [[nodiscard]] debug_cadence_mode get_debug_cadence_mode() const;
+    [[nodiscard]] export_request_metadata latest_export_metadata() const;
+    [[nodiscard]] auto_process_report_runtime_state
+    current_auto_report_state() const;
+    [[nodiscard]] qint64 latest_process_rss_bytes() const;
+    [[nodiscard]] qint64 process_memory_sample_interval_ms() const;
     void set_debug_broadcaster_enabled(bool enabled);
-    bool is_debug_broadcaster_enabled() const;
-    QString debug_broadcaster_endpoint_name() const;
-    QJsonObject debug_broadcaster_runtime_state() const;
+    [[nodiscard]] bool is_debug_broadcaster_enabled() const;
+    [[nodiscard]] QString debug_broadcaster_endpoint_name() const;
+    [[nodiscard]] QJsonObject debug_broadcaster_runtime_state() const;
     void export_debug_snapshot_async(const QString& output_path);
     void export_process_memory_report_async(const QString& output_path);
     bool export_debug_snapshot_sync(
@@ -75,7 +79,7 @@ public:
     bool export_process_memory_report_sync(
         const QString& output_path, QString* error_message = nullptr
     ) const;
-    void set_auto_process_report_policy_for_tests(
+    void set_test_auto_report_policy(
         qint64 rss_growth_threshold_bytes, qint64 cooldown_ms,
         qint64 consecutive_growth_hits_required = 1
     );
@@ -96,6 +100,9 @@ signals:
         const QString& output_path, bool success, const QString& error_message
     );
     void debug_broadcaster_state_changed();
+    void resize_history_persistence_warning(
+        const QString& warning_code, const QString& warning_message
+    );
 
 private slots:
     void
@@ -110,7 +117,7 @@ private slots:
         const QString& warning_code, const QString& warning_message
     );
     void on_snapshot_export_watcher_finished();
-    void on_process_memory_report_export_watcher_finished();
+    void on_memory_export_finished();
 
 private:
     struct pending_resize_transition {
@@ -131,6 +138,7 @@ private:
     QVector<resize_history_entry> resize_history_entries;
     std::optional<pending_resize_transition> pending_resize_transition_state;
     QString resize_history_log_stream_path;
+    resize_history_writer* resize_history_log_writer;
     export_request_metadata last_export_metadata;
     QFutureWatcher<QString>* active_export_watcher;
     QFutureWatcher<QString>* active_process_report_export_watcher;
@@ -139,21 +147,22 @@ private:
     qint64 current_process_rss_bytes;
     QString current_process_rss_source;
     QString current_process_rss_unavailable_reason;
-    qint64 auto_process_dump_rss_growth_threshold_bytes;
+    qint64 auto_dump_growth_threshold_bytes;
     qint64 auto_process_dump_cooldown_ms;
-    bool auto_process_dump_policy_override_for_tests;
-    qint64 auto_process_dump_consecutive_growth_hits_required_override;
-    qint64 auto_process_dump_last_trigger_ms;
-    qint64 auto_process_dump_baseline_rss_bytes;
-    qint64 auto_process_dump_consecutive_growth_hits;
-    qint64 auto_process_dump_window_start_ms;
-    qint64 auto_process_dump_window_exports_used;
+    bool auto_dump_test_policy_override;
+    qint64 auto_dump_required_hits_override;
+    qint64 auto_dump_last_trigger_ms;
+    qint64 auto_dump_baseline_rss_bytes;
+    qint64 auto_dump_growth_hits;
+    qint64 auto_dump_window_start_ms;
+    qint64 auto_dump_exports_used;
     QString protocol_app_name;
     QString protocol_session_id;
     QString protocol_build_id;
     QStringList protocol_debug_flags;
     debug_broadcaster* telemetry_broadcaster;
     QElapsedTimer broadcaster_monotonic_clock;
+    QByteArray last_broadcast_cache_decision_signature;
     QTimer process_sampling_timer;
 
     void push_event_entry(
@@ -166,26 +175,33 @@ private:
         qint64 transition_end_timestamp_ms, qint64 prewarm_completion_ms
     );
     void append_resize_history_entry_async(const resize_history_entry& entry);
-    void initialize_resize_history_log_stream_path_if_needed();
-    void maybe_trigger_auto_process_report(
-        qint64 cache_accounted_ready_bytes_delta_hint = 0
-    );
-    void refresh_process_memory_sample_if_needed();
-    qint64 process_sample_interval_ms_for_mode() const;
-    qint64 auto_process_dump_rss_growth_threshold_bytes_effective() const;
-    qint64 auto_process_dump_cooldown_ms_effective() const;
-    qint64 auto_process_dump_rss_growth_since_baseline_bytes() const;
-    qint64 auto_process_dump_cooldown_remaining_ms(qint64 now_ms) const;
-    qint64 auto_process_dump_consecutive_growth_hits_required() const;
-    qint64 auto_process_dump_window_ms_effective() const;
-    qint64 auto_process_dump_window_max_exports_effective() const;
+    void ensure_resize_history_path();
+    void maybe_trigger_auto_process_report(qint64 ready_bytes_delta_hint = 0);
+    void refresh_memory_sample_if_needed();
+    void refresh_process_memory_sample_now();
+    [[nodiscard]] qint64 sample_interval_ms_for_mode() const;
+    [[nodiscard]] qint64 auto_dump_growth_threshold() const;
+    [[nodiscard]] qint64 auto_dump_cooldown_ms() const;
+    [[nodiscard]] qint64 auto_dump_growth_from_baseline() const;
+    [[nodiscard]] qint64 auto_dump_cooldown_remaining(qint64 now_ms) const;
+    [[nodiscard]] qint64 auto_dump_required_hits() const;
+    [[nodiscard]] qint64 auto_dump_window_ms() const;
+    [[nodiscard]] qint64 auto_dump_max_exports() const;
     static QString cadence_mode_to_string(debug_cadence_mode mode);
-    qint64 broadcaster_monotonic_timestamp_ms() const;
-    debug_probe_core::protocol_identity broadcaster_protocol_identity() const;
+    [[nodiscard]] qint64 broadcaster_monotonic_timestamp_ms() const;
+    [[nodiscard]] bool broadcaster_listener_is_ready() const;
+    [[nodiscard]] debug_probe_core::protocol_identity
+    broadcaster_protocol_identity() const;
     void publish_broadcaster_session_start();
     void publish_broadcaster_session_end(const QString& reason);
     void publish_broadcaster_sample_batch(const cache_timeline_entry& entry);
     void publish_broadcaster_event(const event_timeline_entry& entry);
+    void publish_broadcaster_resize_transition(
+        const resize_transition_debug_event& event
+    );
+    void
+    publish_broadcaster_layout_transition(const resize_history_entry& entry);
+    void publish_cache_decision_change(const geometry_debug_snapshot& geometry);
     void publish_broadcaster_snapshot_now();
     void publish_broadcaster_warning(
         const QString& warning_code, const QString& warning_message

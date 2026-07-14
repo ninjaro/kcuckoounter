@@ -61,6 +61,7 @@ signals:
     );
 
 protected:
+    bool event(QEvent* event) override;
     void paintEvent(QPaintEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
 
@@ -76,6 +77,16 @@ private slots:
 
 private:
     enum class dealing_mode { sequential, random, simultaneous };
+    enum class cache_update_trigger {
+        runtime,
+        slot_count_change,
+        window_resize,
+        screen_change,
+        game_start,
+        quiz_state_change,
+        theme_change,
+        raster_completion,
+    };
 
     std::vector<table_slot*> slot_widgets;
     table_slot* swap_source_slot;
@@ -93,6 +104,9 @@ private:
     random_generator random_gen;
     std::unique_ptr<time_interface> preload_timer;
     rasterization_runner main_faces_runner;
+    rasterization_runner::decision_kind last_cache_decision;
+    cache_update_trigger last_cache_trigger;
+    int last_requested_target_bucket_px;
     raster_cache raster_cache_service;
     QFutureWatcher<QVector<QImage>> shared_faces_watcher;
     std::optional<raster_cache::entry_key> active_shared_faces_key;
@@ -110,20 +124,31 @@ private:
     qint64 next_shared_generation_id;
     QSet<raster_cache::entry_key> retained_shared_faces_keys;
     int rasterization_delay_ms() const;
-    int compute_max_card_face_need_short_px() const;
-    void update_shared_card_face_need(bool immediate = false);
+    int max_card_need_short_px() const;
+    void update_shared_card_face_need(
+        bool immediate = false,
+        cache_update_trigger trigger = cache_update_trigger::runtime,
+        bool force = false
+    );
+    void record_cache_evaluation(
+        const rasterization_runner::evaluation& evaluation,
+        cache_update_trigger trigger
+    );
+    static QString
+    cache_decision_label(rasterization_runner::decision_kind decision);
+    static QString cache_trigger_label(cache_update_trigger trigger);
     void clear_shared_card_faces();
     static QString generation_render_scope(qint64 generation_id);
     static qint64 generation_id_from_render_scope(const QString& render_scope);
-    raster_cache::entry_key entry_key_for_generation(
+    static raster_cache::entry_key entry_key_for_generation(
         const QString& source_id, int target_bucket_px, qint64 generation_id
-    ) const;
+    );
     void
     begin_warming_generation(const QString& source_id, int target_bucket_px);
     void retire_warming_generation();
     bool start_shared_raster_for_key(const raster_cache::entry_key& key);
     void cutover_to_ready_generation(const raster_cache::entry_key& key);
-    void apply_shared_card_faces_from_entry(const raster_cache::entry_key& key);
+    void apply_shared_faces_entry(const raster_cache::entry_key& key);
     void remember_shared_faces_key(const raster_cache::entry_key& key);
     void forget_shared_faces_key(const raster_cache::entry_key& key);
     void enforce_shared_generation_bounds();

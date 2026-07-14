@@ -15,12 +15,12 @@ public:
         QVector<QColor> swatches
     );
 
-    const QString& label() const;
-    const QColor& base_color() const;
-    const QColor& accent_color() const;
-    QColor input_color() const;
-    QColor panel_color() const;
-    const QVector<QColor>& swatches() const;
+    [[nodiscard]] const QString& label() const;
+    [[nodiscard]] const QColor& base_color() const;
+    [[nodiscard]] const QColor& accent_color() const;
+    [[nodiscard]] QColor input_color() const;
+    [[nodiscard]] QColor panel_color() const;
+    [[nodiscard]] const QVector<QColor>& swatches() const;
 
 private:
     QString label_;

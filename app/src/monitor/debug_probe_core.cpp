@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 
+#include <algorithm>
 #include <cmath>
 
 QJsonObject debug_probe_core::metric_catalog_entry(
@@ -73,11 +74,11 @@ QJsonObject debug_probe_core::build_protocol_v1_envelope(
     );
     protocol.insert(
         QStringLiteral("required_metric_hint_fields"),
-        debug_probe_core::protocol_required_metric_hint_fields_v1()
+        debug_probe_core::required_metric_hint_fields_v1()
     );
     protocol.insert(
         QStringLiteral("card_image_domain_hint_fields"),
-        debug_probe_core::protocol_card_image_domain_hint_fields_v1()
+        debug_probe_core::card_image_domain_hints_v1()
     );
     protocol.insert(
         QStringLiteral("capabilities"),
@@ -113,8 +114,7 @@ QString debug_probe_core::cadence_mode_to_string(debug_cadence_mode mode) {
     }
 }
 
-qint64
-debug_probe_core::process_sample_interval_ms_for_mode(debug_cadence_mode mode) {
+qint64 debug_probe_core::sample_interval_ms_for_mode(debug_cadence_mode mode) {
     switch (mode) {
     case debug_cadence_mode::instrumented:
         return 1000;
@@ -125,7 +125,7 @@ debug_probe_core::process_sample_interval_ms_for_mode(debug_cadence_mode mode) {
 }
 
 debug_probe_core::auto_process_report_policy
-debug_probe_core::auto_process_report_policy_for_mode(debug_cadence_mode mode) {
+debug_probe_core::auto_report_policy_for_mode(debug_cadence_mode mode) {
     const qint64 one_hour_ms = 60 * 60 * 1000;
     switch (mode) {
     case debug_cadence_mode::instrumented:
@@ -200,7 +200,7 @@ QJsonArray debug_probe_core::protocol_required_identity_fields_v1() {
     );
 }
 
-QJsonArray debug_probe_core::protocol_required_metric_hint_fields_v1() {
+QJsonArray debug_probe_core::required_metric_hint_fields_v1() {
     return debug_probe_json_helpers::string_list_to_json_array(
         {
             QStringLiteral("kind"),
@@ -217,7 +217,7 @@ QJsonArray debug_probe_core::protocol_required_metric_hint_fields_v1() {
     );
 }
 
-QJsonArray debug_probe_core::protocol_card_image_domain_hint_fields_v1() {
+QJsonArray debug_probe_core::card_image_domain_hints_v1() {
     return debug_probe_json_helpers::string_list_to_json_array(
         {
             QStringLiteral("cache_namespace"),
@@ -323,27 +323,235 @@ QJsonArray debug_probe_core::protocol_metric_catalog_v1() {
         QStringLiteral("exact"), QStringLiteral("secondary"),
         QStringLiteral("cards.image")
     ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("cache_ready_entries"), QStringLiteral("count"),
+        QStringLiteral("accounted"), QStringLiteral("count"),
+        QStringLiteral("cache"), QStringLiteral("stock"),
+        QStringLiteral("stable"), QStringLiteral("additive_within_scope"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("cache_ready_images"), QStringLiteral("count"),
+        QStringLiteral("accounted"), QStringLiteral("count"),
+        QStringLiteral("cache"), QStringLiteral("stock"),
+        QStringLiteral("stable"), QStringLiteral("additive_within_scope"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("cache_in_flight_families"), QStringLiteral("count"),
+        QStringLiteral("accounted"), QStringLiteral("count"),
+        QStringLiteral("cache"), QStringLiteral("stock"),
+        QStringLiteral("noisy"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("cache_pending_families"), QStringLiteral("count"),
+        QStringLiteral("accounted"), QStringLiteral("count"),
+        QStringLiteral("cache"), QStringLiteral("stock"),
+        QStringLiteral("noisy"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("cache_entries_added_interval"), QStringLiteral("count"),
+        QStringLiteral("accounted"), QStringLiteral("count"),
+        QStringLiteral("cache"), QStringLiteral("delta"),
+        QStringLiteral("stable"), QStringLiteral("additive_within_scope"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("cache_entries_removed_interval"),
+        QStringLiteral("count"), QStringLiteral("accounted"),
+        QStringLiteral("count"), QStringLiteral("cache"),
+        QStringLiteral("delta"), QStringLiteral("stable"),
+        QStringLiteral("additive_within_scope"), QStringLiteral("exact"),
+        QStringLiteral("secondary"), QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("cache_bytes_added_interval"), QStringLiteral("memory"),
+        QStringLiteral("accounted"), QStringLiteral("bytes"),
+        QStringLiteral("cache"), QStringLiteral("delta"),
+        QStringLiteral("stable"), QStringLiteral("additive_within_scope"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("cache_bytes_removed_interval"),
+        QStringLiteral("memory"), QStringLiteral("accounted"),
+        QStringLiteral("bytes"), QStringLiteral("cache"),
+        QStringLiteral("delta"), QStringLiteral("stable"),
+        QStringLiteral("additive_within_scope"), QStringLiteral("exact"),
+        QStringLiteral("secondary"), QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("cache_images_added_interval"), QStringLiteral("count"),
+        QStringLiteral("accounted"), QStringLiteral("count"),
+        QStringLiteral("cache"), QStringLiteral("delta"),
+        QStringLiteral("stable"), QStringLiteral("additive_within_scope"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("cache_images_removed_interval"),
+        QStringLiteral("count"), QStringLiteral("accounted"),
+        QStringLiteral("count"), QStringLiteral("cache"),
+        QStringLiteral("delta"), QStringLiteral("stable"),
+        QStringLiteral("additive_within_scope"), QStringLiteral("exact"),
+        QStringLiteral("secondary"), QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("raster_lifecycle_completed_samples"),
+        QStringLiteral("count"), QStringLiteral("measured"),
+        QStringLiteral("count"), QStringLiteral("raster_pipeline"),
+        QStringLiteral("cumulative"), QStringLiteral("stable"),
+        QStringLiteral("additive_within_scope"), QStringLiteral("exact"),
+        QStringLiteral("secondary"), QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("raster_lifecycle_average_ms"),
+        QStringLiteral("duration"), QStringLiteral("measured"),
+        QStringLiteral("ms"), QStringLiteral("raster_pipeline"),
+        QStringLiteral("lifetime_summary"), QStringLiteral("noisy"),
+        QStringLiteral("comparison_only"), QStringLiteral("best_effort"),
+        QStringLiteral("secondary"), QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("raster_lifecycle_max_ms"), QStringLiteral("duration"),
+        QStringLiteral("measured"), QStringLiteral("ms"),
+        QStringLiteral("raster_pipeline"), QStringLiteral("lifetime_summary"),
+        QStringLiteral("noisy"), QStringLiteral("comparison_only"),
+        QStringLiteral("best_effort"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_slot_count"), QStringLiteral("count"),
+        QStringLiteral("accounted"), QStringLiteral("count"),
+        QStringLiteral("layout"), QStringLiteral("state"),
+        QStringLiteral("stable"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_required_short_px"), QStringLiteral("size"),
+        QStringLiteral("accounted"), QStringLiteral("px"),
+        QStringLiteral("layout"), QStringLiteral("state"),
+        QStringLiteral("stable"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_device_pixel_ratio"), QStringLiteral("ratio"),
+        QStringLiteral("accounted"), QStringLiteral("ratio"),
+        QStringLiteral("layout"), QStringLiteral("state"),
+        QStringLiteral("stable"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_cache_window_minimum_need_px"),
+        QStringLiteral("size"), QStringLiteral("accounted"),
+        QStringLiteral("px"), QStringLiteral("layout"), QStringLiteral("state"),
+        QStringLiteral("stable"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_cache_window_maximum_need_px"),
+        QStringLiteral("size"), QStringLiteral("accounted"),
+        QStringLiteral("px"), QStringLiteral("layout"), QStringLiteral("state"),
+        QStringLiteral("stable"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_requested_target_bucket_px"),
+        QStringLiteral("size"), QStringLiteral("accounted"),
+        QStringLiteral("px"), QStringLiteral("cache_generation"),
+        QStringLiteral("state"), QStringLiteral("stable"),
+        QStringLiteral("non_additive"), QStringLiteral("exact"),
+        QStringLiteral("secondary"), QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_active_bucket_px"), QStringLiteral("size"),
+        QStringLiteral("accounted"), QStringLiteral("px"),
+        QStringLiteral("cache_generation"), QStringLiteral("state"),
+        QStringLiteral("stable"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_warming_bucket_px"), QStringLiteral("size"),
+        QStringLiteral("accounted"), QStringLiteral("px"),
+        QStringLiteral("cache_generation"), QStringLiteral("state"),
+        QStringLiteral("stable"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_cache_raster_width_px"), QStringLiteral("size"),
+        QStringLiteral("accounted"), QStringLiteral("px"),
+        QStringLiteral("cache_generation"), QStringLiteral("state"),
+        QStringLiteral("stable"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_cache_raster_height_px"), QStringLiteral("size"),
+        QStringLiteral("accounted"), QStringLiteral("px"),
+        QStringLiteral("cache_generation"), QStringLiteral("state"),
+        QStringLiteral("stable"), QStringLiteral("non_additive"),
+        QStringLiteral("exact"), QStringLiteral("secondary"),
+        QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_preloaded_raster_width_px"),
+        QStringLiteral("size"), QStringLiteral("accounted"),
+        QStringLiteral("px"), QStringLiteral("cache_generation"),
+        QStringLiteral("state"), QStringLiteral("stable"),
+        QStringLiteral("non_additive"), QStringLiteral("exact"),
+        QStringLiteral("secondary"), QStringLiteral("cards.image")
+    ));
+    metrics.push_back(metric_catalog_entry(
+        QStringLiteral("layout_preloaded_raster_height_px"),
+        QStringLiteral("size"), QStringLiteral("accounted"),
+        QStringLiteral("px"), QStringLiteral("cache_generation"),
+        QStringLiteral("state"), QStringLiteral("stable"),
+        QStringLiteral("non_additive"), QStringLiteral("exact"),
+        QStringLiteral("secondary"), QStringLiteral("cards.image")
+    ));
     return metrics;
 }
 
-QJsonObject
-debug_probe_core::protocol_metric_hint_for_id_v1(const QString& metric_id) {
+QJsonObject debug_probe_core::metric_hint_for_id_v1(const QString& metric_id) {
     if (metric_id.isEmpty()) {
-        return QJsonObject();
+        return {};
     }
 
     const QJsonArray catalog = protocol_metric_catalog_v1();
-    for (const QJsonValue& value : catalog) {
+    for (const auto& value : catalog) {
         const QJsonObject metric = value.toObject();
         if (metric.value(QStringLiteral("id")).toString() == metric_id) {
             return metric;
         }
     }
-    return QJsonObject();
+    return {};
 }
 
 QJsonObject debug_probe_core::protocol_capabilities_v1() {
     QJsonObject capabilities;
+    QJsonObject cards_image_extension;
+    cards_image_extension.insert(
+        QStringLiteral("id"), QStringLiteral("cards.image.cache_layout")
+    );
+    cards_image_extension.insert(QStringLiteral("schema_version"), 1);
+    QJsonArray extensions;
+    extensions.push_back(cards_image_extension);
+    capabilities.insert(QStringLiteral("extensions"), extensions);
+    capabilities.insert(QStringLiteral("metric_catalog_revision"), 2);
     capabilities.insert(
         QStringLiteral("domains"),
         debug_probe_json_helpers::string_list_to_json_array(
@@ -370,19 +578,30 @@ QJsonObject debug_probe_core::protocol_capabilities_v1() {
     );
     capabilities.insert(
         QStringLiteral("required_metric_hint_fields"),
-        protocol_required_metric_hint_fields_v1()
+        required_metric_hint_fields_v1()
     );
     capabilities.insert(
         QStringLiteral("card_image_domain_hint_fields"),
-        protocol_card_image_domain_hint_fields_v1()
+        card_image_domain_hints_v1()
+    );
+    capabilities.insert(
+        QStringLiteral("structured_payloads"),
+        debug_probe_json_helpers::string_list_to_json_array(
+            {
+                QStringLiteral("cache_detail"),
+                QStringLiteral("geometry"),
+                QStringLiteral("resize_transition"),
+                QStringLiteral("process_memory"),
+            }
+        )
     );
     return capabilities;
 }
 
 debug_probe_core::metric_point_v1
-debug_probe_core::metric_point_from_sample_batch_v1(const QJsonArray& samples) {
+debug_probe_core::point_from_sample_batch_v1(const QJsonArray& samples) {
     metric_point_v1 point;
-    for (const QJsonValue& sample_value : samples) {
+    for (const auto& sample_value : samples) {
         const QJsonObject sample = sample_value.toObject();
         const QString metric_id
             = sample.value(QStringLiteral("metric_id")).toString();
@@ -390,13 +609,15 @@ debug_probe_core::metric_point_from_sample_batch_v1(const QJsonArray& samples) {
             = integer_like_value(sample.value(QStringLiteral("value")));
         if (metric_id == QStringLiteral("cache_accounted_ready_bytes")) {
             point.cache_accounted_ready_bytes = value;
-        } else if (metric_id
-                   == QStringLiteral("widget_local_display_bytes_estimated")) {
+        } else if (
+            metric_id == QStringLiteral("widget_local_display_bytes_estimated")
+        ) {
             point.widget_local_display_bytes_estimated = value;
         } else if (metric_id == QStringLiteral("process_memory_rss_bytes")) {
             point.process_memory_rss_bytes = value;
-        } else if (metric_id
-                   == QStringLiteral("measured_accounted_gap_bytes_derived")) {
+        } else if (
+            metric_id == QStringLiteral("measured_accounted_gap_bytes_derived")
+        ) {
             point.measured_accounted_gap_bytes_derived = value;
         }
     }
@@ -404,7 +625,7 @@ debug_probe_core::metric_point_from_sample_batch_v1(const QJsonArray& samples) {
 }
 
 debug_probe_core::metric_point_v1
-debug_probe_core::metric_point_from_snapshot_payload_v1(
+debug_probe_core::point_from_snapshot_payload_v1(
     const QJsonObject& snapshot_payload
 ) {
     metric_point_v1 point;
@@ -436,8 +657,10 @@ debug_probe_core::metric_point_from_snapshot_payload_v1(
             = integer_like_value(snapshot_payload.value(
                 QStringLiteral("measured_accounted_gap_bytes_derived")
             ));
-    } else if (point.cache_accounted_ready_bytes >= 0
-               && point.process_memory_rss_bytes >= 0) {
+    } else if (
+        point.cache_accounted_ready_bytes >= 0
+        && point.process_memory_rss_bytes >= 0
+    ) {
         point.measured_accounted_gap_bytes_derived
             = point.process_memory_rss_bytes
             - point.cache_accounted_ready_bytes;
@@ -495,11 +718,28 @@ QJsonObject debug_probe_core::geometry_snapshot_to_json(
         snapshot.display_card_need_short_px
     );
     object.insert(
+        QStringLiteral("device_pixel_ratio"), snapshot.device_pixel_ratio
+    );
+    object.insert(
         QStringLiteral("active_bucket_px"), snapshot.active_bucket_px
     );
     object.insert(
         QStringLiteral("warming_bucket_px"), snapshot.warming_bucket_px
     );
+    object.insert(
+        QStringLiteral("cache_window_minimum_need_px"),
+        snapshot.cache_window_minimum_need_px
+    );
+    object.insert(
+        QStringLiteral("cache_window_maximum_need_px"),
+        snapshot.cache_window_maximum_need_px
+    );
+    object.insert(
+        QStringLiteral("requested_target_bucket_px"),
+        snapshot.requested_target_bucket_px
+    );
+    object.insert(QStringLiteral("cache_decision"), snapshot.cache_decision);
+    object.insert(QStringLiteral("cache_trigger"), snapshot.cache_trigger);
     object.insert(
         QStringLiteral("cache_raster_size"),
         debug_probe_json_helpers::size_to_json(snapshot.cache_raster_size)
@@ -525,6 +765,237 @@ QJsonObject debug_probe_core::geometry_snapshot_to_json(
     );
     object.insert(
         QStringLiteral("warming_generation_id"), snapshot.warming_generation_id
+    );
+    return object;
+}
+
+QJsonObject debug_probe_core::cache_snapshot_to_live_json(
+    const raster_cache::debug_snapshot& snapshot
+) {
+    QJsonObject ready;
+    ready.insert(QStringLiteral("entries"), snapshot.ready_entries);
+    ready.insert(QStringLiteral("images"), snapshot.ready_images);
+    ready.insert(QStringLiteral("accounted_bytes"), snapshot.ready_bytes);
+    ready.insert(
+        QStringLiteral("high_water_entries"), snapshot.high_water_ready_entries
+    );
+    ready.insert(
+        QStringLiteral("high_water_images"), snapshot.high_water_ready_images
+    );
+    ready.insert(
+        QStringLiteral("high_water_accounted_bytes"),
+        snapshot.high_water_ready_bytes
+    );
+
+    QJsonObject work;
+    work.insert(
+        QStringLiteral("in_flight_families"), snapshot.in_flight_families
+    );
+    work.insert(QStringLiteral("pending_families"), snapshot.pending_families);
+
+    QJsonObject interval_changes;
+    interval_changes.insert(
+        QStringLiteral("entries_added"), snapshot.interval_deltas.entries_added
+    );
+    interval_changes.insert(
+        QStringLiteral("entries_removed"),
+        snapshot.interval_deltas.entries_removed
+    );
+    interval_changes.insert(
+        QStringLiteral("bytes_added"), snapshot.interval_deltas.bytes_added
+    );
+    interval_changes.insert(
+        QStringLiteral("bytes_removed"), snapshot.interval_deltas.bytes_removed
+    );
+    interval_changes.insert(
+        QStringLiteral("images_added"), snapshot.interval_deltas.images_added
+    );
+    interval_changes.insert(
+        QStringLiteral("images_removed"),
+        snapshot.interval_deltas.images_removed
+    );
+
+    QJsonObject raster_lifecycle;
+    raster_lifecycle.insert(
+        QStringLiteral("completed_samples"), snapshot.raster_timing_samples
+    );
+    raster_lifecycle.insert(
+        QStringLiteral("average_ms"), snapshot.raster_timing_avg_ms
+    );
+    raster_lifecycle.insert(
+        QStringLiteral("maximum_ms"), snapshot.raster_timing_max_ms
+    );
+
+    QJsonObject coalesced_wait;
+    coalesced_wait.insert(
+        QStringLiteral("completed_samples"), snapshot.coalesced_wait_samples
+    );
+    coalesced_wait.insert(
+        QStringLiteral("average_ms"), snapshot.coalesced_wait_avg_ms
+    );
+    coalesced_wait.insert(
+        QStringLiteral("maximum_ms"), snapshot.coalesced_wait_max_ms
+    );
+
+    QJsonObject deadline_readiness;
+    deadline_readiness.insert(
+        QStringLiteral("samples"), snapshot.deadline_readiness_samples
+    );
+    deadline_readiness.insert(
+        QStringLiteral("ready_early"), snapshot.deadline_ready_early
+    );
+    deadline_readiness.insert(
+        QStringLiteral("ready_on_time"), snapshot.deadline_ready_on_time
+    );
+    deadline_readiness.insert(
+        QStringLiteral("ready_late"), snapshot.deadline_ready_late
+    );
+
+    QJsonObject display;
+    display.insert(
+        QStringLiteral("recent_ready_entries"), snapshot.displayed_ready_entries
+    );
+    display.insert(
+        QStringLiteral("cached_only_ready_entries"),
+        snapshot.cached_only_ready_entries
+    );
+    display.insert(
+        QStringLiteral("recent_ready_images"), snapshot.displayed_ready_images
+    );
+    display.insert(
+        QStringLiteral("cached_only_ready_images"),
+        snapshot.cached_only_ready_images
+    );
+    display.insert(
+        QStringLiteral("widget_local_bytes_estimated"),
+        snapshot.widget_local_display_bytes_estimated
+    );
+    display.insert(
+        QStringLiteral("coverage_window_ms"), snapshot.displayed_entry_window_ms
+    );
+    display.insert(
+        QStringLiteral("coverage_percent"),
+        snapshot.displayed_entry_coverage_percent
+    );
+
+    QJsonObject fallback;
+    fallback.insert(
+        QStringLiteral("active_theme_keys_ready"),
+        snapshot.fallback_active_theme_keys_ready
+    );
+    fallback.insert(
+        QStringLiteral("default_theme_keys_ready"),
+        snapshot.fallback_default_theme_keys_ready
+    );
+    fallback.insert(
+        QStringLiteral("placeholder_keys_ready"),
+        snapshot.fallback_placeholder_keys_ready
+    );
+
+    constexpr qsizetype maximum_live_size_buckets = 32;
+    QJsonArray size_buckets;
+    for (qsizetype index = 0; index < snapshot.size_buckets.size()
+         && index < maximum_live_size_buckets;
+         ++index) {
+        const auto& bucket = snapshot.size_buckets.at(index);
+        QJsonObject bucket_json;
+        bucket_json.insert(
+            QStringLiteral("target_bucket_px"), bucket.target_bucket_px
+        );
+        bucket_json.insert(QStringLiteral("ready_entries"), bucket.entry_count);
+        bucket_json.insert(
+            QStringLiteral("accounted_bytes"), bucket.total_bytes
+        );
+        size_buckets.push_back(bucket_json);
+    }
+
+    QJsonArray subsystems;
+    for (const auto& subsystem : snapshot.subsystem_summaries) {
+        QJsonObject subsystem_json;
+        subsystem_json.insert(
+            QStringLiteral("name_space"),
+            cache_namespace_to_string(subsystem.name_space)
+        );
+        subsystem_json.insert(
+            QStringLiteral("kind"), resource_kind_to_string(subsystem.kind)
+        );
+        subsystem_json.insert(
+            QStringLiteral("ready_entries"), subsystem.ready_entries
+        );
+        subsystem_json.insert(
+            QStringLiteral("accounted_bytes"), subsystem.ready_bytes
+        );
+        subsystem_json.insert(
+            QStringLiteral("request_samples"), subsystem.request_samples
+        );
+        subsystem_json.insert(
+            QStringLiteral("timing_samples"), subsystem.timing_samples
+        );
+        subsystem_json.insert(
+            QStringLiteral("timing_maximum_ms"), subsystem.timing_max_elapsed_ms
+        );
+        subsystems.push_back(subsystem_json);
+    }
+
+    QJsonObject root;
+    root.insert(QStringLiteral("schema_version"), 1);
+    root.insert(
+        QStringLiteral("snapshot_sequence"), snapshot.snapshot_sequence
+    );
+    root.insert(QStringLiteral("timestamp_ms"), snapshot.timestamp_ms);
+    root.insert(QStringLiteral("ready"), ready);
+    root.insert(QStringLiteral("work"), work);
+    root.insert(QStringLiteral("interval_changes"), interval_changes);
+    root.insert(QStringLiteral("raster_lifecycle"), raster_lifecycle);
+    root.insert(QStringLiteral("coalesced_wait"), coalesced_wait);
+    root.insert(QStringLiteral("deadline_readiness"), deadline_readiness);
+    root.insert(QStringLiteral("display"), display);
+    root.insert(QStringLiteral("fallback"), fallback);
+    root.insert(
+        QStringLiteral("size_bucket_total_count"), snapshot.size_buckets.size()
+    );
+    root.insert(
+        QStringLiteral("size_bucket_omitted_count"),
+        std::max<qsizetype>(
+            0, snapshot.size_buckets.size() - maximum_live_size_buckets
+        )
+    );
+    root.insert(QStringLiteral("size_buckets"), size_buckets);
+    root.insert(QStringLiteral("subsystems"), subsystems);
+    return root;
+}
+
+QJsonObject debug_probe_core::resize_transition_to_live_json(
+    const resize_transition_debug_event& transition
+) {
+    QJsonObject object;
+    object.insert(QStringLiteral("schema_version"), 1);
+    object.insert(QStringLiteral("timestamp_ms"), transition.timestamp_ms);
+    object.insert(
+        QStringLiteral("old_window_size"),
+        debug_probe_json_helpers::size_to_json(transition.old_window_size)
+    );
+    object.insert(
+        QStringLiteral("new_window_size"),
+        debug_probe_json_helpers::size_to_json(transition.new_window_size)
+    );
+    object.insert(
+        QStringLiteral("old_active_bucket_px"), transition.old_active_bucket_px
+    );
+    object.insert(
+        QStringLiteral("new_active_bucket_px"), transition.new_active_bucket_px
+    );
+    object.insert(
+        QStringLiteral("old_warming_bucket_px"),
+        transition.old_warming_bucket_px
+    );
+    object.insert(
+        QStringLiteral("new_warming_bucket_px"),
+        transition.new_warming_bucket_px
+    );
+    object.insert(
+        QStringLiteral("geometry_after_resize"),
+        geometry_snapshot_to_json(transition.geometry_after_resize)
     );
     return object;
 }
@@ -606,7 +1077,7 @@ QJsonObject debug_probe_core::resize_history_entry_to_json(
     return object;
 }
 
-QString debug_probe_core::resize_history_entry_to_jsonl_line(
+QString debug_probe_core::resize_entry_to_jsonl_line(
     const resize_history_entry& entry
 ) {
     const QJsonDocument document(resize_history_entry_to_json(entry));
@@ -743,6 +1214,10 @@ QJsonObject debug_probe_core::build_snapshot_export_json(
             QStringLiteral("ready_entries"), entry.cache_snapshot.ready_entries
         );
         object.insert(
+            QStringLiteral("cache_ready_entries"),
+            entry.cache_snapshot.ready_entries
+        );
+        object.insert(
             QStringLiteral("ready_bytes"),
             static_cast<qint64>(entry.cache_snapshot.ready_bytes)
         );
@@ -837,6 +1312,34 @@ QJsonObject debug_probe_core::build_snapshot_export_json(
         );
         object.insert(
             QStringLiteral("ready_images"), entry.cache_snapshot.ready_images
+        );
+        object.insert(
+            QStringLiteral("cache_ready_images"),
+            entry.cache_snapshot.ready_images
+        );
+        object.insert(
+            QStringLiteral("cache_in_flight_families"),
+            entry.cache_snapshot.in_flight_families
+        );
+        object.insert(
+            QStringLiteral("cache_pending_families"),
+            entry.cache_snapshot.pending_families
+        );
+        object.insert(
+            QStringLiteral("raster_lifecycle_completed_samples"),
+            entry.cache_snapshot.raster_timing_samples
+        );
+        object.insert(
+            QStringLiteral("raster_lifecycle_average_ms"),
+            entry.cache_snapshot.raster_timing_avg_ms
+        );
+        object.insert(
+            QStringLiteral("raster_lifecycle_max_ms"),
+            entry.cache_snapshot.raster_timing_max_ms
+        );
+        object.insert(
+            QStringLiteral("cache_detail"),
+            cache_snapshot_to_live_json(entry.cache_snapshot)
         );
         object.insert(
             QStringLiteral("displayed_ready_entries"),
@@ -1084,7 +1587,7 @@ QJsonObject debug_probe_core::build_snapshot_export_json(
 QJsonObject debug_probe_core::snapshot_telemetry_semantics() {
     QJsonObject telemetry_semantics;
     const QJsonArray metric_catalog = protocol_metric_catalog_v1();
-    for (const QJsonValue& metric_value : metric_catalog) {
+    for (const auto& metric_value : metric_catalog) {
         const QJsonObject metric_object = metric_value.toObject();
         const QString metric_id
             = metric_object.value(QStringLiteral("id")).toString();
@@ -1195,7 +1698,7 @@ QJsonObject debug_probe_core::snapshot_telemetry_semantics() {
 QJsonObject debug_probe_core::process_memory_report_telemetry_semantics() {
     QJsonObject semantics;
     const QJsonArray metric_catalog = protocol_metric_catalog_v1();
-    for (const QJsonValue& metric_value : metric_catalog) {
+    for (const auto& metric_value : metric_catalog) {
         const QJsonObject metric_object = metric_value.toObject();
         const QString metric_id
             = metric_object.value(QStringLiteral("id")).toString();

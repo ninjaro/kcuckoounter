@@ -14,13 +14,13 @@ public:
 
     static QSize minimum_settings_size();
 
-    BaseCheckBox* infinity_check_box() const;
-    BaseSpinBox* deck_count_spin_box() const;
-    BaseComboBox* strategy_combo_box() const;
-    BaseCheckBox* show_card_indexing() const;
-    BaseCheckBox* show_strategy_name() const;
-    BaseCheckBox* training_check_box() const;
-    BasePushButton* info_button() const;
+    [[nodiscard]] BaseCheckBox* infinity_check_box() const;
+    [[nodiscard]] BaseSpinBox* deck_count_spin_box() const;
+    [[nodiscard]] BaseComboBox* strategy_combo_box() const;
+    [[nodiscard]] BaseCheckBox* show_card_indexing() const;
+    [[nodiscard]] BaseCheckBox* show_strategy_name() const;
+    [[nodiscard]] BaseCheckBox* training_check_box() const;
+    [[nodiscard]] BasePushButton* info_button() const;
 
 private:
     BaseCheckBox* infinity_check_box_internal;

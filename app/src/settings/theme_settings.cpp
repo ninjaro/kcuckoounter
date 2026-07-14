@@ -23,7 +23,7 @@ QColor theme_settings::slot_fill_color() {
     return theme_base_color().darker(125);
 }
 
-QColor theme_settings::slot_border_color() { return QColor(0xD4, 0xAF, 0x37); }
+QColor theme_settings::slot_border_color() { return { 0xD4, 0xAF, 0x37 }; }
 
 QColor theme_settings::slot_border_selected_color() {
     return slot_border_color();

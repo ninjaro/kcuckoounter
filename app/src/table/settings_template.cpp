@@ -3,6 +3,7 @@
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
 #include "image/card_preview_carousel.hpp"
+#include "settings/preferences.hpp"
 #include "settings/theme_palette.hpp"
 #include "settings/theme_settings.hpp"
 #include "table/table.hpp"
@@ -25,7 +26,6 @@
 #include <QRadioButton>
 #include <QScrollArea>
 #include <QStyle>
-#include <QSvgRenderer>
 #include <QTableWidget>
 #include <QTimer>
 #include <QtConcurrent/QtConcurrent>
@@ -58,7 +58,7 @@ QIcon palette_swatch_icon(const QColor& color) {
     painter.setPen(QPen(QColor(30, 30, 30)));
     painter.drawRect(0, 0, swatch_size - 1, swatch_size - 1);
     painter.end();
-    return QIcon(swatch);
+    return { swatch };
 }
 
 QIcon suit_icon(const QString& symbol, const QColor& color) {
@@ -76,15 +76,18 @@ QIcon suit_icon(const QString& symbol, const QColor& color) {
     painter.setPen(QPen(QColor(30, 30, 30)));
     painter.drawRect(0, 0, icon_size - 1, icon_size - 1);
     painter.end();
-    return QIcon(icon);
+    return { icon };
+}
+
+QColor suit_color_for_index(int suit_index) {
+    return (suit_index == 1 || suit_index == 2) ? QColor(170, 0, 0)
+                                                : QColor(20, 20, 20);
 }
 
 QIcon suit_icon_for_index(int suit_index) {
     const QStringList symbols
         = { str_label("♣"), str_label("♦"), str_label("♥"), str_label("♠") };
-    const QColor color = (suit_index == 1 || suit_index == 2)
-        ? QColor(170, 0, 0)
-        : QColor(20, 20, 20);
+    const QColor color = suit_color_for_index(suit_index);
     const QString symbol = (suit_index >= 0 && suit_index < symbols.size())
         ? symbols.at(suit_index)
         : QString();
@@ -95,12 +98,12 @@ QSize preview_card_size() {
     const auto [long_side, short_side] = card_sheet_ratio();
     const int target_long = 88;
     if (long_side <= 0 || short_side <= 0) {
-        return QSize(63, 88);
+        return { 63, 88 };
     }
     const double scale = static_cast<double>(target_long) / long_side;
     const int width
         = std::max(1, static_cast<int>(std::lround(short_side * scale)));
-    return QSize(width, target_long);
+    return { width, target_long };
 }
 
 raster_cache& settings_theme_preview_cache_service() {
@@ -120,7 +123,7 @@ QString theme_preview_render_scope(int rank_index, int suit_index) {
     const QStringList& ids = card_element_ids();
     const int card_index = suit_index * 13 + rank_index;
     if (card_index < 0 || card_index >= ids.size()) {
-        return QString();
+        return {};
     }
     return ids.at(card_index);
 }
@@ -129,7 +132,7 @@ QString theme_preview_generation_render_scope(
     const QString& element_id, qint64 instance_id, qint64 generation_id
 ) {
     if (element_id.isEmpty() || instance_id <= 0 || generation_id <= 0) {
-        return QString();
+        return {};
     }
     return QStringLiteral("subset:%1#w%2#g%3")
         .arg(element_id)
@@ -221,8 +224,7 @@ QPixmap build_weighted_card_preview(
     weight_font.setBold(true);
     weight_font.setPointSizeF(std::clamp(card_size.height() * 0.12, 8.0, 14.0));
     painter.setFont(weight_font);
-    const bool use_red_label = suit_index == 0 || suit_index == 3;
-    painter.setPen(use_red_label ? QColor(170, 0, 0) : QColor(20, 20, 20));
+    painter.setPen(suit_color_for_index(suit_index));
 
     painter.drawText(
         QRectF(
@@ -344,11 +346,11 @@ settings_template_widget::settings_template_widget(
     , active_theme_preview_source_id()
     , active_theme_preview_bucket_px(0)
     , active_theme_preview_generation_id(0)
-    , active_theme_preview_requested_element_ids()
+    , active_preview_element_ids()
     , warming_theme_preview_source_id()
     , warming_theme_preview_bucket_px(0)
     , warming_theme_preview_generation_id(0)
-    , warming_theme_preview_requested_element_ids()
+    , warming_preview_element_ids()
     , next_theme_preview_generation_id(1)
     , theme_preview_render_watcher(this)
     , active_theme_preview_render_key(std::nullopt)
@@ -365,7 +367,7 @@ settings_template_widget::settings_template_widget(
     QObject::connect(
         &settings_template_support::settings_theme_preview_cache_service(),
         &raster_cache::result_updated, this,
-        &settings_template_widget::on_theme_preview_cache_result_updated
+        &settings_template_widget::on_theme_preview_cache_updated
     );
     QObject::connect(
         &theme_preview_render_watcher, &QFutureWatcher<QImage>::finished, this,
@@ -383,9 +385,28 @@ settings_template_widget::~settings_template_widget() {
         raster_cache::debug_consumer_scope::settings_strategy_preview,
         displayed_weights_preview_entries
     );
-    if (theme_preview_render_watcher.isRunning()) {
-        theme_preview_render_watcher.waitForFinished();
+    QObject::disconnect(&theme_preview_render_watcher, nullptr, this, nullptr);
+    auto& preview_cache
+        = settings_template_support::settings_theme_preview_cache_service();
+    QSet<raster_cache::entry_key> abandoned_keys
+        = pending_theme_preview_render_set;
+    if (active_theme_preview_render_key.has_value()) {
+        abandoned_keys.insert(*active_theme_preview_render_key);
     }
+    for (const raster_cache::entry_key& key : abandoned_keys) {
+        const raster_cache::family_key family {
+            .name_space = key.name_space,
+            .kind = key.kind,
+            .source_id = key.source_id,
+            .render_scope = key.render_scope,
+        };
+        preview_cache.clear_in_flight(family);
+        preview_cache.take_pending_latest(family);
+        preview_cache.erase_result(key);
+    }
+    active_theme_preview_render_key.reset();
+    pending_theme_preview_render_queue.clear();
+    pending_theme_preview_render_set.clear();
     retire_theme_preview_generation(
         active_theme_preview_source_id, active_theme_preview_bucket_px,
         active_theme_preview_generation_id
@@ -425,9 +446,19 @@ void settings_template_widget::setup_strategy_ui(
 
     strategy_list_widget = new QListWidget(dock_widget);
     strategy_list_widget->setSelectionMode(QAbstractItemView::SingleSelection);
-    strategies = load_strategies();
-    for (const strategy_data& strategy : strategies) {
-        strategy_list_widget->addItem(strategy.name);
+    strategy_list_widget->setAccessibleName(str_label("Available strategies"));
+    dock_label->setBuddy(strategy_list_widget);
+    const strategy_catalog& repository = strategy_repository();
+    strategies = repository.is_valid() ? repository.strategies
+                                       : QVector<strategy_data>();
+    if (!repository.is_valid()) {
+        strategy_list_widget->addItem(str_label("Strategies unavailable"));
+        strategy_list_widget->setEnabled(false);
+        strategy_list_widget->setToolTip(repository.diagnostic_summary());
+    } else {
+        for (const strategy_data& strategy : strategies) {
+            strategy_list_widget->addItem(strategy.name);
+        }
     }
     dock_layout->addWidget(strategy_list_widget, 1);
 
@@ -707,7 +738,7 @@ void settings_template_widget::setup_appearance_ui() {
 
     QObject::connect(
         shared_state, &settings_shared_state::table_color_index_changed, this,
-        &settings_template_widget::sync_theme_combo_box_with_shared_state
+        &settings_template_widget::sync_theme_combo_shared_state
     );
     QObject::connect(
         suit_combo_box, &BaseComboBox::currentIndexChanged, this,
@@ -735,8 +766,9 @@ void settings_template_widget::setup_appearance_ui() {
     update_theme_palette_preview(theme_combo_box->currentIndex());
 }
 
-void settings_template_widget::sync_theme_combo_box_with_shared_state(int index) {
-    if (theme_combo_box == nullptr || theme_combo_box->currentIndex() == index) {
+void settings_template_widget::sync_theme_combo_shared_state(int index) {
+    if (theme_combo_box == nullptr
+        || theme_combo_box->currentIndex() == index) {
         return;
     }
 
@@ -750,7 +782,7 @@ void settings_template_widget::on_theme_source_button_clicked(
     Q_UNUSED(button);
 
     prune_pending_theme_preview_queue();
-    clear_all_displayed_theme_preview_entries();
+    clear_displayed_theme_entries();
     mark_preview_refresh_pending(true, true);
     flush_coalesced_preview_refresh();
 }
@@ -760,14 +792,16 @@ void settings_template_widget::apply_theme_settings() {
         return;
     }
 
-    const QColor base_color
-        = settings_template_support::theme_color_from_label(
-              theme_combo_box->currentText()
-          );
+    const QColor base_color = settings_template_support::theme_color_from_label(
+        theme_combo_box->currentText()
+    );
     const QString selected_theme_source = selected_theme_source_id();
     theme_settings::set_base_color(base_color);
     set_card_sheet_source_path(selected_theme_source);
     shared_state->set_table_color_index(theme_combo_box->currentIndex());
+    trainer_preferences preferences = load_trainer_preferences();
+    preferences.palette = theme_palette_registry::id_from_color(base_color);
+    save_trainer_preferences(preferences);
     if (table_widget != nullptr) {
         table_widget->apply_theme();
     }
@@ -803,7 +837,7 @@ void settings_template_widget::reset_theme_selection() {
     }
 
     prune_pending_theme_preview_queue();
-    clear_all_displayed_theme_preview_entries();
+    clear_displayed_theme_entries();
     mark_preview_refresh_pending(true, true);
     flush_coalesced_preview_refresh();
 }
@@ -898,7 +932,7 @@ void settings_template_widget::update_strategy_details(int index) {
                 str_label("playing_efficiency"),
                 str_label("insurance_correlation"), str_label("ease_of_use") };
         for (int row = 0; row < metric_labels.size(); ++row) {
-            const QString label = metric_labels.at(row);
+            const QString& label = metric_labels.at(row);
             const QString value = strategy.metrics.contains(label)
                 ? QString::number(strategy.metrics.value(label))
                 : str_label("-");
@@ -952,8 +986,8 @@ void settings_template_widget::update_theme_carousel(int suit_index) {
         return;
     }
     active_theme_preview_suit_index = suit_index;
-    active_theme_preview_requested_element_ids.clear();
-    warming_theme_preview_requested_element_ids.clear();
+    active_preview_element_ids.clear();
+    warming_preview_element_ids.clear();
     prune_pending_theme_preview_queue();
     clear_displayed_theme_preview_entries(
         raster_cache::debug_consumer_scope::settings_theme_carousel,
@@ -961,6 +995,11 @@ void settings_template_widget::update_theme_carousel(int suit_index) {
     );
     const QSize card_size = settings_template_support::preview_card_size();
     theme_carousel->set_card_size(card_size);
+    theme_carousel->set_card_accessible_name_provider(
+        [suit_index](int card_index) {
+            return card_label_from_index(suit_index * 13 + card_index);
+        }
+    );
     theme_carousel->set_card_provider(
         13,
         std::bind_front(
@@ -987,8 +1026,8 @@ raster_cache::entry_key settings_template_widget::theme_preview_entry_key(
         .source_id = source_id,
         .render_scope
         = settings_template_support::theme_preview_generation_render_scope(
-              element_id, theme_preview_instance_id, generation_id
-          ),
+            element_id, theme_preview_instance_id, generation_id
+        ),
         .target_bucket_px = target_bucket_px,
     };
 }
@@ -1019,7 +1058,8 @@ void settings_template_widget::retire_theme_preview_generation(
         return;
     }
 
-    auto& service = settings_template_support::settings_theme_preview_cache_service();
+    auto& service
+        = settings_template_support::settings_theme_preview_cache_service();
     for (const QString& element_id : card_element_ids()) {
         service.erase_result(theme_preview_entry_key(
             source_id, target_bucket_px, generation_id, element_id
@@ -1048,7 +1088,7 @@ void settings_template_widget::begin_theme_preview_warming_generation(
     warming_theme_preview_source_id = source_id;
     warming_theme_preview_bucket_px = target_bucket_px;
     warming_theme_preview_generation_id = next_theme_preview_generation_id++;
-    warming_theme_preview_requested_element_ids.clear();
+    warming_preview_element_ids.clear();
 }
 
 void settings_template_widget::ensure_theme_preview_generation(
@@ -1062,7 +1102,7 @@ void settings_template_widget::ensure_theme_preview_generation(
         active_theme_preview_source_id = source_id;
         active_theme_preview_bucket_px = target_bucket_px;
         active_theme_preview_generation_id = next_theme_preview_generation_id++;
-        active_theme_preview_requested_element_ids.clear();
+        active_preview_element_ids.clear();
         return;
     }
 
@@ -1078,7 +1118,7 @@ void settings_template_widget::ensure_theme_preview_generation(
             warming_theme_preview_source_id.clear();
             warming_theme_preview_bucket_px = 0;
             warming_theme_preview_generation_id = 0;
-            warming_theme_preview_requested_element_ids.clear();
+            warming_preview_element_ids.clear();
         }
         return;
     }
@@ -1088,12 +1128,12 @@ void settings_template_widget::ensure_theme_preview_generation(
 
 bool settings_template_widget::try_cutover_theme_preview_generation() {
     if (warming_theme_preview_generation_id <= 0
-        || warming_theme_preview_requested_element_ids.isEmpty()) {
+        || warming_preview_element_ids.isEmpty()) {
         return false;
     }
 
     for (const QString& element_id :
-         std::as_const(warming_theme_preview_requested_element_ids)) {
+         std::as_const(warming_preview_element_ids)) {
         if (!is_theme_preview_key_ready(
                 warming_theme_preview_source_id,
                 warming_theme_preview_bucket_px,
@@ -1110,13 +1150,12 @@ bool settings_template_widget::try_cutover_theme_preview_generation() {
     active_theme_preview_source_id = warming_theme_preview_source_id;
     active_theme_preview_bucket_px = warming_theme_preview_bucket_px;
     active_theme_preview_generation_id = warming_theme_preview_generation_id;
-    active_theme_preview_requested_element_ids
-        = warming_theme_preview_requested_element_ids;
+    active_preview_element_ids = warming_preview_element_ids;
 
     warming_theme_preview_source_id.clear();
     warming_theme_preview_bucket_px = 0;
     warming_theme_preview_generation_id = 0;
-    warming_theme_preview_requested_element_ids.clear();
+    warming_preview_element_ids.clear();
 
     clear_displayed_theme_preview_entries(
         raster_cache::debug_consumer_scope::settings_theme_carousel,
@@ -1160,8 +1199,8 @@ settings_template_widget::request_theme_preview_face_image(
 
     const QString element_id
         = settings_template_support::theme_preview_render_scope(
-              card_index, suit_index
-          );
+            card_index, suit_index
+        );
     if (element_id.isEmpty()) {
         return std::nullopt;
     }
@@ -1170,10 +1209,10 @@ settings_template_widget::request_theme_preview_face_image(
     ensure_theme_preview_generation(selected_theme_source_id(), short_px);
     const bool use_warming_generation = warming_theme_preview_generation_id > 0;
     if (use_warming_generation) {
-        warming_theme_preview_requested_element_ids.insert(element_id);
-        active_theme_preview_requested_element_ids.insert(element_id);
+        warming_preview_element_ids.insert(element_id);
+        active_preview_element_ids.insert(element_id);
     } else {
-        active_theme_preview_requested_element_ids.insert(element_id);
+        active_preview_element_ids.insert(element_id);
     }
     try_cutover_theme_preview_generation();
 
@@ -1193,7 +1232,8 @@ settings_template_widget::request_theme_preview_face_image(
         return std::nullopt;
     }
 
-    auto& service = settings_template_support::settings_theme_preview_cache_service();
+    auto& service
+        = settings_template_support::settings_theme_preview_cache_service();
     std::optional<QImage> active_fallback;
     if (is_theme_preview_key_ready(
             active_theme_preview_source_id, active_theme_preview_bucket_px,
@@ -1371,8 +1411,8 @@ void settings_template_widget::process_pending_theme_preview_render() {
 
     const settings_template_support::theme_preview_scope_parse parsed
         = settings_template_support::parse_theme_preview_render_scope(
-              render_scope
-          );
+            render_scope
+        );
     if (!parsed.valid) {
         const raster_cache::family_key family {
             .name_space = key.name_space,
@@ -1411,10 +1451,11 @@ void settings_template_widget::on_theme_preview_render_finished() {
     active_theme_preview_render_key.reset();
     const settings_template_support::theme_preview_scope_parse parsed
         = settings_template_support::parse_theme_preview_render_scope(
-              key.render_scope
-          );
+            key.render_scope
+        );
 
-    auto& service = settings_template_support::settings_theme_preview_cache_service();
+    auto& service
+        = settings_template_support::settings_theme_preview_cache_service();
     const QImage image = theme_preview_render_watcher.result();
     const bool key_is_expected
         = parsed.valid && is_theme_preview_key_relevant(key);
@@ -1457,23 +1498,17 @@ void settings_template_widget::on_theme_preview_render_finished() {
 QImage settings_template_widget::render_theme_preview_face_image(
     const QString& source_id, const QString& element_id, int target_bucket_px
 ) {
-    QSvgRenderer renderer(source_id);
-    if (!renderer.isValid() || !renderer.elementExists(element_id)) {
-        return QImage();
+    if (target_bucket_px <= 0) {
+        return {};
     }
 
     const QSize raster_size(target_bucket_px, target_bucket_px);
-    QImage image(raster_size, QImage::Format_ARGB32_Premultiplied);
-    image.fill(Qt::transparent);
-    QPainter painter(&image);
-    renderer.render(
-        &painter, element_id, QRectF(QPointF(0.0, 0.0), QSizeF(raster_size))
+    return rasterize_card_face_with_fallback(
+        source_id, element_id, raster_size
     );
-    painter.end();
-    return image;
 }
 
-void settings_template_widget::on_theme_preview_cache_result_updated(
+void settings_template_widget::on_theme_preview_cache_updated(
     const raster_cache::entry_key& key
 ) {
     if (key.name_space != raster_cache::cache_namespace::settings
@@ -1482,8 +1517,8 @@ void settings_template_widget::on_theme_preview_cache_result_updated(
     }
     const settings_template_support::theme_preview_scope_parse parsed
         = settings_template_support::parse_theme_preview_render_scope(
-              key.render_scope
-          );
+            key.render_scope
+        );
     if (!parsed.valid || !is_theme_preview_key_relevant(key)) {
         return;
     }
@@ -1534,7 +1569,7 @@ void settings_template_widget::flush_coalesced_preview_refresh() {
     weights_preview_needs_refresh = false;
 }
 
-void settings_template_widget::clear_all_displayed_theme_preview_entries() {
+void settings_template_widget::clear_displayed_theme_entries() {
     clear_displayed_theme_preview_entries(
         raster_cache::debug_consumer_scope::settings_theme_carousel,
         displayed_theme_preview_entries
@@ -1569,8 +1604,8 @@ void settings_template_widget::update_weights_carousel(int suit_index) {
         return;
     }
     active_weights_preview_suit_index = suit_index;
-    active_theme_preview_requested_element_ids.clear();
-    warming_theme_preview_requested_element_ids.clear();
+    active_preview_element_ids.clear();
+    warming_preview_element_ids.clear();
     prune_pending_theme_preview_queue();
     clear_displayed_theme_preview_entries(
         raster_cache::debug_consumer_scope::settings_strategy_preview,
@@ -1584,10 +1619,31 @@ void settings_template_widget::update_weights_carousel(int suit_index) {
     }
     const QSize card_size = settings_template_support::preview_card_size();
     weights_carousel->set_card_size(card_size);
+    weights_carousel->set_card_accessible_name_provider([this, suit_index](
+                                                            int card_index
+                                                        ) {
+        QString card_name = card_label_from_index(suit_index * 13 + card_index);
+        const int selected_strategy = strategy_list_widget != nullptr
+            ? strategy_list_widget->currentRow()
+            : -1;
+        if (selected_strategy < 0 || selected_strategy >= strategies.size()
+            || card_index < 0
+            || card_index >= strategies.at(selected_strategy).weights.size()) {
+            return card_name;
+        }
+        return QStringLiteral("%1, count value %2")
+            .arg(
+                card_name,
+                QString::number(
+                    strategies.at(selected_strategy).weights.at(card_index)
+                )
+            );
+    });
     weights_carousel->set_card_provider(
         13,
         std::bind_front(
-            &settings_template_widget::request_active_weighted_preview_card, this
+            &settings_template_widget::request_active_weighted_preview_card,
+            this
         )
     );
 }
@@ -1642,7 +1698,8 @@ void settings_template_widget::clear_displayed_theme_preview_entries(
         return;
     }
 
-    auto& service = settings_template_support::settings_theme_preview_cache_service();
+    auto& service
+        = settings_template_support::settings_theme_preview_cache_service();
     for (const raster_cache::entry_key& key : std::as_const(tracked_keys)) {
         service.note_entry_no_longer_displayed(key, consumer);
     }
@@ -1666,8 +1723,8 @@ bool settings_template_widget::is_theme_preview_key_relevant(
 
     const settings_template_support::theme_preview_scope_parse parsed
         = settings_template_support::parse_theme_preview_render_scope(
-              key.render_scope
-          );
+            key.render_scope
+        );
     if (!parsed.valid || parsed.instance_id != theme_preview_instance_id) {
         return false;
     }
@@ -1688,16 +1745,12 @@ bool settings_template_widget::is_theme_preview_key_relevant(
     if (parsed.generation_id == active_theme_preview_generation_id) {
         return key.source_id == active_theme_preview_source_id
             && key.target_bucket_px == active_theme_preview_bucket_px
-            && active_theme_preview_requested_element_ids.contains(
-                parsed.element_id
-            );
+            && active_preview_element_ids.contains(parsed.element_id);
     }
     if (parsed.generation_id == warming_theme_preview_generation_id) {
         return key.source_id == warming_theme_preview_source_id
             && key.target_bucket_px == warming_theme_preview_bucket_px
-            && warming_theme_preview_requested_element_ids.contains(
-                parsed.element_id
-            );
+            && warming_preview_element_ids.contains(parsed.element_id);
     }
 
     return false;

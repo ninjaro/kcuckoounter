@@ -24,6 +24,8 @@ public:
     void set_card_provider(
         int count, std::function<QPixmap(int, const QSize&)> provider
     );
+    void
+    set_card_accessible_name_provider(std::function<QString(int)> provider);
     void set_visible_count(int count);
     void set_visible_range(int min_count, int max_count);
     void set_card_size(const QSize& size);
@@ -49,6 +51,7 @@ private:
 
     QVector<QPixmap> cached_cards;
     std::function<QPixmap(int, const QSize&)> card_provider;
+    std::function<QString(int)> card_accessible_name_provider;
     QVector<QLabel*> card_labels;
     int first_index;
     int visible_count_value;

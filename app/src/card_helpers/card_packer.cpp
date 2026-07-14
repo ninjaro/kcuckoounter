@@ -9,16 +9,32 @@ static double squared_distance_to_origin(const placed_card& card) {
     return card.x * card.x + card.y * card.y;
 }
 
-card_packer::card_packer(size_t card_count)
-    : card_count(card_count)
+card_packer::card_packer(size_t count)
+    : card_count(count)
     , index(0)
     , card_ratio(card_sheet_ratio())
     , scale(1.0)
-    , cards(card_count) { }
+    , cards(count) { }
 
 std::tuple<double, std::vector<placed_card>>
 card_packer::pack(double width, double height) {
+    if (card_count == 0 || !std::isfinite(width) || !std::isfinite(height)
+        || width <= 0.0 || height <= 0.0 || !std::isfinite(card_ratio.first)
+        || !std::isfinite(card_ratio.second) || card_ratio.first <= 0.0
+        || card_ratio.second <= 0.0) {
+        cards.clear();
+        index = 0;
+        scale = 0.0;
+        return { 0.0, {} };
+    }
+
     double right = max_scale(width, height, card_count);
+    if (!std::isfinite(right) || right <= 0.0) {
+        cards.clear();
+        index = 0;
+        scale = 0.0;
+        return { 0.0, {} };
+    }
     double left = 0.0;
 
     while (left + 0.1 < right) {
@@ -37,6 +53,12 @@ card_packer::pack(double width, double height) {
     }
 
     scale = left;
+    if (!std::isfinite(scale) || scale <= 0.0) {
+        cards.clear();
+        index = 0;
+        scale = 0.0;
+        return { 0.0, {} };
+    }
     index = 0;
     cards.resize(static_cast<size_t>(width * height / (scale * scale)));
     cards_init(width, height);
@@ -62,9 +84,9 @@ double card_packer::fill_vertical(
     if (index >= cards.size()) {
         return y_off;
     }
-    for (; y_off + card_width <= height && index < cards.size();
-         y_off += card_width) {
+    while (y_off + card_width <= height && index < cards.size()) {
         cards[index++] = { x, y + y_off, true };
+        y_off += card_width;
     }
     return y_off;
 }
@@ -76,9 +98,9 @@ double card_packer::fill_horizontal(
     if (index >= cards.size()) {
         return x_off;
     }
-    for (; x_off + card_width <= width && index < cards.size();
-         x_off += card_width) {
+    while (x_off + card_width <= width && index < cards.size()) {
         cards[index++] = { x + x_off, y, false };
+        x_off += card_width;
     }
     return x_off;
 }
@@ -150,6 +172,12 @@ void card_packer::cards_init(double width, double height, double x, double y) {
 }
 
 double card_packer::max_scale(double width, double height, size_t count) const {
+    if (count == 0 || !std::isfinite(width) || !std::isfinite(height)
+        || width <= 0.0 || height <= 0.0 || !std::isfinite(card_ratio.first)
+        || !std::isfinite(card_ratio.second) || card_ratio.first <= 0.0
+        || card_ratio.second <= 0.0) {
+        return 0.0;
+    }
     return std::sqrt(
         width * height / static_cast<double>(card_ratio.first)
         / static_cast<double>(card_ratio.second) / static_cast<double>(count)

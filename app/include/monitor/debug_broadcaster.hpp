@@ -6,6 +6,9 @@
 #include <QString>
 #include <QVector>
 
+#include <memory>
+
+class QLockFile;
 class QLocalServer;
 class QLocalSocket;
 
@@ -42,8 +45,11 @@ public:
     bool set_enabled(
         bool enabled, const QString& requested_endpoint_name = QString()
     );
-    bool is_enabled() const;
-    runtime_state state() const;
+    [[nodiscard]] bool is_enabled() const;
+    [[nodiscard]] runtime_state state() const;
+    void discard_pending_messages();
+    static QString
+    endpoint_path_for_requested_name(const QString& requested_endpoint_name);
 
     bool publish_json(
         const QJsonObject& message, message_priority priority, bool droppable
@@ -66,8 +72,8 @@ private:
         bool droppable = true;
     };
 
-    bool compile_time_enabled() const;
-    QString build_default_endpoint_name() const;
+    [[nodiscard]] static bool compile_time_enabled();
+    [[nodiscard]] static QString build_default_endpoint_name();
     static QString sanitize_endpoint_name(const QString& raw_name);
     void close_transport();
     void mark_dropped(message_priority priority);
@@ -85,6 +91,7 @@ private:
     qint64 socket_backpressure_byte_limit;
     bool runtime_enabled;
     QString endpoint_name;
+    std::unique_ptr<QLockFile> endpoint_lock;
     QLocalServer* local_server;
     QLocalSocket* listener_socket;
     QVector<queued_packet> pending_packets;

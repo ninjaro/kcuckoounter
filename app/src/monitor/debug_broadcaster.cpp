@@ -2,13 +2,93 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QEventLoop>
+#include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QLocalServer>
 #include <QLocalSocket>
+#include <QLockFile>
 #include <QRegularExpression>
+#include <QTimer>
 #include <QUuid>
 
 #include <algorithm>
+#include <cerrno>
+#include <cstddef>
+#include <cstring>
+
+#if defined(Q_OS_UNIX)
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#endif
+
+namespace {
+
+bool endpoint_has_live_owner(const QString& endpoint_path) {
+#if defined(Q_OS_UNIX)
+    const QByteArray encoded_path = QFile::encodeName(endpoint_path);
+    sockaddr_un address {};
+    if (encoded_path.isEmpty()
+        || encoded_path.size()
+            >= static_cast<qsizetype>(sizeof(address.sun_path))) {
+        // An address-in-use endpoint that cannot be probed safely must never
+        // be unlinked speculatively.
+        return true;
+    }
+    address.sun_family = AF_UNIX;
+    std::memcpy(
+        address.sun_path, encoded_path.constData(),
+        static_cast<std::size_t>(encoded_path.size() + 1)
+    );
+    const int descriptor = ::socket(AF_UNIX, SOCK_STREAM, 0);
+    if (descriptor < 0) {
+        return true;
+    }
+    const auto address_size = static_cast<socklen_t>(
+        offsetof(sockaddr_un, sun_path)
+        + static_cast<std::size_t>(encoded_path.size() + 1)
+    );
+    const bool connected
+        = ::connect(
+              descriptor, reinterpret_cast<const sockaddr*>(&address),
+              address_size
+          )
+        == 0;
+    const int connect_error = errno;
+    ::close(descriptor);
+    if (connected) {
+        return true;
+    }
+    return connect_error != ECONNREFUSED && connect_error != ENOENT;
+#else
+    QLocalSocket probe;
+    QEventLoop event_loop;
+    QTimer timeout;
+    timeout.setSingleShot(true);
+    QObject::connect(
+        &probe, &QLocalSocket::connected, &event_loop, &QEventLoop::quit
+    );
+    QObject::connect(
+        &probe, &QLocalSocket::errorOccurred, &event_loop, &QEventLoop::quit
+    );
+    QObject::connect(
+        &timeout, &QTimer::timeout, &event_loop, &QEventLoop::quit
+    );
+
+    probe.connectToServer(endpoint_path);
+    if (probe.state() != QLocalSocket::ConnectedState) {
+        timeout.start(500);
+        event_loop.exec();
+    }
+    const bool connected = probe.state() == QLocalSocket::ConnectedState;
+    probe.abort();
+    return connected;
+#endif
+}
+
+} // namespace
 
 debug_broadcaster::debug_broadcaster(
     QObject* parent, qint64 max_queue_bytes, qint64 socket_backpressure_bytes
@@ -20,6 +100,7 @@ debug_broadcaster::debug_broadcaster(
       )
     , runtime_enabled(false)
     , endpoint_name()
+    , endpoint_lock()
     , local_server(nullptr)
     , listener_socket(nullptr)
     , pending_packets()
@@ -57,14 +138,11 @@ bool debug_broadcaster::set_enabled(
         return true;
     }
 
-    const QString effective_endpoint = sanitize_endpoint_name(
-        requested_endpoint_name.isEmpty() ? build_default_endpoint_name()
-                                          : requested_endpoint_name
-    );
-    const QString endpoint_path = QDir::temp().filePath(
-        QStringLiteral("%1.sock").arg(effective_endpoint)
-    );
-    if (effective_endpoint.isEmpty() || endpoint_path.isEmpty()) {
+    const QString requested = requested_endpoint_name.trimmed().isEmpty()
+        ? build_default_endpoint_name()
+        : requested_endpoint_name;
+    const QString endpoint_path = endpoint_path_for_requested_name(requested);
+    if (endpoint_path.isEmpty()) {
         emit warning_raised(
             QStringLiteral("broadcaster_invalid_endpoint"),
             QStringLiteral("unable to determine local IPC endpoint")
@@ -72,13 +150,44 @@ bool debug_broadcaster::set_enabled(
         return false;
     }
 
+    auto lock
+        = std::make_unique<QLockFile>(endpoint_path + QStringLiteral(".lock"));
+    if (!lock->tryLock(0)) {
+        if (!endpoint_has_live_owner(endpoint_path)) {
+            lock->removeStaleLockFile();
+        }
+        if (!lock->tryLock(0)) {
+            emit warning_raised(
+                QStringLiteral("broadcaster_endpoint_in_use"),
+                QStringLiteral("telemetry endpoint ownership is already locked")
+            );
+            return false;
+        }
+    }
+
+    if (endpoint_has_live_owner(endpoint_path)) {
+        emit warning_raised(
+            QStringLiteral("broadcaster_endpoint_in_use"),
+            QStringLiteral("telemetry endpoint already has a live owner")
+        );
+        return false;
+    }
+    if (QFileInfo::exists(endpoint_path)
+        && !QLocalServer::removeServer(endpoint_path)) {
+        emit warning_raised(
+            QStringLiteral("broadcaster_listen_failed"),
+            QStringLiteral("unable to remove a stale telemetry endpoint")
+        );
+        return false;
+    }
+
     auto* server = new QLocalServer(this);
+    server->setSocketOptions(QLocalServer::UserAccessOption);
     QObject::connect(
         server, &QLocalServer::newConnection, this,
         &debug_broadcaster::on_new_connection
     );
 
-    QLocalServer::removeServer(endpoint_path);
     if (!server->listen(endpoint_path)) {
         emit warning_raised(
             QStringLiteral("broadcaster_listen_failed"), server->errorString()
@@ -89,6 +198,7 @@ bool debug_broadcaster::set_enabled(
 
     local_server = server;
     endpoint_name = endpoint_path;
+    endpoint_lock = std::move(lock);
     runtime_enabled = true;
     return true;
 }
@@ -112,6 +222,27 @@ debug_broadcaster::runtime_state debug_broadcaster::state() const {
     };
 }
 
+void debug_broadcaster::discard_pending_messages() {
+    pending_packets.clear();
+    pending_packet_bytes = 0;
+}
+
+QString debug_broadcaster::endpoint_path_for_requested_name(
+    const QString& requested_endpoint_name
+) {
+    QString requested = requested_endpoint_name.trimmed();
+    if (requested.isEmpty()) {
+        return {};
+    }
+    if (QDir::isAbsolutePath(requested)) {
+        return requested;
+    }
+    const QString endpoint = sanitize_endpoint_name(requested);
+    return endpoint.isEmpty()
+        ? QString()
+        : QDir::temp().filePath(QStringLiteral("%1.sock").arg(endpoint));
+}
+
 bool debug_broadcaster::publish_json(
     const QJsonObject& message, message_priority priority, bool droppable
 ) {
@@ -123,7 +254,7 @@ bool debug_broadcaster::publish_json(
     QByteArray payload = document.toJson(QJsonDocument::Compact);
     payload.append('\n');
 
-    const qint64 payload_bytes = static_cast<qint64>(payload.size());
+    const auto payload_bytes = static_cast<qint64>(payload.size());
     if (!make_room_for_packet(payload_bytes, priority, droppable)) {
         mark_dropped(priority);
         return false;
@@ -145,11 +276,23 @@ void debug_broadcaster::on_new_connection() {
         return;
     }
 
-    QLocalSocket* newest_socket = nullptr;
+    QLocalSocket* selected_socket = nullptr;
+    const bool already_connected = listener_socket != nullptr
+        && listener_socket->state() == QLocalSocket::ConnectedState;
     while (local_server->hasPendingConnections()) {
-        newest_socket = local_server->nextPendingConnection();
+        QLocalSocket* candidate = local_server->nextPendingConnection();
+        if (!already_connected) {
+            if (selected_socket != nullptr) {
+                selected_socket->close();
+                selected_socket->deleteLater();
+            }
+            selected_socket = candidate;
+        } else {
+            candidate->close();
+            candidate->deleteLater();
+        }
     }
-    if (newest_socket == nullptr) {
+    if (selected_socket == nullptr) {
         return;
     }
 
@@ -160,7 +303,7 @@ void debug_broadcaster::on_new_connection() {
         listener_socket = nullptr;
     }
 
-    attach_socket(newest_socket);
+    attach_socket(selected_socket);
     emit listener_connection_changed(true);
     try_flush();
 }
@@ -175,7 +318,7 @@ void debug_broadcaster::on_socket_bytes_written(qint64 bytes_written) {
     try_flush();
 }
 
-bool debug_broadcaster::compile_time_enabled() const {
+bool debug_broadcaster::compile_time_enabled() {
 #if defined(NDEBUG)
     return false;
 #else
@@ -183,7 +326,7 @@ bool debug_broadcaster::compile_time_enabled() const {
 #endif
 }
 
-QString debug_broadcaster::build_default_endpoint_name() const {
+QString debug_broadcaster::build_default_endpoint_name() {
     const QString suffix
         = QUuid::createUuid().toString(QUuid::WithoutBraces).left(6);
     return QStringLiteral("cppr_%1_%2")
@@ -221,6 +364,7 @@ void debug_broadcaster::close_transport() {
     pending_packets.clear();
     pending_packet_bytes = 0;
     endpoint_name.clear();
+    endpoint_lock.reset();
 }
 
 void debug_broadcaster::mark_dropped(message_priority priority) {
@@ -341,7 +485,7 @@ void debug_broadcaster::try_flush() {
             break;
         }
 
-        const qint64 packet_payload_bytes
+        const auto packet_payload_bytes
             = static_cast<qint64>(packet.payload.size());
         if (written >= packet_payload_bytes) {
             pending_packet_bytes -= packet_payload_bytes;

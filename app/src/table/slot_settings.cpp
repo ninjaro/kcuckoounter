@@ -3,6 +3,7 @@
 #include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
+#include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "table/infinity_spinbox.hpp"
 
@@ -70,6 +71,8 @@ void slot_settings::setup_ui(bool include_info_button) {
     decks_spin_box_internal->setToolTip(decks_tooltip);
     android_ui::apply_spin_box_style(decks_spin_box_internal);
     deck_count_spin_box_internal = decks_spin_box_internal;
+    decks_label->setBuddy(deck_count_spin_box_internal);
+    deck_count_spin_box_internal->setAccessibleName(str_label("Deck count"));
     decks_layout->addWidget(decks_label);
     decks_layout->addWidget(deck_count_spin_box_internal);
     settings_layout->addLayout(decks_layout);
@@ -82,13 +85,39 @@ void slot_settings::setup_ui(bool include_info_button) {
     strategy_label->setToolTip(strategy_tooltip);
     strategy_combo_box_internal = new BaseComboBox(this);
     strategy_combo_box_internal->setToolTip(strategy_tooltip);
+    strategy_combo_box_internal->setAccessibleName(
+        str_label("Weight strategy")
+    );
+    strategy_label->setBuddy(strategy_combo_box_internal);
     android_ui::apply_combo_box_style(strategy_combo_box_internal);
-    const QVector<strategy_data> strategies = load_strategies();
-    if (strategies.isEmpty()) {
-        strategy_combo_box_internal->addItem(str_label("Default strategy"));
+    const strategy_catalog& repository = strategy_repository();
+    if (!repository.is_valid()) {
+        strategy_combo_box_internal->addItem(
+            str_label("Strategies unavailable")
+        );
+        strategy_combo_box_internal->setEnabled(false);
+        strategy_combo_box_internal->setToolTip(
+            str_label("Strategy data could not be loaded: %1")
+                .arg(repository.diagnostic_summary())
+        );
     } else {
-        for (const strategy_data& strategy : strategies) {
-            strategy_combo_box_internal->addItem(strategy.name);
+        for (const strategy_data& strategy : repository.strategies) {
+            strategy_combo_box_internal->addItem(strategy.name, strategy.slug);
+            const int item_index = strategy_combo_box_internal->count() - 1;
+            strategy_combo_box_internal->setItemData(
+                item_index, strategy.id, Qt::UserRole + 1
+            );
+        }
+
+        const trainer_preferences preferences = load_trainer_preferences();
+        for (int index = 0; index < strategy_combo_box_internal->count();
+             ++index) {
+            if (strategy_combo_box_internal->itemData(index).toString()
+                != preferences.preferred_strategy_slug) {
+                continue;
+            }
+            strategy_combo_box_internal->setCurrentIndex(index);
+            break;
         }
     }
     strategy_layout->addWidget(strategy_label);
@@ -97,6 +126,9 @@ void slot_settings::setup_ui(bool include_info_button) {
     if (include_info_button) {
         info_button_internal = android_ui::create_button(this);
         info_button_internal->setText(str_label("Info"));
+        info_button_internal->setAccessibleName(
+            str_label("Strategy information")
+        );
         info_button_internal->setIcon(
             icon_loader::themed(
                 { "info-symbolic", "dialog-information-symbolic",
