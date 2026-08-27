@@ -84,6 +84,62 @@ int card_picker::card_index_at(int position) const {
     return deck[static_cast<size_t>(position)];
 }
 
+QVector<int> card_picker::deck_order() const {
+    return QVector<int>(deck.begin(), deck.end());
+}
+
+bool card_picker::infinity_enabled() const { return infinity; }
+
+bool card_picker::restore(
+    const QVector<int>& restored_deck, int position, bool infinity_enabled,
+    int cards_per_deck
+) {
+    if (!is_valid_restore(
+            restored_deck, position, infinity_enabled, cards_per_deck
+        )) {
+        return false;
+    }
+
+    deck.assign(restored_deck.begin(), restored_deck.end());
+    deck_position = position;
+    infinity = infinity_enabled;
+    return true;
+}
+
+bool card_picker::is_valid_restore(
+    const QVector<int>& restored_deck, int position, bool infinity_enabled,
+    int cards_per_deck
+) {
+    if (restored_deck.isEmpty() || cards_per_deck < 1 || position < 0
+        || position > restored_deck.size()) {
+        return false;
+    }
+    if (std::ranges::any_of(restored_deck, [cards_per_deck](int card) {
+            return card < 0 || card >= cards_per_deck;
+        })) {
+        return false;
+    }
+    if (infinity_enabled && position == restored_deck.size()) {
+        return false;
+    }
+    if (restored_deck.size() % cards_per_deck != 0) {
+        return false;
+    }
+    const int decks_count
+        = static_cast<int>(restored_deck.size()) / cards_per_deck;
+    QVector<int> occurrences(cards_per_deck, 0);
+    for (const int card : restored_deck) {
+        ++occurrences[card];
+    }
+    if (std::ranges::any_of(occurrences, [decks_count](int count) {
+            return count != decks_count;
+        })) {
+        return false;
+    }
+
+    return true;
+}
+
 void card_picker::fill_deck(int cards_per_deck, int decks_count) {
     deck.clear();
 

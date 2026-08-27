@@ -7,6 +7,7 @@
 #include "image/raster_cache.hpp"
 #include "image/rasterization_runner.hpp"
 #include "monitor/geometry_debug_telemetry.hpp"
+#include "settings/session_checkpoint.hpp"
 #include <QFutureWatcher>
 #include <QImage>
 #include <QSet>
@@ -45,6 +46,8 @@ public:
     raster_cache* shared_raster_cache_service();
     const raster_cache* shared_raster_cache_service() const;
     geometry_debug_snapshot current_geometry_debug_snapshot() const;
+    [[nodiscard]] table_session_state capture_session_state() const;
+    bool restore_session_state(const table_session_state& state);
 
 public slots:
     void on_clock_tick(qint64 elapsed_ms, qint64 delta_ms);

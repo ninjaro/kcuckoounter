@@ -254,6 +254,85 @@ void table::set_allow_skipping(bool allow) {
     }
 }
 
+table_session_state table::capture_session_state() const {
+    table_session_state state;
+    state.slot_states.reserve(static_cast<qsizetype>(slot_widgets.size()));
+    for (const table_slot* slot_widget : slot_widgets) {
+        if (slot_widget != nullptr) {
+            state.slot_states.append(slot_widget->capture_session_state());
+        }
+    }
+    state.pick_elapsed_ms = pick_elapsed_ms;
+    state.quiz_running = quiz_running;
+    state.quiz_paused = quiz_paused;
+    state.allow_skipping = allow_skipping;
+    switch (current_mode) {
+    case dealing_mode::sequential:
+        state.dealing_mode = 0;
+        break;
+    case dealing_mode::random:
+        state.dealing_mode = 1;
+        break;
+    case dealing_mode::simultaneous:
+        state.dealing_mode = 2;
+        break;
+    }
+    state.next_slot_index = next_slot_index;
+    return state;
+}
+
+bool table::restore_session_state(const table_session_state& state) {
+    if (!state.quiz_running || state.slot_states.isEmpty()
+        || state.slot_states.size() > 16 || state.dealing_mode < 0
+        || state.dealing_mode > 2 || state.next_slot_index < 0
+        || state.next_slot_index >= state.slot_states.size()
+        || state.pick_elapsed_ms < 0) {
+        return false;
+    }
+    if (std::ranges::any_of(
+            state.slot_states, [](const table_slot_session_state& slot_state) {
+                return !table_slot::is_session_state_valid(slot_state);
+            }
+        )) {
+        return false;
+    }
+
+    set_slot_count(static_cast<int>(state.slot_states.size()));
+    if (slot_widgets.size() != static_cast<size_t>(state.slot_states.size())) {
+        return false;
+    }
+    for (qsizetype index = 0; index < state.slot_states.size(); ++index) {
+        table_slot* slot_widget = slot_widgets[static_cast<std::size_t>(index)];
+        if (slot_widget == nullptr
+            || !slot_widget->restore_session_state(
+                state.slot_states.at(index)
+            )) {
+            clear_quiz();
+            return false;
+        }
+    }
+
+    set_dealing_mode(state.dealing_mode);
+    allow_skipping = state.allow_skipping;
+    next_slot_index = state.next_slot_index;
+    pick_elapsed_ms = std::min<qint64>(
+        state.pick_elapsed_ms, std::max(0, pick_interval_ms - 1)
+    );
+    quiz_running = true;
+    quiz_paused = true;
+    for (table_slot* slot_widget : slot_widgets) {
+        if (slot_widget != nullptr) {
+            slot_widget->set_allow_skipping(allow_skipping);
+            slot_widget->set_paused(true);
+        }
+    }
+    schedule_card_preload();
+    update_shared_card_face_need(
+        false, cache_update_trigger::quiz_state_change
+    );
+    return true;
+}
+
 void table::paintEvent(QPaintEvent* event) {
     BaseWidget::paintEvent(event);
 

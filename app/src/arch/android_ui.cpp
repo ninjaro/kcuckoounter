@@ -72,8 +72,11 @@ void apply_android_spin_box_style(BaseSpinBox* spin_box) {
         return;
     }
 
-    spin_box->setMinimumHeight(40);
-    spin_box->setStyleSheet(QStringLiteral("QSpinBox { padding: 6px 10px; }"));
+    spin_box->setMinimumHeight(48);
+    spin_box->setStyleSheet(QStringLiteral(
+        "QSpinBox { padding: 8px 12px; }"
+        "QSpinBox::up-button, QSpinBox::down-button { width: 36px; }"
+    ));
 }
 
 void apply_android_combo_box_style(BaseComboBox* combo_box) {
@@ -81,10 +84,11 @@ void apply_android_combo_box_style(BaseComboBox* combo_box) {
         return;
     }
 
-    combo_box->setMinimumHeight(40);
-    combo_box->setStyleSheet(
-        QStringLiteral("QComboBox { padding: 6px 10px; }")
-    );
+    combo_box->setMinimumHeight(48);
+    combo_box->setStyleSheet(QStringLiteral(
+        "QComboBox { padding: 8px 12px; }"
+        "QComboBox::drop-down { width: 40px; }"
+    ));
 }
 
 void apply_android_check_box_style(BaseCheckBox* check_box) {
@@ -92,9 +96,10 @@ void apply_android_check_box_style(BaseCheckBox* check_box) {
         return;
     }
 
-    check_box->setStyleSheet(
-        QStringLiteral("QCheckBox { spacing: 10px; padding: 4px 0px; }")
-    );
+    check_box->setStyleSheet(QStringLiteral(
+        "QCheckBox { spacing: 12px; padding: 8px 0px; }"
+        "QCheckBox::indicator { width: 28px; height: 28px; }"
+    ));
 }
 
 void apply_android_slider_style(QSlider* slider) {
@@ -102,7 +107,11 @@ void apply_android_slider_style(QSlider* slider) {
         return;
     }
 
-    slider->setMinimumHeight(36);
+    slider->setMinimumHeight(48);
+    slider->setStyleSheet(QStringLiteral(
+        "QSlider::groove:horizontal { height: 8px; border-radius: 4px; }"
+        "QSlider::handle:horizontal { width: 28px; margin: -10px 0; }"
+    ));
 }
 
 void apply_android_toolbar_style(BaseToolBar* toolbar) {
@@ -110,9 +119,14 @@ void apply_android_toolbar_style(BaseToolBar* toolbar) {
         return;
     }
 
-    toolbar->setIconSize(QSize(24, 24));
+    toolbar->setIconSize(QSize(28, 28));
     toolbar->setMovable(false);
     toolbar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    toolbar->setMinimumHeight(72);
+    toolbar->setStyleSheet(QStringLiteral(
+        "QToolBar { spacing: 2px; padding: 2px; }"
+        "QToolButton { min-width: 56px; min-height: 62px; padding: 2px; }"
+    ));
 }
 
 } // namespace android_ui_support

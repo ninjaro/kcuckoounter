@@ -2,6 +2,7 @@
 #define KCUCKOOUNTER_TABLE_TABLE_SLOT_HPP
 
 #include "arch/widget_helpers.hpp"
+#include "settings/session_checkpoint.hpp"
 
 #include <QBoxLayout>
 #include <QImage>
@@ -46,6 +47,10 @@ public:
     void set_copy_button_text(const QString& text);
     [[nodiscard]] bool is_deck_exhausted() const;
     [[nodiscard]] bool is_quiz_prompt_active() const;
+    [[nodiscard]] table_slot_session_state capture_session_state() const;
+    [[nodiscard]] static bool
+    is_session_state_valid(const table_slot_session_state& state);
+    bool restore_session_state(const table_slot_session_state& state);
 
 signals:
     void swap_clicked(table_slot* slot);

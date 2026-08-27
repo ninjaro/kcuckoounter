@@ -26,6 +26,7 @@ public:
     void pause();
     void stop();
     void reset();
+    void set_elapsed_time_ms(qint64 elapsed_ms);
     [[nodiscard]] bool is_active() const;
 
     void restart_elapsed();

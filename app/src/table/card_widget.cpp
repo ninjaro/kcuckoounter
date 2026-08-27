@@ -290,6 +290,53 @@ int card_widget::current_total_weight() const {
     return total_weight_for_picks();
 }
 
+card_session_state card_widget::capture_session_state() const {
+    return {
+        .cards_per_deck = cards_per_deck,
+        .decks_count = decks_count,
+        .infinity_enabled = infinity_enabled,
+        .deck = picker.deck_order(),
+        .deck_position = picker.is_depleted() ? picker.total_cards()
+                                              : picker.current_position(),
+    };
+}
+
+bool card_widget::restore_session_state(const card_session_state& state) {
+    if (!can_restore_session_state(state)
+        || !picker.restore(
+            state.deck, state.deck_position, state.infinity_enabled,
+            state.cards_per_deck
+        )) {
+        return false;
+    }
+
+    cards_per_deck = state.cards_per_deck;
+    decks_count = state.decks_count;
+    infinity_enabled = state.infinity_enabled;
+    discard_history.clear();
+    picks_since_rasterize = 0;
+    running = false;
+    swap_selected_flag = false;
+    highlight_duration_ms = 0;
+    highlight_remaining_ms = 0;
+    highlight_active = false;
+    hide_cards_flag = false;
+    selection_timer->stop();
+    selection_phase = 0.0;
+    update_card_jitter();
+    update();
+    return true;
+}
+
+bool card_widget::can_restore_session_state(const card_session_state& state) {
+    return state.cards_per_deck >= 1 && state.decks_count >= 1
+        && state.deck.size() == state.cards_per_deck * state.decks_count
+        && card_picker::is_valid_restore(
+               state.deck, state.deck_position, state.infinity_enabled,
+               state.cards_per_deck
+        );
+}
+
 void card_widget::clear_quiz() {
     picker.setup(0, 0, false);
     cards_per_deck = 0;

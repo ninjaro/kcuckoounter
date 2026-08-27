@@ -3,6 +3,7 @@
 
 #include "settings/theme_palette.hpp"
 
+#include <QByteArray>
 #include <QString>
 
 class QSettings;
@@ -28,6 +29,16 @@ struct trainer_preferences {
     bool operator==(const trainer_preferences&) const = default;
 };
 
+struct desktop_shell_state {
+    static constexpr int schema_version = 1;
+    static constexpr int qt_main_window_state_version = 1;
+
+    QByteArray geometry;
+    QByteArray main_window_state;
+
+    bool operator==(const desktop_shell_state&) const = default;
+};
+
 class preferences_service {
 public:
     explicit preferences_service(QSettings& settings);
@@ -43,7 +54,20 @@ private:
     QSettings& settings;
 };
 
+class desktop_shell_state_service {
+public:
+    explicit desktop_shell_state_service(QSettings& settings);
+
+    desktop_shell_state load() const;
+    void save(const desktop_shell_state& state);
+
+private:
+    QSettings& settings;
+};
+
 trainer_preferences load_trainer_preferences();
 void save_trainer_preferences(const trainer_preferences& preferences);
+desktop_shell_state load_desktop_shell_state();
+void save_desktop_shell_state(const desktop_shell_state& state);
 
 #endif // KCUCKOOUNTER_SETTINGS_PREFERENCES_HPP

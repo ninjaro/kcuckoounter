@@ -2,6 +2,7 @@
 #define KCUCKOOUNTER_CARD_HELPERS_CARD_PICKER_HPP
 
 #include "arch/random_generator.hpp"
+#include <QVector>
 #include <vector>
 
 class card_picker {
@@ -19,6 +20,16 @@ public:
     [[nodiscard]] int total_cards() const;
     [[nodiscard]] bool is_depleted() const;
     [[nodiscard]] int card_index_at(int position) const;
+    [[nodiscard]] QVector<int> deck_order() const;
+    [[nodiscard]] bool infinity_enabled() const;
+    bool restore(
+        const QVector<int>& deck_order, int position, bool infinity_enabled,
+        int cards_per_deck
+    );
+    [[nodiscard]] static bool is_valid_restore(
+        const QVector<int>& deck_order, int position, bool infinity_enabled,
+        int cards_per_deck
+    );
 
 private:
     void fill_deck(int cards_per_deck, int decks_count);

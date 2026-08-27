@@ -8,7 +8,10 @@
 #include <KGameClock>
 #include <KGameHighScoreDialog>
 #include <KGameStandardAction>
+#include <KHelpMenu>
+#include <KShortcutsDialog>
 #include <KStandardAction>
+#include <KStandardShortcut>
 
 #include <QByteArray>
 #include <QCoreApplication>
@@ -85,6 +88,31 @@ void configure_highscore_dialog(KGameHighScoreDialog& score_dialog) {
 
 } // namespace main_window_kde_score_support
 
+namespace {
+
+bool is_primary_shell_action(const QString& action_name) {
+    return action_name == QStringLiteral("game_new")
+        || action_name == QStringLiteral("game_start_pause")
+        || action_name == QStringLiteral("game_finish")
+        || action_name == QStringLiteral("game_settings");
+}
+
+void preserve_action_shortcut_defaults(KActionCollection* collection) {
+    if (collection == nullptr) {
+        return;
+    }
+    for (QAction* action : collection->actions()) {
+        if (action == nullptr
+            || !KActionCollection::defaultShortcuts(action).isEmpty()
+            || action->shortcuts().isEmpty()) {
+            continue;
+        }
+        KActionCollection::setDefaultShortcuts(action, action->shortcuts());
+    }
+}
+
+} // namespace
+
 void main_window::setup_platform_shell() {
     primary_toolbar = new BaseToolBar(str_label("Main"), this);
     primary_toolbar->setObjectName(QStringLiteral("main_toolbar"));
@@ -101,7 +129,25 @@ void main_window::finalize_platform_shell() {
 
     window_menu_bar->clear();
 
-    auto* game_menu = window_menu_bar->addMenu(str_label("&Game"));
+    if (settings_action != nullptr) {
+        BaseAction* previous_settings_action = settings_action;
+        settings_action = KStandardAction::preferences(
+            this, &main_window::on_settings_triggered, this
+        );
+        settings_action->setToolTip(previous_settings_action->toolTip());
+        if (primary_toolbar != nullptr) {
+            primary_toolbar->insertAction(
+                previous_settings_action, settings_action
+            );
+        }
+        actionCollection()->takeAction(previous_settings_action);
+        delete previous_settings_action;
+        actionCollection()->addAction(
+            QStringLiteral("game_settings"), settings_action
+        );
+    }
+
+    game_menu = window_menu_bar->addMenu(str_label("&Game"));
     if (highscores_action == nullptr) {
         highscores_action = KGameStandardAction::highscores(
             this, &main_window::on_show_highscores_triggered, this
@@ -129,16 +175,23 @@ void main_window::finalize_platform_shell() {
         actionCollection()
     );
     if (quit_action != nullptr) {
+        actionCollection()->addAction(QStringLiteral("file_quit"), quit_action);
         game_menu->addAction(quit_action);
     }
 
-    auto* settings_menu = window_menu_bar->addMenu(str_label("&Settings"));
+    settings_menu = window_menu_bar->addMenu(str_label("&Settings"));
     if (settings_action != nullptr) {
+        KActionCollection::setDefaultShortcuts(
+            settings_action, KStandardShortcut::preferences()
+        );
         settings_menu->addAction(settings_action);
     }
     if (primary_toolbar != nullptr) {
         auto* toolbar_action = primary_toolbar->toggleViewAction();
         toolbar_action->setText(str_label("Show toolbar"));
+        actionCollection()->addAction(
+            QStringLiteral("view_main_toolbar"), toolbar_action
+        );
         settings_menu->addAction(toolbar_action);
     }
     if (window_status_bar != nullptr) {
@@ -146,9 +199,30 @@ void main_window::finalize_platform_shell() {
             window_status_bar, &QStatusBar::setVisible, actionCollection()
         );
         if (status_bar_action != nullptr) {
+            actionCollection()->addAction(
+                QStringLiteral("view_statusbar"), status_bar_action
+            );
             status_bar_action->setChecked(window_status_bar->isVisible());
             settings_menu->addAction(status_bar_action);
         }
+    }
+    settings_menu->addSeparator();
+    auto* configure_shortcuts_action = KStandardAction::keyBindings(
+        this,
+        [this]() {
+            KShortcutsDialog::showDialog(
+                actionCollection(), KShortcutsEditor::LetterShortcutsAllowed,
+                this
+            );
+        },
+        actionCollection()
+    );
+    if (configure_shortcuts_action != nullptr) {
+        actionCollection()->addAction(
+            QStringLiteral("settings_configure_shortcuts"),
+            configure_shortcuts_action
+        );
+        settings_menu->addAction(configure_shortcuts_action);
     }
 
     if (export_debug_snapshot_action != nullptr
@@ -157,7 +231,7 @@ void main_window::finalize_platform_shell() {
         || toggle_debug_broadcaster_action != nullptr
         || realistic_cadence_mode_action != nullptr
         || instrumented_cadence_mode_action != nullptr) {
-        auto* debug_menu = window_menu_bar->addMenu(str_label("&Debug"));
+        debug_menu = window_menu_bar->addMenu(str_label("&Debug"));
         if (export_debug_snapshot_action != nullptr) {
             debug_menu->addAction(export_debug_snapshot_action);
         }
@@ -182,6 +256,15 @@ void main_window::finalize_platform_shell() {
             debug_menu->addAction(instrumented_cadence_mode_action);
         }
     }
+
+    auto* help_menu = new KHelpMenu(this);
+    help_menu->setShowWhatsThis(true);
+    window_menu_bar->addMenu(help_menu->menu());
+
+    setCommandBarEnabled(true);
+    actionCollection()->setConfigGroup(QStringLiteral("Shortcuts"));
+    preserve_action_shortcut_defaults(actionCollection());
+    actionCollection()->readSettings();
 }
 
 void main_window::setup_status_surface(BaseVBoxLayout* main_layout) {
@@ -234,16 +317,12 @@ void main_window::register_shell_action(
     if (actionCollection() != nullptr) {
         actionCollection()->addAction(action_name, action);
     }
-    if (primary_toolbar != nullptr) {
+    if (primary_toolbar != nullptr && is_primary_shell_action(action_name)) {
         primary_toolbar->addAction(action);
     }
 }
 
-void main_window::insert_shell_separator() {
-    if (primary_toolbar != nullptr) {
-        primary_toolbar->addSeparator();
-    }
-}
+void main_window::insert_shell_separator() { }
 
 void main_window::refresh_clock_label() const {
     if (clock_timer == nullptr || clock_label == nullptr) {

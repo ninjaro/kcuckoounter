@@ -4,11 +4,13 @@
 #include "arch/widget_helpers.hpp"
 
 #include <QString>
+#include <QtCore/Qt>
 
 class table;
 class KGameClock;
 class QLabel;
 class QDialog;
+class QMenu;
 class QProgressBar;
 class QSlider;
 class resource_monitor;
@@ -36,6 +38,7 @@ private slots:
     void on_start_pause_triggered();
     void on_finish_triggered();
     void on_show_highscores_triggered();
+    void on_progress_triggered();
     void on_settings_triggered();
     void on_settings_commit_requested();
     void on_settings_dialog_finished(int result);
@@ -46,6 +49,7 @@ private slots:
     void on_instrumented_cadence_selected();
     void on_toggle_debug_broadcaster_triggered(bool checked);
     void on_application_about_to_quit();
+    void on_application_state_changed(Qt::ApplicationState state);
 
 private:
     BaseSpinBox* table_slots_count;
@@ -55,6 +59,9 @@ private:
     BaseComboBox* dealing_mode;
     BasePushButton* continue_button;
     BaseToolBar* primary_toolbar;
+    QMenu* game_menu;
+    QMenu* settings_menu;
+    QMenu* debug_menu;
     table* table_widget;
     QDialog* setup_dialog;
     QDialog* settings_dialog;
@@ -71,6 +78,7 @@ private:
     BaseAction* start_pause_action;
     BaseAction* finish_action;
     BaseAction* highscores_action;
+    BaseAction* progress_action;
     BaseAction* settings_action;
     BaseAction* export_debug_snapshot_action;
     BaseAction* export_process_memory_report_action;
@@ -85,6 +93,9 @@ private:
     int score_correct;
     int score_total;
     resource_monitor* debug_telemetry_collector;
+    bool mobile_checkpoint_restored;
+    bool mobile_lifecycle_paused;
+    qint64 last_mobile_checkpoint_elapsed_ms;
 
     void setup_ui();
     void setup_game_actions();
@@ -108,6 +119,11 @@ private:
     void setup_debug_monitoring();
     void dump_debug_telemetry_on_exit() const;
     void persist_setup_preferences() const;
+    void persist_desktop_shell_state() const;
+    void restore_desktop_shell_state();
+    void persist_mobile_session_checkpoint(bool was_running) const;
+    bool restore_mobile_session_checkpoint();
+    void clear_mobile_session_checkpoint();
 };
 
 #endif // KCUCKOOUNTER_MAIN_WINDOW_HPP

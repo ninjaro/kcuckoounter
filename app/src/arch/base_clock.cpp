@@ -6,6 +6,7 @@
 #include <QTime>
 #include <QTimer>
 
+#include <algorithm>
 #include <utility>
 
 struct base_clock::clock_state {
@@ -71,6 +72,15 @@ void base_clock::stop() {
 void base_clock::reset() {
     state->elapsed_ms = 0;
     state->last_tick_ms = 0;
+    state->running = false;
+    state->elapsed_active = false;
+    state->timer.stop();
+    on_timeout();
+}
+
+void base_clock::set_elapsed_time_ms(qint64 elapsed_ms) {
+    state->elapsed_ms = std::max<qint64>(0, elapsed_ms);
+    state->last_tick_ms = state->elapsed_ms;
     state->running = false;
     state->elapsed_active = false;
     state->timer.stop();

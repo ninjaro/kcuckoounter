@@ -10,7 +10,7 @@
 #include "arch/str_label.hpp"
 
 #ifndef ECOSYSTEM_PROJECT_VERSION
-#define ECOSYSTEM_PROJECT_VERSION "0.1.0"
+#define ECOSYSTEM_PROJECT_VERSION "1.0.0"
 #endif
 
 #ifdef KC_KDE
@@ -65,7 +65,11 @@ int main(int argc, char* argv[]) {
 #endif
 
     auto window = std::make_unique<main_window>();
+#if defined(Q_OS_ANDROID)
+    window->showMaximized();
+#else
     window->show();
+#endif
 
     int result = QApplication::exec();
     window.reset();

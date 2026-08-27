@@ -8,7 +8,7 @@
 #include <QCoreApplication>
 
 void main_window::setup_debug_monitoring() {
-#if defined(NDEBUG)
+#if defined(NDEBUG) || defined(Q_OS_ANDROID)
     debug_telemetry_collector = nullptr;
     return;
 #else

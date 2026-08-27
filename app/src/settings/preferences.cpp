@@ -15,6 +15,8 @@ namespace {
 
 const QString preferences_group = QStringLiteral("trainer_preferences");
 const QString schema_version_key = QStringLiteral("schema_version");
+const QString desktop_shell_group = QStringLiteral("desktop_shell");
+constexpr qsizetype maximum_shell_state_bytes = 1024 * 1024;
 
 const QStringList legacy_keys = {
     QStringLiteral("table_slots"),      QStringLiteral("quiz_type"),
@@ -156,6 +158,17 @@ bool has_legacy_preferences(QSettings& settings) {
     return std::ranges::any_of(legacy_keys, [&settings](const QString& key) {
         return settings.contains(key);
     });
+}
+
+QByteArray bounded_byte_array(const QVariant& value) {
+    if (value.metaType().id() != QMetaType::QByteArray) {
+        return {};
+    }
+    const QByteArray bytes = value.toByteArray();
+    if (bytes.size() > maximum_shell_state_bytes) {
+        return {};
+    }
+    return bytes;
 }
 
 trainer_preferences
@@ -342,6 +355,53 @@ void preferences_service::save(
     settings.sync();
 }
 
+desktop_shell_state_service::desktop_shell_state_service(
+    QSettings& settings_value
+)
+    : settings(settings_value) { }
+
+desktop_shell_state desktop_shell_state_service::load() const {
+    settings.beginGroup(desktop_shell_group);
+    bool version_ok = false;
+    const int version = settings.value(schema_version_key).toInt(&version_ok);
+    if (!version_ok || version != desktop_shell_state::schema_version) {
+        settings.endGroup();
+        return {};
+    }
+
+    desktop_shell_state result;
+    result.geometry
+        = bounded_byte_array(settings.value(QStringLiteral("window/geometry")));
+    result.main_window_state = bounded_byte_array(
+        settings.value(QStringLiteral("window/main_state"))
+    );
+    settings.endGroup();
+    return result;
+}
+
+void desktop_shell_state_service::save(const desktop_shell_state& state) {
+    settings.beginGroup(desktop_shell_group);
+    if (settings.contains(schema_version_key)) {
+        bool stored_version_ok = false;
+        const int stored_version
+            = settings.value(schema_version_key).toInt(&stored_version_ok);
+        if (stored_version_ok
+            && stored_version > desktop_shell_state::schema_version) {
+            settings.endGroup();
+            return;
+        }
+    }
+
+    settings.remove(QString());
+    settings.setValue(schema_version_key, desktop_shell_state::schema_version);
+    settings.setValue(QStringLiteral("window/geometry"), state.geometry);
+    settings.setValue(
+        QStringLiteral("window/main_state"), state.main_window_state
+    );
+    settings.endGroup();
+    settings.sync();
+}
+
 trainer_preferences load_trainer_preferences() {
     QSettings settings(
         QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
@@ -356,4 +416,20 @@ void save_trainer_preferences(const trainer_preferences& preferences) {
     );
     preferences_service service(settings);
     service.save(preferences, strategy_repository());
+}
+
+desktop_shell_state load_desktop_shell_state() {
+    QSettings settings(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    desktop_shell_state_service service(settings);
+    return service.load();
+}
+
+void save_desktop_shell_state(const desktop_shell_state& state) {
+    QSettings settings(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    desktop_shell_state_service service(settings);
+    service.save(state);
 }

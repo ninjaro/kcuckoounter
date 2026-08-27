@@ -6,6 +6,7 @@
 #include "arch/widget_helpers.hpp"
 #include "card_helpers/card_picker.hpp"
 #include "image/image_cacher.hpp"
+#include "settings/session_checkpoint.hpp"
 #include <QFutureWatcher>
 #include <QImage>
 #include <QPixmap>
@@ -61,6 +62,10 @@ public:
     void mark_deck_exhausted();
     int current_position() const;
     int current_total_weight() const;
+    [[nodiscard]] card_session_state capture_session_state() const;
+    [[nodiscard]] static bool
+    can_restore_session_state(const card_session_state& state);
+    bool restore_session_state(const card_session_state& state);
     void clear_quiz();
     void trigger_highlight(int duration_ms);
     void tick_highlight(int delta_ms);
