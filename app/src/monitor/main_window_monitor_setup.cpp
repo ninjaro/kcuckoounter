@@ -5,7 +5,6 @@
 #include "table/table.hpp"
 
 #include <QActionGroup>
-#include <QCoreApplication>
 
 void main_window::setup_debug_monitoring() {
 #if defined(NDEBUG) || defined(Q_OS_ANDROID)
@@ -19,10 +18,6 @@ void main_window::setup_debug_monitoring() {
         );
         debug_telemetry_collector->attach_table_service(table_widget);
     }
-    QObject::connect(
-        qApp, &QCoreApplication::aboutToQuit, this,
-        &main_window::on_application_about_to_quit
-    );
     QObject::connect(
         debug_telemetry_collector,
         &resource_monitor::debug_broadcaster_state_changed, this,
@@ -120,8 +115,4 @@ void main_window::setup_debug_monitoring() {
     );
 
     sync_debug_cadence_mode_actions();
-}
-
-void main_window::on_application_about_to_quit() {
-    dump_debug_telemetry_on_exit();
 }

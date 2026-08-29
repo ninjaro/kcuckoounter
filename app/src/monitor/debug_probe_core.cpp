@@ -6,7 +6,6 @@
 #include <QJsonDocument>
 
 #include <algorithm>
-#include <cmath>
 
 QJsonObject debug_probe_core::metric_catalog_entry(
     const QString& id, const QString& kind, const QString& provenance,
@@ -95,13 +94,6 @@ QJsonObject debug_probe_core::build_protocol_v1_envelope(
         )
     );
     return protocol;
-}
-
-qint64 debug_probe_core::integer_like_value(const QJsonValue& value) {
-    if (value.isDouble()) {
-        return static_cast<qint64>(std::llround(value.toDouble()));
-    }
-    return value.toInteger();
 }
 
 QString debug_probe_core::cadence_mode_to_string(debug_cadence_mode mode) {
@@ -596,100 +588,6 @@ QJsonObject debug_probe_core::protocol_capabilities_v1() {
         )
     );
     return capabilities;
-}
-
-debug_probe_core::metric_point_v1
-debug_probe_core::point_from_sample_batch_v1(const QJsonArray& samples) {
-    metric_point_v1 point;
-    for (const auto& sample_value : samples) {
-        const QJsonObject sample = sample_value.toObject();
-        const QString metric_id
-            = sample.value(QStringLiteral("metric_id")).toString();
-        const qint64 value
-            = integer_like_value(sample.value(QStringLiteral("value")));
-        if (metric_id == QStringLiteral("cache_accounted_ready_bytes")) {
-            point.cache_accounted_ready_bytes = value;
-        } else if (
-            metric_id == QStringLiteral("widget_local_display_bytes_estimated")
-        ) {
-            point.widget_local_display_bytes_estimated = value;
-        } else if (metric_id == QStringLiteral("process_memory_rss_bytes")) {
-            point.process_memory_rss_bytes = value;
-        } else if (
-            metric_id == QStringLiteral("measured_accounted_gap_bytes_derived")
-        ) {
-            point.measured_accounted_gap_bytes_derived = value;
-        }
-    }
-    return point;
-}
-
-debug_probe_core::metric_point_v1
-debug_probe_core::point_from_snapshot_payload_v1(
-    const QJsonObject& snapshot_payload
-) {
-    metric_point_v1 point;
-    if (snapshot_payload.contains(
-            QStringLiteral("cache_accounted_ready_bytes")
-        )) {
-        point.cache_accounted_ready_bytes
-            = integer_like_value(snapshot_payload.value(
-                QStringLiteral("cache_accounted_ready_bytes")
-            ));
-    }
-    if (snapshot_payload.contains(
-            QStringLiteral("widget_local_display_bytes_estimated")
-        )) {
-        point.widget_local_display_bytes_estimated
-            = integer_like_value(snapshot_payload.value(
-                QStringLiteral("widget_local_display_bytes_estimated")
-            ));
-    }
-    if (snapshot_payload.contains(QStringLiteral("process_memory_rss_bytes"))) {
-        point.process_memory_rss_bytes = integer_like_value(
-            snapshot_payload.value(QStringLiteral("process_memory_rss_bytes"))
-        );
-    }
-    if (snapshot_payload.contains(
-            QStringLiteral("measured_accounted_gap_bytes_derived")
-        )) {
-        point.measured_accounted_gap_bytes_derived
-            = integer_like_value(snapshot_payload.value(
-                QStringLiteral("measured_accounted_gap_bytes_derived")
-            ));
-    } else if (
-        point.cache_accounted_ready_bytes >= 0
-        && point.process_memory_rss_bytes >= 0
-    ) {
-        point.measured_accounted_gap_bytes_derived
-            = point.process_memory_rss_bytes
-            - point.cache_accounted_ready_bytes;
-    }
-    return point;
-}
-
-void debug_probe_core::merge_metric_point_v1(
-    metric_point_v1* target, const metric_point_v1& update
-) {
-    if (target == nullptr) {
-        return;
-    }
-
-    if (update.cache_accounted_ready_bytes >= 0) {
-        target->cache_accounted_ready_bytes
-            = update.cache_accounted_ready_bytes;
-    }
-    if (update.widget_local_display_bytes_estimated >= 0) {
-        target->widget_local_display_bytes_estimated
-            = update.widget_local_display_bytes_estimated;
-    }
-    if (update.process_memory_rss_bytes >= 0) {
-        target->process_memory_rss_bytes = update.process_memory_rss_bytes;
-    }
-    if (update.measured_accounted_gap_bytes_derived >= 0) {
-        target->measured_accounted_gap_bytes_derived
-            = update.measured_accounted_gap_bytes_derived;
-    }
 }
 
 QJsonObject debug_probe_core::geometry_snapshot_to_json(

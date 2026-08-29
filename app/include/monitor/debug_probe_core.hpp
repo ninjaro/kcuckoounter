@@ -169,13 +169,6 @@ public:
         QString instrumentation_mode;
     };
 
-    struct metric_point_v1 {
-        qint64 cache_accounted_ready_bytes = -1;
-        qint64 widget_local_display_bytes_estimated = -1;
-        qint64 process_memory_rss_bytes = -1;
-        qint64 measured_accounted_gap_bytes_derived = -1;
-    };
-
     static QString cadence_mode_to_string(debug_cadence_mode mode);
     static qint64 sample_interval_ms_for_mode(debug_cadence_mode mode);
     static auto_process_report_policy
@@ -192,13 +185,6 @@ public:
     static QJsonArray protocol_metric_catalog_v1();
     static QJsonObject metric_hint_for_id_v1(const QString& metric_id);
     static QJsonObject protocol_capabilities_v1();
-    static metric_point_v1
-    point_from_sample_batch_v1(const QJsonArray& samples);
-    static metric_point_v1
-    point_from_snapshot_payload_v1(const QJsonObject& snapshot_payload);
-    static void merge_metric_point_v1(
-        metric_point_v1* target, const metric_point_v1& update
-    );
     static QJsonObject
     geometry_snapshot_to_json(const geometry_debug_snapshot& snapshot);
     static QJsonObject
@@ -243,7 +229,6 @@ private:
         const QString& protocol_version, const QStringList& debug_flags,
         const QString& instrumentation_mode
     );
-    static qint64 integer_like_value(const QJsonValue& value);
 };
 
 #endif // KCUCKOOUNTER_MONITOR_DEBUG_PROBE_CORE_HPP

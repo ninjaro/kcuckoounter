@@ -48,7 +48,6 @@ private slots:
     void on_realistic_cadence_selected();
     void on_instrumented_cadence_selected();
     void on_toggle_debug_broadcaster_triggered(bool checked);
-    void on_application_about_to_quit();
     void on_application_state_changed(Qt::ApplicationState state);
 
 private:
@@ -117,7 +116,6 @@ private:
     void add_debug_marker(const QString& label) const;
     void sync_debug_cadence_mode_actions() const;
     void setup_debug_monitoring();
-    void dump_debug_telemetry_on_exit() const;
     void persist_setup_preferences() const;
     void persist_desktop_shell_state() const;
     void restore_desktop_shell_state();

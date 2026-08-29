@@ -4,10 +4,7 @@
 #include "monitor/resource_monitor.hpp"
 
 #include <QDateTime>
-#include <QDebug>
-#include <QDir>
 #include <QFileDialog>
-#include <QStandardPaths>
 
 void main_window::on_export_debug_snapshot_triggered() {
 #if defined(NDEBUG)
@@ -179,42 +176,5 @@ QString main_window::debug_status_suffix() const {
     return str_label("  Debug cadence: %1  Broadcaster: %2")
         .arg(instrumented ? str_label("instrumented") : str_label("realistic"))
         .arg(broadcaster_enabled ? str_label("on") : str_label("off"));
-#endif
-}
-
-void main_window::dump_debug_telemetry_on_exit() const {
-#if defined(NDEBUG)
-    return;
-#else
-    if (debug_telemetry_collector == nullptr) {
-        return;
-    }
-
-    const QString base_dir
-        = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    if (base_dir.isEmpty()) {
-        return;
-    }
-
-    QDir dir(base_dir);
-    if (!dir.mkpath(QStringLiteral("."))) {
-        return;
-    }
-
-    const QString timestamp = QDateTime::currentDateTimeUtc().toString(
-        QStringLiteral("yyyyMMdd_hhmmss")
-    );
-    const QString output_path = dir.filePath(
-        QStringLiteral("debug_snapshot_exit_%1.json").arg(timestamp)
-    );
-
-    QString error_message;
-    const bool success = debug_telemetry_collector->export_debug_snapshot_sync(
-        output_path, &error_message
-    );
-    if (!success) {
-        qWarning() << "Unable to export debug snapshot on exit:"
-                   << error_message;
-    }
 #endif
 }
