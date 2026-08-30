@@ -1,4 +1,4 @@
-#include "monitor/raster_cache_debug_strings.hpp"
+#include "data/raster_cache_debug_strings.hpp"
 
 QString cache_namespace_to_string(raster_cache::cache_namespace name_space) {
     switch (name_space) {

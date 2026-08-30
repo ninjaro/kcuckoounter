@@ -6,7 +6,7 @@
 #include "arch/widget_helpers.hpp"
 #include "image/raster_cache.hpp"
 #include "image/rasterization_runner.hpp"
-#include "monitor/geometry_debug_telemetry.hpp"
+#include "debug/geometry_observation.hpp"
 #include "settings/session_checkpoint.hpp"
 #include <QFutureWatcher>
 #include <QImage>

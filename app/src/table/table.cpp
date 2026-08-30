@@ -10,6 +10,7 @@
 #include <QEvent>
 #include <QFuture>
 #include <QGridLayout>
+#include <QMetaMethod>
 #include <QPaintEvent>
 #include <QPainter>
 #include <QRect>
@@ -375,6 +376,11 @@ void table::resizeEvent(QResizeEvent* event) {
     emit_geometry_debug_snapshot();
 
     if (!old_window_size.isValid() || old_window_size == size()) {
+        return;
+    }
+    if (!isSignalConnected(
+            QMetaMethod::fromSignal(&table::debug_resize_transition_recorded)
+        )) {
         return;
     }
 
@@ -1181,6 +1187,11 @@ geometry_debug_snapshot table::build_geometry_debug_snapshot(
 }
 
 void table::emit_geometry_debug_snapshot() {
+    if (!isSignalConnected(
+            QMetaMethod::fromSignal(&table::debug_geometry_snapshot_updated)
+        )) {
+        return;
+    }
     emit debug_geometry_snapshot_updated(
         build_geometry_debug_snapshot(raster_cache_service.get_debug_snapshot())
     );

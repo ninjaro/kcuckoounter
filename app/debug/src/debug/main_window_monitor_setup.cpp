@@ -1,7 +1,7 @@
 #include "shell/main_window.hpp"
 
 #include "arch/str_label.hpp"
-#include "monitor/resource_monitor.hpp"
+#include "debug/resource_monitor.hpp"
 #include "table/table.hpp"
 
 #include <QActionGroup>
@@ -23,8 +23,6 @@ void main_window::setup_debug_monitoring() {
         &resource_monitor::debug_broadcaster_state_changed, this,
         &main_window::update_status_text
     );
-#endif
-
     insert_shell_separator();
 
     export_debug_snapshot_action
@@ -115,4 +113,5 @@ void main_window::setup_debug_monitoring() {
     );
 
     sync_debug_cadence_mode_actions();
+#endif
 }

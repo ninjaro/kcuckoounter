@@ -12,7 +12,6 @@
 namespace {
 
 const QString session_group = QStringLiteral("trainer_session");
-const QString schema_version_key = QStringLiteral("schema_version");
 const QString payload_key = QStringLiteral("payload");
 constexpr qsizetype maximum_payload_bytes = 256 * 1024;
 constexpr int maximum_slots = 16;
@@ -374,13 +373,8 @@ trainer_session_checkpoint_service::trainer_session_checkpoint_service(
 std::optional<trainer_session_checkpoint>
 trainer_session_checkpoint_service::load() const {
     settings.beginGroup(session_group);
-    bool version_ok = false;
-    const int version = settings.value(schema_version_key).toInt(&version_ok);
     const QByteArray payload = settings.value(payload_key).toByteArray();
     settings.endGroup();
-    if (!version_ok || version != trainer_session_checkpoint::schema_version) {
-        return std::nullopt;
-    }
     return checkpoint_from_json(payload);
 }
 
@@ -393,20 +387,7 @@ bool trainer_session_checkpoint_service::save(
     }
 
     settings.beginGroup(session_group);
-    if (settings.contains(schema_version_key)) {
-        bool version_ok = false;
-        const int version
-            = settings.value(schema_version_key).toInt(&version_ok);
-        if (version_ok
-            && version > trainer_session_checkpoint::schema_version) {
-            settings.endGroup();
-            return false;
-        }
-    }
     settings.remove(QString());
-    settings.setValue(
-        schema_version_key, trainer_session_checkpoint::schema_version
-    );
     settings.setValue(payload_key, payload);
     settings.endGroup();
     settings.sync();

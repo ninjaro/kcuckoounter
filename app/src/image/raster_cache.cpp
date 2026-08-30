@@ -4,6 +4,7 @@
 #include <QtGlobal>
 
 #include <QDateTime>
+#include <QMetaMethod>
 #include <QStringList>
 #include <QVector>
 
@@ -1110,6 +1111,11 @@ void raster_cache::add_task_timing_sample(
 }
 
 void raster_cache::emit_debug_snapshot() {
+    if (!isSignalConnected(
+            QMetaMethod::fromSignal(&raster_cache::debug_snapshot_updated)
+        )) {
+        return;
+    }
     ++snapshot_sequence;
     emit debug_snapshot_updated(get_debug_snapshot());
 }

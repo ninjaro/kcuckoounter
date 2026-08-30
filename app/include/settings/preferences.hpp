@@ -10,7 +10,6 @@ class QSettings;
 struct strategy_catalog;
 
 struct trainer_preferences {
-    static constexpr int schema_version = 1;
     static constexpr int minimum_slot_count = 1;
     static constexpr int maximum_slot_count = 16;
     static constexpr int minimum_pickup_interval_ms = 100;
@@ -30,7 +29,8 @@ struct trainer_preferences {
 };
 
 struct desktop_shell_state {
-    static constexpr int schema_version = 1;
+    // Qt validates its opaque saveState()/restoreState() payload with this
+    // value. It is current UI-state identity, not schema negotiation.
     static constexpr int qt_main_window_state_version = 1;
 
     QByteArray geometry;

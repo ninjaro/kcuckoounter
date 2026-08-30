@@ -1,4 +1,4 @@
-#include "monitor/debug_broadcaster.hpp"
+#include "debug/debug_broadcaster.hpp"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -246,7 +246,8 @@ QString debug_broadcaster::endpoint_path_for_requested_name(
 bool debug_broadcaster::publish_json(
     const QJsonObject& message, message_priority priority, bool droppable
 ) {
-    if (!runtime_enabled) {
+    if (!runtime_enabled || listener_socket == nullptr
+        || listener_socket->state() != QLocalSocket::ConnectedState) {
         return false;
     }
 

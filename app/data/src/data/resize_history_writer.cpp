@@ -1,4 +1,4 @@
-#include "monitor/resize_history_writer.hpp"
+#include "data/resize_history_writer.hpp"
 
 #include <QCoreApplication>
 #include <QDir>

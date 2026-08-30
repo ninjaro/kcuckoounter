@@ -1,9 +1,9 @@
-#include "monitor/resource_monitor.hpp"
+#include "debug/resource_monitor.hpp"
 
 #include "arch/num_helpers.hpp"
-#include "monitor/debug_broadcaster.hpp"
-#include "monitor/debug_probe_core.hpp"
-#include "monitor/resize_history_writer.hpp"
+#include "data/debug_telemetry_json.hpp"
+#include "data/resize_history_writer.hpp"
+#include "debug/debug_broadcaster.hpp"
 #include "table/table.hpp"
 
 #include <QCoreApplication>
@@ -285,7 +285,7 @@ QString write_process_memory_report_json(
     const QString& latest_process_rss_unavailable_reason,
     const QString& protocol_app_name, qint64 protocol_process_id,
     const QString& protocol_session_id, const QString& protocol_build_id,
-    const QString& protocol_version, const QStringList& protocol_debug_flags,
+    const QStringList& protocol_debug_flags,
     const QString& protocol_instrumentation_mode,
     resource_monitor::process_memory_report_trigger trigger
 ) {
@@ -335,7 +335,6 @@ QString write_process_memory_report_json(
         .protocol_process_id = protocol_process_id,
         .protocol_session_id = protocol_session_id,
         .protocol_build_id = protocol_build_id,
-        .protocol_version = protocol_version,
         .protocol_debug_flags = protocol_debug_flags,
         .protocol_instrumentation_mode = protocol_instrumentation_mode,
     };
@@ -374,16 +373,9 @@ bool append_broadcaster_numeric_sample(
     QJsonArray& samples, const resource_monitor::cache_timeline_entry& entry,
     const QString& metric_id, const QJsonValue& value
 ) {
-    const QJsonObject metric_hint
-        = debug_probe_core::metric_hint_for_id_v1(metric_id);
-    if (metric_hint.isEmpty()) {
-        return false;
-    }
-
     QJsonObject sample;
     sample.insert(QStringLiteral("metric_id"), metric_id);
     sample.insert(QStringLiteral("value"), value);
-    sample.insert(QStringLiteral("metric_hint"), metric_hint);
     sample.insert(
         QStringLiteral("collector_sequence"), entry.collector_sequence
     );
@@ -495,7 +487,8 @@ resource_monitor::resource_monitor(QObject* parent, int max_timeline_entries)
     , telemetry_broadcaster(new debug_broadcaster(this))
     , broadcaster_monotonic_clock()
     , last_broadcast_cache_decision_signature()
-    , process_sampling_timer() {
+    , process_sampling_timer()
+    , collection_active(false) {
     cache_timeline_entries.reserve(timeline_limit);
     event_timeline_entries.reserve(timeline_limit);
     geometry_timeline_entries.reserve(timeline_limit);
@@ -539,7 +532,6 @@ resource_monitor::resource_monitor(QObject* parent, int max_timeline_entries)
         &process_sampling_timer, &QTimer::timeout, this,
         &resource_monitor::on_periodic_collection_tick
     );
-    process_sampling_timer.start();
 }
 
 resource_monitor::~resource_monitor() {
@@ -553,15 +545,17 @@ void resource_monitor::on_broadcaster_listener_connection_changed(
     bool connected
 ) {
     if (connected) {
-        refresh_process_memory_sample_now();
         telemetry_broadcaster->discard_pending_messages();
         last_broadcast_cache_decision_signature.clear();
+        refresh_process_memory_sample_now();
         publish_broadcaster_session_start();
+        set_collection_active(true);
         publish_broadcaster_snapshot_now();
         if (has_geometry_snapshot()) {
             publish_cache_decision_change(latest_geometry_snapshot());
         }
     } else if (telemetry_broadcaster != nullptr) {
+        set_collection_active(false);
         telemetry_broadcaster->discard_pending_messages();
         last_broadcast_cache_decision_signature.clear();
     }
@@ -600,7 +594,7 @@ void resource_monitor::attach_cache_service(raster_cache* cache_service) {
     auto_dump_window_start_ms = 0;
     auto_dump_exports_used = 0;
 
-    if (observed_cache_service == nullptr) {
+    if (observed_cache_service == nullptr || !collection_active) {
         return;
     }
 
@@ -637,7 +631,7 @@ void resource_monitor::attach_table_service(QObject* table_service) {
     resize_history_log_stream_path.clear();
 
     auto* observed_table = qobject_cast<table*>(observed_table_service);
-    if (observed_table == nullptr) {
+    if (observed_table == nullptr || !collection_active) {
         return;
     }
 
@@ -904,7 +898,6 @@ void resource_monitor::export_debug_snapshot_async(const QString& output_path) {
         .protocol_process_id = QCoreApplication::applicationPid(),
         .protocol_session_id = protocol_session_id,
         .protocol_build_id = protocol_build_id,
-        .protocol_version = debug_probe_core::protocol_version_string(),
         .protocol_debug_flags = protocol_debug_flags,
         .protocol_instrumentation_mode = cadence_mode_to_string(cadence_mode),
     };
@@ -982,8 +975,6 @@ void resource_monitor::export_process_memory_report_async(
     const qint64 protocol_pid = QCoreApplication::applicationPid();
     const QString protocol_session = protocol_session_id;
     const QString protocol_build = protocol_build_id;
-    const QString protocol_version
-        = debug_probe_core::protocol_version_string();
     const QStringList protocol_flags = protocol_debug_flags;
     const QString protocol_instrumentation_mode
         = cadence_mode_to_string(export_mode);
@@ -996,7 +987,7 @@ void resource_monitor::export_process_memory_report_async(
             auto_cooldown_remaining_ms, auto_consecutive_growth_hits_required,
             auto_consecutive_growth_hits_current, latest_rss, latest_rss_source,
             latest_rss_unavailable_reason, protocol_app, protocol_pid,
-            protocol_session, protocol_build, protocol_version, protocol_flags,
+            protocol_session, protocol_build, protocol_flags,
             protocol_instrumentation_mode, trigger
         )
     );
@@ -1077,7 +1068,6 @@ bool resource_monitor::export_debug_snapshot_sync(
         .protocol_process_id = QCoreApplication::applicationPid(),
         .protocol_session_id = protocol_session_id,
         .protocol_build_id = protocol_build_id,
-        .protocol_version = debug_probe_core::protocol_version_string(),
         .protocol_debug_flags = protocol_debug_flags,
         .protocol_instrumentation_mode = cadence_mode_to_string(cadence_mode),
     };
@@ -1105,8 +1095,8 @@ bool resource_monitor::export_process_memory_report_sync(
         current_process_rss_bytes, current_process_rss_source,
         current_process_rss_unavailable_reason, protocol_app_name,
         QCoreApplication::applicationPid(), protocol_session_id,
-        protocol_build_id, debug_probe_core::protocol_version_string(),
-        protocol_debug_flags, cadence_mode_to_string(cadence_mode),
+        protocol_build_id, protocol_debug_flags,
+        cadence_mode_to_string(cadence_mode),
         process_memory_report_trigger::manual_on_demand
     );
     if (error_message != nullptr) {
@@ -1246,7 +1236,7 @@ void resource_monitor::on_resize_transition_recorded(
 }
 
 void resource_monitor::on_periodic_collection_tick() {
-    if (observed_cache_service == nullptr) {
+    if (!collection_active || observed_cache_service == nullptr) {
         return;
     }
 
@@ -1257,6 +1247,61 @@ void resource_monitor::on_periodic_collection_tick() {
     }
 
     on_cache_snapshot_updated(observed_cache_service->get_debug_snapshot());
+}
+
+void resource_monitor::set_collection_active(const bool active) {
+    if (collection_active == active) {
+        return;
+    }
+    collection_active = active;
+    if (!active) {
+        process_sampling_timer.stop();
+        if (observed_cache_service != nullptr) {
+            QObject::disconnect(
+                observed_cache_service,
+                &raster_cache::debug_snapshot_updated, this,
+                &resource_monitor::on_cache_snapshot_updated
+            );
+        }
+        if (auto* observed_table
+            = qobject_cast<table*>(observed_table_service)) {
+            QObject::disconnect(
+                observed_table, &table::debug_geometry_snapshot_updated, this,
+                &resource_monitor::on_geometry_debug_snapshot_updated
+            );
+            QObject::disconnect(
+                observed_table, &table::debug_resize_transition_recorded, this,
+                &resource_monitor::on_resize_transition_recorded
+            );
+        }
+        pending_resize_transition_state.reset();
+        return;
+    }
+
+    if (observed_cache_service != nullptr) {
+        QObject::connect(
+            observed_cache_service, &raster_cache::debug_snapshot_updated,
+            this, &resource_monitor::on_cache_snapshot_updated,
+            Qt::UniqueConnection
+        );
+        on_cache_snapshot_updated(observed_cache_service->get_debug_snapshot());
+    }
+    if (auto* observed_table = qobject_cast<table*>(observed_table_service)) {
+        QObject::connect(
+            observed_table, &table::debug_geometry_snapshot_updated, this,
+            &resource_monitor::on_geometry_debug_snapshot_updated,
+            Qt::UniqueConnection
+        );
+        QObject::connect(
+            observed_table, &table::debug_resize_transition_recorded, this,
+            &resource_monitor::on_resize_transition_recorded,
+            Qt::UniqueConnection
+        );
+        on_geometry_debug_snapshot_updated(
+            observed_table->current_geometry_debug_snapshot()
+        );
+    }
+    process_sampling_timer.start();
 }
 
 void resource_monitor::maybe_finalize_pending_resize_transition(
@@ -1455,7 +1500,6 @@ resource_monitor::broadcaster_protocol_identity() const {
         .process_id = QCoreApplication::applicationPid(),
         .session_id = protocol_session_id,
         .build_id = protocol_build_id,
-        .protocol_version = debug_probe_core::protocol_version_string(),
         .debug_flags = protocol_debug_flags,
         .instrumentation_mode = cadence_mode_to_string(cadence_mode),
     };
@@ -1499,24 +1543,20 @@ void resource_monitor::publish_broadcaster_session_start() {
         );
     }
     hello_payload.insert(QStringLiteral("process_memory"), process_memory);
+    hello_payload.insert(
+        QStringLiteral("identity"), debug_probe_core::identity_to_json(identity)
+    );
+    hello_payload.insert(
+        QStringLiteral("metric_catalog"), debug_probe_core::metric_catalog()
+    );
+    hello_payload.insert(
+        QStringLiteral("extensions"), debug_probe_core::extensions()
+    );
 
     telemetry_broadcaster->publish_json(
-        debug_probe_core::build_protocol_message_v1(
+        debug_probe_core::build_message(
             QStringLiteral("hello"), identity,
             broadcaster_monotonic_timestamp_ms(), hello_payload
-        ),
-        debug_broadcaster::message_priority::high, false
-    );
-
-    QJsonObject capabilities_payload;
-    capabilities_payload.insert(
-        QStringLiteral("capabilities"),
-        debug_probe_core::protocol_capabilities_v1()
-    );
-    telemetry_broadcaster->publish_json(
-        debug_probe_core::build_protocol_message_v1(
-            QStringLiteral("capabilities"), identity,
-            broadcaster_monotonic_timestamp_ms(), capabilities_payload
         ),
         debug_broadcaster::message_priority::high, false
     );
@@ -1536,7 +1576,7 @@ void resource_monitor::publish_broadcaster_session_end(const QString& reason) {
     payload.insert(QStringLiteral("collector_sequence"), collector_sequence);
 
     telemetry_broadcaster->publish_json(
-        debug_probe_core::build_protocol_message_v1(
+        debug_probe_core::build_message(
             QStringLiteral("goodbye"), broadcaster_protocol_identity(),
             broadcaster_monotonic_timestamp_ms(), payload
         ),
@@ -1715,9 +1755,6 @@ void resource_monitor::publish_broadcaster_sample_batch(
     }
 
     QJsonObject payload;
-    payload.insert(
-        QStringLiteral("sample_count"), static_cast<qint64>(samples.size())
-    );
     payload.insert(QStringLiteral("samples"), samples);
     payload.insert(
         QStringLiteral("cache_detail"),
@@ -1761,7 +1798,7 @@ void resource_monitor::publish_broadcaster_sample_batch(
     );
 
     telemetry_broadcaster->publish_json(
-        debug_probe_core::build_protocol_message_v1(
+        debug_probe_core::build_message(
             QStringLiteral("sample_batch"), broadcaster_protocol_identity(),
             broadcaster_monotonic_timestamp_ms(), payload
         ),
@@ -1785,7 +1822,7 @@ void resource_monitor::publish_broadcaster_event(
         );
 
         telemetry_broadcaster->publish_json(
-            debug_probe_core::build_protocol_message_v1(
+            debug_probe_core::build_message(
                 QStringLiteral("marker"), broadcaster_protocol_identity(),
                 broadcaster_monotonic_timestamp_ms(), payload
             ),
@@ -1807,13 +1844,10 @@ void resource_monitor::publish_broadcaster_event(
     events.push_back(event_object);
 
     QJsonObject payload;
-    payload.insert(
-        QStringLiteral("event_count"), static_cast<qint64>(events.size())
-    );
     payload.insert(QStringLiteral("events"), events);
 
     telemetry_broadcaster->publish_json(
-        debug_probe_core::build_protocol_message_v1(
+        debug_probe_core::build_message(
             QStringLiteral("event_batch"), broadcaster_protocol_identity(),
             broadcaster_monotonic_timestamp_ms(), payload
         ),
@@ -1841,11 +1875,10 @@ void resource_monitor::publish_broadcaster_resize_transition(
     QJsonArray events;
     events.push_back(event_object);
     QJsonObject payload;
-    payload.insert(QStringLiteral("event_count"), 1);
     payload.insert(QStringLiteral("events"), events);
 
     telemetry_broadcaster->publish_json(
-        debug_probe_core::build_protocol_message_v1(
+        debug_probe_core::build_message(
             QStringLiteral("event_batch"), broadcaster_protocol_identity(),
             broadcaster_monotonic_timestamp_ms(), payload
         ),
@@ -1871,11 +1904,10 @@ void resource_monitor::publish_broadcaster_layout_transition(
     QJsonArray events;
     events.push_back(event_object);
     QJsonObject payload;
-    payload.insert(QStringLiteral("event_count"), 1);
     payload.insert(QStringLiteral("events"), events);
 
     telemetry_broadcaster->publish_json(
-        debug_probe_core::build_protocol_message_v1(
+        debug_probe_core::build_message(
             QStringLiteral("event_batch"), broadcaster_protocol_identity(),
             broadcaster_monotonic_timestamp_ms(), payload
         ),
@@ -1891,7 +1923,6 @@ void resource_monitor::publish_cache_decision_change(
     }
 
     QJsonObject decision;
-    decision.insert(QStringLiteral("schema_version"), 1);
     decision.insert(QStringLiteral("trigger"), geometry.cache_trigger);
     decision.insert(QStringLiteral("decision"), geometry.cache_decision);
     decision.insert(
@@ -1937,11 +1968,10 @@ void resource_monitor::publish_cache_decision_change(
     QJsonArray events;
     events.push_back(event_object);
     QJsonObject payload;
-    payload.insert(QStringLiteral("event_count"), 1);
     payload.insert(QStringLiteral("events"), events);
 
     if (telemetry_broadcaster->publish_json(
-            debug_probe_core::build_protocol_message_v1(
+            debug_probe_core::build_message(
                 QStringLiteral("event_batch"), broadcaster_protocol_identity(),
                 broadcaster_monotonic_timestamp_ms(), payload
             ),
@@ -2172,7 +2202,7 @@ void resource_monitor::publish_broadcaster_snapshot_now() {
     );
 
     telemetry_broadcaster->publish_json(
-        debug_probe_core::build_protocol_message_v1(
+        debug_probe_core::build_message(
             QStringLiteral("snapshot"), broadcaster_protocol_identity(),
             broadcaster_monotonic_timestamp_ms(), payload
         ),
@@ -2196,7 +2226,7 @@ void resource_monitor::publish_broadcaster_warning(
     );
 
     telemetry_broadcaster->publish_json(
-        debug_probe_core::build_protocol_message_v1(
+        debug_probe_core::build_message(
             QStringLiteral("warning"), broadcaster_protocol_identity(),
             broadcaster_monotonic_timestamp_ms(), payload
         ),

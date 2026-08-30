@@ -1,6 +1,6 @@
-#include "monitor/debug_probe_core.hpp"
-#include "monitor/debug_probe_json_helpers.hpp"
-#include "monitor/raster_cache_debug_strings.hpp"
+#include "data/debug_telemetry_json.hpp"
+#include "data/debug_telemetry_json_helpers.hpp"
+#include "data/raster_cache_debug_strings.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -31,69 +31,24 @@ QJsonObject debug_probe_core::metric_catalog_entry(
     return object;
 }
 
-QJsonObject debug_probe_core::protocol_identity_to_json(
-    const QString& app_name, qint64 process_id, const QString& session_id,
-    const QString& build_id, const QString& protocol_version,
-    const QStringList& debug_flags, const QString& instrumentation_mode
+QJsonObject debug_probe_core::identity_to_json(
+    const protocol_identity& identity_value
 ) {
     QJsonObject identity;
-    identity.insert(QStringLiteral("app"), app_name);
-    identity.insert(QStringLiteral("pid"), process_id);
-    identity.insert(QStringLiteral("session"), session_id);
-    identity.insert(QStringLiteral("build"), build_id);
-    identity.insert(QStringLiteral("protocol_version"), protocol_version);
+    identity.insert(QStringLiteral("app"), identity_value.app_name);
+    identity.insert(QStringLiteral("pid"), identity_value.process_id);
+    identity.insert(QStringLiteral("build"), identity_value.build_id);
     identity.insert(
         QStringLiteral("debug_flags"),
-        debug_probe_json_helpers::string_list_to_json_array(debug_flags)
-    );
-    identity.insert(
-        QStringLiteral("instrumentation_mode"), instrumentation_mode
-    );
-    return identity;
-}
-
-QJsonObject debug_probe_core::build_protocol_v1_envelope(
-    const QString& message_family, const QString& app_name, qint64 process_id,
-    const QString& session_id, const QString& build_id,
-    const QString& protocol_version, const QStringList& debug_flags,
-    const QString& instrumentation_mode
-) {
-    QJsonObject protocol;
-    protocol.insert(QStringLiteral("message_family"), message_family);
-    protocol.insert(
-        QStringLiteral("version"), debug_probe_core::protocol_version_string()
-    );
-    protocol.insert(
-        QStringLiteral("message_families"),
-        debug_probe_core::protocol_message_families_v1()
-    );
-    protocol.insert(
-        QStringLiteral("required_identity_fields"),
-        debug_probe_core::protocol_required_identity_fields_v1()
-    );
-    protocol.insert(
-        QStringLiteral("required_metric_hint_fields"),
-        debug_probe_core::required_metric_hint_fields_v1()
-    );
-    protocol.insert(
-        QStringLiteral("card_image_domain_hint_fields"),
-        debug_probe_core::card_image_domain_hints_v1()
-    );
-    protocol.insert(
-        QStringLiteral("capabilities"),
-        debug_probe_core::protocol_capabilities_v1()
-    );
-    protocol.insert(
-        QStringLiteral("identity"),
-        protocol_identity_to_json(
-            app_name, process_id, session_id, build_id,
-            protocol_version.isEmpty()
-                ? debug_probe_core::protocol_version_string()
-                : protocol_version,
-            debug_flags, instrumentation_mode
+        debug_probe_json_helpers::string_list_to_json_array(
+            identity_value.debug_flags
         )
     );
-    return protocol;
+    identity.insert(
+        QStringLiteral("instrumentation_mode"),
+        identity_value.instrumentation_mode
+    );
+    return identity;
 }
 
 QString debug_probe_core::cadence_mode_to_string(debug_cadence_mode mode) {
@@ -140,97 +95,20 @@ debug_probe_core::auto_report_policy_for_mode(debug_cadence_mode mode) {
     }
 }
 
-QJsonObject debug_probe_core::build_protocol_message_v1(
+QJsonObject debug_probe_core::build_message(
     const QString& message_family, const protocol_identity& identity,
     qint64 monotonic_timestamp_ms, const QJsonObject& payload
 ) {
     QJsonObject root = payload;
+    root.insert(QStringLiteral("family"), message_family);
+    root.insert(QStringLiteral("session"), identity.session_id);
     root.insert(
         QStringLiteral("monotonic_timestamp_ms"), monotonic_timestamp_ms
-    );
-    root.insert(
-        QStringLiteral("protocol_v1"),
-        build_protocol_v1_envelope(
-            message_family, identity.app_name, identity.process_id,
-            identity.session_id, identity.build_id, identity.protocol_version,
-            identity.debug_flags, identity.instrumentation_mode
-        )
     );
     return root;
 }
 
-QString debug_probe_core::protocol_version_string() {
-    return QStringLiteral("debug_telemetry.v1");
-}
-
-QJsonArray debug_probe_core::protocol_message_families_v1() {
-    return debug_probe_json_helpers::string_list_to_json_array(
-        {
-            QStringLiteral("hello"),
-            QStringLiteral("capabilities"),
-            QStringLiteral("sample_batch"),
-            QStringLiteral("event_batch"),
-            QStringLiteral("snapshot"),
-            QStringLiteral("marker"),
-            QStringLiteral("warning"),
-            QStringLiteral("goodbye"),
-        }
-    );
-}
-
-QJsonArray debug_probe_core::protocol_required_identity_fields_v1() {
-    return debug_probe_json_helpers::string_list_to_json_array(
-        {
-            QStringLiteral("app"),
-            QStringLiteral("pid"),
-            QStringLiteral("session"),
-            QStringLiteral("build"),
-            QStringLiteral("protocol_version"),
-            QStringLiteral("debug_flags"),
-            QStringLiteral("instrumentation_mode"),
-        }
-    );
-}
-
-QJsonArray debug_probe_core::required_metric_hint_fields_v1() {
-    return debug_probe_json_helpers::string_list_to_json_array(
-        {
-            QStringLiteral("kind"),
-            QStringLiteral("provenance"),
-            QStringLiteral("unit"),
-            QStringLiteral("scope"),
-            QStringLiteral("cardinality_semantics"),
-            QStringLiteral("stability"),
-            QStringLiteral("additive_semantics"),
-            QStringLiteral("confidence"),
-            QStringLiteral("default_display_role"),
-            QStringLiteral("domain_namespace"),
-        }
-    );
-}
-
-QJsonArray debug_probe_core::card_image_domain_hints_v1() {
-    return debug_probe_json_helpers::string_list_to_json_array(
-        {
-            QStringLiteral("cache_namespace"),
-            QStringLiteral("logical_card_key_coverage"),
-            QStringLiteral("resolved_source_id"),
-            QStringLiteral("fallback_source"),
-            QStringLiteral("active_generation_id"),
-            QStringLiteral("warming_generation_id"),
-            QStringLiteral("target_display_size"),
-            QStringLiteral("active_size_bucket_px"),
-            QStringLiteral("cache_raster_size"),
-            QStringLiteral("coverage_interval_ms"),
-            QStringLiteral("slot_count"),
-            QStringLiteral("layout_geometry"),
-            QStringLiteral("resize_prewarm_timing"),
-            QStringLiteral("theme_switch_marker"),
-        }
-    );
-}
-
-QJsonArray debug_probe_core::protocol_metric_catalog_v1() {
+QJsonArray debug_probe_core::metric_catalog() {
     QJsonArray metrics;
     metrics.push_back(metric_catalog_entry(
         QStringLiteral("cache_accounted_ready_bytes"), QStringLiteral("memory"),
@@ -518,76 +396,8 @@ QJsonArray debug_probe_core::protocol_metric_catalog_v1() {
     return metrics;
 }
 
-QJsonObject debug_probe_core::metric_hint_for_id_v1(const QString& metric_id) {
-    if (metric_id.isEmpty()) {
-        return {};
-    }
-
-    const QJsonArray catalog = protocol_metric_catalog_v1();
-    for (const auto& value : catalog) {
-        const QJsonObject metric = value.toObject();
-        if (metric.value(QStringLiteral("id")).toString() == metric_id) {
-            return metric;
-        }
-    }
-    return {};
-}
-
-QJsonObject debug_probe_core::protocol_capabilities_v1() {
-    QJsonObject capabilities;
-    QJsonObject cards_image_extension;
-    cards_image_extension.insert(
-        QStringLiteral("id"), QStringLiteral("cards.image.cache_layout")
-    );
-    cards_image_extension.insert(QStringLiteral("schema_version"), 1);
-    QJsonArray extensions;
-    extensions.push_back(cards_image_extension);
-    capabilities.insert(QStringLiteral("extensions"), extensions);
-    capabilities.insert(QStringLiteral("metric_catalog_revision"), 2);
-    capabilities.insert(
-        QStringLiteral("domains"),
-        debug_probe_json_helpers::string_list_to_json_array(
-            {
-                QStringLiteral("cards.image"),
-                QStringLiteral("system.process"),
-            }
-        )
-    );
-    capabilities.insert(
-        QStringLiteral("optional_streams"),
-        debug_probe_json_helpers::string_list_to_json_array(
-            {
-                QStringLiteral("sample_batch"),
-                QStringLiteral("event_batch"),
-                QStringLiteral("snapshot"),
-                QStringLiteral("marker"),
-                QStringLiteral("warning"),
-            }
-        )
-    );
-    capabilities.insert(
-        QStringLiteral("metric_catalog"), protocol_metric_catalog_v1()
-    );
-    capabilities.insert(
-        QStringLiteral("required_metric_hint_fields"),
-        required_metric_hint_fields_v1()
-    );
-    capabilities.insert(
-        QStringLiteral("card_image_domain_hint_fields"),
-        card_image_domain_hints_v1()
-    );
-    capabilities.insert(
-        QStringLiteral("structured_payloads"),
-        debug_probe_json_helpers::string_list_to_json_array(
-            {
-                QStringLiteral("cache_detail"),
-                QStringLiteral("geometry"),
-                QStringLiteral("resize_transition"),
-                QStringLiteral("process_memory"),
-            }
-        )
-    );
-    return capabilities;
+QJsonArray debug_probe_core::extensions() {
+    return QJsonArray { QStringLiteral("cards.image.cache_layout") };
 }
 
 QJsonObject debug_probe_core::geometry_snapshot_to_json(
@@ -836,7 +646,6 @@ QJsonObject debug_probe_core::cache_snapshot_to_live_json(
     }
 
     QJsonObject root;
-    root.insert(QStringLiteral("schema_version"), 1);
     root.insert(
         QStringLiteral("snapshot_sequence"), snapshot.snapshot_sequence
     );
@@ -867,7 +676,6 @@ QJsonObject debug_probe_core::resize_transition_to_live_json(
     const resize_transition_debug_event& transition
 ) {
     QJsonObject object;
-    object.insert(QStringLiteral("schema_version"), 1);
     object.insert(QStringLiteral("timestamp_ms"), transition.timestamp_ms);
     object.insert(
         QStringLiteral("old_window_size"),
@@ -1081,19 +889,19 @@ QJsonObject debug_probe_core::build_snapshot_export_json(
         QStringLiteral("auto_process_report_window_exports_used"),
         metadata.auto_process_report_window_exports_used
     );
-    const QString instrumentation_mode
+    const protocol_identity identity {
+        .app_name = metadata.protocol_app_name,
+        .process_id = metadata.protocol_process_id,
+        .session_id = metadata.protocol_session_id,
+        .build_id = metadata.protocol_build_id,
+        .debug_flags = metadata.protocol_debug_flags,
+        .instrumentation_mode
         = metadata.protocol_instrumentation_mode.isEmpty()
-        ? cadence_mode_to_string(export_mode)
-        : metadata.protocol_instrumentation_mode;
-    root.insert(
-        QStringLiteral("protocol_v1"),
-        build_protocol_v1_envelope(
-            QStringLiteral("snapshot"), metadata.protocol_app_name,
-            metadata.protocol_process_id, metadata.protocol_session_id,
-            metadata.protocol_build_id, metadata.protocol_version,
-            metadata.protocol_debug_flags, instrumentation_mode
-        )
-    );
+            ? cadence_mode_to_string(export_mode)
+            : metadata.protocol_instrumentation_mode,
+    };
+    root.insert(QStringLiteral("session"), identity.session_id);
+    root.insert(QStringLiteral("identity"), identity_to_json(identity));
     root.insert(
         QStringLiteral("telemetry_semantics"), snapshot_telemetry_semantics()
     );
@@ -1484,8 +1292,8 @@ QJsonObject debug_probe_core::build_snapshot_export_json(
 
 QJsonObject debug_probe_core::snapshot_telemetry_semantics() {
     QJsonObject telemetry_semantics;
-    const QJsonArray metric_catalog = protocol_metric_catalog_v1();
-    for (const auto& metric_value : metric_catalog) {
+    const QJsonArray catalog = metric_catalog();
+    for (const auto& metric_value : catalog) {
         const QJsonObject metric_object = metric_value.toObject();
         const QString metric_id
             = metric_object.value(QStringLiteral("id")).toString();
@@ -1595,8 +1403,8 @@ QJsonObject debug_probe_core::snapshot_telemetry_semantics() {
 
 QJsonObject debug_probe_core::process_memory_report_telemetry_semantics() {
     QJsonObject semantics;
-    const QJsonArray metric_catalog = protocol_metric_catalog_v1();
-    for (const auto& metric_value : metric_catalog) {
+    const QJsonArray catalog = metric_catalog();
+    for (const auto& metric_value : catalog) {
         const QJsonObject metric_object = metric_value.toObject();
         const QString metric_id
             = metric_object.value(QStringLiteral("id")).toString();
@@ -1758,19 +1566,19 @@ QJsonObject debug_probe_core::build_process_memory_report_json(
         );
     }
 
-    const QString instrumentation_mode
+    const protocol_identity identity {
+        .app_name = inputs.protocol_app_name,
+        .process_id = inputs.protocol_process_id,
+        .session_id = inputs.protocol_session_id,
+        .build_id = inputs.protocol_build_id,
+        .debug_flags = inputs.protocol_debug_flags,
+        .instrumentation_mode
         = inputs.protocol_instrumentation_mode.isEmpty()
-        ? cadence_mode_to_string(inputs.cadence_mode)
-        : inputs.protocol_instrumentation_mode;
-    root.insert(
-        QStringLiteral("protocol_v1"),
-        build_protocol_v1_envelope(
-            QStringLiteral("snapshot"), inputs.protocol_app_name,
-            inputs.protocol_process_id, inputs.protocol_session_id,
-            inputs.protocol_build_id, inputs.protocol_version,
-            inputs.protocol_debug_flags, instrumentation_mode
-        )
-    );
+            ? cadence_mode_to_string(inputs.cadence_mode)
+            : inputs.protocol_instrumentation_mode,
+    };
+    root.insert(QStringLiteral("session"), identity.session_id);
+    root.insert(QStringLiteral("identity"), identity_to_json(identity));
 
     QJsonObject semantics = process_memory_report_telemetry_semantics();
     semantics.insert(

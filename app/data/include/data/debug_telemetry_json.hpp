@@ -1,8 +1,8 @@
-#ifndef KCUCKOOUNTER_MONITOR_DEBUG_PROBE_CORE_HPP
-#define KCUCKOOUNTER_MONITOR_DEBUG_PROBE_CORE_HPP
+#ifndef KCUCKOOUNTER_DATA_DEBUG_TELEMETRY_JSON_HPP
+#define KCUCKOOUNTER_DATA_DEBUG_TELEMETRY_JSON_HPP
 
 #include "image/raster_cache.hpp"
-#include "monitor/geometry_debug_telemetry.hpp"
+#include "debug/geometry_observation.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -98,7 +98,6 @@ public:
         qint64 protocol_process_id = -1;
         QString protocol_session_id;
         QString protocol_build_id;
-        QString protocol_version;
         QStringList protocol_debug_flags;
         QString protocol_instrumentation_mode;
     };
@@ -154,7 +153,6 @@ public:
         qint64 protocol_process_id = -1;
         QString protocol_session_id;
         QString protocol_build_id;
-        QString protocol_version;
         QStringList protocol_debug_flags;
         QString protocol_instrumentation_mode;
     };
@@ -164,7 +162,6 @@ public:
         qint64 process_id = -1;
         QString session_id;
         QString build_id;
-        QString protocol_version;
         QStringList debug_flags;
         QString instrumentation_mode;
     };
@@ -173,18 +170,13 @@ public:
     static qint64 sample_interval_ms_for_mode(debug_cadence_mode mode);
     static auto_process_report_policy
     auto_report_policy_for_mode(debug_cadence_mode mode);
-    static QJsonObject build_protocol_message_v1(
+    static QJsonObject build_message(
         const QString& message_family, const protocol_identity& identity,
         qint64 monotonic_timestamp_ms, const QJsonObject& payload
     );
-    static QString protocol_version_string();
-    static QJsonArray protocol_message_families_v1();
-    static QJsonArray protocol_required_identity_fields_v1();
-    static QJsonArray required_metric_hint_fields_v1();
-    static QJsonArray card_image_domain_hints_v1();
-    static QJsonArray protocol_metric_catalog_v1();
-    static QJsonObject metric_hint_for_id_v1(const QString& metric_id);
-    static QJsonObject protocol_capabilities_v1();
+    static QJsonObject identity_to_json(const protocol_identity& identity);
+    static QJsonArray metric_catalog();
+    static QJsonArray extensions();
     static QJsonObject
     geometry_snapshot_to_json(const geometry_debug_snapshot& snapshot);
     static QJsonObject
@@ -218,17 +210,6 @@ private:
         const QString& additive_semantics, const QString& confidence,
         const QString& default_display_role, const QString& domain_namespace
     );
-    static QJsonObject protocol_identity_to_json(
-        const QString& app_name, qint64 process_id, const QString& session_id,
-        const QString& build_id, const QString& protocol_version,
-        const QStringList& debug_flags, const QString& instrumentation_mode
-    );
-    static QJsonObject build_protocol_v1_envelope(
-        const QString& message_family, const QString& app_name,
-        qint64 process_id, const QString& session_id, const QString& build_id,
-        const QString& protocol_version, const QStringList& debug_flags,
-        const QString& instrumentation_mode
-    );
 };
 
-#endif // KCUCKOOUNTER_MONITOR_DEBUG_PROBE_CORE_HPP
+#endif // KCUCKOOUNTER_DATA_DEBUG_TELEMETRY_JSON_HPP

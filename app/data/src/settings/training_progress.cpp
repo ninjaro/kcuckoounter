@@ -12,7 +12,6 @@
 namespace {
 
 const QString progress_group = QStringLiteral("training_progress");
-const QString schema_version_key = QStringLiteral("schema_version");
 constexpr qint64 maximum_counter = 1000000000LL;
 constexpr qint64 maximum_elapsed_ms
     = 100LL * 365LL * 24LL * 60LL * 60LL * 1000LL;
@@ -175,13 +174,6 @@ training_progress_service::training_progress_service(QSettings& settings_value)
 
 training_progress training_progress_service::load() const {
     settings.beginGroup(progress_group);
-    bool version_ok = false;
-    const int version = settings.value(schema_version_key).toInt(&version_ok);
-    if (!version_ok || version != training_progress::schema_version) {
-        settings.endGroup();
-        return {};
-    }
-
     training_progress result;
     result.completed_sessions = bounded_counter(
         settings.value(QStringLiteral("totals/completed_sessions")),
@@ -219,17 +211,7 @@ bool training_progress_service::save(const training_progress& progress) {
         return false;
     }
     settings.beginGroup(progress_group);
-    if (settings.contains(schema_version_key)) {
-        bool version_ok = false;
-        const int version
-            = settings.value(schema_version_key).toInt(&version_ok);
-        if (version_ok && version > training_progress::schema_version) {
-            settings.endGroup();
-            return false;
-        }
-    }
     settings.remove(QString());
-    settings.setValue(schema_version_key, training_progress::schema_version);
     settings.setValue(
         QStringLiteral("totals/completed_sessions"), progress.completed_sessions
     );

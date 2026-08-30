@@ -15,7 +15,6 @@
 
 namespace {
 
-constexpr int strategy_schema_version = 1;
 constexpr int card_rank_count = 13;
 constexpr int maximum_absolute_weight = 10;
 
@@ -310,13 +309,6 @@ strategy_catalog parse_strategy_catalog(const QByteArray& json_data) {
     }
 
     const QJsonObject root = document.object();
-    int schema_version = 0;
-    integer_value(
-        root, QStringLiteral("schema_version"), strategy_schema_version,
-        strategy_schema_version, &schema_version, &catalog,
-        QStringLiteral("document")
-    );
-
     const QJsonValue rank_order_value
         = root.value(QStringLiteral("card_rank_order"));
     if (!rank_order_value.isArray()

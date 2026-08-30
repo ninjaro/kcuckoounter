@@ -2,8 +2,8 @@
 #define KCUCKOOUNTER_MONITOR_RESOURCE_MONITOR_HPP
 
 #include "image/raster_cache.hpp"
-#include "monitor/debug_probe_core.hpp"
-#include "monitor/geometry_debug_telemetry.hpp"
+#include "data/debug_telemetry_json.hpp"
+#include "debug/geometry_observation.hpp"
 
 #include <QByteArray>
 #include <QElapsedTimer>
@@ -164,6 +164,7 @@ private:
     QElapsedTimer broadcaster_monotonic_clock;
     QByteArray last_broadcast_cache_decision_signature;
     QTimer process_sampling_timer;
+    bool collection_active;
 
     void push_event_entry(
         event_timeline_entry::event_kind kind, const QString& label
@@ -179,6 +180,7 @@ private:
     void maybe_trigger_auto_process_report(qint64 ready_bytes_delta_hint = 0);
     void refresh_memory_sample_if_needed();
     void refresh_process_memory_sample_now();
+    void set_collection_active(bool active);
     [[nodiscard]] qint64 sample_interval_ms_for_mode() const;
     [[nodiscard]] qint64 auto_dump_growth_threshold() const;
     [[nodiscard]] qint64 auto_dump_cooldown_ms() const;

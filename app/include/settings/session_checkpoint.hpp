@@ -51,8 +51,6 @@ struct table_session_state {
 };
 
 struct trainer_session_checkpoint {
-    static constexpr int schema_version = 1;
-
     table_session_state table;
     int score_correct = 0;
     int score_total = 0;

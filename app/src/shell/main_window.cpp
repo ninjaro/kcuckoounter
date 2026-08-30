@@ -6,7 +6,6 @@
 #include "arch/android_ui.hpp"
 #include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
-#include "monitor/resource_monitor.hpp"
 #include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
 #include "settings/theme_palette.hpp"

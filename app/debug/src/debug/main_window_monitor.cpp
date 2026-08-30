@@ -1,7 +1,7 @@
 #include "shell/main_window.hpp"
 
 #include "arch/str_label.hpp"
-#include "monitor/resource_monitor.hpp"
+#include "debug/resource_monitor.hpp"
 
 #include <QDateTime>
 #include <QFileDialog>

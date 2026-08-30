@@ -15,7 +15,6 @@ struct completed_training_result {
 };
 
 struct training_progress {
-    static constexpr int schema_version = 1;
     static constexpr qsizetype maximum_recent_results = 20;
 
     qint64 completed_sessions = 0;
