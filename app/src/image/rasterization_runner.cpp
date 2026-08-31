@@ -9,7 +9,6 @@ rasterization_runner::rasterization_runner(QObject* parent)
     , cached_short_px_value(0)
     , last_need_px_value(0)
     , last_evaluation_value()
-    , last_change_time_sec_value(0.0)
     , pending_target_px(0)
     , pending_delay_sec_value(0.0)
     , pending_start_time_sec(0.0)
@@ -40,12 +39,6 @@ int rasterization_runner::cached_short_px() const {
     return cached_short_px_value;
 }
 
-int rasterization_runner::last_need_px() const { return last_need_px_value; }
-
-rasterization_runner::evaluation rasterization_runner::last_evaluation() const {
-    return last_evaluation_value;
-}
-
 rasterization_runner::size_window
 rasterization_runner::accepted_window() const {
     return accepted_window_for_cached_size(cached_short_px_value);
@@ -53,10 +46,6 @@ rasterization_runner::accepted_window() const {
 
 int rasterization_runner::pending_target_cache_px() const {
     return pending_target_px;
-}
-
-double rasterization_runner::last_change_time_sec() const {
-    return last_change_time_sec_value;
 }
 
 rasterization_runner::evaluation rasterization_runner::on_need_changed(
@@ -114,7 +103,6 @@ rasterization_runner::request_immediately(int new_need_px, bool force) {
     last_evaluation_value
         = evaluate_size_need(new_need_px, cached_short_px_value, force);
     last_need_px_value = last_evaluation_value.required_short_px;
-    last_change_time_sec_value = current_time_sec();
     if (last_evaluation_value.rasterization_required) {
         emit rasterization_requested(last_evaluation_value.target_cache_px);
     }
@@ -200,10 +188,6 @@ void rasterization_runner::cancel_pending() {
     pending_timer.stop();
 }
 
-void rasterization_runner::on_clock_tick(qint64, qint64) {
-    // Kept for API compatibility with existing signal wiring.
-}
-
 double rasterization_runner::clamp(double value, double lo, double hi) {
     return std::min(hi, std::max(lo, value));
 }
@@ -243,7 +227,6 @@ void rasterization_runner::schedule_stable_reraster(
 ) {
     cancel_pending();
 
-    last_change_time_sec_value = now_sec;
     pending_target_px = target_cache_px;
     pending_delay_sec_value = delay_sec;
     pending_start_time_sec = now_sec;

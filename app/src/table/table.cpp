@@ -22,10 +22,6 @@
 #include <limits>
 #include <memory>
 
-#if !defined(NDEBUG) && defined(__linux__) && !defined(__ANDROID__)
-#include "monitor/client.hpp"
-#endif
-
 static QVector<QImage>
 rasterize_all_card_faces(const QString& source_path, int bucket_px) {
     if (bucket_px <= 0) {
@@ -172,13 +168,6 @@ void table::set_slot_count(int count) {
 }
 
 void table::start_quiz(int quiz_type_index, bool wait_for_answers) {
-#if !defined(NDEBUG) && defined(__linux__) && !defined(__ANDROID__)
-    monitor::client::process().breadcrumb(
-        monitor::event::game_started, 0,
-        static_cast<std::uint64_t>(slot_widgets.size()),
-        static_cast<std::uint64_t>(quiz_type_index)
-    );
-#endif
     for (table_slot* slot_widget : slot_widgets) {
         if (slot_widget != nullptr) {
             slot_widget->set_allow_skipping(allow_skipping);
@@ -818,15 +807,6 @@ void table::update_shared_card_face_need(bool immediate, bool force) {
             std::numeric_limits<double>::quiet_NaN(), false, false, false
         );
     }
-#if !defined(NDEBUG) && defined(__linux__) && !defined(__ANDROID__)
-    if (evaluation.rasterization_required) {
-        monitor::client::process().breadcrumb(
-            monitor::event::cache_resize_requested, 0,
-            static_cast<std::uint64_t>(evaluation.required_short_px),
-            static_cast<std::uint64_t>(evaluation.target_cache_px)
-        );
-    }
-#endif
     if (!evaluation.rasterization_required && warming_shared_generation_id > 0
         && active_shared_generation_id > 0
         && active_card_sheet_source_id == card_sheet_source_path()

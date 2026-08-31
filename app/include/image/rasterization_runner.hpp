@@ -35,11 +35,8 @@ public:
 
     void set_cached_short_px(int short_px);
     [[nodiscard]] int cached_short_px() const;
-    [[nodiscard]] int last_need_px() const;
-    [[nodiscard]] evaluation last_evaluation() const;
     [[nodiscard]] size_window accepted_window() const;
     [[nodiscard]] int pending_target_cache_px() const;
-    [[nodiscard]] double last_change_time_sec() const;
 
     evaluation on_need_changed(
         int new_need_px, double pickup_interval_sec, double now_sec,
@@ -56,9 +53,6 @@ public:
 
     void cancel_pending();
 
-public slots:
-    void on_clock_tick(qint64 elapsed_ms, qint64 delta_ms);
-
 signals:
     void rasterization_requested(int target_cache_px);
 
@@ -72,7 +66,6 @@ private:
     int cached_short_px_value;
     int last_need_px_value;
     evaluation last_evaluation_value;
-    double last_change_time_sec_value;
     int pending_target_px;
     double pending_delay_sec_value;
     double pending_start_time_sec;

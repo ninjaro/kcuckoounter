@@ -9,10 +9,8 @@
 #include "arch/asset_locator.hpp"
 #include "arch/str_label.hpp"
 
-#if !defined(NDEBUG) && defined(__linux__) && !defined(__ANDROID__)
 #include "monitor/client.hpp"
 #include "monitor/qt/gui_heartbeat.hpp"
-#endif
 
 #ifndef ECOSYSTEM_PROJECT_VERSION
 #define ECOSYSTEM_PROJECT_VERSION "1.0.0"
@@ -69,15 +67,8 @@ int main(int argc, char* argv[]) {
     parser.process(app);
 #endif
 
-#if !defined(NDEBUG) && defined(__linux__) && !defined(__ANDROID__)
-    auto& watchdog = monitor::client::process();
-    std::unique_ptr<monitor::qt::gui_heartbeat> gui_watchdog;
-    if (watchdog.start("kcuckoounter")) {
-        watchdog.breadcrumb(monitor::event::process_started);
-        gui_watchdog
-            = std::make_unique<monitor::qt::gui_heartbeat>(watchdog, &app);
-    }
-#endif
+    static_cast<void>(monitor::start_process("kcuckoounter"));
+    monitor::qt::gui_heartbeat gui_watchdog(&app);
 
     auto window = std::make_unique<main_window>();
 #if defined(Q_OS_ANDROID)
@@ -88,12 +79,5 @@ int main(int argc, char* argv[]) {
 
     int result = QApplication::exec();
     window.reset();
-#if !defined(NDEBUG) && defined(__linux__) && !defined(__ANDROID__)
-    gui_watchdog.reset();
-    if (watchdog.available()) {
-        watchdog.breadcrumb(monitor::event::process_stopping);
-        watchdog.stop();
-    }
-#endif
     return result;
 }
