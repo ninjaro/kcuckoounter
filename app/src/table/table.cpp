@@ -10,7 +10,6 @@
 #include <QEvent>
 #include <QFuture>
 #include <QGridLayout>
-#include <QMetaMethod>
 #include <QPaintEvent>
 #include <QPainter>
 #include <QRect>
@@ -22,6 +21,10 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+
+#if !defined(NDEBUG) && defined(__linux__) && !defined(__ANDROID__)
+#include "monitor/client.hpp"
+#endif
 
 static QVector<QImage>
 rasterize_all_card_faces(const QString& source_path, int bucket_px) {
@@ -61,15 +64,11 @@ table::table(BaseWidget* parent)
     , random_gen()
     , preload_timer(nullptr)
     , main_faces_runner(this)
-    , last_cache_decision(rasterization_runner::decision_kind::reuse)
-    , last_cache_trigger(cache_update_trigger::runtime)
-    , last_requested_target_bucket_px(0)
     , raster_cache_service(this)
     , shared_faces_watcher(this)
     , active_shared_faces_key(std::nullopt)
     , displayed_shared_faces_key(std::nullopt)
     , warming_shared_faces_key(std::nullopt)
-    , active_shared_faces_fallback_usage()
     , shared_faces_refresh_queued(false)
     , active_card_sheet_source_id(card_sheet_source_path())
     , active_shared_bucket_px(0)
@@ -169,13 +168,17 @@ void table::set_slot_count(int count) {
 
     update_layout();
     schedule_card_preload();
-    update_shared_card_face_need(
-        false, cache_update_trigger::slot_count_change
-    );
-    emit_geometry_debug_snapshot();
+    update_shared_card_face_need();
 }
 
 void table::start_quiz(int quiz_type_index, bool wait_for_answers) {
+#if !defined(NDEBUG) && defined(__linux__) && !defined(__ANDROID__)
+    monitor::client::process().breadcrumb(
+        monitor::event::game_started, 0,
+        static_cast<std::uint64_t>(slot_widgets.size()),
+        static_cast<std::uint64_t>(quiz_type_index)
+    );
+#endif
     for (table_slot* slot_widget : slot_widgets) {
         if (slot_widget != nullptr) {
             slot_widget->set_allow_skipping(allow_skipping);
@@ -194,9 +197,7 @@ void table::start_quiz(int quiz_type_index, bool wait_for_answers) {
         }
     }
     pick_elapsed_ms = 0;
-    update_shared_card_face_need(
-        false, cache_update_trigger::quiz_state_change
-    );
+    update_shared_card_face_need();
 }
 
 void table::clear_quiz() {
@@ -328,9 +329,7 @@ bool table::restore_session_state(const table_session_state& state) {
         }
     }
     schedule_card_preload();
-    update_shared_card_face_need(
-        false, cache_update_trigger::quiz_state_change
-    );
+    update_shared_card_face_need();
     return true;
 }
 
@@ -354,10 +353,7 @@ bool table::event(QEvent* event) {
         QTimer::singleShot(0, this, [this]() {
             update_layout();
             schedule_card_preload();
-            update_shared_card_face_need(
-                false, cache_update_trigger::screen_change
-            );
-            emit_geometry_debug_snapshot();
+            update_shared_card_face_need();
         });
     }
 
@@ -365,47 +361,10 @@ bool table::event(QEvent* event) {
 }
 
 void table::resizeEvent(QResizeEvent* event) {
-    const QSize old_window_size = event != nullptr ? event->oldSize() : QSize();
-    const int old_active_bucket_px = active_shared_bucket_px;
-    const int old_warming_bucket_px = warming_shared_bucket_px;
-
     BaseWidget::resizeEvent(event);
     update_layout();
     schedule_card_preload();
-    update_shared_card_face_need(false, cache_update_trigger::window_resize);
-    emit_geometry_debug_snapshot();
-
-    if (!old_window_size.isValid() || old_window_size == size()) {
-        return;
-    }
-    if (!isSignalConnected(
-            QMetaMethod::fromSignal(&table::debug_resize_transition_recorded)
-        )) {
-        return;
-    }
-
-    const int expected_active_bucket_px = last_requested_target_bucket_px > 0
-        ? last_requested_target_bucket_px
-        : active_shared_bucket_px;
-    const int expected_warming_bucket_px = warming_shared_bucket_px > 0
-        ? warming_shared_bucket_px
-        : (expected_active_bucket_px != active_shared_bucket_px
-               ? expected_active_bucket_px
-               : 0);
-
-    const resize_transition_debug_event transition {
-        .timestamp_ms = QDateTime::currentMSecsSinceEpoch(),
-        .old_window_size = old_window_size,
-        .new_window_size = size(),
-        .old_active_bucket_px = old_active_bucket_px,
-        .new_active_bucket_px = expected_active_bucket_px,
-        .old_warming_bucket_px = old_warming_bucket_px,
-        .new_warming_bucket_px = expected_warming_bucket_px,
-        .geometry_after_resize = build_geometry_debug_snapshot(
-            raster_cache_service.get_debug_snapshot()
-        ),
-    };
-    emit debug_resize_transition_recorded(transition);
+    update_shared_card_face_need();
 }
 
 void table::schedule_card_preload() {
@@ -433,7 +392,7 @@ void table::prepare_cards_for_start() {
     if (preload_timer != nullptr && preload_timer->is_active()) {
         preload_timer->stop();
     }
-    update_shared_card_face_need(true, cache_update_trigger::game_start);
+    update_shared_card_face_need(true);
     on_preload_tick();
 }
 
@@ -449,13 +408,11 @@ void table::apply_theme() {
     }
 
     if (source_changed) {
-        update_shared_card_face_need(
-            true, cache_update_trigger::theme_change, true
-        );
+        update_shared_card_face_need(true, true);
         return;
     }
 
-    update_shared_card_face_need(false, cache_update_trigger::theme_change);
+    update_shared_card_face_need();
 }
 
 bool table::is_rasterization_busy() const { return rasterization_busy; }
@@ -466,12 +423,6 @@ raster_cache* table::shared_raster_cache_service() {
 
 const raster_cache* table::shared_raster_cache_service() const {
     return &raster_cache_service;
-}
-
-geometry_debug_snapshot table::current_geometry_debug_snapshot() const {
-    return build_geometry_debug_snapshot(
-        raster_cache_service.get_debug_snapshot()
-    );
 }
 
 QString table::generation_render_scope(qint64 generation_id) {
@@ -621,11 +572,7 @@ bool table::start_shared_raster_for_key(const raster_cache::entry_key& key) {
         .kind = key.kind,
         .source_id = key.source_id,
         .render_scope = key.render_scope,
-        .need_short_px = std::max(1, max_card_need_short_px()),
         .target_bucket_px = key.target_bucket_px,
-        .high_priority = false,
-        .interactive = true,
-        .preview = false,
     };
 
     const raster_cache::submit_outcome outcome
@@ -644,13 +591,6 @@ bool table::start_shared_raster_for_key(const raster_cache::entry_key& key) {
         }
 
         active_shared_faces_key = outcome.key;
-        const card_sheet_fallback_resolution fallback_resolution
-            = resolve_required_card_face_sources(outcome.key.source_id);
-        active_shared_faces_fallback_usage = {
-            .active_theme_keys = fallback_resolution.active_theme_keys,
-            .default_theme_keys = fallback_resolution.default_theme_keys,
-            .placeholder_keys = fallback_resolution.placeholder_keys,
-        };
         const QString source_id = outcome.key.source_id;
         const int target_bucket_px = outcome.key.target_bucket_px;
         shared_faces_watcher.setFuture(
@@ -659,11 +599,6 @@ bool table::start_shared_raster_for_key(const raster_cache::entry_key& key) {
             )
         );
         refresh_rasterization_busy_state();
-    }
-
-    if (outcome.state == raster_cache::request_state::start_async
-        || outcome.state == raster_cache::request_state::cache_hit) {
-        last_requested_target_bucket_px = key.target_bucket_px;
     }
 
     enforce_shared_generation_bounds();
@@ -681,17 +616,10 @@ void table::cutover_to_ready_generation(const raster_cache::entry_key& key) {
 
     if (displayed_shared_faces_key.has_value()
         && !(*displayed_shared_faces_key == key)) {
-        raster_cache_service.note_entry_no_longer_displayed(
-            *displayed_shared_faces_key,
-            raster_cache::debug_consumer_scope::table_slots
-        );
         raster_cache_service.erase_result(*displayed_shared_faces_key);
         forget_shared_faces_key(*displayed_shared_faces_key);
     }
 
-    raster_cache_service.note_entry_displayed(
-        key, raster_cache::debug_consumer_scope::table_slots
-    );
     displayed_shared_faces_key = key;
     remember_shared_faces_key(key);
 
@@ -720,7 +648,6 @@ void table::cutover_to_ready_generation(const raster_cache::entry_key& key) {
     }
 
     enforce_shared_generation_bounds();
-    emit_geometry_debug_snapshot();
 }
 
 void table::on_preload_tick() {
@@ -750,12 +677,6 @@ void table::on_slot_rasterization_busy_changed(bool busy) {
 void table::on_shared_rasterization_requested(int target_cache_px) {
     if (target_cache_px <= 0) {
         return;
-    }
-
-    const rasterization_runner::evaluation evaluation
-        = main_faces_runner.last_evaluation();
-    if (evaluation.target_cache_px == target_cache_px) {
-        record_cache_evaluation(evaluation, last_cache_trigger);
     }
 
     const QString desired_source_id = card_sheet_source_path();
@@ -790,12 +711,10 @@ void table::on_shared_rasterization_requested(int target_cache_px) {
         warming_shared_faces_key = request_key;
     }
     start_shared_raster_for_key(request_key);
-    emit_geometry_debug_snapshot();
 }
 
 void table::on_shared_cache_result_updated(const raster_cache::entry_key& key) {
     apply_shared_faces_entry(key);
-    emit_geometry_debug_snapshot();
 }
 
 void table::on_shared_rasterization_finished() {
@@ -821,7 +740,6 @@ void table::on_shared_rasterization_finished() {
             .use_count = 0,
             .single_image = {},
             .face_images = face_images,
-            .fallback_usage = active_shared_faces_fallback_usage,
         };
         raster_cache_service.insert_or_update_result(ready);
         remember_shared_faces_key(key);
@@ -831,8 +749,8 @@ void table::on_shared_rasterization_finished() {
     const raster_cache::finish_outcome finish
         = raster_cache_service.finish_active_request(family, key);
     if (!generation_is_still_expected) {
-        // Finish first so lifecycle timing is recorded, then retire every
-        // per-entry diagnostic record together with the stale result.
+        // Finish first so a coalesced request can be promoted, then retire the
+        // stale result from the bounded cache.
         raster_cache_service.erase_result(key);
         forget_shared_faces_key(key);
     }
@@ -854,14 +772,11 @@ void table::on_shared_rasterization_finished() {
 
     if (shared_faces_refresh_queued && !shared_faces_watcher.isRunning()) {
         shared_faces_refresh_queued = false;
-        update_shared_card_face_need(
-            true, cache_update_trigger::raster_completion
-        );
+        update_shared_card_face_need(true);
     }
 
     enforce_shared_generation_bounds();
     refresh_rasterization_busy_state();
-    emit_geometry_debug_snapshot();
 }
 
 int table::rasterization_delay_ms() const {
@@ -886,16 +801,13 @@ int table::max_card_need_short_px() const {
     );
 }
 
-void table::update_shared_card_face_need(
-    bool immediate, cache_update_trigger trigger, bool force
-) {
+void table::update_shared_card_face_need(bool immediate, bool force) {
     const int need_short_px = max_card_need_short_px();
     if (need_short_px <= 0) {
         main_faces_runner.cancel_pending();
         return;
     }
 
-    last_cache_trigger = trigger;
     rasterization_runner::evaluation evaluation;
     if (immediate) {
         evaluation
@@ -906,8 +818,15 @@ void table::update_shared_card_face_need(
             std::numeric_limits<double>::quiet_NaN(), false, false, false
         );
     }
-    record_cache_evaluation(evaluation, trigger);
-
+#if !defined(NDEBUG) && defined(__linux__) && !defined(__ANDROID__)
+    if (evaluation.rasterization_required) {
+        monitor::client::process().breadcrumb(
+            monitor::event::cache_resize_requested, 0,
+            static_cast<std::uint64_t>(evaluation.required_short_px),
+            static_cast<std::uint64_t>(evaluation.target_cache_px)
+        );
+    }
+#endif
     if (!evaluation.rasterization_required && warming_shared_generation_id > 0
         && active_shared_generation_id > 0
         && active_card_sheet_source_id == card_sheet_source_path()
@@ -918,62 +837,10 @@ void table::update_shared_card_face_need(
         retire_warming_generation();
         enforce_shared_generation_bounds();
     }
-
-    emit_geometry_debug_snapshot();
-}
-
-void table::record_cache_evaluation(
-    const rasterization_runner::evaluation& evaluation,
-    cache_update_trigger trigger
-) {
-    last_cache_decision = evaluation.decision;
-    last_cache_trigger = trigger;
-    last_requested_target_bucket_px = evaluation.target_cache_px;
-}
-
-QString
-table::cache_decision_label(rasterization_runner::decision_kind decision) {
-    switch (decision) {
-    case rasterization_runner::decision_kind::upsize:
-        return QStringLiteral("upsize");
-    case rasterization_runner::decision_kind::downsize:
-        return QStringLiteral("downsize");
-    case rasterization_runner::decision_kind::forced:
-        return QStringLiteral("forced");
-    case rasterization_runner::decision_kind::reuse:
-    default:
-        return QStringLiteral("reuse");
-    }
-}
-
-QString table::cache_trigger_label(cache_update_trigger trigger) {
-    switch (trigger) {
-    case cache_update_trigger::slot_count_change:
-        return QStringLiteral("slot_count_change");
-    case cache_update_trigger::window_resize:
-        return QStringLiteral("window_resize");
-    case cache_update_trigger::screen_change:
-        return QStringLiteral("screen_change");
-    case cache_update_trigger::game_start:
-        return QStringLiteral("game_start");
-    case cache_update_trigger::quiz_state_change:
-        return QStringLiteral("quiz_state_change");
-    case cache_update_trigger::theme_change:
-        return QStringLiteral("theme_change");
-    case cache_update_trigger::raster_completion:
-        return QStringLiteral("raster_completion");
-    case cache_update_trigger::runtime:
-    default:
-        return QStringLiteral("runtime");
-    }
 }
 
 void table::clear_shared_card_faces() {
     if (displayed_shared_faces_key.has_value()) {
-        raster_cache_service.note_entry_no_longer_displayed(
-            *displayed_shared_faces_key,
-            raster_cache::debug_consumer_scope::table_slots
-        );
         displayed_shared_faces_key.reset();
     }
 
@@ -984,7 +851,6 @@ void table::clear_shared_card_faces() {
     }
 
     enforce_shared_generation_bounds();
-    emit_geometry_debug_snapshot();
 }
 
 void table::apply_shared_faces_entry(const raster_cache::entry_key& key) {
@@ -1019,9 +885,6 @@ void table::apply_shared_faces_entry(const raster_cache::entry_key& key) {
         || ready->face_images.size() < required_faces_count) {
         return;
     }
-    raster_cache_service.note_entry_displayed(
-        key, raster_cache::debug_consumer_scope::table_slots
-    );
     displayed_shared_faces_key = key;
     remember_shared_faces_key(key);
     for (table_slot* slot_widget : slot_widgets) {
@@ -1102,99 +965,6 @@ void table::refresh_rasterization_busy_state() {
 
     rasterization_busy = is_busy;
     emit rasterization_busy_changed(is_busy);
-}
-
-geometry_debug_snapshot table::build_geometry_debug_snapshot(
-    const raster_cache::debug_snapshot& cache_snapshot
-) const {
-    int visible_slot_count = 0;
-    QRect layout_bounds;
-    int max_display_card_width = 0;
-    int max_display_card_height = 0;
-
-    for (const table_slot* slot_widget : slot_widgets) {
-        if (slot_widget == nullptr || !slot_widget->isVisible()) {
-            continue;
-        }
-
-        ++visible_slot_count;
-        const QRect slot_rect = slot_widget->geometry();
-        layout_bounds = layout_bounds.isNull()
-            ? slot_rect
-            : layout_bounds.united(slot_rect);
-        max_display_card_width
-            = std::max(max_display_card_width, slot_rect.width());
-        max_display_card_height
-            = std::max(max_display_card_height, slot_rect.height());
-    }
-
-    QSize cache_raster_size;
-    if (displayed_shared_faces_key.has_value()) {
-        const std::optional<raster_cache::result> displayed_ready
-            = raster_cache_service.get_if_ready(*displayed_shared_faces_key);
-        if (displayed_ready.has_value()) {
-            cache_raster_size = displayed_ready->raster_size;
-        }
-    }
-    if (cache_raster_size.isEmpty() && active_shared_bucket_px > 0) {
-        cache_raster_size
-            = QSize(active_shared_bucket_px, active_shared_bucket_px);
-    }
-
-    QSize preloaded_raster_size;
-    if (warming_shared_faces_key.has_value()) {
-        const std::optional<raster_cache::result> preloaded_ready
-            = raster_cache_service.get_if_ready(*warming_shared_faces_key);
-        if (preloaded_ready.has_value()) {
-            preloaded_raster_size = preloaded_ready->raster_size;
-        }
-    }
-    if (preloaded_raster_size.isEmpty() && warming_shared_bucket_px > 0) {
-        preloaded_raster_size
-            = QSize(warming_shared_bucket_px, warming_shared_bucket_px);
-    }
-
-    const rasterization_runner::size_window cache_window
-        = main_faces_runner.accepted_window();
-
-    return geometry_debug_snapshot {
-        .timestamp_ms = QDateTime::currentMSecsSinceEpoch(),
-        .slot_count = static_cast<int>(slot_widgets.size()),
-        .visible_slot_count = visible_slot_count,
-        .window_size = size(),
-        .layout_size = layout_bounds.isNull() ? QSize() : layout_bounds.size(),
-        .display_card_size
-        = QSize(max_display_card_width, max_display_card_height),
-        .display_card_need_short_px = max_card_need_short_px(),
-        .device_pixel_ratio = devicePixelRatioF(),
-        .active_bucket_px = active_shared_bucket_px,
-        .warming_bucket_px = warming_shared_bucket_px,
-        .cache_window_minimum_need_px = cache_window.minimum_need_px,
-        .cache_window_maximum_need_px = cache_window.maximum_need_px,
-        .requested_target_bucket_px = last_requested_target_bucket_px,
-        .cache_decision = cache_decision_label(last_cache_decision),
-        .cache_trigger = cache_trigger_label(last_cache_trigger),
-        .cache_raster_size = cache_raster_size,
-        .preloaded_raster_size = preloaded_raster_size,
-        .coverage_percent = cache_snapshot.displayed_entry_coverage_percent,
-        .coverage_window_ms
-        = static_cast<qint64>(cache_snapshot.displayed_entry_window_ms),
-        .unique_size_buckets = cache_snapshot.unique_size_buckets,
-        .prewarm_in_flight = warming_shared_generation_id > 0,
-        .active_generation_id = active_shared_generation_id,
-        .warming_generation_id = warming_shared_generation_id,
-    };
-}
-
-void table::emit_geometry_debug_snapshot() {
-    if (!isSignalConnected(
-            QMetaMethod::fromSignal(&table::debug_geometry_snapshot_updated)
-        )) {
-        return;
-    }
-    emit debug_geometry_snapshot_updated(
-        build_geometry_debug_snapshot(raster_cache_service.get_debug_snapshot())
-    );
 }
 
 void table::on_slot_swap(table_slot* slot) {

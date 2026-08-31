@@ -13,7 +13,6 @@ class QDialog;
 class QMenu;
 class QProgressBar;
 class QSlider;
-class resource_monitor;
 class settings_template_widget;
 
 class main_window : public BaseMainWindow {
@@ -42,12 +41,6 @@ private slots:
     void on_settings_triggered();
     void on_settings_commit_requested();
     void on_settings_dialog_finished(int result);
-    void on_export_debug_snapshot_triggered();
-    void on_export_process_report();
-    void on_add_monitor_marker_triggered();
-    void on_realistic_cadence_selected();
-    void on_instrumented_cadence_selected();
-    void on_toggle_debug_broadcaster_triggered(bool checked);
     void on_application_state_changed(Qt::ApplicationState state);
 
 private:
@@ -60,7 +53,6 @@ private:
     BaseToolBar* primary_toolbar;
     QMenu* game_menu;
     QMenu* settings_menu;
-    QMenu* debug_menu;
     table* table_widget;
     QDialog* setup_dialog;
     QDialog* settings_dialog;
@@ -79,19 +71,12 @@ private:
     BaseAction* highscores_action;
     BaseAction* progress_action;
     BaseAction* settings_action;
-    BaseAction* export_debug_snapshot_action;
-    BaseAction* export_process_memory_report_action;
-    BaseAction* add_monitor_marker_action;
-    BaseAction* realistic_cadence_mode_action;
-    BaseAction* instrumented_cadence_mode_action;
-    BaseAction* toggle_debug_broadcaster_action;
     bool quiz_started;
     bool quiz_paused;
     bool quiz_finished;
     bool rasterization_busy;
     int score_correct;
     int score_total;
-    resource_monitor* debug_telemetry_collector;
     bool mobile_checkpoint_restored;
     bool mobile_lifecycle_paused;
     qint64 last_mobile_checkpoint_elapsed_ms;
@@ -112,10 +97,6 @@ private:
     void show_game_over_dialog();
     void start_quiz_from_ui();
     void pause_for_dialog();
-    [[nodiscard]] QString debug_status_suffix() const;
-    void add_debug_marker(const QString& label) const;
-    void sync_debug_cadence_mode_actions() const;
-    void setup_debug_monitoring();
     void persist_setup_preferences() const;
     void persist_desktop_shell_state() const;
     void restore_desktop_shell_state();

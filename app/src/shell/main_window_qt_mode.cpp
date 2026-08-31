@@ -39,7 +39,6 @@ void main_window::setup_platform_shell() {
 #else
     game_menu = menuBar()->addMenu(str_label("&Game"));
     settings_menu = menuBar()->addMenu(str_label("&Settings"));
-    debug_menu = menuBar()->addMenu(str_label("&Debug"));
 
     primary_toolbar = new BaseToolBar(str_label("Main"), this);
     primary_toolbar->setObjectName(QStringLiteral("main_toolbar"));
@@ -61,9 +60,6 @@ void main_window::finalize_platform_shell() {
             quit_action, &QAction::triggered, QCoreApplication::instance(),
             &QCoreApplication::quit
         );
-    }
-    if (debug_menu != nullptr) {
-        debug_menu->menuAction()->setVisible(!debug_menu->isEmpty());
     }
 #endif
 }
@@ -160,16 +156,6 @@ void main_window::register_shell_action(
         }
         return;
     }
-    if (!action_name.startsWith(QStringLiteral("debug_"))
-        || debug_menu == nullptr) {
-        return;
-    }
-    if ((action_name == QStringLiteral("debug_toggle_broadcaster")
-         || action_name == QStringLiteral("debug_realistic_cadence"))
-        && !debug_menu->isEmpty()) {
-        debug_menu->addSeparator();
-    }
-    debug_menu->addAction(action);
 #endif
 }
 

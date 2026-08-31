@@ -39,7 +39,6 @@ main_window::main_window(BaseWidget* parent)
     , primary_toolbar(nullptr)
     , game_menu(nullptr)
     , settings_menu(nullptr)
-    , debug_menu(nullptr)
     , table_widget(nullptr)
     , setup_dialog(nullptr)
     , settings_dialog(nullptr)
@@ -58,19 +57,12 @@ main_window::main_window(BaseWidget* parent)
     , highscores_action(nullptr)
     , progress_action(nullptr)
     , settings_action(nullptr)
-    , export_debug_snapshot_action(nullptr)
-    , export_process_memory_report_action(nullptr)
-    , add_monitor_marker_action(nullptr)
-    , realistic_cadence_mode_action(nullptr)
-    , instrumented_cadence_mode_action(nullptr)
-    , toggle_debug_broadcaster_action(nullptr)
     , quiz_started(false)
     , quiz_paused(false)
     , quiz_finished(false)
     , rasterization_busy(false)
     , score_correct(0)
     , score_total(0)
-    , debug_telemetry_collector(nullptr)
     , mobile_checkpoint_restored(false)
     , mobile_lifecycle_paused(false)
     , last_mobile_checkpoint_elapsed_ms(0) {
@@ -275,7 +267,6 @@ void main_window::setup_ui() {
     table_widget = new table(central_widget);
 
     setup_game_actions();
-    setup_debug_monitoring();
 
     main_layout->addWidget(table_widget, 1);
 
@@ -541,7 +532,6 @@ void main_window::open_setup_dialog() {
 }
 
 void main_window::on_setup_dialog_rejected() {
-    add_debug_marker(QStringLiteral("new_game_dialog_closed"));
     if (start_pause_action != nullptr && !quiz_started) {
         start_pause_action->setEnabled(true);
     }
@@ -592,13 +582,11 @@ void main_window::on_continue_button_clicked() {
 }
 
 void main_window::on_new_game_triggered() {
-    add_debug_marker(QStringLiteral("new_game_triggered"));
     if (quiz_started) {
         on_finish_triggered();
         return;
     }
     if (setup_dialog != nullptr) {
-        add_debug_marker(QStringLiteral("new_game_dialog_opened"));
 #if defined(Q_OS_ANDROID)
         setup_dialog->setWindowState(Qt::WindowMaximized);
 #endif
@@ -609,7 +597,6 @@ void main_window::on_new_game_triggered() {
 }
 
 void main_window::on_start_pause_triggered() {
-    add_debug_marker(QStringLiteral("start_pause_triggered"));
     if (table_widget == nullptr) {
         return;
     }
@@ -739,7 +726,6 @@ void main_window::start_quiz_from_ui() {
 }
 
 void main_window::on_settings_triggered() {
-    add_debug_marker(QStringLiteral("settings_opened"));
     pause_for_dialog();
 
     if (settings_dialog != nullptr) {
@@ -856,7 +842,6 @@ void main_window::on_settings_commit_requested() {
 void main_window::on_settings_dialog_finished(int result) {
     Q_UNUSED(result);
 
-    add_debug_marker(QStringLiteral("settings_closed"));
     settings_dialog = nullptr;
     appearance_settings_widget = nullptr;
 }
@@ -892,21 +877,16 @@ void main_window::update_status_text() {
         time_label = clock_timer->time_string_mm_ss();
     }
 
-    const QString debug_mode_suffix = debug_status_suffix();
-
     if (!quiz_started && !quiz_finished) {
-        status_label->setText(
-            str_label("Status: %1%2").arg(status_value, debug_mode_suffix)
-        );
+        status_label->setText(str_label("Status: %1").arg(status_value));
         return;
     }
 
-    status_label->setText(str_label("Status: %1  Score: %2/%3  Time: %4%5")
+    status_label->setText(str_label("Status: %1  Score: %2/%3  Time: %4")
                               .arg(status_value)
                               .arg(score_correct)
                               .arg(score_total)
-                              .arg(time_label)
-                              .arg(debug_mode_suffix));
+                              .arg(time_label));
 }
 
 void main_window::pause_for_dialog() {

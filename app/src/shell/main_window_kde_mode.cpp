@@ -225,38 +225,6 @@ void main_window::finalize_platform_shell() {
         settings_menu->addAction(configure_shortcuts_action);
     }
 
-    if (export_debug_snapshot_action != nullptr
-        || export_process_memory_report_action != nullptr
-        || add_monitor_marker_action != nullptr
-        || toggle_debug_broadcaster_action != nullptr
-        || realistic_cadence_mode_action != nullptr
-        || instrumented_cadence_mode_action != nullptr) {
-        debug_menu = window_menu_bar->addMenu(str_label("&Debug"));
-        if (export_debug_snapshot_action != nullptr) {
-            debug_menu->addAction(export_debug_snapshot_action);
-        }
-        if (export_process_memory_report_action != nullptr) {
-            debug_menu->addAction(export_process_memory_report_action);
-        }
-        if (add_monitor_marker_action != nullptr) {
-            debug_menu->addAction(add_monitor_marker_action);
-        }
-        if (toggle_debug_broadcaster_action != nullptr) {
-            debug_menu->addSeparator();
-            debug_menu->addAction(toggle_debug_broadcaster_action);
-        }
-        if (realistic_cadence_mode_action != nullptr
-            || instrumented_cadence_mode_action != nullptr) {
-            debug_menu->addSeparator();
-        }
-        if (realistic_cadence_mode_action != nullptr) {
-            debug_menu->addAction(realistic_cadence_mode_action);
-        }
-        if (instrumented_cadence_mode_action != nullptr) {
-            debug_menu->addAction(instrumented_cadence_mode_action);
-        }
-    }
-
     auto* help_menu = new KHelpMenu(this);
     help_menu->setShowWhatsThis(true);
     window_menu_bar->addMenu(help_menu->menu());

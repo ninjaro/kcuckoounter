@@ -84,7 +84,6 @@ private:
     );
     std::optional<QImage> request_theme_preview_face_image(
         int card_index, int suit_index, const QSize& size,
-        raster_cache::debug_consumer_scope consumer,
         QSet<raster_cache::entry_key>& tracked_keys
     );
     void enqueue_theme_preview_render(const raster_cache::entry_key& key);
@@ -99,11 +98,9 @@ private:
     void mark_preview_refresh_pending(bool theme_preview, bool weights_preview);
     static void note_displayed_theme_preview_entry(
         const raster_cache::entry_key& key,
-        raster_cache::debug_consumer_scope consumer,
         QSet<raster_cache::entry_key>& tracked_keys
     );
     static void clear_displayed_theme_preview_entries(
-        raster_cache::debug_consumer_scope consumer,
         QSet<raster_cache::entry_key>& tracked_keys
     );
     void ensure_theme_preview_generation(

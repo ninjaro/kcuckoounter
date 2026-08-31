@@ -136,10 +136,6 @@ void image_cacher::rasterize(bool force) {
                 required_short_px, displayed_entry_key->target_bucket_px
             );
         if (!decision.rasterization_required) {
-            cache_service().note_entry_displayed(
-                *displayed_entry_key,
-                raster_cache::debug_consumer_scope::image_cacher
-            );
             return;
         }
     }
@@ -151,11 +147,7 @@ void image_cacher::rasterize(bool force) {
         .kind = raster_cache::resource_kind::single_svg,
         .source_id = source_path,
         .render_scope = QStringLiteral("full"),
-        .need_short_px = std::min(target_size.width(), target_size.height()),
         .target_bucket_px = bucket,
-        .high_priority = false,
-        .interactive = true,
-        .preview = name_space == raster_cache::cache_namespace::settings,
     };
     raster_cache& service = cache_service();
     const std::optional<raster_cache::entry_key> previous_entry
@@ -168,9 +160,6 @@ void image_cacher::rasterize(bool force) {
 
     if (outcome.ready_result.has_value()
         && !outcome.ready_result->single_image.isNull()) {
-        service.note_entry_displayed(
-            outcome.key, raster_cache::debug_consumer_scope::image_cacher
-        );
         displayed_entry_key = outcome.key;
         cached_pixmap = QPixmap::fromImage(outcome.ready_result->single_image);
         if (previous_entry.has_value() && *previous_entry != outcome.key) {
@@ -198,9 +187,6 @@ void image_cacher::rasterize(bool force) {
         .face_images = {},
     };
     service.insert_or_update_result(ready);
-    service.note_entry_displayed(
-        outcome.key, raster_cache::debug_consumer_scope::image_cacher
-    );
     displayed_entry_key = outcome.key;
 
     const raster_cache::family_key family {
@@ -225,8 +211,5 @@ void image_cacher::clear_display_tracking() {
         return;
     }
 
-    cache_service().note_entry_no_longer_displayed(
-        *displayed_entry_key, raster_cache::debug_consumer_scope::image_cacher
-    );
     displayed_entry_key.reset();
 }

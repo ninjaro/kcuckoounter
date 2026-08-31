@@ -6,7 +6,6 @@
 #include "arch/widget_helpers.hpp"
 #include "image/raster_cache.hpp"
 #include "image/rasterization_runner.hpp"
-#include "debug/geometry_observation.hpp"
 #include "settings/session_checkpoint.hpp"
 #include <QFutureWatcher>
 #include <QImage>
@@ -45,7 +44,6 @@ public:
     bool is_rasterization_busy() const;
     raster_cache* shared_raster_cache_service();
     const raster_cache* shared_raster_cache_service() const;
-    geometry_debug_snapshot current_geometry_debug_snapshot() const;
     [[nodiscard]] table_session_state capture_session_state() const;
     bool restore_session_state(const table_session_state& state);
 
@@ -57,11 +55,6 @@ signals:
     void game_over();
     void dialog_opened();
     void score_adjusted(int correct_delta, int total_delta);
-    void
-    debug_geometry_snapshot_updated(const geometry_debug_snapshot& snapshot);
-    void debug_resize_transition_recorded(
-        const resize_transition_debug_event& event
-    );
 
 protected:
     bool event(QEvent* event) override;
@@ -80,16 +73,6 @@ private slots:
 
 private:
     enum class dealing_mode { sequential, random, simultaneous };
-    enum class cache_update_trigger {
-        runtime,
-        slot_count_change,
-        window_resize,
-        screen_change,
-        game_start,
-        quiz_state_change,
-        theme_change,
-        raster_completion,
-    };
 
     std::vector<table_slot*> slot_widgets;
     table_slot* swap_source_slot;
@@ -107,16 +90,11 @@ private:
     random_generator random_gen;
     std::unique_ptr<time_interface> preload_timer;
     rasterization_runner main_faces_runner;
-    rasterization_runner::decision_kind last_cache_decision;
-    cache_update_trigger last_cache_trigger;
-    int last_requested_target_bucket_px;
     raster_cache raster_cache_service;
     QFutureWatcher<QVector<QImage>> shared_faces_watcher;
     std::optional<raster_cache::entry_key> active_shared_faces_key;
     std::optional<raster_cache::entry_key> displayed_shared_faces_key;
     std::optional<raster_cache::entry_key> warming_shared_faces_key;
-    raster_cache::result::debug_fallback_usage
-        active_shared_faces_fallback_usage;
     bool shared_faces_refresh_queued;
     QString active_card_sheet_source_id;
     int active_shared_bucket_px;
@@ -128,18 +106,7 @@ private:
     QSet<raster_cache::entry_key> retained_shared_faces_keys;
     int rasterization_delay_ms() const;
     int max_card_need_short_px() const;
-    void update_shared_card_face_need(
-        bool immediate = false,
-        cache_update_trigger trigger = cache_update_trigger::runtime,
-        bool force = false
-    );
-    void record_cache_evaluation(
-        const rasterization_runner::evaluation& evaluation,
-        cache_update_trigger trigger
-    );
-    static QString
-    cache_decision_label(rasterization_runner::decision_kind decision);
-    static QString cache_trigger_label(cache_update_trigger trigger);
+    void update_shared_card_face_need(bool immediate = false, bool force = false);
     void clear_shared_card_faces();
     static QString generation_render_scope(qint64 generation_id);
     static qint64 generation_id_from_render_scope(const QString& render_scope);
@@ -159,10 +126,6 @@ private:
     void on_pick_timeout();
     void update_rasterization_state(table_slot* slot, bool busy);
     void refresh_rasterization_busy_state();
-    geometry_debug_snapshot build_geometry_debug_snapshot(
-        const raster_cache::debug_snapshot& cache_snapshot
-    ) const;
-    void emit_geometry_debug_snapshot();
     void clear_swap_selection();
     void clear_copy_selection();
     void update_copy_button_labels(table_slot* selected_slot = nullptr);
