@@ -395,6 +395,10 @@ void table::apply_theme() {
             slot_widget->apply_theme();
         }
     }
+    // The shared packer samples the active SVG ratio for every layout. A theme
+    // may change that ratio, so geometry must be refreshed before calculating
+    // the next raster-cache demand.
+    update_layout();
 
     if (source_changed) {
         update_shared_card_face_need(true, true);
