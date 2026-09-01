@@ -69,6 +69,43 @@ std::optional<theme_palette_id> palette_from_key(const QString& value) {
     return std::nullopt;
 }
 
+bool valid_card_orientation(card_orientation_mode value) noexcept {
+    switch (value) {
+    case card_orientation_mode::automatic:
+    case card_orientation_mode::vertical:
+    case card_orientation_mode::horizontal:
+        return true;
+    }
+    return false;
+}
+
+QString card_orientation_key(card_orientation_mode value) {
+    switch (value) {
+    case card_orientation_mode::automatic:
+        return QStringLiteral("automatic");
+    case card_orientation_mode::vertical:
+        return QStringLiteral("vertical");
+    case card_orientation_mode::horizontal:
+        return QStringLiteral("horizontal");
+    }
+    return QStringLiteral("automatic");
+}
+
+std::optional<card_orientation_mode>
+card_orientation_from_key(const QString& value) {
+    const QString key = value.trimmed().toLower();
+    if (key == QStringLiteral("automatic")) {
+        return card_orientation_mode::automatic;
+    }
+    if (key == QStringLiteral("vertical")) {
+        return card_orientation_mode::vertical;
+    }
+    if (key == QStringLiteral("horizontal")) {
+        return card_orientation_mode::horizontal;
+    }
+    return std::nullopt;
+}
+
 void canonicalize_strategy(
     trainer_preferences* preferences, const strategy_catalog& catalog
 ) {
@@ -122,6 +159,9 @@ trainer_preferences validated_preferences(
             > trainer_preferences::maximum_pickup_interval_ms) {
         preferences.pickup_interval_ms = fallback.pickup_interval_ms;
     }
+    if (!valid_card_orientation(preferences.card_orientation)) {
+        preferences.card_orientation = fallback.card_orientation;
+    }
     canonicalize_strategy(&preferences, catalog);
     return preferences;
 }
@@ -173,6 +213,12 @@ read_current_preferences(QSettings& settings, const strategy_catalog& catalog) {
               settings.value(QStringLiteral("appearance/palette")).toString()
         )
               .value_or(fallback.palette);
+    result.card_orientation
+        = card_orientation_from_key(
+              settings.value(QStringLiteral("appearance/card_orientation"))
+                  .toString()
+        )
+              .value_or(fallback.card_orientation);
     result.preferred_strategy_slug
         = settings.value(QStringLiteral("strategy/slug")).toString().trimmed();
     result.preferred_strategy_id = bounded_integer<int>(
@@ -235,6 +281,10 @@ void preferences_service::save(
     );
     settings.setValue(
         QStringLiteral("appearance/palette"), palette_key(value.palette)
+    );
+    settings.setValue(
+        QStringLiteral("appearance/card_orientation"),
+        card_orientation_key(value.card_orientation)
     );
     settings.setValue(
         QStringLiteral("strategy/slug"), value.preferred_strategy_slug

@@ -1,7 +1,7 @@
 #include "table/table.hpp"
 #include "arch/str_label.hpp"
-#include "card_helpers/card_packer.hpp"
 #include "card_helpers/card_sheet.hpp"
+#include "packing/layout/equal_rectangles.hpp"
 #include "settings/theme_settings.hpp"
 #include "table/table_slot.hpp"
 
@@ -21,6 +21,23 @@
 #include <algorithm>
 #include <limits>
 #include <memory>
+
+namespace {
+
+packing::orientation_constraint
+packing_orientation(card_orientation_mode orientation) noexcept {
+    switch (orientation) {
+    case card_orientation_mode::automatic:
+        return packing::orientation_constraint::allow_rotation;
+    case card_orientation_mode::vertical:
+        return packing::orientation_constraint::vertical_only;
+    case card_orientation_mode::horizontal:
+        return packing::orientation_constraint::horizontal_only;
+    }
+    return packing::orientation_constraint::allow_rotation;
+}
+
+} // namespace
 
 static QVector<QImage>
 rasterize_all_card_faces(const QString& source_path, int bucket_px) {
@@ -48,6 +65,7 @@ table::table(BaseWidget* parent)
     , slot_widgets()
     , swap_source_slot(nullptr)
     , copy_source_slot(nullptr)
+    , card_orientation(card_orientation_mode::automatic)
     , pick_interval_ms(300)
     , pick_elapsed_ms(0)
     , quiz_running(false)
@@ -156,12 +174,6 @@ void table::set_slot_count(int count) {
         next_slot_index = 0;
     }
 
-    if (count > 0) {
-        card_packer_instance = std::make_unique<card_packer>(count);
-    } else {
-        card_packer_instance.reset();
-    }
-
     update_layout();
     schedule_card_preload();
     update_shared_card_face_need();
@@ -243,6 +255,17 @@ void table::set_allow_skipping(bool allow) {
             slot_widget->set_allow_skipping(allow_skipping);
         }
     }
+}
+
+void table::set_card_orientation(card_orientation_mode orientation) {
+    if (card_orientation == orientation) {
+        return;
+    }
+
+    card_orientation = orientation;
+    update_layout();
+    schedule_card_preload();
+    update_shared_card_face_need();
 }
 
 table_session_state table::capture_session_state() const {
@@ -882,10 +905,6 @@ void table::apply_shared_faces_entry(const raster_cache::entry_key& key) {
 }
 
 void table::update_layout() {
-    if (!card_packer_instance) {
-        return;
-    }
-
     const size_t slot_count = slot_widgets.size();
     if (slot_count == 0) {
         return;
@@ -897,26 +916,28 @@ void table::update_layout() {
         return;
     }
 
-    auto [scale, cards] = card_packer_instance->pack(field_width, field_height);
+    const auto [card_long_side, card_short_side] = card_sheet_ratio();
+    const packing::equal_packing_result result = packing::pack_equal_rectangles(
+        {
+            .container = { static_cast<double>(field_width),
+                           static_cast<double>(field_height) },
+            .item = { static_cast<double>(card_long_side),
+                      static_cast<double>(card_short_side) },
+            .count = slot_count,
+            .orientation = packing_orientation(card_orientation),
+        }
+    );
 
-    const auto [base_card_height, base_card_width] = card_sheet_ratio();
-
-    const int horizontal_width = static_cast<int>(base_card_height * scale);
-    const int horizontal_height = static_cast<int>(base_card_width * scale);
-
-    const size_t mapped_count = std::min(slot_count, cards.size());
+    const size_t mapped_count = std::min(slot_count, result.rectangles.size());
 
     for (size_t i = 0; i < mapped_count; ++i) {
-        const placed_card& card = cards[i];
-
-        int card_width = card.rotated ? horizontal_height : horizontal_width;
-        int card_height = card.rotated ? horizontal_width : horizontal_height;
+        const packing::rectangle& card = result.rectangles[i];
 
         table_slot* slot = slot_widgets[i];
         slot->set_rotated(card.rotated);
         slot->setGeometry(
-            static_cast<int>(card.x), static_cast<int>(card.y), card_width,
-            card_height
+            static_cast<int>(card.x), static_cast<int>(card.y),
+            static_cast<int>(card.width), static_cast<int>(card.height)
         );
         slot->show();
     }

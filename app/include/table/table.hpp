@@ -6,6 +6,7 @@
 #include "arch/widget_helpers.hpp"
 #include "image/raster_cache.hpp"
 #include "image/rasterization_runner.hpp"
+#include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
 #include <QFutureWatcher>
 #include <QImage>
@@ -22,7 +23,6 @@ class QGridLayout;
 class QPaintEvent;
 class QResizeEvent;
 class table_slot;
-class card_packer;
 
 class table : public BaseWidget {
     Q_OBJECT
@@ -38,6 +38,7 @@ public:
     void set_pick_interval(int interval_ms);
     void set_dealing_mode(int mode_index);
     void set_allow_skipping(bool allow);
+    void set_card_orientation(card_orientation_mode orientation);
     void schedule_card_preload();
     void prepare_cards_for_start();
     void apply_theme();
@@ -77,7 +78,7 @@ private:
     std::vector<table_slot*> slot_widgets;
     table_slot* swap_source_slot;
     table_slot* copy_source_slot;
-    std::unique_ptr<card_packer> card_packer_instance;
+    card_orientation_mode card_orientation;
     int pick_interval_ms;
     qint64 pick_elapsed_ms;
     bool quiz_running;
@@ -106,7 +107,8 @@ private:
     QSet<raster_cache::entry_key> retained_shared_faces_keys;
     int rasterization_delay_ms() const;
     int max_card_need_short_px() const;
-    void update_shared_card_face_need(bool immediate = false, bool force = false);
+    void
+    update_shared_card_face_need(bool immediate = false, bool force = false);
     void clear_shared_card_faces();
     static QString generation_render_scope(qint64 generation_id);
     static qint64 generation_id_from_render_scope(const QString& render_scope);

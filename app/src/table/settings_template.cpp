@@ -49,6 +49,29 @@ int theme_index_from_color(const QColor& color) {
 
 QStringList theme_labels() { return theme_palette_registry::labels(); }
 
+int orientation_index(card_orientation_mode orientation) noexcept {
+    switch (orientation) {
+    case card_orientation_mode::automatic:
+        return 0;
+    case card_orientation_mode::vertical:
+        return 1;
+    case card_orientation_mode::horizontal:
+        return 2;
+    }
+    return 0;
+}
+
+card_orientation_mode orientation_from_index(int index) noexcept {
+    switch (index) {
+    case 1:
+        return card_orientation_mode::vertical;
+    case 2:
+        return card_orientation_mode::horizontal;
+    default:
+        return card_orientation_mode::automatic;
+    }
+}
+
 QIcon palette_swatch_icon(const QColor& color) {
     constexpr int swatch_size = 14;
     QPixmap swatch(swatch_size, swatch_size);
@@ -644,9 +667,20 @@ void settings_template_widget::setup_appearance_ui() {
     }
 
     orientation_combo_box = new BaseComboBox(theme_widget);
+    orientation_combo_box->setObjectName(
+        QStringLiteral("orientation_combo_box")
+    );
     orientation_combo_box->addItems(
         QStringList() << str_label("Automatic") << str_label("Vertical")
-                      << str_label("Horizontal") << str_label("Absolute")
+                      << str_label("Horizontal")
+    );
+    // "Absolute" is intentionally not exposed: its layout semantics remain
+    // deferred until a dedicated fixed-size packing mode is specified.
+    const trainer_preferences preferences = load_trainer_preferences();
+    orientation_combo_box->setCurrentIndex(
+        settings_template_support::orientation_index(
+            preferences.card_orientation
+        )
     );
 
     theme_layout->addRow(str_label("Table color"), theme_combo_box);
@@ -795,8 +829,15 @@ void settings_template_widget::apply_theme_settings() {
     shared_state->set_table_color_index(theme_combo_box->currentIndex());
     trainer_preferences preferences = load_trainer_preferences();
     preferences.palette = theme_palette_registry::id_from_color(base_color);
+    preferences.card_orientation
+        = settings_template_support::orientation_from_index(
+            orientation_combo_box != nullptr
+                ? orientation_combo_box->currentIndex()
+                : 0
+        );
     save_trainer_preferences(preferences);
     if (table_widget != nullptr) {
+        table_widget->set_card_orientation(preferences.card_orientation);
         table_widget->apply_theme();
     }
 }
@@ -807,6 +848,13 @@ void settings_template_widget::reset_theme_selection() {
     }
 
     theme_combo_box->setCurrentIndex(shared_state->table_color_index());
+    if (orientation_combo_box != nullptr) {
+        orientation_combo_box->setCurrentIndex(
+            settings_template_support::orientation_index(
+                load_trainer_preferences().card_orientation
+            )
+        );
+    }
     if (theme_button_group == nullptr) {
         return;
     }
@@ -1256,9 +1304,7 @@ settings_template_widget::request_theme_preview_face_image(
         && !outcome.ready_result->face_images[0].isNull();
     if (request_has_ready_image) {
         if (request_generation_id == active_theme_preview_generation_id) {
-            note_displayed_theme_preview_entry(
-                outcome.key, tracked_keys
-            );
+            note_displayed_theme_preview_entry(outcome.key, tracked_keys);
             return outcome.ready_result->face_images[0];
         }
         if (try_cutover_theme_preview_generation()
@@ -1314,8 +1360,7 @@ QPixmap settings_template_widget::request_theme_preview_card(
     int card_index, int suit_index, const QSize& size
 ) {
     const std::optional<QImage> face = request_theme_preview_face_image(
-        card_index, suit_index, size,
-        displayed_theme_preview_entries
+        card_index, suit_index, size, displayed_theme_preview_entries
     );
     if (!face.has_value()) {
         return {};
@@ -1637,8 +1682,7 @@ QPixmap settings_template_widget::request_weighted_preview_card(
     }
 
     const std::optional<QImage> base_face = request_theme_preview_face_image(
-        card_index, suit_index, size,
-        displayed_weights_preview_entries
+        card_index, suit_index, size, displayed_weights_preview_entries
     );
     if (!base_face.has_value()) {
         return {};

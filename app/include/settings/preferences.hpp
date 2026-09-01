@@ -9,6 +9,8 @@
 class QSettings;
 struct strategy_catalog;
 
+enum class card_orientation_mode { automatic, vertical, horizontal };
+
 struct trainer_preferences {
     static constexpr int minimum_slot_count = 1;
     static constexpr int maximum_slot_count = 16;
@@ -22,6 +24,7 @@ struct trainer_preferences {
     int dealing_mode = 0;
     int pickup_interval_ms = 300;
     theme_palette_id palette = theme_palette_id::green;
+    card_orientation_mode card_orientation = card_orientation_mode::automatic;
     QString preferred_strategy_slug;
     int preferred_strategy_id = 0;
 

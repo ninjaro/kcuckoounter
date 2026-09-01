@@ -265,6 +265,7 @@ void main_window::setup_ui() {
     setup_dialog->setLayout(dialog_layout);
 
     table_widget = new table(central_widget);
+    table_widget->set_card_orientation(preferences.card_orientation);
 
     setup_game_actions();
 
