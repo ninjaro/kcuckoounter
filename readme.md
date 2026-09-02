@@ -1,4 +1,4 @@
-<img src="assets/cuckoo.svg" alt="Logo" width="180" />
+<img src="assets/brand/cuckoo.svg" alt="Logo" width="180" />
 
 
 [![version](https://img.shields.io/github/v/release/ninjaro/kcuckoounter?include_prereleases)](https://github.com/ninjaro/kcuckoounter/releases/latest)
@@ -7,7 +7,7 @@
 [![codecov](https://codecov.io/gh/ninjaro/kcuckoounter/graph/badge.svg?token=MCNEJFWMDU)](https://codecov.io/gh/ninjaro/kcuckoounter)
 [![license](https://img.shields.io/github/license/ninjaro/kcuckoounter?color=e6e6e6)](https://github.com/ninjaro/kcuckoounter/blob/master/license)
 
-<img align="right" height="320" src="screenshots/Screenshot_setup.png" alt="Game setup"> i don't remember the first
+<img align="right" height="320" src="assets/showcase/Screenshot_setup.png" alt="Game setup"> i don't remember the first
 table right, maybe not even cards, maybe roulette, that checkered nervous thing with little squares all fussing and
 scattering and coming back for coins and chips while the ball keeps its small hard cycle, round and round, and outside
 maybe day was moving on but in there it was another kind of turn, another return, and i was inside under the casino
@@ -17,7 +17,7 @@ sharp blinding light, and i still can't remember the table color, blue maybe, gr
 cloth, while rare sailboat clouds held their stubborn levitating place and slowly cut through against the wind i wanted
 so much, and me trying to blow all the chips off the cloth like dandelion seeds i was somehow obliged to scatter, not
 because i wanted to multiply my chips or the weeds, no, just because i hated their pale dry fadedness, that old withered
-look, <img align="left" height="320" src="screenshots/Screenshot_process.png" alt="Game process"> same as the dandelion
+look, <img align="left" height="320" src="assets/showcase/Screenshot_process.png" alt="Game process"> same as the dandelion
 outside that for some reason got a fountain-monument, absurd little couture for a weed, and no smell from it, no smell
 from the chips, nothing there for me except the urge to break the arrangement, to knock it loose, and since my mother
 stopped working in the casino i think i never really met that table again, not that one, only television copies and card
@@ -28,7 +28,7 @@ books on carpets, knees in carpets, face in seams, rubbing against them, working
 for a place of power, that first serious search, while don Juan laughed and everybody laughed because there was always
 somebody around, always there before you, They're out there. Black Kings and Red Queens in suits - up before me, to be
 committed to the repository and get mopped up before you can
-<img align="right" width="320" src="screenshots/Screenshot_strategy.png" alt="Strategy information"> memorize them. and
+<img align="right" width="320" src="assets/showcase/Screenshot_strategy.png" alt="Strategy information"> memorize them. and
 i tried, i really tried, not faces, not people, the table, the spread, the way the cards break and go and refuse to
 stay, but they all fly off anyway, ...one flew east, one flew west, one flew over the multiple decks. all good things
 end, yes, rooms close, lights change, you keep going, Just play poker in Indian Casinos and stay single and live where
@@ -38,7 +38,7 @@ cuts and hurts and must be thrown away, because some shards cut and some shards 
 yourself and go back for one second to the sky carrying the river's blue, to the warm cloth, to the cards scattering
 from you in all directions, and in that second the heart stops trying to leap out and just does its work, honest, and
 maybe that is my work too, just gather the cards and lay them out, even if i cannot
-<img align="left" width="320" height="320" src="screenshots/Screenshot_cardtheme.png" alt="Choosing a card-theme"> fully
+<img align="left" width="320" height="320" src="assets/showcase/Screenshot_cardtheme.png" alt="Choosing a card-theme"> fully
 hand over that table from memory, because who said the table is one thing for everyone, table is a screen, a curtain
 while you wait for the next card, table is a jazz group, each one in slot and place and rhythm, and nobody has to live
 by one pattern only, here a card opens long across the cloth like a trombone slide, there one lands exact as a
