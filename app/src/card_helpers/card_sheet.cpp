@@ -5,6 +5,7 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QHash>
 #include <QImage>
 #include <QPainter>
 #include <QRect>
@@ -463,6 +464,7 @@ enum class resolved_source_kind {
 struct resolved_required_element {
     QString render_element_id;
     resolved_source_kind source_kind = resolved_source_kind::placeholder;
+    QRectF element_bounds;
 };
 
 static QString& active_card_sheet_source() {
@@ -521,131 +523,176 @@ cached_card_sheet_for_source(const QString& source_path) {
     return state.cache;
 }
 
-static QVector<resolved_required_element> resolve_required_elements(
-    const QString& preferred_source_path,
-    card_sheet_fallback_resolution* resolution
-) {
-    const QString active_source = preferred_source_path.isEmpty()
-        ? default_card_sheet_source_path()
-        : preferred_source_path;
-    const QString fallback_source = default_card_sheet_source_path();
+class card_sheet_render_context::implementation {
+public:
+    explicit implementation(
+        const QString& preferred_source_path,
+        const QString& fallback_source_path
+    )
+        : active_source(
+              preferred_source_path.isEmpty() ? fallback_source_path
+                                              : preferred_source_path
+          )
+        , fallback_source(fallback_source_path)
+        , active_renderer(active_source)
+        , active_base_bounds(base_bounds(active_renderer)) { }
 
-    QSvgRenderer active_renderer(active_source);
-    QSvgRenderer fallback_renderer;
-    const bool fallback_enabled = active_source != fallback_source;
-    if (fallback_enabled) {
-        fallback_renderer.load(fallback_source);
+    static QRectF base_bounds(const QSvgRenderer& renderer) {
+        const QString id
+            = resolve_element_id_for_renderer(renderer, str_label("base"));
+        return id.isEmpty() ? QRectF() : renderer.boundsOnElement(id);
     }
 
-    card_sheet_fallback_resolution local_resolution;
-    QVector<resolved_required_element> resolved_elements;
-    const QStringList required_ids = required_card_ids_with_back();
-    resolved_elements.reserve(required_ids.size());
-    for (const QString& element_id : required_ids) {
-        resolved_required_element resolved {
-            .render_element_id = {},
-            .source_kind = resolved_source_kind::placeholder,
-        };
+    resolved_required_element resolve(const QString& logical_id) {
+        const auto cached = resolved_elements.constFind(logical_id);
+        if (cached != resolved_elements.cend()) {
+            return cached.value();
+        }
 
-        const QString active_render_id
-            = resolve_element_id_for_renderer(active_renderer, element_id);
-        if (!active_render_id.isEmpty()) {
-            resolved.render_element_id = active_render_id;
+        resolved_required_element resolved;
+        resolved.render_element_id
+            = resolve_element_id_for_renderer(active_renderer, logical_id);
+        if (!resolved.render_element_id.isEmpty()) {
             resolved.source_kind = resolved_source_kind::active_theme;
-            local_resolution.active_theme_keys += 1;
-        } else if (fallback_enabled) {
-            const QString fallback_render_id = resolve_element_id_for_renderer(
-                fallback_renderer, element_id
-            );
-            if (fallback_render_id.isEmpty()) {
-                local_resolution.placeholder_keys += 1;
-            } else {
-                resolved.render_element_id = fallback_render_id;
-                resolved.source_kind = resolved_source_kind::default_theme;
-                local_resolution.default_theme_keys += 1;
+            resolved.element_bounds
+                = active_renderer.boundsOnElement(resolved.render_element_id);
+        } else if (active_source != fallback_source) {
+            // Parsing the fallback is unnecessary for complete themes and for
+            // single-face previews whose element exists in the active source.
+            if (!fallback_renderer) {
+                fallback_renderer
+                    = std::make_unique<QSvgRenderer>(fallback_source);
+                fallback_base_bounds = base_bounds(*fallback_renderer);
             }
-        } else {
-            local_resolution.placeholder_keys += 1;
+            resolved.render_element_id = resolve_element_id_for_renderer(
+                *fallback_renderer, logical_id
+            );
+            if (!resolved.render_element_id.isEmpty()) {
+                resolved.source_kind = resolved_source_kind::default_theme;
+                resolved.element_bounds = fallback_renderer->boundsOnElement(
+                    resolved.render_element_id
+                );
+            }
+        }
+        resolved_elements.insert(logical_id, resolved);
+        return resolved;
+    }
+
+    static void count_source(
+        const resolved_required_element& resolved,
+        card_sheet_fallback_resolution& resolution
+    ) {
+        switch (resolved.source_kind) {
+        case resolved_source_kind::active_theme:
+            ++resolution.active_theme_keys;
+            break;
+        case resolved_source_kind::default_theme:
+            ++resolution.default_theme_keys;
+            break;
+        case resolved_source_kind::placeholder:
+            ++resolution.placeholder_keys;
+            break;
+        }
+    }
+
+    QImage
+    render(const resolved_required_element& resolved, const QSize& size) {
+        QSvgRenderer* renderer = nullptr;
+        QRectF base;
+        if (resolved.source_kind == resolved_source_kind::active_theme) {
+            renderer = &active_renderer;
+            base = active_base_bounds;
+        } else if (
+            resolved.source_kind == resolved_source_kind::default_theme
+        ) {
+            renderer = fallback_renderer.get();
+            base = fallback_base_bounds;
+        }
+        if (renderer == nullptr) {
+            return {};
         }
 
-        resolved_elements.push_back(resolved);
+        QImage image(size, QImage::Format_ARGB32_Premultiplied);
+        image.fill(Qt::transparent);
+        QPainter painter(&image);
+        renderer->render(
+            &painter, resolved.render_element_id,
+            QRectF(QPointF(0.0, 0.0), QSizeF(size))
+        );
+        painter.end();
+        return normalize_card_to_base_frame(
+            image, resolved.element_bounds, base
+        );
     }
 
-    if (resolution != nullptr) {
-        *resolution = local_resolution;
-    }
-    return resolved_elements;
-}
+    QString active_source;
+    QString fallback_source;
+    QSvgRenderer active_renderer;
+    QRectF active_base_bounds;
+    std::unique_ptr<QSvgRenderer> fallback_renderer;
+    QRectF fallback_base_bounds;
+    QHash<QString, resolved_required_element> resolved_elements;
+};
 
-static resolved_required_element resolve_single_required_element(
-    const QString& preferred_source_path, const QString& logical_element_id,
-    QSvgRenderer& active_renderer, QSvgRenderer& fallback_renderer,
+card_sheet_render_context::card_sheet_render_context(
+    const QString& preferred_source_path, const QString& fallback_source_path
+)
+    : implementation_(
+          std::make_unique<implementation>(
+              preferred_source_path, fallback_source_path
+          )
+      ) { }
+
+card_sheet_render_context::~card_sheet_render_context() = default;
+
+QImage card_sheet_render_context::rasterize_face(
+    const QString& logical_element_id, const QSize& raster_size,
     card_sheet_fallback_resolution* resolution
 ) {
-    const QString active_source = preferred_source_path.isEmpty()
-        ? default_card_sheet_source_path()
-        : preferred_source_path;
-    const QString fallback_source = default_card_sheet_source_path();
-    const bool fallback_enabled = active_source != fallback_source;
-
-    card_sheet_fallback_resolution local_resolution;
-    resolved_required_element resolved {
-        .render_element_id = {},
-        .source_kind = resolved_source_kind::placeholder,
-    };
-
-    const QString active_render_id
-        = resolve_element_id_for_renderer(active_renderer, logical_element_id);
-    if (!active_render_id.isEmpty()) {
-        resolved.render_element_id = active_render_id;
-        resolved.source_kind = resolved_source_kind::active_theme;
-        local_resolution.active_theme_keys = 1;
-    } else if (fallback_enabled) {
-        const QString fallback_render_id = resolve_element_id_for_renderer(
-            fallback_renderer, logical_element_id
-        );
-        if (!fallback_render_id.isEmpty()) {
-            resolved.render_element_id = fallback_render_id;
-            resolved.source_kind = resolved_source_kind::default_theme;
-            local_resolution.default_theme_keys = 1;
-        } else {
-            local_resolution.placeholder_keys = 1;
-        }
-    } else {
-        local_resolution.placeholder_keys = 1;
-    }
-
     if (resolution != nullptr) {
-        *resolution = local_resolution;
+        *resolution = {};
     }
-    return resolved;
-}
-
-static QImage render_resolved_card_face(
-    QSvgRenderer& renderer, const QString& render_element_id,
-    const QSize& raster_size
-) {
-    if (raster_size.isEmpty() || render_element_id.isEmpty()
-        || !renderer.isValid() || !renderer.elementExists(render_element_id)) {
+    if (logical_element_id.isEmpty() || raster_size.isEmpty()) {
         return {};
     }
+    const auto resolved = implementation_->resolve(logical_element_id);
+    if (resolution != nullptr) {
+        implementation::count_source(resolved, *resolution);
+    }
+    return implementation_->render(resolved, raster_size);
+}
 
-    const QString base_id
-        = resolve_element_id_for_renderer(renderer, str_label("base"));
-    const QRectF element_bounds = renderer.boundsOnElement(render_element_id);
-    const QRectF base_bounds
-        = base_id.isEmpty() ? QRectF() : renderer.boundsOnElement(base_id);
+card_sheet_fallback_resolution
+card_sheet_render_context::resolve_required_sources() {
+    card_sheet_fallback_resolution resolution;
+    for (const QString& id : required_card_ids_with_back()) {
+        implementation::count_source(implementation_->resolve(id), resolution);
+    }
+    return resolution;
+}
 
-    QImage image(raster_size, QImage::Format_ARGB32_Premultiplied);
-    image.fill(Qt::transparent);
-    QPainter painter(&image);
-    renderer.render(
-        &painter, render_element_id,
-        QRectF(QPointF(0.0, 0.0), QSizeF(raster_size))
-    );
-    painter.end();
-
-    return normalize_card_to_base_frame(image, element_bounds, base_bounds);
+QVector<QImage> card_sheet_render_context::rasterize_faces(
+    const QSize& raster_size, card_sheet_fallback_resolution* resolution
+) {
+    if (resolution != nullptr) {
+        *resolution = {};
+    }
+    if (raster_size.isEmpty()) {
+        return {};
+    }
+    card_sheet_fallback_resolution local_resolution;
+    const QStringList ids = required_card_ids_with_back();
+    QVector<QImage> images;
+    images.reserve(ids.size());
+    for (const QString& id : ids) {
+        const auto resolved = implementation_->resolve(id);
+        implementation::count_source(resolved, local_resolution);
+        images.push_back(implementation_->render(resolved, raster_size));
+    }
+    if (resolution != nullptr) {
+        *resolution = local_resolution;
+    }
+    return images;
 }
 
 QImage rasterize_card_face_with_fallback(
@@ -654,42 +701,12 @@ QImage rasterize_card_face_with_fallback(
 ) {
     if (logical_element_id.isEmpty() || raster_size.isEmpty()) {
         if (resolution != nullptr) {
-            *resolution = card_sheet_fallback_resolution {};
+            *resolution = {};
         }
         return {};
     }
-
-    const QString active_source = preferred_source_path.isEmpty()
-        ? default_card_sheet_source_path()
-        : preferred_source_path;
-    const QString fallback_source = default_card_sheet_source_path();
-    QSvgRenderer active_renderer(active_source);
-    QSvgRenderer fallback_renderer;
-    const bool fallback_enabled = active_source != fallback_source;
-    if (fallback_enabled) {
-        fallback_renderer.load(fallback_source);
-    }
-
-    const resolved_required_element resolved = resolve_single_required_element(
-        preferred_source_path, logical_element_id, active_renderer,
-        fallback_renderer, resolution
-    );
-    QSvgRenderer* renderer = nullptr;
-    if (resolved.source_kind == resolved_source_kind::active_theme) {
-        renderer = &active_renderer;
-    } else if (
-        resolved.source_kind == resolved_source_kind::default_theme
-        && fallback_enabled
-    ) {
-        renderer = &fallback_renderer;
-    }
-
-    if (renderer == nullptr) {
-        return {};
-    }
-    return render_resolved_card_face(
-        *renderer, resolved.render_element_id, raster_size
-    );
+    card_sheet_render_context context(preferred_source_path);
+    return context.rasterize_face(logical_element_id, raster_size, resolution);
 }
 
 static QStringList build_card_element_ids() {
@@ -783,60 +800,20 @@ QStringList required_card_ids_with_back() {
 
 card_sheet_fallback_resolution
 resolve_required_card_face_sources(const QString& preferred_source_path) {
-    card_sheet_fallback_resolution resolution;
-    resolve_required_elements(preferred_source_path, &resolution);
-    return resolution;
+    card_sheet_render_context context(preferred_source_path);
+    return context.resolve_required_sources();
 }
 
 QVector<QImage> rasterize_card_faces_with_fallback(
     const QString& preferred_source_path, const QSize& raster_size,
     card_sheet_fallback_resolution* resolution
 ) {
-    QVector<QImage> images;
     if (raster_size.isEmpty()) {
-        return images;
-    }
-
-    card_sheet_fallback_resolution local_resolution;
-    const QVector<resolved_required_element> resolved_elements
-        = resolve_required_elements(preferred_source_path, &local_resolution);
-    if (resolution != nullptr) {
-        *resolution = local_resolution;
-    }
-
-    const QString active_source = preferred_source_path.isEmpty()
-        ? default_card_sheet_source_path()
-        : preferred_source_path;
-    const QString fallback_source = default_card_sheet_source_path();
-    QSvgRenderer active_renderer(active_source);
-    QSvgRenderer fallback_renderer;
-    const bool fallback_enabled = active_source != fallback_source;
-    if (fallback_enabled) {
-        fallback_renderer.load(fallback_source);
-    }
-
-    images.reserve(resolved_elements.size());
-    for (const resolved_required_element& resolved : resolved_elements) {
-        QSvgRenderer* renderer = nullptr;
-        if (resolved.source_kind == resolved_source_kind::active_theme
-            && active_renderer.isValid()) {
-            renderer = &active_renderer;
-        } else if (
-            resolved.source_kind == resolved_source_kind::default_theme
-            && fallback_enabled && fallback_renderer.isValid()
-        ) {
-            renderer = &fallback_renderer;
+        if (resolution != nullptr) {
+            *resolution = {};
         }
-
-        if (renderer == nullptr || resolved.render_element_id.isEmpty()) {
-            images.push_back(QImage());
-            continue;
-        }
-
-        images.push_back(render_resolved_card_face(
-            *renderer, resolved.render_element_id, raster_size
-        ));
+        return {};
     }
-
-    return images;
+    card_sheet_render_context context(preferred_source_path);
+    return context.rasterize_faces(raster_size, resolution);
 }

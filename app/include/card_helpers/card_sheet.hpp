@@ -6,6 +6,7 @@
 #include <QString>
 #include <QStringList>
 #include <QVector>
+#include <memory>
 #include <utility>
 
 struct card_theme_option {
@@ -31,6 +32,36 @@ QString card_element_id_from_index(int index);
 const QStringList& card_element_ids();
 QString card_back_element_id();
 QStringList required_card_ids_with_back();
+
+// Own, use and destroy on one thread. A context retains parsed sources and
+// resolved element metadata, but never raster pixels. Current callers keep it
+// local to one job; separate concurrent jobs use independent contexts.
+class card_sheet_render_context final {
+public:
+    explicit card_sheet_render_context(
+        const QString& preferred_source_path,
+        const QString& fallback_source_path = default_card_sheet_source_path()
+    );
+    ~card_sheet_render_context();
+    card_sheet_render_context(const card_sheet_render_context&) = delete;
+    card_sheet_render_context& operator=(const card_sheet_render_context&)
+        = delete;
+
+    QImage rasterize_face(
+        const QString& logical_element_id, const QSize& raster_size,
+        card_sheet_fallback_resolution* resolution = nullptr
+    );
+    QVector<QImage> rasterize_faces(
+        const QSize& raster_size,
+        card_sheet_fallback_resolution* resolution = nullptr
+    );
+    card_sheet_fallback_resolution resolve_required_sources();
+
+private:
+    class implementation;
+    std::unique_ptr<implementation> implementation_;
+};
+
 QImage rasterize_card_face_with_fallback(
     const QString& preferred_source_path, const QString& logical_element_id,
     const QSize& raster_size,
