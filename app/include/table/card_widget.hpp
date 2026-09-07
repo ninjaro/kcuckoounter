@@ -118,9 +118,10 @@ private:
     image_cacher table_marking;
     QString card_sheet_source;
     QSvgRenderer card_sheet_renderer;
-    QVector<QPixmap> card_faces;
+    QPixmap selected_card_face;
+    int selected_card_face_index;
     QSize card_face_size;
-    QVector<QPixmap> card_faces_rasterized;
+    QVector<QImage> card_faces_rasterized;
     QSize card_face_raster_size;
     int picks_since_rasterize;
     card_rasterize_watcher rasterize_watcher;
@@ -136,6 +137,8 @@ private:
     QSize card_face_target_size() const;
     static QSize raster_cache_size(const QSize& target_size);
     void update_card_faces(const QSize& target_size);
+    void invalidate_selected_card_face();
+    const QPixmap& card_face_pixmap(int index);
     void record_discard();
     qreal highlight_strength() const;
     void update_selection_pulse();

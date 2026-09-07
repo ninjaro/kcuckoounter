@@ -101,7 +101,8 @@ card_widget::card_widget(BaseWidget* parent)
     , table_marking(bundled_asset_path(QStringLiteral("cuckoo.svg")))
     , card_sheet_source(card_sheet_source_path())
     , card_sheet_renderer()
-    , card_faces()
+    , selected_card_face()
+    , selected_card_face_index(-1)
     , card_face_size()
     , card_faces_rasterized()
     , card_face_raster_size()
@@ -444,7 +445,7 @@ void card_widget::sync_card_sheet_source() {
 
     card_sheet_source = next_source;
     card_sheet_renderer.load(card_sheet_source);
-    card_faces.clear();
+    invalidate_selected_card_face();
     card_faces_rasterized.clear();
     card_face_raster_size = QSize();
     picks_since_rasterize = 0;
@@ -559,14 +560,12 @@ void card_widget::paintEvent(QPaintEvent* event) {
         const QSize target_size
             = oriented_card_rect.size().toSize().expandedTo(QSize(1, 1));
         update_card_faces(target_size);
-        const bool can_draw_back = back_index >= 0
-            && back_index < card_faces.size()
-            && !card_faces[back_index].isNull();
+        const QPixmap& back = card_face_pixmap(back_index);
 
-        if (can_draw_back) {
+        if (!back.isNull()) {
             draw_card_pixmap(
                 painter, oriented_card_rect, slot_rotation_deg,
-                card_rotation_deg, card_offset, card_faces[back_index]
+                card_rotation_deg, card_offset, back
             );
         } else {
             draw_card_center_text(
@@ -601,14 +600,12 @@ void card_widget::paintEvent(QPaintEvent* event) {
     const QSize target_size
         = oriented_card_rect.size().toSize().expandedTo(QSize(1, 1));
     update_card_faces(target_size);
-    const bool can_draw_face = mapped_card_index >= 0
-        && mapped_card_index < card_faces.size()
-        && !card_faces[mapped_card_index].isNull();
+    const QPixmap& face = card_face_pixmap(mapped_card_index);
 
-    if (can_draw_face) {
+    if (!face.isNull()) {
         draw_card_pixmap(
             painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-            card_offset, card_faces[mapped_card_index]
+            card_offset, face
         );
     } else if (!text.isEmpty()) {
         draw_card_text(
@@ -722,7 +719,7 @@ QSize card_widget::raster_cache_size(const QSize& target_size) {
 
 void card_widget::update_card_faces(const QSize& target_size) {
     if (target_size.isEmpty()) {
-        card_faces.clear();
+        invalidate_selected_card_face();
         card_face_size = QSize();
         card_faces_rasterized.clear();
         card_face_raster_size = QSize();
@@ -736,7 +733,7 @@ void card_widget::update_card_faces(const QSize& target_size) {
     }
 
     if (!card_sheet_renderer.isValid()) {
-        card_faces.clear();
+        invalidate_selected_card_face();
         card_face_size = QSize();
         card_faces_rasterized.clear();
         card_face_raster_size = QSize();
@@ -769,20 +766,36 @@ void card_widget::update_card_faces(const QSize& target_size) {
         return;
     }
 
-    if (!card_faces_rasterized.isEmpty()) {
-        card_faces.clear();
-        card_faces.reserve(card_faces_rasterized.size());
-        for (const QPixmap& pixmap : card_faces_rasterized) {
-            if (pixmap.isNull()) {
-                card_faces.push_back(QPixmap());
-                continue;
-            }
-            card_faces.push_back(pixmap.scaled(
-                target_size, Qt::IgnoreAspectRatio, Qt::FastTransformation
-            ));
-        }
+    if (size_changed) {
+        invalidate_selected_card_face();
     }
     card_face_size = target_size;
+}
+
+void card_widget::invalidate_selected_card_face() {
+    selected_card_face = QPixmap();
+    selected_card_face_index = -1;
+}
+
+const QPixmap& card_widget::card_face_pixmap(int index) {
+    if (index < 0 || index >= card_faces_rasterized.size()
+        || card_face_size.isEmpty()) {
+        invalidate_selected_card_face();
+        return selected_card_face;
+    }
+    if (selected_card_face_index != index) {
+        // Widgets share immutable raster handles. Only the face being painted
+        // needs a platform pixmap at this widget's current display size.
+        selected_card_face
+            = QPixmap::fromImage(card_faces_rasterized.at(index));
+        if (!selected_card_face.isNull()) {
+            selected_card_face = selected_card_face.scaled(
+                card_face_size, Qt::IgnoreAspectRatio, Qt::FastTransformation
+            );
+        }
+        selected_card_face_index = index;
+    }
+    return selected_card_face;
 }
 
 void card_widget::start_rasterization(const QSize& target_size) {
@@ -808,29 +821,9 @@ void card_widget::start_rasterization(const QSize& target_size) {
 void card_widget::apply_rasterized_images(
     const QVector<QImage>& images, const QSize& target_size
 ) {
-    card_faces_rasterized.clear();
-    card_faces_rasterized.reserve(images.size());
-    for (const QImage& image : images) {
-        if (image.isNull()) {
-            card_faces_rasterized.push_back(QPixmap());
-            continue;
-        }
-        card_faces_rasterized.push_back(QPixmap::fromImage(image));
-    }
+    card_faces_rasterized = images;
     card_face_raster_size = target_size;
-    if (!card_face_size.isEmpty()) {
-        card_faces.clear();
-        card_faces.reserve(card_faces_rasterized.size());
-        for (const QPixmap& pixmap : card_faces_rasterized) {
-            if (pixmap.isNull()) {
-                card_faces.push_back(QPixmap());
-                continue;
-            }
-            card_faces.push_back(pixmap.scaled(
-                card_face_size, Qt::IgnoreAspectRatio, Qt::FastTransformation
-            ));
-        }
-    }
+    invalidate_selected_card_face();
     picks_since_rasterize = 0;
 }
 
