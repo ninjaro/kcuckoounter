@@ -1,0 +1,117 @@
+{
+  "id": "kcuckoounter",
+  "description": "Card-counting trainer with Qt, KDE, and touch-first profiles.",
+  "version": "1.0.0",
+  "cpp_standard": 20,
+  "android_application_id": "org.ninjaro.kcuckoounter",
+  "install_assets": true,
+  "facade": "trainer_app:app",
+  "artifacts": [
+    {
+      "id": "watchdog_client:client",
+      "kind": "static_lib",
+      "owns": [],
+      "packages": {
+        "external_project": {
+          "repository": "https://github.com/ninjaro/peepbooth",
+          "revision": "master",
+          "package": "monitor",
+          "artifact": "watchdog_client:client"
+        }
+      },
+      "name": "monitor_watchdog_client"
+    },
+    {
+      "id": "watchdog_qt:qt",
+      "kind": "static_lib",
+      "owns": [],
+      "packages": {
+        "external_project": {
+          "repository": "https://github.com/ninjaro/peepbooth",
+          "revision": "master",
+          "package": "monitor",
+          "artifact": "watchdog_qt:qt"
+        }
+      },
+      "name": "monitor_watchdog_qt"
+    },
+    {
+      "id": "packing_library:core",
+      "kind": "static_lib",
+      "owns": [],
+      "packages": {
+        "external_project": {
+          "repository": "https://github.com/ninjaro/rothko",
+          "revision": "master",
+          "package": "packing",
+          "artifact": "library:core"
+        }
+      },
+      "name": "packing_core"
+    },
+    {
+      "id": "trainer_app:core",
+      "kind": "static_lib",
+      "name": "kcuckoounter_core",
+      "root": "app",
+      "owns": [
+        "arch",
+        "card_helpers",
+        "image",
+        "settings",
+        "shell",
+        "table"
+      ],
+      "dependencies": [
+        "watchdog_client:client",
+        "packing_library:core"
+      ],
+      "packages": {
+        "qt": [
+          "Core",
+          "Concurrent",
+          "Svg",
+          "Widgets"
+        ],
+        "kde": [
+          "CoreAddons",
+          "I18n",
+          "XmlGui",
+          "ConfigWidgets",
+          "WidgetsAddons",
+          "KDEGames6"
+        ]
+      }
+    },
+    {
+      "id": "trainer_app:app",
+      "kind": "qt_app",
+      "name": "kcuckoounter",
+      "root": "app",
+      "owns": [
+        "src/cli/main.cpp"
+      ],
+      "entry": "src/cli/main.cpp",
+      "dependencies": [
+        "trainer_app:core",
+        "watchdog_qt:qt"
+      ],
+      "packages": {
+        "qt": [
+          "Core",
+          "Concurrent",
+          "Svg",
+          "Widgets"
+        ],
+        "kde": [
+          "CoreAddons",
+          "I18n",
+          "XmlGui",
+          "ConfigWidgets",
+          "WidgetsAddons",
+          "KDEGames6"
+        ]
+      }
+    }
+  ]
+}
