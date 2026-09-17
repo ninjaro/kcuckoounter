@@ -1,0 +1,17 @@
+{
+  "manifesto_repository": "ninjaro/cppr",
+  "manifesto_ref": "b646833b17ff1e5036a6fd8a6d7e75bdb1eb9914",
+  "manifesto_setup_action": "./.github/actions/setup-integrated-toolchain",
+  "manifesto_build_parallelism": "2",
+  "sphinx_theme": "sphinx_rtd_theme",
+  "sphinx_theme_package": "sphinx-rtd-theme",
+  "checkout_action": "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+  "install_qt_action": "jurplel/install-qt-action@48d3ad6db93f3627c8ee7a0454bc6f3744f7e730",
+  "github_script_action": "actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea",
+  "codeql_action_ref": "v3.36.0",
+  "upload_artifact_action": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+  "download_artifact_action": "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093",
+  "configure_pages_action": "actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b",
+  "upload_pages_artifact_action": "actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa",
+  "deploy_pages_action": "actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e"
+}
