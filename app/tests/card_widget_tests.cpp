@@ -8,6 +8,7 @@
 #include "card_helpers/card_sheet.hpp"
 #include "table/card_widget.hpp"
 
+#include <QPainter>
 #include <QtTest/QtTest>
 
 static qint64 pixel_area(const QSize& size) {
@@ -333,6 +334,102 @@ void card_widget_tests::frame_choice_only_changes_presentation() {
     restored.fill(Qt::transparent);
     widget.render(&restored);
     QCOMPARE(restored, classic);
+}
+
+void card_widget_tests::rotated_stack_stays_inside_slot() {
+    card_widget widget;
+    widget.set_shared_card_faces_mode(true);
+    widget.start_quiz(0, 1, false);
+    QImage face(16, 24, QImage::Format_ARGB32_Premultiplied);
+    face.fill(Qt::magenta);
+    widget.set_shared_card_faces(QVector<QImage>(55, face), face.size());
+    widget.show();
+    for (const QSize size :
+         { QSize(1920, 1080), QSize(1080, 1920), QSize(60, 42) }) {
+        widget.resize(size);
+        widget.set_slot_rotated(size.height() > size.width());
+        for (const auto style :
+             { slot_frame_style::classic, slot_frame_style::thin }) {
+            widget.set_frame_style(style);
+            for (const qreal angle : { -3.5, 3.5 }) {
+                widget.card_rotation_deg = angle;
+                widget.card_offset = QPointF(7.2, 7.2);
+                QImage rendered(size, QImage::Format_ARGB32_Premultiplied);
+                rendered.fill(Qt::transparent);
+                widget.render(&rendered);
+                const QRect interior = rendered.rect().adjusted(4, 4, -4, -4);
+                for (int y = 0; y < rendered.height(); ++y) {
+                    for (int x = 0; x < rendered.width(); ++x) {
+                        if (!interior.contains(x, y)) {
+                            QVERIFY2(
+                                rendered.pixelColor(x, y)
+                                    != QColor(Qt::magenta),
+                                qPrintable(QStringLiteral(
+                                               "card reaches slot edge at "
+                                               "%1,%2 in %3x%4"
+                                )
+                                               .arg(x)
+                                               .arg(y)
+                                               .arg(size.width())
+                                               .arg(size.height()))
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void card_widget_tests::retained_transforms_fit_after_resize() {
+    card_widget widget;
+    widget.set_shared_card_faces_mode(true);
+    widget.show();
+    widget.discard_history = { { -3.5, { -7.2, -7.2 } },
+                               { 3.5, { 7.2, 7.2 } },
+                               { -1.75, { -7.2, 7.2 } },
+                               { 1.75, { 7.2, -7.2 } },
+                               { 0.0, { 0.0, 0.0 } } };
+    const auto history = widget.discard_history;
+    QImage image(1, 1, QImage::Format_ARGB32_Premultiplied);
+    QPainter painter(&image);
+    for (const auto size : { QSize(1920, 1080), QSize(120, 85), QSize(42, 60),
+                             QSize(16, 24), QSize(1080, 1920) }) {
+        widget.resize(size);
+        for (const bool rotated : { false, true }) {
+            widget.set_slot_rotated(rotated);
+            const auto geometry = widget.layout_geometry();
+            QVERIFY(!geometry.card.isEmpty());
+            QCOMPARE(
+                widget.card_face_target_size(),
+                geometry.card.size().toSize().expandedTo(QSize(1, 1))
+            );
+            for (const auto& discard : widget.discard_history) {
+                painter.resetTransform();
+                card_widget::apply_card_transform(
+                    painter, geometry.card, geometry.slot_rotation,
+                    discard.rotation_deg,
+                    geometry.bounded_offset(discard.offset)
+                );
+                const QRectF bounds
+                    = painter.transform().mapRect(geometry.card);
+                QVERIFY2(
+                    geometry.frame.contains(bounds),
+                    "rotated discard leaves its frame after resize"
+                );
+            }
+            // Projection may clamp an old pixel offset, but history is not
+            // rewritten every time the window shrinks and grows again.
+            QCOMPARE(widget.discard_history.size(), history.size());
+            for (size_t i = 0; i < history.size(); ++i) {
+                QCOMPARE(
+                    widget.discard_history[i].rotation_deg,
+                    history[i].rotation_deg
+                );
+                QCOMPARE(widget.discard_history[i].offset, history[i].offset);
+            }
+        }
+    }
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

@@ -7,6 +7,7 @@
 
 #include <QBoxLayout>
 #include <QImage>
+#include <QPointer>
 #include <QSize>
 #include <QString>
 #include <QVector>
@@ -16,6 +17,8 @@ class QResizeEvent;
 class QLabel;
 class QColor;
 class card_widget;
+class QDialog;
+class QToolButton;
 
 class table_slot : public BaseWidget {
     Q_OBJECT
@@ -64,6 +67,7 @@ signals:
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private slots:
     void on_infinity_toggled(bool checked);
@@ -85,6 +89,8 @@ private:
     card_widget* card_widget_internal;
 
     BaseWidget* overlay_widget;
+    QToolButton* compact_controls_button = nullptr;
+    QPointer<QDialog> controls_dialog;
     BaseWidget* settings_bar_widget;
     BaseWidget* swap_bar_widget;
     QBoxLayout* overlay_layout;
@@ -122,6 +128,8 @@ private:
 
     void setup_overlay();
     void update_overlay_layout();
+    void update_compact_controls();
+    void show_compact_controls();
     void update_settings_button_state(bool dialog_open = false);
     static void
     update_infinity_state(BaseCheckBox* check_box, BaseSpinBox* spin_box);

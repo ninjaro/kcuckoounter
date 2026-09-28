@@ -16,6 +16,8 @@ private slots:
     void recent_stack_retains_five_transforms();
     void accessible_description_tracks_visible_card_state();
     void frame_choice_only_changes_presentation();
+    void rotated_stack_stays_inside_slot();
+    void retained_transforms_fit_after_resize();
 };
 
 #endif // KCUCKOOUNTER_TESTS_CARD_WIDGET_TESTS_HPP

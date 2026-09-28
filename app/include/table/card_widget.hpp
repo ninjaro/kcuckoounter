@@ -135,6 +135,19 @@ private:
     bool shared_card_faces_active;
     bool shared_card_faces_mode;
 
+    // One slot-local geometry for paint, jitter and raster demand. The packer
+    // still owns the widget rectangle, independently of presentation choices.
+    struct paint_geometry {
+        QRectF frame;
+        QRectF card;
+        qreal slot_rotation = 0.0;
+        qreal min_dim = 0.0;
+        qreal jitter_limit = 0.0;
+        QPointF bounded_offset(const QPointF& offset) const;
+    };
+
+    paint_geometry layout_geometry() const;
+
     void update_card_jitter();
     void update_accessible_description();
     void update_table_marking();

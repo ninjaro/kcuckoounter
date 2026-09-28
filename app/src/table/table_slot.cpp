@@ -16,6 +16,7 @@
 #include <QBoxLayout>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QEvent>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -23,6 +24,7 @@
 #include <QSignalBlocker>
 #include <QStackedLayout>
 #include <QString>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QtGlobal>
 
@@ -380,6 +382,7 @@ void table_slot::set_paused(bool paused) {
         }
     }
     update_lockable_settings();
+    update_compact_controls();
     update();
 }
 
@@ -478,6 +481,23 @@ void table_slot::setup_overlay() {
     overlay_layout = new QBoxLayout(QBoxLayout::TopToBottom, overlay_widget);
     overlay_layout->setContentsMargins(2, 2, 2, 2);
     overlay_layout->setSpacing(2);
+
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    // A packed slot must never inherit the controls' minimum size. If they
+    // cannot fit, expose the same widgets in a transient desktop window.
+    overlay_layout->setSizeConstraint(QLayout::SetNoConstraint);
+    overlay_widget->installEventFilter(this);
+    compact_controls_button = new QToolButton(this);
+    compact_controls_button->setObjectName(
+        QStringLiteral("compact_slot_controls")
+    );
+    compact_controls_button->setFocusPolicy(Qt::StrongFocus);
+    compact_controls_button->hide();
+    connect(
+        compact_controls_button, &QToolButton::clicked, this,
+        &table_slot::show_compact_controls
+    );
+#endif
 
     auto settings_frame = new QFrame(overlay_widget);
     settings_frame->setObjectName(QStringLiteral("settings_bar_frame"));
@@ -816,6 +836,121 @@ void table_slot::update_overlay_layout() {
             is_rotated ? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight
         );
     }
+    update_compact_controls();
+}
+
+bool table_slot::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == overlay_widget && event->type() == QEvent::LayoutRequest) {
+        update_compact_controls();
+    }
+    return BaseWidget::eventFilter(watched, event);
+}
+
+void table_slot::update_compact_controls() {
+    if (compact_controls_button == nullptr || overlay_layout == nullptr
+        || quiz_bar_widget == nullptr || swap_bar_widget == nullptr) {
+        return;
+    }
+    const bool controls_visible = current_phase == slot_phase::paused
+        || !card_widget_internal->has_cards() || quiz_prompt_active;
+    // Read the active surfaces, not the outer layout's QWidgetItem cache:
+    // that cache can still describe a hidden bar while restoring a question.
+    const auto minimum = [](const QWidget* widget) {
+        return widget->minimumSizeHint().expandedTo(widget->minimumSize());
+    };
+    QSize required
+        = minimum(quiz_prompt_active ? quiz_bar_widget : swap_bar_widget);
+    if (!quiz_prompt_active && settings_overlay_visible
+        && !use_dialog_for_settings) {
+        const QSize settings = minimum(settings_bar_widget);
+        required = is_rotated
+            ? QSize(
+                  required.width() + settings.width()
+                      + overlay_layout->spacing(),
+                  std::max(required.height(), settings.height())
+              )
+            : QSize(
+                  std::max(required.width(), settings.width()),
+                  required.height() + settings.height()
+                      + overlay_layout->spacing()
+              );
+    }
+    const auto margins = overlay_layout->contentsMargins();
+    required += QSize(
+        margins.left() + margins.right(), margins.top() + margins.bottom()
+    );
+    const bool compact
+        = required.width() > width() || required.height() > height();
+    compact_controls_button->setText(
+        quiz_prompt_active ? QStringLiteral("?") : QStringLiteral("…")
+    );
+    const QString description = quiz_prompt_active
+        ? (quiz_feedback_active
+               ? str_label("Show answer feedback")
+               : str_label("Answer accumulated-count question"))
+        : str_label("Show slot actions");
+    compact_controls_button->setAccessibleName(description);
+    compact_controls_button->setToolTip(description);
+    const QSize button_size
+        = compact_controls_button->sizeHint().boundedTo(size());
+    compact_controls_button->resize(button_size);
+    compact_controls_button->move(
+        std::max(0, (width() - button_size.width()) / 2),
+        std::max(0, height() - button_size.height() - 2)
+    );
+    compact_controls_button->setVisible(
+        controls_visible && (compact || controls_dialog)
+    );
+    compact_controls_button->raise();
+    if (controls_dialog) {
+        if (!controls_visible) {
+            controls_dialog->close();
+        }
+        return;
+    }
+    overlay_widget->setVisible(controls_visible && !compact);
+}
+
+void table_slot::show_compact_controls() {
+    if (controls_dialog) {
+        controls_dialog->raise();
+        controls_dialog->activateWindow();
+        return;
+    }
+    auto* dialog = new QDialog(this);
+    controls_dialog = dialog;
+    dialog->setObjectName(QStringLiteral("slot_controls_dialog"));
+    dialog->setWindowTitle(str_label("Card controls"));
+    auto* layout = new QVBoxLayout(dialog);
+    layout->addWidget(overlay_widget);
+    overlay_widget->show();
+    auto* close_buttons = new QDialogButtonBox(QDialogButtonBox::Close, dialog);
+    connect(
+        close_buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject
+    );
+    layout->addWidget(close_buttons);
+    connect(dialog, &QDialog::finished, this, [this, dialog] {
+        dialog->layout()->removeWidget(overlay_widget);
+        overlay_widget->setParent(this);
+        overlay_widget->setGeometry(rect());
+        controls_dialog = nullptr;
+        dialog->deleteLater();
+        update_compact_controls();
+        if (compact_controls_button->isVisible()) {
+            compact_controls_button->setFocus(Qt::OtherFocusReason);
+        }
+    });
+    dialog->show();
+    if (quiz_prompt_active && !quiz_feedback_active) {
+        quiz_spin_box->setFocus(Qt::OtherFocusReason);
+    } else if (quiz_prompt_active && quiz_continue_visible) {
+        quiz_continue_button->setFocus(Qt::OtherFocusReason);
+    } else if (quiz_prompt_active) {
+        close_buttons->button(QDialogButtonBox::Close)
+            ->setFocus(Qt::OtherFocusReason);
+    } else {
+        settings_button->setFocus(Qt::OtherFocusReason);
+    }
 }
 
 void table_slot::update_settings_button_state(bool dialog_open) {
@@ -852,7 +987,7 @@ void table_slot::resizeEvent(QResizeEvent* event) {
         card_widget_internal->setGeometry(rect());
     }
 
-    if (overlay_widget != nullptr) {
+    if (overlay_widget != nullptr && !controls_dialog) {
         overlay_widget->setGeometry(rect());
     }
 
@@ -882,6 +1017,7 @@ void table_slot::resizeEvent(QResizeEvent* event) {
         = available_width < width_needed || available_height < height_needed;
 
     if (new_use_dialog_for_settings == use_dialog_for_settings) {
+        update_compact_controls();
         return;
     }
 
@@ -896,6 +1032,7 @@ void table_slot::resizeEvent(QResizeEvent* event) {
         }
     }
     update_settings_button_state();
+    update_compact_controls();
 }
 
 void table_slot::on_infinity_toggled(bool checked) {
@@ -1201,6 +1338,10 @@ void table_slot::show_quiz_prompt() {
         emit score_adjusted(0, 1);
     }
     set_paused(current_phase == slot_phase::paused);
+    if (compact_controls_button != nullptr
+        && compact_controls_button->isVisible()) {
+        compact_controls_button->setFocus(Qt::OtherFocusReason);
+    }
 }
 
 void table_slot::clear_quiz_prompt() {
@@ -1282,6 +1423,7 @@ void table_slot::update_quiz_controls_visibility() {
         quiz_continue_button->setVisible(show_continue);
         quiz_continue_button->setEnabled(show_continue);
     }
+    update_compact_controls();
 }
 
 void table_slot::apply_settings_from(const table_slot& source) {

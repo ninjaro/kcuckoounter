@@ -13,9 +13,11 @@
 #include "arch/str_label.hpp"
 #include "table/card_widget.hpp"
 
+#include <QDialog>
 #include <QElapsedTimer>
 #include <QFrame>
 #include <QLabel>
+#include <QToolButton>
 #include <QtTest/QtTest>
 
 void table_tests::overlay_palette_applies_to_bars() {
@@ -299,6 +301,276 @@ void table_tests::card_orientation_constrains_packed_slot_geometry() {
     for (const table_slot* slot : vertical_slots) {
         QVERIFY(slot->height() > slot->width());
     }
+}
+
+void table_tests::presentation_preserves_packed_slots_data() {
+    QTest::addColumn<QSize>("viewport");
+    QTest::addColumn<int>("count");
+    QTest::addColumn<int>("orientation");
+    for (const QSize size :
+         { QSize(1280, 720), QSize(720, 1280), QSize(480, 320) }) {
+        for (const int count : { 1, 4, 16, 64 }) {
+            for (const auto orientation : { card_orientation_mode::automatic,
+                                            card_orientation_mode::horizontal,
+                                            card_orientation_mode::vertical }) {
+                const QByteArray name = QStringLiteral("%1x%2/%3/%4")
+                                            .arg(size.width())
+                                            .arg(size.height())
+                                            .arg(count)
+                                            .arg(static_cast<int>(orientation))
+                                            .toLatin1();
+                QTest::newRow(name.constData())
+                    << size << count << static_cast<int>(orientation);
+            }
+        }
+    }
+}
+
+void table_tests::presentation_preserves_packed_slots() {
+    QFETCH(QSize, viewport);
+    QFETCH(int, count);
+    QFETCH(int, orientation);
+    table table_widget;
+    table_widget.resize(viewport.transposed());
+    table_widget.set_card_orientation(
+        static_cast<card_orientation_mode>(orientation)
+    );
+    table_widget.set_slot_count(1);
+    table_widget.show();
+    table_widget.resize(viewport);
+    table_widget.set_slot_count(count + 1);
+    table_widget.set_slot_count(count);
+    // Deliver widget layout, without waiting on unrelated SVG warmup timers.
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+    const auto slot_widgets = table_widget.findChildren<table_slot*>();
+    QCOMPARE(slot_widgets.size(), count);
+    QList<QRect> bounds;
+    QList<int> raster_demands;
+    for (auto* slot : slot_widgets) {
+        QVERIFY(slot->isVisible());
+        const QRect geometry = slot->geometry();
+        QVERIFY2(
+            table_widget.rect().contains(geometry),
+            qPrintable(QStringLiteral("slot %1,%2 %3x%4 outside %5x%6")
+                           .arg(geometry.x())
+                           .arg(geometry.y())
+                           .arg(geometry.width())
+                           .arg(geometry.height())
+                           .arg(viewport.width())
+                           .arg(viewport.height()))
+        );
+        QVERIFY(geometry.width() > 0 && geometry.height() > 0);
+        if (!bounds.isEmpty()) {
+            QCOMPARE(
+                std::min(geometry.width(), geometry.height()),
+                std::min(bounds[0].width(), bounds[0].height())
+            );
+            QCOMPARE(
+                std::max(geometry.width(), geometry.height()),
+                std::max(bounds[0].width(), bounds[0].height())
+            );
+        }
+        for (const QRect& previous : bounds) {
+            QVERIFY(!geometry.intersects(previous));
+        }
+        bounds.append(geometry);
+        auto* card = slot->findChild<card_widget*>();
+        QVERIFY(card != nullptr);
+        QCOMPARE(card->geometry(), slot->rect());
+        QVERIFY(card->card_face_target_short_px() > 0);
+        raster_demands.append(card->card_face_target_short_px());
+    }
+    for (const auto style :
+         { slot_frame_style::thin, slot_frame_style::classic }) {
+        table_widget.set_frame_style(style);
+        for (qsizetype i = 0; i < slot_widgets.size(); ++i) {
+            auto* slot = slot_widgets[i];
+            slot->set_swap_selected(true);
+            slot->set_paused(true);
+            QCOMPARE(slot->geometry(), bounds[i]);
+            QCOMPARE(slot->card_face_need_short_px(), raster_demands[i]);
+            slot->set_paused(false);
+            QCOMPARE(slot->geometry(), bounds[i]);
+        }
+    }
+}
+
+void table_tests::compact_slot_controls_remain_reachable_data() {
+    QTest::addColumn<QSize>("slot_size");
+    QTest::newRow("landscape") << QSize(120, 85);
+    QTest::newRow("portrait") << QSize(85, 120);
+    QTest::newRow("extreme-landscape") << QSize(54, 38);
+    QTest::newRow("extreme-portrait") << QSize(38, 54);
+}
+
+void table_tests::compact_slot_controls_remain_reachable() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop compact controls; Android retains its existing surface");
+#endif
+    QFETCH(QSize, slot_size);
+    table_slot slot;
+    slot.set_shared_card_faces_mode(true);
+    slot.set_rotated(slot_size.height() > slot_size.width());
+    slot.resize(slot_size);
+    slot.show();
+    slot.set_paused(true);
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+    QPixmap preview(slot.size());
+    slot.render(&preview);
+    auto* bar = slot.findChild<QFrame*>(QStringLiteral("swap_bar_frame"));
+    QVERIFY(bar != nullptr);
+    auto* trigger
+        = slot.findChild<QToolButton*>(QStringLiteral("compact_slot_controls"));
+    QVERIFY(trigger != nullptr);
+    QVERIFY(trigger->isVisible());
+    QVERIFY(slot.rect().contains(trigger->geometry()));
+    QVERIFY(!bar->isVisible());
+    const QSize original_slot_size = slot.size();
+    auto* card = slot.findChild<card_widget*>();
+    QVERIFY(card != nullptr);
+    const int raster_need = card->card_face_target_short_px();
+    QTest::mouseClick(trigger, Qt::LeftButton);
+    auto* dialog
+        = slot.findChild<QDialog*>(QStringLiteral("slot_controls_dialog"));
+    QVERIFY(dialog != nullptr);
+    QVERIFY(dialog->isVisible());
+    QVERIFY(bar->isVisible());
+    for (auto* button : bar->findChildren<BasePushButton*>()) {
+        const QRect button_bounds(
+            button->mapTo(dialog, QPoint()), button->size()
+        );
+        QVERIFY(dialog->rect().contains(button_bounds));
+        QVERIFY(button->width() >= button->minimumSizeHint().width());
+    }
+    QCOMPARE(slot.size(), original_slot_size);
+    QCOMPARE(card->card_face_target_short_px(), raster_need);
+    QTest::keyClick(dialog, Qt::Key_Escape);
+    QVERIFY(!dialog->isVisible());
+    QVERIFY(trigger->isVisible());
+    QCOMPARE(slot.focusWidget(), trigger);
+
+    // A quiz uses the original input and handlers, not a second answer model.
+    slot.start_quiz(0);
+    for (int i = 0; i < 29; ++i) {
+        slot.advance_card();
+    }
+    QVERIFY(slot.is_quiz_prompt_active());
+    QVERIFY(trigger->isVisible());
+    auto* input = slot.findChild<BaseSpinBox*>(QStringLiteral("quiz_spin_box"));
+    QVERIFY(input != nullptr);
+    input->setValue(-17);
+    const auto state = slot.capture_session_state();
+    QTest::keyClick(trigger, Qt::Key_Space);
+    // The closed window is scheduled for deletion; locate the visible host.
+    for (auto* candidate :
+         slot.findChildren<QDialog*>(QStringLiteral("slot_controls_dialog"))) {
+        if (candidate->isVisible())
+            dialog = candidate;
+    }
+    QVERIFY(dialog->isVisible());
+    QVERIFY(input->isVisible());
+    QCOMPARE(dialog->focusWidget(), input);
+    QCOMPARE(slot.capture_session_state(), state);
+    QVERIFY(dialog->rect().contains(
+        QRect(input->mapTo(dialog, QPoint()), input->size())
+    ));
+    QTest::keyClick(dialog, Qt::Key_Escape);
+    QCOMPARE(slot.capture_session_state(), state);
+    // Growing restores inline controls without losing the pending answer.
+    slot.resize(800, 600);
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+    QVERIFY(!trigger->isVisible());
+    QVERIFY(input->isVisible());
+    QCOMPARE(input->value(), -17);
+    QCOMPARE(slot.capture_session_state(), state);
+
+    slot.resize(slot_size);
+    QTest::mouseClick(trigger, Qt::LeftButton);
+    auto* skip
+        = slot.findChild<BasePushButton*>(QStringLiteral("quiz_skip_button"));
+    auto* feedback
+        = slot.findChild<QLabel*>(QStringLiteral("quiz_feedback_label"));
+    auto* resume = slot.findChild<BasePushButton*>(
+        QStringLiteral("quiz_continue_button")
+    );
+    QVERIFY(skip != nullptr && feedback != nullptr && resume != nullptr);
+    QTest::mouseClick(skip, Qt::LeftButton);
+    QVERIFY(feedback->isVisible());
+    QVERIFY(
+        feedback->text().contains(QString::number(card->current_total_weight()))
+    );
+    QVERIFY(resume->isVisible());
+    QCOMPARE(slot.size(), original_slot_size);
+    QCOMPARE(card->card_face_target_short_px(), raster_need);
+    QTest::mouseClick(resume, Qt::LeftButton);
+    QVERIFY(!slot.is_quiz_prompt_active());
+    QVERIFY(!trigger->isVisible());
+
+    // The checkpoint has no host/window state. Restoring still pauses the
+    // same pending question and supplies a compact entry point when needed.
+    QVERIFY(slot.restore_session_state(state));
+    auto expected_restored = state;
+    expected_restored.paused = true;
+    QCOMPARE(slot.capture_session_state(), expected_restored);
+    auto* quiz_bar = slot.findChild<QFrame*>(QStringLiteral("quiz_bar_frame"));
+    QVERIFY2(
+        trigger->isVisible(),
+        qPrintable(
+            QStringLiteral(
+                "slot=%1x%2 visible=%3 triggerHidden=%4 quizHidden=%5 "
+                "hint=%6x%7 overlayHint=%8x%9"
+            )
+                .arg(slot.width())
+                .arg(slot.height())
+                .arg(slot.isVisible())
+                .arg(trigger->isHidden())
+                .arg(quiz_bar->isHidden())
+                .arg(quiz_bar->minimumSizeHint().width())
+                .arg(quiz_bar->minimumSizeHint().height())
+                .arg(quiz_bar->parentWidget()->minimumSizeHint().width())
+                .arg(quiz_bar->parentWidget()->minimumSizeHint().height())
+        )
+    );
+    QTest::mouseClick(trigger, Qt::LeftButton);
+    QVERIFY(input->isVisible());
+    QCOMPARE(input->value(), -17);
+    slot.set_allow_skipping(false);
+    QVERIFY(!skip->isVisible());
+    input->setValue(9999);
+    auto* check
+        = slot.findChild<BasePushButton*>(QStringLiteral("quiz_answer_button"));
+    QVERIFY(check != nullptr);
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+    QVERIFY(check->isVisible() && check->isEnabled());
+    QVERIFY(check->width() >= check->minimumSizeHint().width());
+    QTest::mouseClick(check, Qt::LeftButton);
+    QVERIFY(slot.is_deck_exhausted());
+    QVERIFY(feedback->isVisible());
+    QVERIFY(!resume->isVisible());
+}
+
+void table_tests::compact_controls_follow_slot_lifetime() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop compact controls; Android retains its existing surface");
+#endif
+    table table_widget;
+    table_widget.resize(320, 240);
+    table_widget.set_slot_count(4);
+    table_widget.show();
+    auto* slot = table_widget.findChild<table_slot*>();
+    QVERIFY(slot != nullptr);
+    slot->set_paused(true);
+    auto* trigger = slot->findChild<QToolButton*>(
+        QStringLiteral("compact_slot_controls")
+    );
+    QVERIFY(trigger != nullptr && trigger->isVisible());
+    QTest::mouseClick(trigger, Qt::LeftButton);
+    QPointer<QDialog> dialog
+        = slot->findChild<QDialog*>(QStringLiteral("slot_controls_dialog"));
+    QVERIFY(dialog && dialog->isVisible());
+    table_widget.set_slot_count(0);
+    QVERIFY(dialog.isNull());
+    QVERIFY(table_widget.findChildren<table_slot*>().isEmpty());
 }
 
 void table_tests::shared_cache_rasterization_populates_visible_slots() {

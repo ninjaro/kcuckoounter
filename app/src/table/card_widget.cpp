@@ -494,15 +494,25 @@ int card_widget::card_face_target_short_px() const {
     return std::min(target_size.width(), target_size.height());
 }
 
-void card_widget::paintEvent(QPaintEvent* event) {
-    BaseWidget::paintEvent(event);
+QPointF
+card_widget::paint_geometry::bounded_offset(const QPointF& offset) const {
+    return { std::clamp(offset.x(), -jitter_limit, jitter_limit),
+             std::clamp(offset.y(), -jitter_limit, jitter_limit) };
+}
 
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-
-    const QRectF slot_rect = rect().adjusted(3.0, 3.0, -3.0, -3.0);
-    const qreal min_dim = std::min(slot_rect.width(), slot_rect.height());
-    const qreal frame_margin = std::clamp(min_dim * 0.05, 4.0, 10.0);
+card_widget::paint_geometry card_widget::layout_geometry() const {
+    paint_geometry result;
+    const qreal outer_margin = std::min(3.0, std::min(width(), height()) / 8.0);
+    const QRectF slot_rect = QRectF(rect()).adjusted(
+        outer_margin, outer_margin, -outer_margin, -outer_margin
+    );
+    result.min_dim = std::min(slot_rect.width(), slot_rect.height());
+    if (result.min_dim <= 0.0) {
+        return result;
+    }
+    const qreal frame_margin = std::min(
+        std::clamp(result.min_dim * 0.05, 4.0, 10.0), result.min_dim / 8.0
+    );
     const QRectF base_slot_frame_rect = slot_rect.adjusted(
         frame_margin, frame_margin, -frame_margin, -frame_margin
     );
@@ -514,26 +524,62 @@ void card_widget::paintEvent(QPaintEvent* event) {
             std::cos(selection_phase * 1.3) * jitter
         );
     }
-    const QRectF slot_frame_rect
-        = base_slot_frame_rect.translated(selection_offset);
+    result.frame = base_slot_frame_rect.translated(selection_offset);
+    const qreal frame_short
+        = std::min(result.frame.width(), result.frame.height());
+    const qreal inset = std::min(
+        std::clamp(result.min_dim * 0.08, 4.0, 12.0), frame_short / 4.0
+    );
+    result.jitter_limit = std::min(inset * 0.6, frame_short / 16.0);
+    QSizeF card_size
+        = result.frame.adjusted(inset, inset, -inset, -inset).size();
+
+    // Bound all rotations in [-3.5, 3.5], not only one random draw. cos(theta)
+    // <= 1 gives a conservative envelope even for very unusual aspect ratios.
+    // Reserve room for the frame/card strokes and integer pixmap rounding.
+    const qreal stroke_room = std::min(4.0, frame_short / 8.0);
+    const qreal sine = std::sin(3.5 * std::acos(-1.0) / 180.0);
+    const qreal envelope_width = card_size.width() + card_size.height() * sine;
+    const qreal envelope_height = card_size.height() + card_size.width() * sine;
+    const qreal scale = std::min(
+        { 1.0,
+          (result.frame.width() - 2.0 * (stroke_room + result.jitter_limit))
+              / envelope_width,
+          (result.frame.height() - 2.0 * (stroke_room + result.jitter_limit))
+              / envelope_height }
+    );
+    card_size *= std::max(0.0, scale);
+    result.slot_rotation = slot_rotated ? 0.0 : 90.0;
+    if (!slot_rotated) {
+        card_size.transpose();
+    }
+    result.card = QRectF(
+        result.frame.center()
+            - QPointF(card_size.width() / 2.0, card_size.height() / 2.0),
+        card_size
+    );
+    return result;
+}
+
+void card_widget::paintEvent(QPaintEvent* event) {
+    BaseWidget::paintEvent(event);
+
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    const auto geometry = layout_geometry();
+    const QRectF& slot_frame_rect = geometry.frame;
+    const QRectF& oriented_card_rect = geometry.card;
+    const qreal min_dim = geometry.min_dim;
+    const qreal slot_rotation_deg = geometry.slot_rotation;
+    const QPointF rendered_offset = geometry.bounded_offset(card_offset);
+    if (oriented_card_rect.isEmpty()) {
+        return;
+    }
 
     const bool has_deck = picker.has_cards();
     const int card_index = picker.current_card_index();
     const bool has_current_card = card_index >= 0;
     const bool show_back = has_deck && (!running || !has_current_card);
-    const qreal inset = std::clamp(min_dim * 0.08, 4.0, 12.0);
-    const QRectF card_rect
-        = slot_frame_rect.adjusted(inset, inset, -inset, -inset);
-    const bool slot_is_horizontal = !slot_rotated;
-    const qreal slot_rotation_deg = slot_is_horizontal ? 90.0 : 0.0;
-    const QSizeF oriented_card_size = slot_is_horizontal
-        ? QSizeF(card_rect.height(), card_rect.width())
-        : card_rect.size();
-    const QRectF oriented_card_rect(
-        card_rect.center().x() - oriented_card_size.width() / 2.0,
-        card_rect.center().y() - oriented_card_size.height() / 2.0,
-        oriented_card_size.width(), oriented_card_size.height()
-    );
 
     const QColor slot_fill_color = theme_settings::slot_fill_color();
     const QColor slot_border_color = swap_selected_flag
@@ -564,8 +610,8 @@ void card_widget::paintEvent(QPaintEvent* event) {
     for (const discard_card& discard : discard_history) {
         draw_card_shape(
             painter, oriented_card_rect, slot_rotation_deg,
-            discard.rotation_deg, discard.offset, discard_fill_color,
-            discard_border_color
+            discard.rotation_deg, geometry.bounded_offset(discard.offset),
+            discard_fill_color, discard_border_color
         );
     }
 
@@ -581,7 +627,7 @@ void card_widget::paintEvent(QPaintEvent* event) {
         const QColor base_card_border(210, 210, 210, 220);
         draw_card_shape(
             painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-            card_offset, base_card_fill, base_card_border
+            rendered_offset, base_card_fill, base_card_border
         );
 
         const QSize target_size
@@ -592,12 +638,12 @@ void card_widget::paintEvent(QPaintEvent* event) {
         if (!back.isNull()) {
             draw_card_pixmap(
                 painter, oriented_card_rect, slot_rotation_deg,
-                card_rotation_deg, card_offset, back
+                card_rotation_deg, rendered_offset, back
             );
         } else {
             draw_card_center_text(
                 painter, oriented_card_rect, slot_rotation_deg,
-                card_rotation_deg, card_offset, str_label("Back")
+                card_rotation_deg, rendered_offset, str_label("Back")
             );
         }
         return;
@@ -621,7 +667,7 @@ void card_widget::paintEvent(QPaintEvent* event) {
 
     draw_card_shape(
         painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-        card_offset, card_fill_color, card_border_color
+        rendered_offset, card_fill_color, card_border_color
     );
 
     const QSize target_size
@@ -632,12 +678,12 @@ void card_widget::paintEvent(QPaintEvent* event) {
     if (!face.isNull()) {
         draw_card_pixmap(
             painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-            card_offset, face
+            rendered_offset, face
         );
     } else if (!text.isEmpty()) {
         draw_card_text(
             painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-            card_offset, text
+            rendered_offset, text
         );
     }
 
@@ -668,16 +714,7 @@ void card_widget::resizeEvent(QResizeEvent* event) {
 }
 
 void card_widget::update_card_jitter() {
-    const QRectF slot_rect = rect().adjusted(3.0, 3.0, -3.0, -3.0);
-    const qreal min_dim = std::min(slot_rect.width(), slot_rect.height());
-    const qreal frame_margin = std::clamp(min_dim * 0.05, 4.0, 10.0);
-    const QRectF slot_frame_rect = slot_rect.adjusted(
-        frame_margin, frame_margin, -frame_margin, -frame_margin
-    );
-    const qreal frame_min_dim
-        = std::min(slot_frame_rect.width(), slot_frame_rect.height());
-    const qreal inset = std::clamp(frame_min_dim * 0.08, 4.0, 12.0);
-    const qreal max_offset = inset * 0.6;
+    const qreal max_offset = layout_geometry().jitter_limit;
 
     const auto rotation
         = static_cast<qreal>(random_gen.uniform_real(-3.5, 3.5));
@@ -691,12 +728,7 @@ void card_widget::update_card_jitter() {
 }
 
 void card_widget::update_table_marking() {
-    const QRectF slot_rect = rect().adjusted(3.0, 3.0, -3.0, -3.0);
-    const qreal min_dim = std::min(slot_rect.width(), slot_rect.height());
-    const qreal frame_margin = std::clamp(min_dim * 0.05, 4.0, 10.0);
-    const QRectF slot_frame_rect = slot_rect.adjusted(
-        frame_margin, frame_margin, -frame_margin, -frame_margin
-    );
+    const QRectF slot_frame_rect = layout_geometry().frame;
     const qreal target_dim
         = std::min(slot_frame_rect.width(), slot_frame_rect.height()) * 0.5;
     const int size = static_cast<int>(std::max(1.0, target_dim));
@@ -704,26 +736,11 @@ void card_widget::update_table_marking() {
 }
 
 QSize card_widget::card_face_target_size() const {
-    const QRectF slot_rect = rect().adjusted(3.0, 3.0, -3.0, -3.0);
-    const qreal min_dim = std::min(slot_rect.width(), slot_rect.height());
-    if (min_dim <= 0.0) {
-        return {};
-    }
-    const qreal frame_margin = std::clamp(min_dim * 0.05, 4.0, 10.0);
-    const QRectF slot_frame_rect = slot_rect.adjusted(
-        frame_margin, frame_margin, -frame_margin, -frame_margin
-    );
-    const qreal inset = std::clamp(min_dim * 0.08, 4.0, 12.0);
-    const QRectF card_rect
-        = slot_frame_rect.adjusted(inset, inset, -inset, -inset);
+    const QRectF card_rect = layout_geometry().card;
     if (card_rect.isEmpty()) {
         return {};
     }
-    const bool slot_is_horizontal = !slot_rotated;
-    const QSizeF oriented_card_size = slot_is_horizontal
-        ? QSizeF(card_rect.height(), card_rect.width())
-        : card_rect.size();
-    return oriented_card_size.toSize().expandedTo(QSize(1, 1));
+    return card_rect.size().toSize().expandedTo(QSize(1, 1));
 }
 
 QSize card_widget::raster_cache_size(const QSize& target_size) {
@@ -952,7 +969,7 @@ void card_widget::draw_card_index(
     painter.save();
     apply_card_transform(
         painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-        card_offset
+        layout_geometry().bounded_offset(card_offset)
     );
     const QRectF index_rect = oriented_card_rect.adjusted(
         8.0, 8.0, -8.0, -oriented_card_rect.height() * 0.7
@@ -1050,7 +1067,7 @@ void card_widget::draw_card_extra_lines(
     painter.save();
     apply_card_transform(
         painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-        card_offset
+        layout_geometry().bounded_offset(card_offset)
     );
 
     const QRectF extra_rect = oriented_card_rect.adjusted(

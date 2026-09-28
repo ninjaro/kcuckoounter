@@ -29,6 +29,11 @@ private slots:
     void shared_card_faces_presence_tracks_set_and_clear();
     /// @brief Verifies persisted orientation modes constrain packed slots.
     void card_orientation_constrains_packed_slot_geometry();
+    void presentation_preserves_packed_slots_data();
+    void presentation_preserves_packed_slots();
+    void compact_slot_controls_remain_reachable_data();
+    void compact_slot_controls_remain_reachable();
+    void compact_controls_follow_slot_lifetime();
     /// @brief Verifies shared cache rasterization populates visible slots.
     void shared_cache_rasterization_populates_visible_slots();
     /// @brief Verifies shared-cache generation cutover keeps bounded active +
