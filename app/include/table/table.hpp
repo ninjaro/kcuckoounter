@@ -40,6 +40,8 @@ public:
     void set_allow_skipping(bool allow);
     void set_card_orientation(card_orientation_mode orientation);
     void set_frame_style(slot_frame_style style);
+    void set_action_style(slot_action_style style);
+    void set_settings_style(slot_settings_style style);
     void set_quiz_presentation(
         quiz_answer_style answer, quiz_feedback_style feedback
     );
@@ -84,6 +86,8 @@ private:
     table_slot* copy_source_slot;
     card_orientation_mode card_orientation;
     slot_frame_style frame_style = slot_frame_style::classic;
+    slot_action_style action_style = slot_action_style::classic;
+    slot_settings_style settings_style = slot_settings_style::classic;
     quiz_answer_style answer_style = quiz_answer_style::numeric;
     quiz_feedback_style feedback_style = quiz_feedback_style::classic;
     int pick_interval_ms;

@@ -410,6 +410,8 @@ void main_window::apply_desktop_presentation() {
     const auto value = load_desktop_ui_preferences();
     if (table_widget != nullptr) {
         table_widget->set_frame_style(value.frame());
+        table_widget->set_action_style(value.actions());
+        table_widget->set_settings_style(value.settings_surface());
         table_widget->set_quiz_presentation(value.answer(), value.feedback());
     }
     if (pickup_interval_label != nullptr) {

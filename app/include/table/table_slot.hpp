@@ -19,6 +19,7 @@ class QColor;
 class card_widget;
 class QDialog;
 class QToolButton;
+class slot_settings;
 
 class table_slot : public BaseWidget {
     Q_OBJECT
@@ -31,6 +32,8 @@ public:
     [[nodiscard]] bool swap_selected() const;
     void set_rotated(bool rotated);
     void set_frame_style(slot_frame_style style);
+    void set_action_style(slot_action_style style);
+    void set_settings_style(slot_settings_style style);
     void set_quiz_presentation(
         quiz_answer_style answer, quiz_feedback_style feedback
     );
@@ -52,7 +55,8 @@ public:
     void set_shared_card_faces_mode(bool enabled);
     void apply_theme();
     void apply_settings_from(const table_slot& source);
-    void set_copy_button_text(const QString& text);
+    enum class copy_action { copy, cancel, apply };
+    void set_copy_action(copy_action action);
     [[nodiscard]] bool is_deck_exhausted() const;
     [[nodiscard]] bool is_quiz_prompt_active() const;
     [[nodiscard]] table_slot_session_state capture_session_state() const;
@@ -98,6 +102,12 @@ private:
     BaseWidget* swap_bar_widget;
     QBoxLayout* overlay_layout;
     QBoxLayout* swap_layout;
+    slot_action_style action_style = slot_action_style::classic;
+    copy_action current_copy_action = copy_action::copy;
+    slot_settings_style settings_style = slot_settings_style::classic;
+    QPointer<BaseWidget> settings_editor_panel;
+    QPointer<QDialog> settings_editor_host;
+    slot_settings* settings_editor_fields = nullptr;
     BaseCheckBox* infinity_check_box;
     BaseSpinBox* deck_count_spin_box;
     BaseComboBox* strategy_combo_box;
@@ -137,6 +147,7 @@ private:
     void setup_quiz_chips();
     void update_quiz_presentation();
     void update_overlay_layout();
+    void update_action_presentation();
     void update_compact_controls();
     void show_compact_controls();
     void update_settings_button_state(bool dialog_open = false);
@@ -157,6 +168,11 @@ private:
     );
     void update_overlay_palette();
     void update_lockable_settings();
+    void populate_settings_editor(slot_settings* editor);
+    void apply_settings_editor(const slot_settings* editor);
+    void open_settings_editor();
+    void place_settings_editor();
+    void finish_settings_editor(bool apply);
     void
     show_template_dialog(const QString& title, const QString& strategy_name);
 };

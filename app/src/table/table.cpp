@@ -141,6 +141,8 @@ void table::set_slot_count(int count) {
         for (int index = current_count; index < count; ++index) {
             auto slot_widget = new table_slot(this);
             slot_widget->set_frame_style(frame_style);
+            slot_widget->set_action_style(action_style);
+            slot_widget->set_settings_style(settings_style);
             slot_widget->set_quiz_presentation(answer_style, feedback_style);
             slot_widget->set_allow_skipping(allow_skipping);
             slot_widget->set_shared_card_faces_mode(true);
@@ -425,6 +427,19 @@ void table::set_quiz_presentation(
     for (table_slot* slot : slot_widgets) {
         slot->set_quiz_presentation(answer, feedback);
     }
+}
+
+void table::set_action_style(slot_action_style style) {
+    action_style = style;
+    for (auto* slot : slot_widgets) {
+        slot->set_action_style(style);
+    }
+}
+
+void table::set_settings_style(slot_settings_style style) {
+    settings_style = style;
+    for (auto* slot : slot_widgets)
+        slot->set_settings_style(style);
 }
 
 void table::apply_theme() {
@@ -1188,17 +1203,15 @@ void table::clear_copy_selection() {
 }
 
 void table::update_copy_button_labels(table_slot* selected_slot) {
-    const auto copy_label = str_label("Copy");
-    const auto set_label = str_label("Set");
-    const auto cancel_label = str_label("Cancel");
     for (table_slot* slot_widget : slot_widgets) {
         if (slot_widget == nullptr) {
             continue;
         }
-        slot_widget->set_copy_button_text(
-            selected_slot == nullptr
-                ? copy_label
-                : (slot_widget == selected_slot ? cancel_label : set_label)
+        slot_widget->set_copy_action(
+            selected_slot == nullptr ? table_slot::copy_action::copy
+                                     : (slot_widget == selected_slot
+                                            ? table_slot::copy_action::cancel
+                                            : table_slot::copy_action::apply)
         );
     }
 }

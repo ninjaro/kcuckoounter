@@ -375,11 +375,26 @@ quiz_feedback_style desktop_ui_preferences::feedback() const {
     return feedback_override.value_or(quiz_feedback_style::classic);
 }
 
+slot_action_style desktop_ui_preferences::actions() const {
+    return actions_override.value_or(slot_action_style::classic);
+}
+
+slot_settings_style desktop_ui_preferences::settings_surface() const {
+    return settings_override.value_or(slot_settings_style::classic);
+}
+
+desktop_toolbar_style desktop_ui_preferences::toolbar() const {
+    return toolbar_override.value_or(desktop_toolbar_style::classic);
+}
+
 void desktop_ui_preferences::reset_overrides() {
     frame_override.reset();
     speed_readout_override.reset();
     answer_override.reset();
     feedback_override.reset();
+    actions_override.reset();
+    settings_override.reset();
+    toolbar_override.reset();
 }
 
 desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
@@ -417,6 +432,32 @@ desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
     } else if (feedback == QStringLiteral("stamp")) {
         result.feedback_override = quiz_feedback_style::stamp;
     }
+    const QString actions
+        = settings.value(QStringLiteral("overrides/slot_actions")).toString();
+    if (actions == QStringLiteral("classic")) {
+        result.actions_override = slot_action_style::classic;
+    } else if (actions == QStringLiteral("rail")) {
+        result.actions_override = slot_action_style::rail;
+    } else if (actions == QStringLiteral("pills")) {
+        result.actions_override = slot_action_style::pills;
+    }
+    const auto surface
+        = settings.value(QStringLiteral("overrides/settings_surface"))
+              .toString();
+    if (surface == QStringLiteral("classic"))
+        result.settings_override = slot_settings_style::classic;
+    else if (surface == QStringLiteral("card"))
+        result.settings_override = slot_settings_style::card;
+    else if (surface == QStringLiteral("drawer"))
+        result.settings_override = slot_settings_style::drawer;
+    else if (surface == QStringLiteral("sill"))
+        result.settings_override = slot_settings_style::sill;
+    const auto toolbar
+        = settings.value(QStringLiteral("overrides/toolbar")).toString();
+    if (toolbar == QStringLiteral("classic"))
+        result.toolbar_override = desktop_toolbar_style::classic;
+    else if (toolbar == QStringLiteral("compact"))
+        result.toolbar_override = desktop_toolbar_style::compact;
     settings.endGroup();
     return result;
 }
@@ -469,6 +510,39 @@ bool save_desktop_ui_preferences(
         );
     } else {
         settings.remove(QStringLiteral("overrides/feedback"));
+    }
+    if (preferences.actions_override) {
+        const auto style = *preferences.actions_override;
+        settings.setValue(
+            QStringLiteral("overrides/slot_actions"),
+            style == slot_action_style::rail        ? QStringLiteral("rail")
+                : style == slot_action_style::pills ? QStringLiteral("pills")
+                                                    : QStringLiteral("classic")
+        );
+    } else {
+        settings.remove(QStringLiteral("overrides/slot_actions"));
+    }
+    if (preferences.settings_override) {
+        const auto style = *preferences.settings_override;
+        settings.setValue(
+            QStringLiteral("overrides/settings_surface"),
+            style == slot_settings_style::card ? QStringLiteral("card")
+                : style == slot_settings_style::drawer
+                ? QStringLiteral("drawer")
+                : style == slot_settings_style::sill ? QStringLiteral("sill")
+                                                     : QStringLiteral("classic")
+        );
+    } else {
+        settings.remove(QStringLiteral("overrides/settings_surface"));
+    }
+    if (preferences.toolbar_override) {
+        settings.setValue(
+            QStringLiteral("overrides/toolbar"),
+            *preferences.toolbar_override == desktop_toolbar_style::compact
+                ? QStringLiteral("compact") : QStringLiteral("classic")
+        );
+    } else {
+        settings.remove(QStringLiteral("overrides/toolbar"));
     }
     settings.endGroup();
     settings.sync();

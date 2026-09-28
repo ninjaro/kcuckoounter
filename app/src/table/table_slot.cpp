@@ -24,14 +24,18 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QResizeEvent>
+#include <QShortcut>
 #include <QSignalBlocker>
 #include <QStackedLayout>
 #include <QString>
 #include <QToolButton>
+#include <QToolTip>
 #include <QVBoxLayout>
 #include <QtGlobal>
 
 #include <algorithm>
+#include <array>
+#include <utility>
 
 static QVector<int> weights_for_strategy_slug(const QString& strategy_slug) {
     const strategy_catalog& repository = strategy_repository();
@@ -197,6 +201,7 @@ bool table_slot::restore_session_state(const table_slot_session_state& state) {
         return false;
     }
 
+    finish_settings_editor(false);
     const QSignalBlocker infinity_blocker(infinity_check_box);
     const QSignalBlocker deck_blocker(deck_count_spin_box);
     const QSignalBlocker strategy_blocker(strategy_combo_box);
@@ -269,6 +274,7 @@ bool table_slot::is_session_state_valid(const table_slot_session_state& state) {
 }
 
 void table_slot::start_quiz(int quiz_type_index) {
+    finish_settings_editor(false);
     int decks_count = 1;
     if (deck_count_spin_box != nullptr) {
         decks_count = deck_count_spin_box->value();
@@ -304,6 +310,7 @@ void table_slot::start_quiz(int quiz_type_index) {
 }
 
 void table_slot::clear_quiz() {
+    finish_settings_editor(false);
     if (card_widget_internal != nullptr) {
         card_widget_internal->clear_quiz();
         card_widget_internal->set_hide_cards(false);
@@ -323,6 +330,8 @@ void table_slot::clear_quiz() {
 }
 
 void table_slot::set_paused(bool paused) {
+    if (!paused)
+        finish_settings_editor(false);
     const slot_phase new_phase
         = paused ? slot_phase::paused : slot_phase::running;
     current_phase = new_phase;
@@ -342,7 +351,8 @@ void table_slot::set_paused(bool paused) {
     if (settings_bar_widget != nullptr) {
         const bool can_show_settings_inline = show_overlay
             && settings_overlay_visible && !use_dialog_for_settings
-            && !quiz_prompt_active;
+            && !quiz_prompt_active
+            && settings_style == slot_settings_style::classic;
         settings_bar_widget->setVisible(can_show_settings_inline);
     }
 
@@ -358,13 +368,7 @@ void table_slot::set_paused(bool paused) {
         swap_button->setEnabled(show_overlay);
     }
 
-    if (settings_button != nullptr) {
-        const bool running_with_deck
-            = (current_phase == slot_phase::running) && has_deck;
-        settings_button->setText(
-            running_with_deck ? str_label("Info") : str_label("Details")
-        );
-    }
+    update_action_presentation();
     update_settings_button_state();
 
     if (card_widget_internal != nullptr) {
@@ -485,6 +489,38 @@ void table_slot::set_quiz_presentation(
 #endif
 }
 
+void table_slot::set_action_style(slot_action_style style) {
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    if (action_style == style) {
+        return;
+    }
+    const auto* focused = QApplication::focusWidget();
+    const bool had_focus
+        = focused != nullptr && swap_bar_widget->isAncestorOf(focused);
+    action_style = style;
+    QToolTip::hideText();
+    update_action_presentation();
+    update_overlay_layout();
+    if (had_focus && !controls_dialog && compact_controls_button->isVisible()) {
+        compact_controls_button->setFocus(Qt::OtherFocusReason);
+    }
+#else
+    Q_UNUSED(style);
+#endif
+}
+
+void table_slot::set_settings_style(slot_settings_style style) {
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    if (settings_style == style)
+        return;
+    settings_style = style;
+    set_paused(current_phase == slot_phase::paused);
+    place_settings_editor();
+#else
+    Q_UNUSED(style);
+#endif
+}
+
 void table_slot::apply_theme() {
     if (card_widget_internal != nullptr) {
         card_widget_internal->sync_card_sheet_source();
@@ -567,6 +603,16 @@ void table_slot::setup_overlay() {
     copy_button->setCheckable(true);
     copy_all_button = android_ui::create_button(swap_bar_widget);
     copy_all_button->setText(str_label("Copy all"));
+    settings_button->setObjectName(QStringLiteral("slot_details_button"));
+    swap_button->setObjectName(QStringLiteral("slot_swap_button"));
+    copy_button->setObjectName(QStringLiteral("slot_copy_button"));
+    copy_all_button->setObjectName(QStringLiteral("slot_copy_all_button"));
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    for (auto* button :
+         { settings_button, swap_button, copy_button, copy_all_button }) {
+        button->installEventFilter(this);
+    }
+#endif
 
     quiz_prompt_widget = new BaseWidget(quiz_bar_widget);
     auto quiz_prompt_layout = new QVBoxLayout(quiz_prompt_widget);
@@ -766,7 +812,60 @@ void table_slot::setup_overlay() {
     );
 
     sync_card_display_settings();
+    update_action_presentation();
     update_settings_button_state();
+}
+
+void table_slot::update_action_presentation() {
+    if (settings_button == nullptr || copy_all_button == nullptr) {
+        return;
+    }
+    const bool running_with_deck = current_phase == slot_phase::running
+        && card_widget_internal->has_cards();
+    const QString copy_label = current_copy_action == copy_action::cancel
+        ? str_label("Cancel")
+        : current_copy_action == copy_action::apply ? str_label("Set")
+                                                    : str_label("Copy");
+    const std::array<std::pair<BasePushButton*, QString>, 4> actions {
+        { { settings_button,
+            running_with_deck ? str_label("Info") : str_label("Details") },
+          { swap_button, str_label("Swap") },
+          { copy_button, copy_label },
+          { copy_all_button, str_label("Copy all") } }
+    };
+    copy_button->setToolTip(
+        current_copy_action == copy_action::cancel
+            ? str_label("Cancel copying settings")
+            : current_copy_action == copy_action::apply
+            ? str_label("Apply the selected slot's settings to this slot")
+            : str_label("Copy settings from this slot")
+    );
+    for (const auto& [button, label] : actions) {
+        button->setAccessibleName(label);
+        // Native themes may supply the same glyph for Copy and Copy all.
+        // Keep the scope explicit even in the otherwise icon-only rail.
+        button->setText(
+            action_style == slot_action_style::rail
+                ? (button == copy_all_button ? str_label("All") : QString())
+                : label
+        );
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+        button->setStyleSheet(
+            action_style == slot_action_style::rail
+                ? QStringLiteral(
+                      "QPushButton { min-width: 24px; min-height: 24px; "
+                      "padding: 4px; } QPushButton:focus { border-style: "
+                      "dashed; }"
+                  )
+                : action_style == slot_action_style::pills
+                ? QStringLiteral(
+                      "QPushButton { border-radius: 12px; padding: 6px 12px; } "
+                      "QPushButton:focus { border-style: dashed; }"
+                  )
+                : QString()
+        );
+#endif
+    }
 }
 
 void table_slot::setup_quiz_chips() {
@@ -883,6 +982,9 @@ void table_slot::update_overlay_palette() {
     apply_palette_to_widget(
         quiz_bar_widget, panel_color, accent_color, input_color
     );
+    apply_palette_to_widget(
+        settings_editor_panel, panel_color, accent_color, input_color
+    );
     update_quiz_presentation();
 }
 
@@ -922,7 +1024,7 @@ void table_slot::apply_palette_to_widget(
             " color: %3;"
             "}"
             "QFrame#settings_bar_frame, QFrame#swap_bar_frame,"
-            " QFrame#quiz_bar_frame {"
+            " QFrame#quiz_bar_frame, QFrame#slot_settings_editor {"
             " background-color: %3;"
             " border: 1px solid %1;"
             " border-radius: 6px;"
@@ -945,8 +1047,14 @@ void table_slot::update_overlay_layout() {
         delete overlay_layout->takeAt(0);
     }
 
+    const bool rail = action_style == slot_action_style::rail;
+    const bool horizontal_composition
+        = !quiz_prompt_active && action_style != slot_action_style::classic
+        ? rail
+        : is_rotated;
     overlay_layout->setDirection(
-        is_rotated ? QBoxLayout::LeftToRight : QBoxLayout::TopToBottom
+        horizontal_composition ? QBoxLayout::LeftToRight
+                               : QBoxLayout::TopToBottom
     );
 
     if (quiz_prompt_active) {
@@ -962,13 +1070,36 @@ void table_slot::update_overlay_layout() {
 
     if (swap_layout != nullptr) {
         swap_layout->setDirection(
-            is_rotated ? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight
+            rail || (action_style == slot_action_style::classic && is_rotated)
+                ? QBoxLayout::TopToBottom
+                : QBoxLayout::LeftToRight
         );
     }
     update_compact_controls();
 }
 
 bool table_slot::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == settings_editor_panel
+        && event->type() == QEvent::LayoutRequest) {
+        place_settings_editor();
+    }
+    if (action_style == slot_action_style::rail) {
+        auto* button = qobject_cast<BasePushButton*>(watched);
+        if (button != nullptr && button->parentWidget() == swap_bar_widget) {
+            // A keyboard focus label must not widen the rail and change fit.
+            if (event->type() == QEvent::FocusIn) {
+                QToolTip::showText(
+                    button->mapToGlobal(QPoint(button->width(), 0)),
+                    button->toolTip(), button
+                );
+            } else if (
+                event->type() == QEvent::FocusOut
+                || event->type() == QEvent::Hide
+            ) {
+                QToolTip::hideText();
+            }
+        }
+    }
     if (event->type() == QEvent::KeyPress) {
         auto* key = static_cast<QKeyEvent*>(event);
         if (key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter) {
@@ -1001,6 +1132,11 @@ void table_slot::update_compact_controls() {
         || quiz_bar_widget == nullptr || swap_bar_widget == nullptr) {
         return;
     }
+    if (settings_editor_panel) {
+        compact_controls_button->hide();
+        overlay_widget->hide();
+        return;
+    }
     const bool controls_visible = current_phase == slot_phase::paused
         || !card_widget_internal->has_cards() || quiz_prompt_active;
     if (quiz_prompt_active) {
@@ -1027,9 +1163,10 @@ void table_slot::update_compact_controls() {
     QSize required
         = minimum(quiz_prompt_active ? quiz_bar_widget : swap_bar_widget);
     if (!quiz_prompt_active && settings_overlay_visible
-        && !use_dialog_for_settings) {
+        && !use_dialog_for_settings
+        && settings_style == slot_settings_style::classic) {
         const QSize settings = minimum(settings_bar_widget);
-        required = is_rotated
+        required = overlay_layout->direction() == QBoxLayout::LeftToRight
             ? QSize(
                   required.width() + settings.width()
                       + overlay_layout->spacing(),
@@ -1123,6 +1260,11 @@ void table_slot::update_settings_button_state(bool dialog_open) {
     if (settings_button == nullptr) {
         return;
     }
+    if (settings_editor_panel
+        || settings_style != slot_settings_style::classic) {
+        settings_button->setChecked(settings_editor_panel != nullptr);
+        return;
+    }
     if (use_dialog_for_settings) {
         settings_button->setChecked(dialog_open);
         return;
@@ -1156,6 +1298,7 @@ void table_slot::resizeEvent(QResizeEvent* event) {
     if (overlay_widget != nullptr && !controls_dialog) {
         overlay_widget->setGeometry(rect());
     }
+    place_settings_editor();
 
     if (settings_bar_widget == nullptr) {
         return;
@@ -1194,7 +1337,10 @@ void table_slot::resizeEvent(QResizeEvent* event) {
         settings_bar_widget->hide();
     } else {
         if (overlay_widget != nullptr && overlay_widget->isVisible()) {
-            settings_bar_widget->setVisible(settings_overlay_visible);
+            settings_bar_widget->setVisible(
+                settings_overlay_visible
+                && settings_style == slot_settings_style::classic
+            );
         }
     }
     update_settings_button_state();
@@ -1215,7 +1361,199 @@ void table_slot::on_infinity_toggled(bool checked) {
 
 void table_slot::on_swap_button_clicked() { emit swap_clicked(this); }
 
+void table_slot::populate_settings_editor(slot_settings* editor) {
+    auto* infinite = editor->infinity_check_box();
+    auto* decks = editor->deck_count_spin_box();
+    auto* strategy = editor->strategy_combo_box();
+    infinite->setChecked(infinity_check_box->isChecked());
+    decks->setRange(
+        deck_count_spin_box->minimum(), deck_count_spin_box->maximum()
+    );
+    decks->setSingleStep(deck_count_spin_box->singleStep());
+    decks->setValue(deck_count_spin_box->value());
+    strategy->clear();
+    for (int i = 0; i < strategy_combo_box->count(); ++i) {
+        strategy->addItem(
+            strategy_combo_box->itemText(i), strategy_combo_box->itemData(i)
+        );
+        strategy->setItemData(
+            i, strategy_combo_box->itemData(i, Qt::UserRole + 1),
+            Qt::UserRole + 1
+        );
+    }
+    strategy->setCurrentIndex(strategy_combo_box->currentIndex());
+    strategy->setEnabled(strategy_combo_box->isEnabled());
+    editor->show_card_indexing()->setChecked(show_card_indexing->isChecked());
+    editor->show_strategy_name()->setChecked(show_strategy_name->isChecked());
+    editor->training_check_box()->setChecked(training_check_box->isChecked());
+    const bool locked = card_widget_internal->has_cards()
+        && current_phase == slot_phase::paused;
+    infinite->setEnabled(!(locked && infinite->isChecked()));
+    editor->training_check_box()->setEnabled(
+        !(locked && editor->training_check_box()->isChecked())
+    );
+    update_infinity_state(infinite, decks);
+    connect(infinite, &BaseCheckBox::toggled, editor, [infinite, decks](bool) {
+        update_infinity_state(infinite, decks);
+    });
+}
+
+void table_slot::apply_settings_editor(const slot_settings* editor) {
+    editor->deck_count_spin_box()->interpretText();
+    infinity_check_box->setChecked(editor->infinity_check_box()->isChecked());
+    deck_count_spin_box->setValue(editor->deck_count_spin_box()->value());
+    strategy_combo_box->setCurrentIndex(
+        editor->strategy_combo_box()->currentIndex()
+    );
+    show_card_indexing->setChecked(editor->show_card_indexing()->isChecked());
+    show_strategy_name->setChecked(editor->show_strategy_name()->isChecked());
+    training_check_box->setChecked(editor->training_check_box()->isChecked());
+    sync_card_display_settings();
+}
+
+void table_slot::open_settings_editor() {
+    if (quiz_prompt_active
+        || (current_phase == slot_phase::running
+            && card_widget_internal->has_cards())) {
+        return;
+    }
+    if (controls_dialog)
+        controls_dialog->close();
+    // Reuse the desktop shell's pause policy; never auto-resume.
+    emit dialog_opened();
+    auto* panel = new QFrame(this);
+    settings_editor_panel = panel;
+    panel->setObjectName(QStringLiteral("slot_settings_editor"));
+    panel->setAccessibleName(str_label("Card settings"));
+    panel->installEventFilter(this);
+    auto* layout = new QVBoxLayout(panel);
+    auto* heading
+        = new QLabel(str_label("Card settings — changes apply with OK"), panel);
+    heading->setToolTip(str_label(
+        "Cancel or Escape discards this draft. Resuming play, restarting, "
+        "restoring a session or copying settings here also discards unapplied "
+        "edits."
+    ));
+    heading->setWordWrap(true);
+    layout->addWidget(heading);
+    settings_editor_fields = new slot_settings(panel, true);
+    populate_settings_editor(settings_editor_fields);
+    layout->addWidget(settings_editor_fields);
+    connect(
+        settings_editor_fields->info_button(), &BasePushButton::clicked, this,
+        [this] {
+            if (settings_editor_fields)
+                show_template_dialog(
+                    str_label("Strategy details"),
+                    settings_editor_fields->strategy_combo_box()->currentText()
+                );
+        }
+    );
+    auto* buttons = new QDialogButtonBox(
+        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, panel
+    );
+    layout->addWidget(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, this, [this] {
+        finish_settings_editor(true);
+    });
+    connect(buttons, &QDialogButtonBox::rejected, this, [this] {
+        finish_settings_editor(false);
+    });
+    auto* escape = new QShortcut(QKeySequence(Qt::Key_Escape), panel);
+    escape->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(escape, &QShortcut::activated, this, [this] {
+        finish_settings_editor(false);
+    });
+    update_overlay_palette();
+    update_settings_button_state();
+    update_compact_controls();
+    place_settings_editor();
+    for (QWidget* field :
+         { static_cast<QWidget*>(settings_editor_fields->infinity_check_box()),
+           static_cast<QWidget*>(settings_editor_fields->deck_count_spin_box()),
+           static_cast<QWidget*>(settings_editor_fields->strategy_combo_box()),
+           static_cast<QWidget*>(
+               settings_editor_fields->show_card_indexing()
+           ) }) {
+        if (field->isEnabled()) {
+            field->setFocus(Qt::OtherFocusReason);
+            break;
+        }
+    }
+}
+
+void table_slot::place_settings_editor() {
+    if (!settings_editor_panel || settings_editor_host)
+        return;
+    auto* panel = settings_editor_panel.data();
+    panel->ensurePolished();
+    const QSize needed = panel->sizeHint().expandedTo(panel->minimumSizeHint());
+    const QRect available = rect().adjusted(8, 8, -8, -8);
+    if (needed.width() > available.width()
+        || needed.height() > available.height()) {
+        QPointer<QWidget> focused = panel->focusWidget();
+        auto* host = new QDialog(this);
+        settings_editor_host = host;
+        host->setObjectName(QStringLiteral("slot_settings_host"));
+        host->setWindowTitle(str_label("Card settings"));
+        auto* layout = new QVBoxLayout(host);
+        // Move the draft, never recreate it on resize.
+        layout->addWidget(panel);
+        connect(host, &QDialog::rejected, this, [this] {
+            finish_settings_editor(false);
+        });
+        panel->show();
+        host->show();
+        if (focused)
+            focused->setFocus(Qt::OtherFocusReason);
+        return;
+    }
+    const int x = settings_style == slot_settings_style::drawer
+        ? available.right() - needed.width() + 1
+        : available.x() + (available.width() - needed.width()) / 2;
+    const int y = settings_style == slot_settings_style::sill
+        ? available.bottom() - needed.height() + 1
+        : available.y() + (available.height() - needed.height()) / 2;
+    panel->setGeometry(QRect(QPoint(x, y), needed));
+    panel->show();
+    panel->raise();
+}
+
+void table_slot::finish_settings_editor(bool apply) {
+    if (!settings_editor_panel)
+        return;
+    auto* panel = settings_editor_panel.data();
+    auto* fields = settings_editor_fields;
+    auto* host = settings_editor_host.data();
+    settings_editor_panel = nullptr;
+    settings_editor_fields = nullptr;
+    settings_editor_host = nullptr;
+    panel->hide();
+    if (host) {
+        disconnect(host, nullptr, this, nullptr);
+        host->close();
+        host->deleteLater();
+    }
+    if (apply)
+        apply_settings_editor(fields);
+    panel->deleteLater();
+    set_paused(current_phase == slot_phase::paused);
+    if (compact_controls_button && compact_controls_button->isVisible()) {
+        compact_controls_button->setFocus(Qt::OtherFocusReason);
+    } else if (settings_button->isVisible()) {
+        settings_button->setFocus(Qt::OtherFocusReason);
+    }
+}
+
 void table_slot::on_settings_button_clicked() {
+    if (settings_editor_panel) {
+        finish_settings_editor(false);
+        return;
+    }
+    if (settings_style != slot_settings_style::classic) {
+        open_settings_editor();
+        return;
+    }
     if (use_dialog_for_settings) {
         if (infinity_check_box == nullptr || deck_count_spin_box == nullptr
             || strategy_combo_box == nullptr || show_card_indexing == nullptr
@@ -1233,64 +1571,7 @@ void table_slot::on_settings_button_clicked() {
         auto dialog_settings_widget = new slot_settings(&dialog, false);
         dialog_layout->addWidget(dialog_settings_widget);
 
-        auto dialog_infinity_check_box
-            = dialog_settings_widget->infinity_check_box();
-        auto dialog_deck_count_spin_box
-            = dialog_settings_widget->deck_count_spin_box();
-        auto dialog_strategy_combo_box
-            = dialog_settings_widget->strategy_combo_box();
-        auto dialog_show_card_indexing
-            = dialog_settings_widget->show_card_indexing();
-        auto dialog_show_strategy_name
-            = dialog_settings_widget->show_strategy_name();
-        auto dialog_training_check_box
-            = dialog_settings_widget->training_check_box();
-
-        dialog_infinity_check_box->setChecked(infinity_check_box->isChecked());
-        const bool has_deck = card_widget_internal != nullptr
-            && card_widget_internal->has_cards();
-        const bool paused = current_phase == slot_phase::paused;
-
-        dialog_deck_count_spin_box->setMinimum(deck_count_spin_box->minimum());
-        dialog_deck_count_spin_box->setMaximum(deck_count_spin_box->maximum());
-        dialog_deck_count_spin_box->setSingleStep(
-            deck_count_spin_box->singleStep()
-        );
-        dialog_deck_count_spin_box->setValue(deck_count_spin_box->value());
-
-        dialog_strategy_combo_box->clear();
-        int strategies_count = strategy_combo_box->count();
-        for (int i = 0; i < strategies_count; ++i) {
-            dialog_strategy_combo_box->addItem(strategy_combo_box->itemText(i));
-        }
-        dialog_strategy_combo_box->setCurrentIndex(
-            strategy_combo_box->currentIndex()
-        );
-
-        dialog_show_card_indexing->setChecked(show_card_indexing->isChecked());
-        dialog_show_strategy_name->setChecked(show_strategy_name->isChecked());
-        dialog_training_check_box->setChecked(training_check_box->isChecked());
-        const bool lock_infinity
-            = has_deck && paused && dialog_infinity_check_box->isChecked();
-        const bool lock_training = has_deck && paused
-            && dialog_training_check_box != nullptr
-            && dialog_training_check_box->isChecked();
-        dialog_infinity_check_box->setEnabled(!lock_infinity);
-        if (dialog_training_check_box != nullptr) {
-            dialog_training_check_box->setEnabled(!lock_training);
-        }
-
-        update_infinity_state(
-            dialog_infinity_check_box, dialog_deck_count_spin_box
-        );
-        QObject::connect(
-            dialog_infinity_check_box, &BaseCheckBox::toggled, this,
-            [dialog_infinity_check_box, dialog_deck_count_spin_box](bool) {
-                update_infinity_state(
-                    dialog_infinity_check_box, dialog_deck_count_spin_box
-                );
-            }
-        );
+        populate_settings_editor(dialog_settings_widget);
 
         auto button_box = new QDialogButtonBox(
             QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog
@@ -1307,23 +1588,7 @@ void table_slot::on_settings_button_clicked() {
         dialog.setWindowState(Qt::WindowMaximized);
 #endif
         if (dialog.exec() == QDialog::Accepted) {
-            infinity_check_box->setChecked(
-                dialog_infinity_check_box->isChecked()
-            );
-            deck_count_spin_box->setValue(dialog_deck_count_spin_box->value());
-            strategy_combo_box->setCurrentIndex(
-                dialog_strategy_combo_box->currentIndex()
-            );
-            show_card_indexing->setChecked(
-                dialog_show_card_indexing->isChecked()
-            );
-            show_strategy_name->setChecked(
-                dialog_show_strategy_name->isChecked()
-            );
-            training_check_box->setChecked(
-                dialog_training_check_box->isChecked()
-            );
-            sync_card_display_settings();
+            apply_settings_editor(dialog_settings_widget);
         }
 
         update_settings_button_state(false);
@@ -1594,6 +1859,7 @@ void table_slot::update_quiz_controls_visibility() {
 }
 
 void table_slot::apply_settings_from(const table_slot& source) {
+    finish_settings_editor(false);
     if (infinity_check_box == nullptr || deck_count_spin_box == nullptr
         || strategy_combo_box == nullptr || show_card_indexing == nullptr
         || show_strategy_name == nullptr || training_check_box == nullptr) {
@@ -1632,11 +1898,9 @@ void table_slot::apply_settings_from(const table_slot& source) {
     update_lockable_settings();
 }
 
-void table_slot::set_copy_button_text(const QString& text) {
-    if (copy_button == nullptr) {
-        return;
-    }
-    copy_button->setText(text);
+void table_slot::set_copy_action(copy_action action) {
+    current_copy_action = action;
+    update_action_presentation();
     update_action_button_state();
 }
 
@@ -1685,7 +1949,7 @@ void table_slot::update_action_button_state() {
         return;
     }
 
-    const bool is_copy_mode = copy_button->text() == str_label("Cancel");
+    const bool is_copy_mode = current_copy_action == copy_action::cancel;
     swap_button->setChecked(!is_copy_mode);
     copy_button->setChecked(is_copy_mode);
 }

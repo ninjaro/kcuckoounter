@@ -8,6 +8,7 @@
 #include "settings/theme_palette.hpp"
 #include "settings/theme_settings.hpp"
 #include "table/settings_template.hpp"
+#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -15,12 +16,16 @@
 #include "table/card_widget.hpp"
 
 #include <QDialog>
+#include <QDialogButtonBox>
 #include <QElapsedTimer>
+#include <QFocusEvent>
 #include <QFrame>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QTimer>
 #include <QToolButton>
+#include <QToolTip>
 #include <QtTest/QtTest>
 
 void table_tests::overlay_palette_applies_to_bars() {
@@ -396,6 +401,52 @@ void table_tests::presentation_preserves_packed_slots() {
             QCOMPARE(slot->geometry(), bounds[i]);
         }
     }
+    for (const auto style : { slot_action_style::rail, slot_action_style::pills,
+                              slot_action_style::classic }) {
+        table_widget.set_action_style(style);
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+        for (qsizetype i = 0; i < slot_widgets.size(); ++i) {
+            auto* slot = slot_widgets[i];
+            QCOMPARE(slot->geometry(), bounds[i]);
+            QCOMPARE(slot->findChild<card_widget*>()->geometry(), slot->rect());
+            QCOMPARE(slot->card_face_need_short_px(), raster_demands[i]);
+        }
+    }
+    for (const auto style :
+         { slot_settings_style::card, slot_settings_style::drawer,
+           slot_settings_style::sill, slot_settings_style::classic }) {
+        table_widget.set_settings_style(style);
+        for (qsizetype i = 0; i < slot_widgets.size(); ++i) {
+            QCOMPARE(slot_widgets[i]->geometry(), bounds[i]);
+            QCOMPARE(
+                slot_widgets[i]->card_face_need_short_px(), raster_demands[i]
+            );
+        }
+        if (style != slot_settings_style::classic) {
+            auto* slot = slot_widgets[0];
+            const auto state = slot->capture_session_state();
+            QVERIFY(
+                QMetaObject::invokeMethod(
+                    slot, "on_settings_button_clicked", Qt::DirectConnection
+                )
+            );
+            auto* panel = slot->findChild<QFrame*>(
+                QStringLiteral("slot_settings_editor")
+            );
+            QVERIFY(panel && panel->isVisible());
+            QCOMPARE(slot->geometry(), bounds[0]);
+            QCOMPARE(slot->findChild<card_widget*>()->geometry(), slot->rect());
+            QCOMPARE(slot->card_face_need_short_px(), raster_demands[0]);
+            QCOMPARE(slot->capture_session_state(), state);
+            QVERIFY(
+                QMetaObject::invokeMethod(
+                    slot, "on_settings_button_clicked", Qt::DirectConnection
+                )
+            );
+            QVERIFY(!panel->isVisible());
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        }
+    }
 }
 
 void table_tests::compact_slot_controls_remain_reachable_data() {
@@ -443,7 +494,13 @@ void table_tests::compact_slot_controls_remain_reachable() {
             button->mapTo(dialog, QPoint()), button->size()
         );
         QVERIFY(dialog->rect().contains(button_bounds));
-        QVERIFY(button->width() >= button->minimumSizeHint().width());
+        QVERIFY2(
+            button->width() >= button->minimumSizeHint().width(),
+            qPrintable(QStringLiteral("%1 actual=%2 minimum=%3")
+                           .arg(button->objectName())
+                           .arg(button->width())
+                           .arg(button->minimumSizeHint().width()))
+        );
     }
     QCOMPARE(slot.size(), original_slot_size);
     QCOMPARE(card->card_face_target_short_px(), raster_need);
@@ -900,38 +957,604 @@ void table_tests::quiz_presentation_editor_applies_and_resets() {
     );
     auto* feedback
         = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_feedback"));
+    auto* actions = editor.findChild<QComboBox*>(
+        QStringLiteral("desktop_ui_slot_actions")
+    );
+    auto* surfaces = editor.findChild<QComboBox*>(
+        QStringLiteral("desktop_ui_settings_surface")
+    );
+    auto* details = slot->findChild<BasePushButton*>(
+        QStringLiteral("slot_details_button")
+    );
     auto* reset
         = editor.findChild<QPushButton*>(QStringLiteral("desktop_ui_reset"));
-    QVERIFY(answer && feedback && reset);
+    QVERIFY(answer && feedback && reset && actions && details && surfaces);
     answer->setCurrentIndex(2);
     feedback->setCurrentIndex(2);
+    actions->setCurrentIndex(2);
+    surfaces->setCurrentIndex(3);
+    QVERIFY(!details->text().isEmpty());
     QVERIFY(chips->isHidden()); // Pending editor selection is not applied.
     editor.reset_theme_selection();
     QCOMPARE(answer->currentIndex(), 0);
     QCOMPARE(feedback->currentIndex(), 0);
+    QCOMPARE(actions->currentIndex(), 0);
+    QCOMPARE(surfaces->currentIndex(), 0);
     answer->setCurrentIndex(2);
     feedback->setCurrentIndex(2);
+    actions->setCurrentIndex(2);
+    surfaces->setCurrentIndex(3);
     QVERIFY(editor.apply_theme_settings());
     QCOMPARE(load_desktop_ui_preferences().answer(), quiz_answer_style::chips);
     QCOMPARE(
         load_desktop_ui_preferences().feedback(), quiz_feedback_style::stamp
     );
     QVERIFY(!chips->isHidden());
+    QVERIFY(details->text().isEmpty());
+    QCOMPARE(load_desktop_ui_preferences().actions(), slot_action_style::rail);
+    QCOMPARE(
+        load_desktop_ui_preferences().settings_surface(),
+        slot_settings_style::drawer
+    );
     QCOMPARE(slot->capture_session_state(), state);
     answer->setCurrentIndex(1);
     feedback->setCurrentIndex(1);
+    actions->setCurrentIndex(3);
+    surfaces->setCurrentIndex(4);
     editor.reset_theme_selection();
     QCOMPARE(answer->currentIndex(), 2);
     QCOMPARE(feedback->currentIndex(), 2);
+    QCOMPARE(actions->currentIndex(), 2);
+    QCOMPARE(surfaces->currentIndex(), 3);
     reset->click();
     QCOMPARE(answer->currentIndex(), 0);
     QCOMPARE(feedback->currentIndex(), 0);
+    QCOMPARE(actions->currentIndex(), 0);
+    QCOMPARE(surfaces->currentIndex(), 0);
     QVERIFY(!chips->isHidden()); // Reset remains pending until Save.
     QVERIFY(editor.apply_theme_settings());
     QVERIFY(chips->isHidden());
     QVERIFY(!load_desktop_ui_preferences().answer_override);
     QVERIFY(!load_desktop_ui_preferences().feedback_override);
+    QVERIFY(!load_desktop_ui_preferences().actions_override);
+    QVERIFY(!load_desktop_ui_preferences().settings_override);
+    QVERIFY(!details->text().isEmpty());
     QCOMPARE(slot->capture_session_state(), state);
+}
+
+void table_tests::action_variants_reuse_controls_data() {
+    QTest::addColumn<int>("style_id");
+    QTest::addColumn<bool>("rotated");
+    QTest::addColumn<bool>("compact");
+    for (const auto style :
+         { slot_action_style::classic, slot_action_style::rail,
+           slot_action_style::pills }) {
+        for (const bool rotated : { false, true }) {
+            for (const bool compact : { false, true }) {
+                const auto name
+                    = QStringLiteral("style=%1/rotated=%2/compact=%3")
+                          .arg(static_cast<int>(style))
+                          .arg(rotated)
+                          .arg(compact)
+                          .toLatin1();
+                QTest::newRow(name.constData())
+                    << static_cast<int>(style) << rotated << compact;
+            }
+        }
+    }
+}
+
+void table_tests::action_variants_reuse_controls() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop action variants; Android retains its current surface");
+#endif
+    QFETCH(int, style_id);
+    QFETCH(bool, rotated);
+    QFETCH(bool, compact);
+    const auto style = static_cast<slot_action_style>(style_id);
+    table_slot slot;
+    slot.set_shared_card_faces_mode(true);
+    slot.set_rotated(rotated);
+    slot.resize(compact ? QSize(60, 40) : QSize(800, 600));
+    slot.set_action_style(style);
+    slot.show();
+    slot.start_quiz(0);
+    for (int i = 0; i < 8; ++i)
+        slot.advance_card();
+    slot.set_paused(true);
+    auto* card = slot.findChild<card_widget*>();
+    auto* bar = slot.findChild<QFrame*>(QStringLiteral("swap_bar_frame"));
+    auto* settings
+        = slot.findChild<QFrame*>(QStringLiteral("settings_bar_frame"));
+    auto* details = slot.findChild<BasePushButton*>(
+        QStringLiteral("slot_details_button")
+    );
+    auto* swap
+        = slot.findChild<BasePushButton*>(QStringLiteral("slot_swap_button"));
+    auto* copy
+        = slot.findChild<BasePushButton*>(QStringLiteral("slot_copy_button"));
+    auto* copy_all = slot.findChild<BasePushButton*>(
+        QStringLiteral("slot_copy_all_button")
+    );
+    auto* trigger
+        = slot.findChild<QToolButton*>(QStringLiteral("compact_slot_controls"));
+    QVERIFY(
+        card && bar && settings && details && swap && copy && copy_all
+        && trigger
+    );
+    const auto state = slot.capture_session_state();
+    const auto card_bounds = card->geometry();
+    const auto raster_need = card->card_face_target_short_px();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+    QCOMPARE(trigger->isVisible(), compact);
+    QPointer<QDialog> host;
+    if (compact) {
+        QTest::keyClick(trigger, Qt::Key_Space);
+        host = slot.findChild<QDialog*>(QStringLiteral("slot_controls_dialog"));
+        QVERIFY(host && host->isVisible());
+    }
+    QVERIFY(bar->isVisible());
+    for (int i = 0; i < 8; ++i)
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+    for (auto* button : { details, swap, copy, copy_all }) {
+        QVERIFY(button->isVisible());
+        QVERIFY(!button->accessibleName().isEmpty());
+        QVERIFY(!button->toolTip().isEmpty());
+        QCOMPARE(
+            button->text().isEmpty(),
+            style == slot_action_style::rail && button != copy_all
+        );
+        QVERIFY(!button->icon().isNull());
+        QVERIFY2(
+            button->width() >= button->minimumSizeHint().width(),
+            qPrintable(QStringLiteral("%1 actual=%2 minimum=%3")
+                           .arg(button->objectName())
+                           .arg(button->width())
+                           .arg(button->minimumSizeHint().width()))
+        );
+        auto* container = compact ? static_cast<QWidget*>(host.data())
+                                  : static_cast<QWidget*>(&slot);
+        QVERIFY(container->rect().contains(
+            QRect(button->mapTo(container, QPoint()), button->size())
+        ));
+    }
+    details->setFocus(Qt::TabFocusReason);
+    for (auto* next : { swap, copy, copy_all }) {
+        QTest::keyClick(details->window()->focusWidget(), Qt::Key_Tab);
+        QCOMPARE(details->window()->focusWidget(), next);
+    }
+    if (style == slot_action_style::rail) {
+        QVERIFY(
+            details->y() < swap->y() && swap->y() < copy->y()
+            && copy->y() < copy_all->y()
+        );
+        const auto bar_size = bar->size();
+        QFocusEvent focused(QEvent::FocusIn, Qt::TabFocusReason);
+        QCoreApplication::sendEvent(copy_all, &focused);
+        QCOMPARE(QToolTip::text(), copy_all->toolTip());
+        QCOMPARE(bar->size(), bar_size); // Keyboard labels never change fit.
+        QFocusEvent unfocused(QEvent::FocusOut, Qt::TabFocusReason);
+        QCoreApplication::sendEvent(copy_all, &unfocused);
+    }
+    if (style == slot_action_style::pills) {
+        QVERIFY(
+            details->x() < swap->x() && swap->x() < copy->x()
+            && copy->x() < copy_all->x()
+        );
+    }
+    QSignalSpy swaps(&slot, &table_slot::swap_clicked);
+    QSignalSpy copies(&slot, &table_slot::copy_clicked);
+    QSignalSpy all_copies(&slot, &table_slot::copy_all_clicked);
+    QTest::keyClick(swap, Qt::Key_Space);
+    QTest::mouseClick(copy, Qt::LeftButton);
+    QTest::keyClick(copy_all, Qt::Key_Space);
+    QCOMPARE(swaps.count(), 1);
+    QCOMPARE(copies.count(), 1);
+    QCOMPARE(all_copies.count(), 1);
+    QCOMPARE(all_copies.at(0).at(0).value<table_slot*>(), &slot);
+    slot.set_swap_selected(true);
+    QVERIFY(swap->isChecked());
+    QCOMPARE(slot.capture_session_state(), state);
+
+    if (compact) {
+        bool inspected = false;
+        QSignalSpy opened(&slot, &table_slot::dialog_opened);
+        QTimer::singleShot(0, &slot, [&] {
+            auto* dialog
+                = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+            if (dialog != nullptr) {
+                auto* checkbox = dialog->findChild<BaseCheckBox*>();
+                inspected = checkbox != nullptr;
+                if (checkbox)
+                    checkbox->toggle();
+                dialog->reject();
+            }
+        });
+        QTest::mouseClick(details, Qt::LeftButton);
+        QVERIFY(inspected);
+        QCOMPARE(opened.count(), 1);
+    } else {
+        const bool visible = settings->isVisible();
+        QTest::keyClick(details, Qt::Key_Space);
+        QCOMPARE(settings->isVisible(), !visible);
+        QTest::keyClick(details, Qt::Key_Space);
+        QCOMPARE(settings->isVisible(), visible);
+    }
+    QCOMPARE(slot.capture_session_state(), state);
+    slot.set_action_style(slot_action_style::classic);
+    QVERIFY(!details->text().isEmpty());
+    QVERIFY(swap->isChecked());
+    QCOMPARE(
+        slot.findChild<BasePushButton*>(QStringLiteral("slot_copy_all_button")),
+        copy_all
+    );
+    QCOMPARE(slot.capture_session_state(), state);
+    QCOMPARE(card->geometry(), card_bounds);
+    QCOMPARE(card->card_face_target_short_px(), raster_need);
+    if (host) {
+        QTest::keyClick(host, Qt::Key_Escape);
+        QVERIFY(!host->isVisible());
+        QCOMPARE(slot.focusWidget(), trigger);
+    }
+    slot.set_action_style(style);
+    slot.set_paused(false);
+    QVERIFY(!bar->isVisible());
+    for (int i = 0; i < 21; ++i)
+        slot.advance_card();
+    QVERIFY(slot.is_quiz_prompt_active());
+    QVERIFY(!bar->isVisible()); // Never replaces or obstructs the answer path.
+    const auto question = slot.capture_session_state();
+    slot.set_action_style(slot_action_style::classic);
+    QCOMPARE(slot.capture_session_state(), question);
+    QVERIFY(slot.restore_session_state(question));
+    QVERIFY(!bar->isVisible());
+    QCOMPARE(card->geometry(), card_bounds);
+}
+
+void table_tests::action_variants_preserve_copy_and_swap_workflows() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop action variants");
+#endif
+    for (const auto style :
+         { slot_action_style::classic, slot_action_style::rail,
+           slot_action_style::pills }) {
+        table view;
+        view.resize(1200, 900);
+        view.set_action_style(style);
+        view.set_slot_count(3);
+        view.show();
+        const auto slot_widgets = view.findChildren<table_slot*>();
+        QCOMPARE(slot_widgets.size(), 3);
+        for (auto* slot : slot_widgets) {
+            slot->start_quiz(0);
+            slot->set_paused(true);
+        }
+        auto* source = slot_widgets[0];
+        auto* target = slot_widgets[1];
+        auto* other = slot_widgets[2];
+        const auto button = [](table_slot* slot, const QString& name) {
+            return slot->findChild<BasePushButton*>(name);
+        };
+        auto* source_copy = button(source, QStringLiteral("slot_copy_button"));
+        auto* target_copy = button(target, QStringLiteral("slot_copy_button"));
+        auto* source_swap = button(source, QStringLiteral("slot_swap_button"));
+        auto* target_swap = button(target, QStringLiteral("slot_swap_button"));
+        auto* copy_all = button(source, QStringLiteral("slot_copy_all_button"));
+        QVERIFY(
+            source_copy && target_copy && source_swap && target_swap && copy_all
+        );
+        QCOMPARE(
+            source_copy->text().isEmpty(), style == slot_action_style::rail
+        ); // Newly created slot inherits style.
+        auto original = source->capture_session_state();
+        auto different = original;
+        different.show_card_indexing = !different.show_card_indexing;
+        QVERIFY(source->restore_session_state(different));
+        source_copy->click();
+        QVERIFY(source_copy->isChecked());
+        QVERIFY(!source_swap->isChecked());
+        QCOMPARE(source_copy->accessibleName(), str_label("Cancel"));
+        QCOMPARE(target_copy->accessibleName(), str_label("Set"));
+        QCOMPARE(
+            source_copy->text().isEmpty(), style == slot_action_style::rail
+        );
+        view.set_action_style(slot_action_style::rail);
+        QVERIFY(source_copy->isChecked());
+        QCOMPARE(source_copy->accessibleName(), str_label("Cancel"));
+        QVERIFY(target_copy->text().isEmpty());
+        target_copy->click();
+        QCOMPARE(
+            target->capture_session_state().show_card_indexing,
+            different.show_card_indexing
+        );
+        QCOMPARE(
+            other->capture_session_state().show_card_indexing,
+            original.show_card_indexing
+        );
+        QCOMPARE(source_copy->accessibleName(), str_label("Copy"));
+        QVERIFY(!source_copy->isChecked());
+        view.set_action_style(style);
+        source_copy->click();
+        source_copy->click(); // Cancel selection, not the session.
+        QVERIFY(!source_copy->isChecked());
+        QCOMPARE(source->capture_session_state(), different);
+        copy_all->click();
+        QCOMPARE(
+            other->capture_session_state().show_card_indexing,
+            different.show_card_indexing
+        );
+        const QRect source_bounds = source->geometry();
+        const QRect target_bounds = target->geometry();
+        source_swap->click();
+        QVERIFY(source_swap->isChecked());
+        view.set_action_style(slot_action_style::pills);
+        QVERIFY(source_swap->isChecked());
+        target_swap->click();
+        QCOMPARE(source->geometry(), target_bounds);
+        QCOMPARE(target->geometry(), source_bounds);
+        QCOMPARE(source->capture_session_state(), different);
+        QVERIFY(!source_swap->isChecked());
+    }
+}
+
+void table_tests::settings_surfaces_stage_changes_data() {
+    QTest::addColumn<int>("style_id");
+    QTest::addColumn<bool>("compact");
+    QTest::addColumn<bool>("rotated");
+    for (const auto style :
+         { slot_settings_style::card, slot_settings_style::drawer,
+           slot_settings_style::sill }) {
+        for (const bool compact : { false, true }) {
+            for (const bool rotated : { false, true }) {
+                const auto name
+                    = QStringLiteral("style=%1/compact=%2/rotated=%3")
+                          .arg(static_cast<int>(style))
+                          .arg(compact)
+                          .arg(rotated)
+                          .toLatin1();
+                QTest::newRow(name.constData())
+                    << static_cast<int>(style) << compact << rotated;
+            }
+        }
+    }
+}
+
+void table_tests::settings_surfaces_stage_changes() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop settings surfaces");
+#endif
+    QFETCH(int, style_id);
+    QFETCH(bool, compact);
+    QFETCH(bool, rotated);
+    const auto style = static_cast<slot_settings_style>(style_id);
+    table_slot slot;
+    slot.set_shared_card_faces_mode(true);
+    slot.set_rotated(rotated);
+    slot.resize(compact ? QSize(120, 85) : QSize(800, 600));
+    slot.set_settings_style(style);
+    slot.show();
+    slot.start_quiz(0);
+    for (int i = 0; i < 8; ++i)
+        slot.advance_card();
+    slot.set_paused(true);
+    const auto original = slot.capture_session_state();
+    auto* card = slot.findChild<card_widget*>();
+    const auto card_rect = card->geometry();
+    const auto raster_need = card->card_face_target_short_px();
+    auto* live = slot.findChild<QFrame*>(QStringLiteral("settings_bar_frame"));
+    QVERIFY(live && live->isHidden());
+    auto* trigger
+        = slot.findChild<QToolButton*>(QStringLiteral("compact_slot_controls"));
+    auto* details = slot.findChild<BasePushButton*>(
+        QStringLiteral("slot_details_button")
+    );
+    QVERIFY(trigger && details);
+    QSignalSpy paused(&slot, &table_slot::dialog_opened);
+    if (trigger->isVisible())
+        QTest::mouseClick(trigger, Qt::LeftButton);
+    QTest::mouseClick(details, Qt::LeftButton);
+    auto* panel
+        = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
+    QVERIFY(panel && panel->isVisible());
+    QCOMPARE(paused.count(), 1);
+    auto* draft = panel->findChild<slot_settings*>();
+    auto* buttons = panel->findChild<QDialogButtonBox*>();
+    QVERIFY(draft && buttons);
+    for (int i = 0; i < 4; ++i)
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+    QCOMPARE(slot.capture_session_state(), original);
+    QCOMPARE(card->geometry(), card_rect);
+    QCOMPARE(card->card_face_target_short_px(), raster_need);
+    if (!compact) {
+        QCOMPARE(panel->parentWidget(), &slot);
+        QVERIFY(slot.rect().contains(panel->geometry()));
+        if (style == slot_settings_style::drawer)
+            QCOMPARE(panel->geometry().right(), slot.width() - 9);
+        if (style == slot_settings_style::sill)
+            QCOMPARE(panel->geometry().bottom(), slot.height() - 9);
+    } else {
+        QVERIFY(qobject_cast<QDialog*>(panel->parentWidget()));
+    }
+    QVERIFY(panel->rect().contains(
+        QRect(buttons->mapTo(panel, QPoint()), buttons->size())
+    ));
+    QCOMPARE(draft->deck_count_spin_box()->minimum(), original.deck_count);
+    draft->show_card_indexing()->setChecked(!original.show_card_indexing);
+    draft->show_strategy_name()->setChecked(!original.show_strategy_name);
+    QCOMPARE(
+        slot.capture_session_state(), original
+    ); // Draft is never a checkpoint.
+    slot.set_settings_style(slot_settings_style::classic);
+    QVERIFY(panel->isVisible());
+    QCOMPARE(
+        draft->show_card_indexing()->isChecked(), !original.show_card_indexing
+    );
+    slot.set_settings_style(style);
+    slot.set_action_style(slot_action_style::rail);
+    QCOMPARE(slot.capture_session_state(), original);
+    slot.resize(
+        80, 60
+    ); // Promotion retains the actual editor and its unsaved values.
+    auto* host = qobject_cast<QDialog*>(panel->parentWidget());
+    QVERIFY(host && host->isVisible());
+    QCOMPARE(panel->findChild<slot_settings*>(), draft);
+    slot.resize(900, 700);
+    QCOMPARE(
+        panel->parentWidget(), host
+    ); // Do not bounce an open window on resize.
+    QTest::keyClick(host, Qt::Key_Escape);
+    QVERIFY(!panel->isVisible());
+    QCOMPARE(slot.capture_session_state(), original);
+    QVERIFY(details->isVisible());
+    QCOMPARE(slot.focusWidget(), details);
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
+    QTest::mouseClick(details, Qt::LeftButton);
+    panel = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
+    QVERIFY(panel && panel->isVisible());
+    draft = panel->findChild<slot_settings*>();
+    draft->show_card_indexing()->setChecked(!original.show_card_indexing);
+    draft->show_strategy_name()->setChecked(!original.show_strategy_name);
+    buttons = panel->findChild<QDialogButtonBox*>();
+    QTest::mouseClick(buttons->button(QDialogButtonBox::Ok), Qt::LeftButton);
+    auto expected = original;
+    expected.show_card_indexing = !original.show_card_indexing;
+    expected.show_strategy_name = !original.show_strategy_name;
+    QCOMPARE(slot.capture_session_state(), expected);
+    QVERIFY(!panel->isVisible());
+    QCOMPARE(card->geometry(), slot.rect());
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
+    // Inline Escape discards the draft and returns focus to Details too.
+    QTest::mouseClick(details, Qt::LeftButton);
+    panel = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
+    QVERIFY(panel && panel->isVisible());
+    draft = panel->findChild<slot_settings*>();
+    draft->show_card_indexing()->toggle();
+    slot.activateWindow();
+    draft->show_card_indexing()->setFocus();
+    // Activate the window so the scoped Escape shortcut is dispatched.
+    QTest::qWait(1);
+    QTest::keyClick(draft->show_card_indexing(), Qt::Key_Escape);
+    QVERIFY(!panel->isVisible());
+    QCOMPARE(slot.capture_session_state(), expected);
+    QCOMPARE(slot.focusWidget(), details);
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+
+    // The shared editor preserves existing irreversible-in-session toggles.
+    expected.training_mode = true;
+    expected.infinity_enabled = true;
+    expected.card.infinity_enabled = true;
+    QVERIFY(slot.restore_session_state(expected));
+    QTest::mouseClick(details, Qt::LeftButton);
+    panel = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
+    QVERIFY(panel && panel->isVisible());
+    draft = panel->findChild<slot_settings*>();
+    QVERIFY(!draft->infinity_check_box()->isEnabled());
+    QVERIFY(!draft->training_check_box()->isEnabled());
+    QTest::mouseClick(
+        panel->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),
+        Qt::LeftButton
+    );
+    QVERIFY(!panel->isVisible());
+}
+
+void table_tests::settings_editor_lifecycle_cancels_stale_drafts() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop settings surfaces");
+#endif
+    table view;
+    view.resize(1000, 700);
+    view.set_settings_style(slot_settings_style::drawer);
+    view.set_slot_count(2);
+    view.show();
+    auto* slot = view.findChild<table_slot*>();
+    slot->start_quiz(0);
+    slot->set_paused(true);
+    auto original = slot->capture_session_state();
+    const auto open = [&]() -> QFrame* {
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QMetaObject::invokeMethod(
+            slot, "on_settings_button_clicked", Qt::DirectConnection
+        );
+        auto* panel
+            = slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
+        if (panel)
+            panel->findChild<slot_settings*>()->show_card_indexing()->toggle();
+        return panel;
+    };
+    auto* panel = open();
+    QVERIFY(
+        panel && panel->isVisible()
+    ); // Newly created slots inherit presentation.
+    slot->set_paused(false);
+    QVERIFY(!panel->isVisible());
+    QCOMPARE(
+        slot->capture_session_state().show_card_indexing,
+        original.show_card_indexing
+    );
+    slot->set_paused(true);
+    panel = open();
+    QVERIFY(panel && panel->isVisible());
+    QVERIFY(slot->restore_session_state(original));
+    QVERIFY(!panel->isVisible());
+    QCOMPARE(slot->capture_session_state(), original);
+    panel = open();
+    QVERIFY(panel && panel->isVisible());
+    table_slot source;
+    source.set_shared_card_faces_mode(true);
+    slot->apply_settings_from(source);
+    QVERIFY(!panel->isVisible());
+    panel = open();
+    QVERIFY(panel && panel->isVisible());
+    slot->start_quiz(0);
+    QVERIFY(!panel->isVisible());
+    for (int i = 0; i < 29; ++i)
+        slot->advance_card();
+    QVERIFY(slot->is_quiz_prompt_active());
+    QVERIFY(open() == nullptr); // Settings cannot replace a question.
+    slot->clear_quiz();
+    panel = open();
+    QVERIFY(panel && panel->isVisible());
+    slot->resize(50, 40);
+    QPointer<QDialog> host = qobject_cast<QDialog*>(panel->parentWidget());
+    QVERIFY(host);
+    view.set_slot_count(0);
+    QVERIFY(host.isNull());
+}
+
+void table_tests::classic_settings_dialog_preserves_transaction() {
+    table_slot slot;
+    slot.set_shared_card_faces_mode(true);
+    slot.resize(80, 60);
+    slot.show();
+    slot.start_quiz(0);
+    slot.set_paused(true);
+    const auto original = slot.capture_session_state();
+    for (const bool accept : { false, true }) {
+        bool inspected = false;
+        QTimer::singleShot(0, &slot, [&] {
+            auto* dialog
+                = qobject_cast<QDialog*>(QApplication::activeModalWidget());
+            if (!dialog)
+                return;
+            auto* editor = dialog->findChild<slot_settings*>();
+            inspected = editor != nullptr;
+            if (editor)
+                editor->show_card_indexing()->toggle();
+            dialog->done(accept ? QDialog::Accepted : QDialog::Rejected);
+        });
+        QVERIFY(
+            QMetaObject::invokeMethod(
+                &slot, "on_settings_button_clicked", Qt::DirectConnection
+            )
+        );
+        QVERIFY(inspected);
+        auto expected = original;
+        if (accept)
+            expected.show_card_indexing = !expected.show_card_indexing;
+        QCOMPARE(slot.capture_session_state(), expected);
+    }
 }
 
 void table_tests::shared_cache_rasterization_populates_visible_slots() {

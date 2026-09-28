@@ -377,8 +377,14 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     QCOMPARE(value.frame(), slot_frame_style::classic);
     QCOMPARE(value.answer(), quiz_answer_style::numeric);
     QCOMPARE(value.feedback(), quiz_feedback_style::classic);
+    QCOMPARE(value.actions(), slot_action_style::classic);
+    QCOMPARE(value.settings_surface(), slot_settings_style::classic);
+    QCOMPARE(value.toolbar(), desktop_toolbar_style::classic);
     QVERIFY(value.show_speed_readout());
     value.preset = desktop_ui_preset::quiet;
+    QCOMPARE(value.toolbar(), desktop_toolbar_style::classic);
+    QCOMPARE(value.settings_surface(), slot_settings_style::classic);
+    QCOMPARE(value.actions(), slot_action_style::classic);
     QCOMPARE(value.frame(), slot_frame_style::thin);
     QCOMPARE(value.answer(), quiz_answer_style::numeric);
     QCOMPARE(value.feedback(), quiz_feedback_style::classic);
@@ -387,16 +393,41 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     value.speed_readout_override = true;
     value.answer_override = quiz_answer_style::chips;
     value.feedback_override = quiz_feedback_style::stamp;
+    value.actions_override = slot_action_style::rail;
+    value.settings_override = slot_settings_style::drawer;
+    value.toolbar_override = desktop_toolbar_style::compact;
     QVERIFY(save_desktop_ui_preferences(settings, value));
     QSettings reloaded(path, QSettings::IniFormat);
     QCOMPARE(load_desktop_ui_preferences(reloaded), value);
+    QCOMPARE(load_desktop_ui_preferences(reloaded).toolbar(), desktop_toolbar_style::compact);
     QCOMPARE(value.answer(), quiz_answer_style::chips);
     QCOMPARE(value.feedback(), quiz_feedback_style::stamp);
+    QCOMPARE(value.actions(), slot_action_style::rail);
+    for (const auto style :
+         { slot_settings_style::card, slot_settings_style::drawer,
+           slot_settings_style::sill }) {
+        value.settings_override = style;
+        QVERIFY(save_desktop_ui_preferences(settings, value));
+        QCOMPARE(load_desktop_ui_preferences(settings), value);
+        QCOMPARE(
+            load_desktop_ui_preferences(settings).settings_surface(), style
+        );
+    }
+    value.actions_override = slot_action_style::pills;
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QCOMPARE(load_desktop_ui_preferences(settings), value);
     QCOMPARE(value.frame(), slot_frame_style::classic);
     QVERIFY(value.show_speed_readout());
     value.reset_overrides();
     QVERIFY(save_desktop_ui_preferences(settings, value));
     QCOMPARE(load_desktop_ui_preferences(settings), value);
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/toolbar")));
+    QVERIFY(!settings.contains(
+        QStringLiteral("desktop_ui/overrides/settings_surface")
+    ));
+    QVERIFY(
+        !settings.contains(QStringLiteral("desktop_ui/overrides/slot_actions"))
+    );
     QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/frame")));
     QVERIFY(
         !settings.contains(QStringLiteral("desktop_ui/overrides/answer_entry"))
@@ -411,6 +442,9 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     value.speed_readout_override = false;
     value.answer_override = quiz_answer_style::numeric;
     value.feedback_override = quiz_feedback_style::classic;
+    value.actions_override = slot_action_style::classic;
+    value.settings_override = slot_settings_style::classic;
+    value.toolbar_override = desktop_toolbar_style::classic;
     QVERIFY(save_desktop_ui_preferences(settings, value));
     QVERIFY(!load_desktop_ui_preferences(settings).show_speed_readout());
     QCOMPARE(load_desktop_ui_preferences(settings), value);
@@ -421,6 +455,17 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     settings.setValue(
         QStringLiteral("desktop_ui/overrides/feedback"),
         QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/slot_actions"),
+        QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/settings_surface"),
+        QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/toolbar"), QStringLiteral("future")
     );
     settings.setValue(
         QStringLiteral("desktop_ui/preset"), QStringLiteral("future")

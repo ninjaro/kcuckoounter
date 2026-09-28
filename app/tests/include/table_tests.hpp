@@ -38,6 +38,13 @@ private slots:
     void quiz_variants_preserve_count_semantics();
     void quiz_presentation_reaches_existing_and_new_slots();
     void quiz_presentation_editor_applies_and_resets();
+    void action_variants_reuse_controls_data();
+    void action_variants_reuse_controls();
+    void action_variants_preserve_copy_and_swap_workflows();
+    void settings_surfaces_stage_changes_data();
+    void settings_surfaces_stage_changes();
+    void settings_editor_lifecycle_cancels_stale_drafts();
+    void classic_settings_dialog_preserves_transaction();
     /// @brief Verifies shared cache rasterization populates visible slots.
     void shared_cache_rasterization_populates_visible_slots();
     /// @brief Verifies shared-cache generation cutover keeps bounded active +

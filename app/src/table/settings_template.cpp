@@ -867,6 +867,33 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
           str_label("Count stamp") }
     );
     layout->addRow(str_label("Answer feedback"), ui_feedback_combo);
+    ui_actions_combo = new BaseComboBox(this);
+    ui_actions_combo->setObjectName(QStringLiteral("desktop_ui_slot_actions"));
+    ui_actions_combo->setAccessibleName(str_label("Slot actions"));
+    ui_actions_combo->addItems(
+        { str_label("Preset default"), str_label("Classic"),
+          str_label("Icon rail"), str_label("Labelled pills") }
+    );
+    ui_actions_combo->setToolTip(str_label(
+        "Same Details, Swap, Copy and Copy all actions. Small slots use the "
+        "Card controls window."
+    ));
+    layout->addRow(str_label("Slot actions"), ui_actions_combo);
+    ui_settings_combo = new BaseComboBox(this);
+    ui_settings_combo->setObjectName(
+        QStringLiteral("desktop_ui_settings_surface")
+    );
+    ui_settings_combo->setAccessibleName(str_label("Slot settings"));
+    ui_settings_combo->addItems(
+        { str_label("Preset default"), str_label("Classic"),
+          str_label("Settings card"), str_label("Edge drawer"),
+          str_label("Bottom sill") }
+    );
+    ui_settings_combo->setToolTip(str_label(
+        "Alternatives open on Details and apply only with OK. Small slots host "
+        "the same draft in a window."
+    ));
+    layout->addRow(str_label("Slot settings"), ui_settings_combo);
     auto* reset
         = new QPushButton(str_label("Reset components to preset"), this);
     reset->setObjectName(QStringLiteral("desktop_ui_reset"));
@@ -876,6 +903,8 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
         ui_speed_combo->setCurrentIndex(0);
         ui_answer_combo->setCurrentIndex(0);
         ui_feedback_combo->setCurrentIndex(0);
+        ui_actions_combo->setCurrentIndex(0);
+        ui_settings_combo->setCurrentIndex(0);
     };
     connect(ui_preset_combo, &QComboBox::activated, this, reset_overrides);
     connect(reset, &QPushButton::clicked, this, reset_overrides);
@@ -913,6 +942,19 @@ void settings_template_widget::reset_desktop_component_selection() {
             : *value.feedback_override == quiz_feedback_style::stamp ? 2
                                                                      : 1
     );
+    ui_actions_combo->setCurrentIndex(
+        !value.actions_override                                   ? 0
+            : *value.actions_override == slot_action_style::rail  ? 2
+            : *value.actions_override == slot_action_style::pills ? 3
+                                                                  : 1
+    );
+    ui_settings_combo->setCurrentIndex(
+        !value.settings_override                                      ? 0
+            : *value.settings_override == slot_settings_style::card   ? 2
+            : *value.settings_override == slot_settings_style::drawer ? 3
+            : *value.settings_override == slot_settings_style::sill   ? 4
+                                                                      : 1
+    );
 }
 
 desktop_ui_preferences
@@ -941,6 +983,22 @@ settings_template_widget::selected_desktop_components() const {
         value.feedback_override = ui_feedback_combo->currentIndex() == 2
             ? quiz_feedback_style::stamp
             : quiz_feedback_style::classic;
+    }
+    if (ui_actions_combo->currentIndex() > 0) {
+        value.actions_override = ui_actions_combo->currentIndex() == 2
+            ? slot_action_style::rail
+            : ui_actions_combo->currentIndex() == 3
+            ? slot_action_style::pills
+            : slot_action_style::classic;
+    }
+    if (ui_settings_combo->currentIndex() > 0) {
+        value.settings_override = ui_settings_combo->currentIndex() == 2
+            ? slot_settings_style::card
+            : ui_settings_combo->currentIndex() == 3
+            ? slot_settings_style::drawer
+            : ui_settings_combo->currentIndex() == 4
+            ? slot_settings_style::sill
+            : slot_settings_style::classic;
     }
     return value;
 }
@@ -985,6 +1043,8 @@ bool settings_template_widget::apply_theme_settings() {
         if (ui_preset_combo != nullptr) {
             const auto components = selected_desktop_components();
             table_widget->set_frame_style(components.frame());
+            table_widget->set_action_style(components.actions());
+            table_widget->set_settings_style(components.settings_surface());
             table_widget->set_quiz_presentation(
                 components.answer(), components.feedback()
             );
