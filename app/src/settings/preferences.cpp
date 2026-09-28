@@ -355,3 +355,92 @@ void save_desktop_shell_state(const desktop_shell_state& state) {
     desktop_shell_state_service service(settings);
     service.save(state);
 }
+
+slot_frame_style desktop_ui_preferences::frame() const {
+    return frame_override.value_or(
+        preset == desktop_ui_preset::quiet ? slot_frame_style::thin
+                                           : slot_frame_style::classic
+    );
+}
+
+bool desktop_ui_preferences::show_speed_readout() const {
+    return speed_readout_override.value_or(preset != desktop_ui_preset::quiet);
+}
+
+void desktop_ui_preferences::reset_overrides() {
+    frame_override.reset();
+    speed_readout_override.reset();
+}
+
+desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
+    desktop_ui_preferences result;
+    settings.beginGroup(QStringLiteral("desktop_ui"));
+    if (settings.value(QStringLiteral("preset")).toString()
+        == QStringLiteral("quiet")) {
+        result.preset = desktop_ui_preset::quiet;
+    }
+    const QString frame
+        = settings.value(QStringLiteral("overrides/frame")).toString();
+    if (frame == QStringLiteral("classic")) {
+        result.frame_override = slot_frame_style::classic;
+    } else if (frame == QStringLiteral("thin")) {
+        result.frame_override = slot_frame_style::thin;
+    }
+    const QString speed
+        = settings.value(QStringLiteral("overrides/speed_readout")).toString();
+    if (speed == QStringLiteral("shown")) {
+        result.speed_readout_override = true;
+    } else if (speed == QStringLiteral("hidden")) {
+        result.speed_readout_override = false;
+    }
+    settings.endGroup();
+    return result;
+}
+
+bool save_desktop_ui_preferences(
+    QSettings& settings, const desktop_ui_preferences& preferences
+) {
+    settings.beginGroup(QStringLiteral("desktop_ui"));
+    settings.setValue(
+        QStringLiteral("preset"),
+        preferences.preset == desktop_ui_preset::quiet
+            ? QStringLiteral("quiet")
+            : QStringLiteral("classic")
+    );
+    if (preferences.frame_override) {
+        settings.setValue(
+            QStringLiteral("overrides/frame"),
+            *preferences.frame_override == slot_frame_style::thin
+                ? QStringLiteral("thin")
+                : QStringLiteral("classic")
+        );
+    } else {
+        settings.remove(QStringLiteral("overrides/frame"));
+    }
+    if (preferences.speed_readout_override) {
+        settings.setValue(
+            QStringLiteral("overrides/speed_readout"),
+            *preferences.speed_readout_override ? QStringLiteral("shown")
+                                                : QStringLiteral("hidden")
+        );
+    } else {
+        settings.remove(QStringLiteral("overrides/speed_readout"));
+    }
+    settings.endGroup();
+    settings.sync();
+    return settings.status() == QSettings::NoError;
+}
+
+desktop_ui_preferences load_desktop_ui_preferences() {
+    QSettings settings(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    return load_desktop_ui_preferences(settings);
+}
+
+bool save_desktop_ui_preferences(const desktop_ui_preferences& preferences) {
+    QSettings settings(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    return save_desktop_ui_preferences(settings, preferences);
+}

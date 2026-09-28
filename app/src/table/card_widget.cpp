@@ -120,7 +120,7 @@ card_widget::card_widget(BaseWidget* parent)
         &card_widget::update_selection_pulse
     );
     setAccessibleName(str_label("Playing card"));
-    setAccessibleDescription(str_label("Empty card slot"));
+    update_accessible_description();
     QObject::connect(
         &rasterize_watcher, &QFutureWatcher<QVector<QImage>>::finished, this,
         &card_widget::on_rasterization_finished
@@ -165,6 +165,7 @@ void card_widget::start_quiz(
     discard_history.clear();
     picks_since_rasterize = 0;
     update_card_jitter();
+    update_accessible_description();
     update();
 }
 
@@ -180,6 +181,7 @@ void card_widget::set_running(bool new_running) {
     }
 
     running = new_running;
+    update_accessible_description();
     update();
 }
 
@@ -190,6 +192,14 @@ void card_widget::set_slot_rotated(bool rotated) {
 
     slot_rotated = rotated;
     update();
+}
+
+void card_widget::set_frame_style(slot_frame_style style) {
+    if (frame_style == style) {
+        return;
+    }
+    frame_style = style;
+    update(); // No geometry, jitter, deck or raster-cache invalidation.
 }
 
 void card_widget::set_show_card_indexing(bool enabled) {
@@ -248,6 +258,7 @@ void card_widget::set_hide_cards(bool hide) {
         return;
     }
     hide_cards_flag = hide;
+    update_accessible_description();
     update();
 }
 
@@ -258,13 +269,7 @@ void card_widget::advance_card() {
 
     record_discard();
     picker.advance();
-    const int current_card_index = picker.current_card_index();
-    setAccessibleDescription(
-        current_card_index >= 0
-            ? str_label("Current card: %1")
-                  .arg(card_label_from_index(current_card_index))
-            : str_label("Card back")
-    );
+    update_accessible_description();
     ++picks_since_rasterize;
     update_card_jitter();
     update();
@@ -282,6 +287,7 @@ void card_widget::mark_deck_exhausted() {
     picker.set_infinity(false);
     infinity_enabled = false;
     picker.mark_depleted();
+    update_accessible_description();
     update();
 }
 
@@ -325,6 +331,7 @@ bool card_widget::restore_session_state(const card_session_state& state) {
     selection_timer->stop();
     selection_phase = 0.0;
     update_card_jitter();
+    update_accessible_description();
     update();
     return true;
 }
@@ -355,7 +362,25 @@ void card_widget::clear_quiz() {
     }
     selection_phase = 0.0;
     update_card_jitter();
+    update_accessible_description();
     update();
+}
+
+void card_widget::update_accessible_description() {
+    // Mirror paintEvent's visibility precedence, including the paused back.
+    // A quiz prompt must not expose the hidden face to assistive technology.
+    if (!picker.has_cards()) {
+        setAccessibleDescription(str_label("Empty card slot"));
+    } else if (hide_cards_flag) {
+        setAccessibleDescription(str_label("Card hidden"));
+    } else if (!running || picker.current_card_index() < 0) {
+        setAccessibleDescription(str_label("Card back"));
+    } else {
+        setAccessibleDescription(
+            str_label("Current card: %1")
+                .arg(card_label_from_index(picker.current_card_index()))
+        );
+    }
 }
 
 void card_widget::trigger_highlight(int duration_ms) {
@@ -514,7 +539,9 @@ void card_widget::paintEvent(QPaintEvent* event) {
     const QColor slot_border_color = swap_selected_flag
         ? theme_settings::slot_border_selected_color()
         : theme_settings::slot_border_color();
-    painter.setPen(QPen(slot_border_color, 6.6));
+    painter.setPen(QPen(
+        slot_border_color, frame_style == slot_frame_style::thin ? 1.0 : 6.6
+    ));
     painter.setBrush(QBrush(slot_fill_color));
     painter.drawRoundedRect(slot_frame_rect, 10.0, 10.0);
 

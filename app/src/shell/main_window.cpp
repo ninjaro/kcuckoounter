@@ -20,6 +20,7 @@
 #include <QLabel>
 #include <QMessageBox>
 #include <QProgressBar>
+#include <QScrollArea>
 #include <QSignalBlocker>
 #include <QSlider>
 #include <QStringList>
@@ -381,6 +382,8 @@ void main_window::setup_ui() {
     }
     refresh_clock_label();
 
+    apply_desktop_presentation();
+
     if (setup_dialog != nullptr) {
         time_interface::single_shot(0, setup_dialog, [this]() {
             if (!mobile_checkpoint_restored) {
@@ -399,6 +402,18 @@ void main_window::setup_ui() {
         &main_window::on_application_state_changed
     );
     restore_mobile_session_checkpoint();
+#endif
+}
+
+void main_window::apply_desktop_presentation() {
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    const auto value = load_desktop_ui_preferences();
+    if (table_widget != nullptr) {
+        table_widget->set_frame_style(value.frame());
+    }
+    if (pickup_interval_label != nullptr) {
+        pickup_interval_label->setVisible(value.show_speed_readout());
+    }
 #endif
 }
 
@@ -753,7 +768,20 @@ void main_window::on_settings_triggered() {
         settings_tab_kind::appearance, tab_widget, QString(), table_widget,
         shared_state
     );
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    auto* appearance_scroll = new QScrollArea(tab_widget);
+    appearance_scroll->setWidgetResizable(true);
+    appearance_scroll->setFrameShape(QFrame::NoFrame);
+    appearance_scroll->setWidget(appearance_settings_widget);
+    tab_widget->addTab(appearance_scroll, str_label("Appearance"));
+#else
     tab_widget->addTab(appearance_settings_widget, str_label("Appearance"));
+#endif
+    connect(
+        appearance_settings_widget,
+        &settings_template_widget::desktop_presentation_applied, this,
+        &main_window::apply_desktop_presentation
+    );
     tab_widget->addTab(
         new settings_template_widget(
             settings_tab_kind::strategies, tab_widget, QString(), nullptr,
@@ -832,8 +860,9 @@ void main_window::on_progress_triggered() {
 }
 
 void main_window::on_settings_commit_requested() {
-    if (appearance_settings_widget != nullptr) {
-        appearance_settings_widget->apply_theme_settings();
+    if (appearance_settings_widget != nullptr
+        && !appearance_settings_widget->apply_theme_settings()) {
+        return;
     }
     if (settings_dialog != nullptr) {
         settings_dialog->close();

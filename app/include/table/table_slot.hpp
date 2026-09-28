@@ -2,6 +2,7 @@
 #define KCUCKOOUNTER_TABLE_TABLE_SLOT_HPP
 
 #include "arch/widget_helpers.hpp"
+#include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
 
 #include <QBoxLayout>
@@ -26,6 +27,7 @@ public:
     void set_swap_selected(bool selected);
     [[nodiscard]] bool swap_selected() const;
     void set_rotated(bool rotated);
+    void set_frame_style(slot_frame_style style);
     void set_allow_skipping(bool allow);
 
     void start_quiz(int quiz_type_index);

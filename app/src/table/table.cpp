@@ -140,6 +140,7 @@ void table::set_slot_count(int count) {
         slot_widgets.reserve(static_cast<std::size_t>(count));
         for (int index = current_count; index < count; ++index) {
             auto slot_widget = new table_slot(this);
+            slot_widget->set_frame_style(frame_style);
             slot_widget->set_allow_skipping(allow_skipping);
             slot_widget->set_shared_card_faces_mode(true);
             QObject::connect(
@@ -406,6 +407,13 @@ void table::prepare_cards_for_start() {
     }
     update_shared_card_face_need(true);
     on_preload_tick();
+}
+
+void table::set_frame_style(slot_frame_style style) {
+    frame_style = style;
+    for (table_slot* slot : slot_widgets) {
+        slot->set_frame_style(style);
+    }
 }
 
 void table::apply_theme() {

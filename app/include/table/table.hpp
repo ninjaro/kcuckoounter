@@ -39,6 +39,7 @@ public:
     void set_dealing_mode(int mode_index);
     void set_allow_skipping(bool allow);
     void set_card_orientation(card_orientation_mode orientation);
+    void set_frame_style(slot_frame_style style);
     void schedule_card_preload();
     void prepare_cards_for_start();
     void apply_theme();
@@ -79,6 +80,7 @@ private:
     table_slot* swap_source_slot;
     table_slot* copy_source_slot;
     card_orientation_mode card_orientation;
+    slot_frame_style frame_style = slot_frame_style::classic;
     int pick_interval_ms;
     qint64 pick_elapsed_ms;
     bool quiz_running;

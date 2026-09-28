@@ -82,6 +82,7 @@ private:
     qint64 last_mobile_checkpoint_elapsed_ms;
 
     void setup_ui();
+    void apply_desktop_presentation();
     void setup_game_actions();
     void setup_platform_shell();
     void finalize_platform_shell();

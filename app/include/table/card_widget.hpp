@@ -6,6 +6,7 @@
 #include "arch/widget_helpers.hpp"
 #include "card_helpers/card_picker.hpp"
 #include "image/image_cacher.hpp"
+#include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
 #include <QFutureWatcher>
 #include <QImage>
@@ -48,6 +49,7 @@ public:
     void set_infinity(bool enabled);
     void set_running(bool running);
     void set_slot_rotated(bool rotated);
+    void set_frame_style(slot_frame_style style);
     void set_show_card_indexing(bool enabled);
     void set_show_strategy_name(bool enabled);
     void set_training_mode(bool enabled);
@@ -94,6 +96,7 @@ private:
     qreal card_rotation_deg;
     QPointF card_offset;
     bool slot_rotated;
+    slot_frame_style frame_style = slot_frame_style::classic;
     bool show_card_indexing_flag;
     bool show_strategy_name_flag;
     bool training_mode_flag;
@@ -133,6 +136,7 @@ private:
     bool shared_card_faces_mode;
 
     void update_card_jitter();
+    void update_accessible_description();
     void update_table_marking();
     QSize card_face_target_size() const;
     static QSize raster_cache_size(const QSize& target_size);

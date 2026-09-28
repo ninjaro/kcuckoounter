@@ -356,5 +356,65 @@ void preferences_tests::training_progress_rejects_huge_history_values() {
     QVERIFY(service.load().recent_results.isEmpty());
 }
 
+void preferences_tests::desktop_components_preserve_domain_settings() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const auto path = directory.filePath(QStringLiteral("ui.ini"));
+    QSettings settings(path, QSettings::IniFormat);
+    const QStringList unrelated {
+        QStringLiteral("trainer_preferences/setup/slot_count"),
+        QStringLiteral("trainer_preferences/appearance/palette"),
+        QStringLiteral("desktop_shell/window/geometry"),
+        QStringLiteral("session_checkpoint/payload"),
+        QStringLiteral("training_progress/payload")
+    };
+    for (const auto& key : unrelated) {
+        settings.setValue(key, QByteArray("unchanged"));
+    }
+    QCOMPARE(load_desktop_ui_preferences(settings), desktop_ui_preferences {});
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/preset")));
+    desktop_ui_preferences value;
+    QCOMPARE(value.frame(), slot_frame_style::classic);
+    QVERIFY(value.show_speed_readout());
+    value.preset = desktop_ui_preset::quiet;
+    QCOMPARE(value.frame(), slot_frame_style::thin);
+    QVERIFY(!value.show_speed_readout());
+    value.frame_override = slot_frame_style::classic;
+    value.speed_readout_override = true;
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QSettings reloaded(path, QSettings::IniFormat);
+    QCOMPARE(load_desktop_ui_preferences(reloaded), value);
+    QCOMPARE(value.frame(), slot_frame_style::classic);
+    QVERIFY(value.show_speed_readout());
+    value.reset_overrides();
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QCOMPARE(load_desktop_ui_preferences(settings), value);
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/frame")));
+    QVERIFY(
+        !settings.contains(QStringLiteral("desktop_ui/overrides/speed_readout"))
+    );
+    value.preset = desktop_ui_preset::classic;
+    value.speed_readout_override = false;
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QVERIFY(!load_desktop_ui_preferences(settings).show_speed_readout());
+    settings.setValue(
+        QStringLiteral("desktop_ui/preset"), QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/frame"), QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/speed_readout"),
+        QStringLiteral("invalid")
+    );
+    QCOMPARE(load_desktop_ui_preferences(settings), desktop_ui_preferences {});
+    for (const auto& key : unrelated) {
+        QCOMPARE(settings.value(key).toByteArray(), QByteArray("unchanged"));
+    }
+    // A directory is not a writable INI file; the caller must see failure.
+    QSettings unwritable(directory.path(), QSettings::IniFormat);
+    QVERIFY(!save_desktop_ui_preferences(unwritable, value));
+}
+
 // NOLINTEND(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)

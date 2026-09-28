@@ -20,6 +20,7 @@
 #include <QImage>
 #include <QLabel>
 #include <QListWidget>
+#include <QMessageBox>
 #include <QPainter>
 #include <QPixmap>
 #include <QPushButton>
@@ -691,6 +692,7 @@ void settings_template_widget::setup_appearance_ui() {
     theme_layout->addRow(str_label("Palette"), theme_palette_preview);
     theme_layout->addRow(str_label("Default suit"), suit_combo_box);
     theme_layout->addRow(str_label("Orientation"), orientation_combo_box);
+    setup_desktop_components(theme_layout);
     main_layout->addWidget(theme_widget);
 
     auto theme_section = new BaseWidget(this);
@@ -815,15 +817,112 @@ void settings_template_widget::on_theme_source_button_clicked(
     flush_coalesced_preview_refresh();
 }
 
-void settings_template_widget::apply_theme_settings() {
-    if (theme_combo_box == nullptr || shared_state == nullptr) {
+void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    ui_preset_combo = new BaseComboBox(this);
+    ui_preset_combo->setObjectName(QStringLiteral("desktop_ui_preset"));
+    ui_preset_combo->setAccessibleName(str_label("Desktop UI preset"));
+    ui_preset_combo->addItems({ str_label("Classic"), str_label("Quiet") });
+    ui_preset_combo->setToolTip(str_label(
+        "Presentation only; does not change game rules, palette or card "
+        "artwork."
+    ));
+    layout->addRow(str_label("Desktop UI preset"), ui_preset_combo);
+    ui_frame_combo = new BaseComboBox(this);
+    ui_frame_combo->setObjectName(QStringLiteral("desktop_ui_frame"));
+    ui_frame_combo->setAccessibleName(str_label("Slot frame"));
+    ui_frame_combo->addItems(
+        { str_label("Preset default"), str_label("Classic"),
+          str_label("Thin outline") }
+    );
+    layout->addRow(str_label("Slot frame"), ui_frame_combo);
+    ui_speed_combo = new BaseComboBox(this);
+    ui_speed_combo->setObjectName(QStringLiteral("desktop_ui_speed_readout"));
+    ui_speed_combo->setAccessibleName(str_label("Pickup interval text"));
+    ui_speed_combo->addItems(
+        { str_label("Preset default"), str_label("Shown"), str_label("Hidden") }
+    );
+    ui_speed_combo->setToolTip(str_label(
+        "Only changes the numeric readout. The speed slider and gameplay speed "
+        "policy are unchanged."
+    ));
+    layout->addRow(str_label("Pickup interval text"), ui_speed_combo);
+    auto* reset
+        = new QPushButton(str_label("Reset components to preset"), this);
+    reset->setObjectName(QStringLiteral("desktop_ui_reset"));
+    layout->addRow(reset);
+    const auto reset_overrides = [this] {
+        ui_frame_combo->setCurrentIndex(0);
+        ui_speed_combo->setCurrentIndex(0);
+    };
+    connect(ui_preset_combo, &QComboBox::activated, this, reset_overrides);
+    connect(reset, &QPushButton::clicked, this, reset_overrides);
+    reset_desktop_component_selection();
+#else
+    Q_UNUSED(layout);
+#endif
+}
+
+void settings_template_widget::reset_desktop_component_selection() {
+    if (ui_preset_combo == nullptr) {
         return;
+    }
+    const auto value = load_desktop_ui_preferences();
+    ui_preset_combo->setCurrentIndex(
+        value.preset == desktop_ui_preset::quiet ? 1 : 0
+    );
+    ui_frame_combo->setCurrentIndex(
+        !value.frame_override                                 ? 0
+            : *value.frame_override == slot_frame_style::thin ? 2
+                                                              : 1
+    );
+    ui_speed_combo->setCurrentIndex(
+        !value.speed_readout_override       ? 0
+            : *value.speed_readout_override ? 1
+                                            : 2
+    );
+}
+
+desktop_ui_preferences
+settings_template_widget::selected_desktop_components() const {
+    desktop_ui_preferences value;
+    if (ui_preset_combo == nullptr) {
+        return value;
+    }
+    value.preset = ui_preset_combo->currentIndex() == 1
+        ? desktop_ui_preset::quiet
+        : desktop_ui_preset::classic;
+    if (ui_frame_combo->currentIndex() > 0) {
+        value.frame_override = ui_frame_combo->currentIndex() == 2
+            ? slot_frame_style::thin
+            : slot_frame_style::classic;
+    }
+    if (ui_speed_combo->currentIndex() > 0) {
+        value.speed_readout_override = ui_speed_combo->currentIndex() == 1;
+    }
+    return value;
+}
+
+bool settings_template_widget::apply_theme_settings() {
+    if (theme_combo_box == nullptr || shared_state == nullptr) {
+        return false;
+    }
+
+    if (ui_preset_combo != nullptr
+        && !save_desktop_ui_preferences(selected_desktop_components())) {
+        QMessageBox::warning(
+            this, str_label("Desktop presentation"),
+            str_label("Could not save the desktop presentation settings.")
+        );
+        return false;
     }
 
     const QColor base_color = settings_template_support::theme_color_from_label(
         theme_combo_box->currentText()
     );
     const QString selected_theme_source = selected_theme_source_id();
+    const bool theme_changed = theme_settings::base_color() != base_color
+        || card_sheet_source_path() != selected_theme_source;
     theme_settings::set_base_color(base_color);
     set_card_sheet_source_path(selected_theme_source);
     shared_state->set_table_color_index(theme_combo_box->currentIndex());
@@ -838,11 +937,21 @@ void settings_template_widget::apply_theme_settings() {
     save_trainer_preferences(preferences);
     if (table_widget != nullptr) {
         table_widget->set_card_orientation(preferences.card_orientation);
-        table_widget->apply_theme();
+        if (theme_changed) {
+            table_widget->apply_theme();
+        }
+        if (ui_preset_combo != nullptr) {
+            table_widget->set_frame_style(
+                selected_desktop_components().frame()
+            );
+        }
     }
+    emit desktop_presentation_applied();
+    return true;
 }
 
 void settings_template_widget::reset_theme_selection() {
+    reset_desktop_component_selection();
     if (theme_combo_box == nullptr || shared_state == nullptr) {
         return;
     }

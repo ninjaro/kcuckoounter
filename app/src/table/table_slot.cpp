@@ -457,6 +457,12 @@ void table_slot::set_shared_card_faces_mode(bool enabled) {
     card_widget_internal->set_shared_card_faces_mode(enabled);
 }
 
+void table_slot::set_frame_style(slot_frame_style style) {
+    if (card_widget_internal != nullptr) {
+        card_widget_internal->set_frame_style(style);
+    }
+}
+
 void table_slot::apply_theme() {
     if (card_widget_internal != nullptr) {
         card_widget_internal->sync_card_sheet_source();
