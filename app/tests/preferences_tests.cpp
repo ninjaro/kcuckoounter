@@ -375,15 +375,23 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     QVERIFY(!settings.contains(QStringLiteral("desktop_ui/preset")));
     desktop_ui_preferences value;
     QCOMPARE(value.frame(), slot_frame_style::classic);
+    QCOMPARE(value.answer(), quiz_answer_style::numeric);
+    QCOMPARE(value.feedback(), quiz_feedback_style::classic);
     QVERIFY(value.show_speed_readout());
     value.preset = desktop_ui_preset::quiet;
     QCOMPARE(value.frame(), slot_frame_style::thin);
+    QCOMPARE(value.answer(), quiz_answer_style::numeric);
+    QCOMPARE(value.feedback(), quiz_feedback_style::classic);
     QVERIFY(!value.show_speed_readout());
     value.frame_override = slot_frame_style::classic;
     value.speed_readout_override = true;
+    value.answer_override = quiz_answer_style::chips;
+    value.feedback_override = quiz_feedback_style::stamp;
     QVERIFY(save_desktop_ui_preferences(settings, value));
     QSettings reloaded(path, QSettings::IniFormat);
     QCOMPARE(load_desktop_ui_preferences(reloaded), value);
+    QCOMPARE(value.answer(), quiz_answer_style::chips);
+    QCOMPARE(value.feedback(), quiz_feedback_style::stamp);
     QCOMPARE(value.frame(), slot_frame_style::classic);
     QVERIFY(value.show_speed_readout());
     value.reset_overrides();
@@ -391,12 +399,29 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     QCOMPARE(load_desktop_ui_preferences(settings), value);
     QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/frame")));
     QVERIFY(
+        !settings.contains(QStringLiteral("desktop_ui/overrides/answer_entry"))
+    );
+    QVERIFY(
+        !settings.contains(QStringLiteral("desktop_ui/overrides/feedback"))
+    );
+    QVERIFY(
         !settings.contains(QStringLiteral("desktop_ui/overrides/speed_readout"))
     );
     value.preset = desktop_ui_preset::classic;
     value.speed_readout_override = false;
+    value.answer_override = quiz_answer_style::numeric;
+    value.feedback_override = quiz_feedback_style::classic;
     QVERIFY(save_desktop_ui_preferences(settings, value));
     QVERIFY(!load_desktop_ui_preferences(settings).show_speed_readout());
+    QCOMPARE(load_desktop_ui_preferences(settings), value);
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/answer_entry"),
+        QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/feedback"),
+        QStringLiteral("future")
+    );
     settings.setValue(
         QStringLiteral("desktop_ui/preset"), QStringLiteral("future")
     );

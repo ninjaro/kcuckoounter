@@ -31,6 +31,9 @@ public:
     [[nodiscard]] bool swap_selected() const;
     void set_rotated(bool rotated);
     void set_frame_style(slot_frame_style style);
+    void set_quiz_presentation(
+        quiz_answer_style answer, quiz_feedback_style feedback
+    );
     void set_allow_skipping(bool allow);
 
     void start_quiz(int quiz_type_index);
@@ -112,6 +115,10 @@ private:
     BaseWidget* quiz_feedback_widget;
     QLabel* quiz_weight_label;
     BaseSpinBox* quiz_spin_box;
+    BaseWidget* quiz_chip_widget = nullptr;
+    QLabel* quiz_feedback_heading = nullptr;
+    quiz_answer_style answer_style = quiz_answer_style::numeric;
+    quiz_feedback_style feedback_style = quiz_feedback_style::classic;
     BasePushButton* quiz_answer_button;
     BasePushButton* quiz_skip_button;
     QLabel* quiz_feedback_label;
@@ -127,6 +134,8 @@ private:
     int last_quiz_input_value;
 
     void setup_overlay();
+    void setup_quiz_chips();
+    void update_quiz_presentation();
     void update_overlay_layout();
     void update_compact_controls();
     void show_compact_controls();

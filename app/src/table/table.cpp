@@ -141,6 +141,7 @@ void table::set_slot_count(int count) {
         for (int index = current_count; index < count; ++index) {
             auto slot_widget = new table_slot(this);
             slot_widget->set_frame_style(frame_style);
+            slot_widget->set_quiz_presentation(answer_style, feedback_style);
             slot_widget->set_allow_skipping(allow_skipping);
             slot_widget->set_shared_card_faces_mode(true);
             QObject::connect(
@@ -413,6 +414,16 @@ void table::set_frame_style(slot_frame_style style) {
     frame_style = style;
     for (table_slot* slot : slot_widgets) {
         slot->set_frame_style(style);
+    }
+}
+
+void table::set_quiz_presentation(
+    quiz_answer_style answer, quiz_feedback_style feedback
+) {
+    answer_style = answer;
+    feedback_style = feedback;
+    for (table_slot* slot : slot_widgets) {
+        slot->set_quiz_presentation(answer, feedback);
     }
 }
 

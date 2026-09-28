@@ -13,13 +13,16 @@
 #include "table/settings_template.hpp"
 #include "table/slot_settings.hpp"
 
+#include <QApplication>
 #include <QBoxLayout>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QEvent>
 #include <QFrame>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
+#include <QLineEdit>
 #include <QResizeEvent>
 #include <QSignalBlocker>
 #include <QStackedLayout>
@@ -466,6 +469,22 @@ void table_slot::set_frame_style(slot_frame_style style) {
     }
 }
 
+void table_slot::set_quiz_presentation(
+    quiz_answer_style answer, quiz_feedback_style feedback
+) {
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    if (answer_style == answer && feedback_style == feedback) {
+        return;
+    }
+    answer_style = answer;
+    feedback_style = feedback;
+    update_quiz_presentation();
+#else
+    Q_UNUSED(answer);
+    Q_UNUSED(feedback);
+#endif
+}
+
 void table_slot::apply_theme() {
     if (card_widget_internal != nullptr) {
         card_widget_internal->sync_card_sheet_source();
@@ -660,8 +679,20 @@ void table_slot::setup_overlay() {
     quiz_prompt_button_layout->addWidget(quiz_skip_button);
     quiz_prompt_button_layout->addStretch();
     quiz_prompt_layout->addLayout(quiz_prompt_row_layout);
+    setup_quiz_chips();
+    if (quiz_chip_widget != nullptr) {
+        quiz_prompt_layout->addWidget(quiz_chip_widget);
+    }
     quiz_prompt_layout->addLayout(quiz_prompt_button_layout);
 
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    quiz_feedback_heading
+        = new QLabel(str_label("ACCUMULATED COUNT"), quiz_feedback_widget);
+    quiz_feedback_heading->setObjectName(QStringLiteral("quiz_feedback_stamp"));
+    quiz_feedback_heading->setWordWrap(true);
+    quiz_feedback_heading->setAlignment(Qt::AlignCenter);
+    quiz_feedback_layout->addWidget(quiz_feedback_heading);
+#endif
     quiz_feedback_layout->addWidget(quiz_feedback_label);
     quiz_feedback_layout->addWidget(quiz_continue_button, 0, Qt::AlignCenter);
 
@@ -738,6 +769,103 @@ void table_slot::setup_overlay() {
     update_settings_button_state();
 }
 
+void table_slot::setup_quiz_chips() {
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    quiz_spin_box->installEventFilter(this);
+    quiz_spin_box->findChild<QLineEdit*>()->installEventFilter(this);
+    quiz_chip_widget = new BaseWidget(quiz_prompt_widget);
+    quiz_chip_widget->setObjectName(QStringLiteral("quiz_chip_stepper"));
+    auto* row = new QHBoxLayout(quiz_chip_widget);
+    row->setContentsMargins(0, 0, 0, 0);
+    row->setSpacing(6);
+    row->addStretch();
+    QWidget* previous = quiz_spin_box;
+    for (const int step : { -2, -1, 1, 2 }) {
+        const QString text = step > 0 ? str_label("+%1").arg(step)
+                                      : str_label("−%1").arg(-step);
+        auto* button = new QPushButton(text, quiz_chip_widget);
+        button->setObjectName(QStringLiteral("quiz_chip_%1").arg(step));
+        button->setAutoDefault(false);
+        button->setAccessibleName(
+            step > 0 ? str_label("Add %1 to answer").arg(step)
+                     : str_label("Subtract %1 from answer").arg(-step)
+        );
+        button->setToolTip(button->accessibleName());
+        button->setStyleSheet(QStringLiteral(
+            "QPushButton { border-radius: 18px; min-width: 36px; min-height: "
+            "36px; padding: 0px; font-weight: 600; }"
+        ));
+        button->installEventFilter(this);
+        row->addWidget(button);
+        QWidget::setTabOrder(previous, button);
+        previous = button;
+        connect(button, &QPushButton::clicked, this, [this, step] {
+            if (!quiz_prompt_active || quiz_feedback_active) {
+                return;
+            }
+            quiz_spin_box->interpretText();
+            quiz_spin_box->setValue(quiz_spin_box->value() + step);
+        });
+        connect(
+            quiz_spin_box, &QSpinBox::valueChanged, button,
+            [this, button, step](int value) {
+                button->setEnabled(
+                    step > 0 ? value < quiz_spin_box->maximum()
+                             : value > quiz_spin_box->minimum()
+                );
+            }
+        );
+    }
+    QWidget::setTabOrder(previous, quiz_answer_button);
+    QWidget::setTabOrder(quiz_answer_button, quiz_skip_button);
+    QWidget::setTabOrder(quiz_skip_button, quiz_continue_button);
+    row->addStretch();
+#endif
+}
+
+void table_slot::update_quiz_presentation() {
+    if (quiz_chip_widget == nullptr || quiz_feedback_heading == nullptr) {
+        return;
+    }
+    const bool chips = answer_style == quiz_answer_style::chips;
+    const auto* focused = QApplication::focusWidget();
+    const bool chip_had_focus
+        = focused != nullptr && quiz_chip_widget->isAncestorOf(focused);
+    const bool controls_had_focus
+        = focused != nullptr && overlay_widget->isAncestorOf(focused);
+    quiz_chip_widget->setVisible(chips);
+    quiz_spin_box->setButtonSymbols(
+        chips ? QAbstractSpinBox::NoButtons : QAbstractSpinBox::UpDownArrows
+    );
+    if (!chips && chip_had_focus && quiz_prompt_active
+        && !quiz_feedback_active) {
+        quiz_spin_box->setFocus(Qt::OtherFocusReason);
+    }
+    const bool stamp = feedback_style == quiz_feedback_style::stamp;
+    quiz_feedback_heading->setVisible(stamp);
+    quiz_feedback_heading->setStyleSheet(QStringLiteral("font-weight: 700;"));
+    quiz_feedback_label->setStyleSheet(
+        stamp ? QStringLiteral(
+                    "QLabel { font-weight: 600; border: 2px solid %1; "
+                    "border-radius: 4px; padding: 8px; }"
+                )
+                    .arg(theme_settings::slot_border_color().name())
+              : QString()
+    );
+    // Only presentation hints change. Invalidate them before checking whether
+    // the controls still fit inline; neither table packing nor card demand
+    // changes.
+    quiz_prompt_widget->updateGeometry();
+    quiz_feedback_widget->updateGeometry();
+    quiz_bar_widget->updateGeometry();
+    update_compact_controls();
+    if (controls_had_focus && !controls_dialog
+        && compact_controls_button != nullptr
+        && compact_controls_button->isVisible() && quiz_prompt_active) {
+        compact_controls_button->setFocus(Qt::OtherFocusReason);
+    }
+}
+
 void table_slot::update_overlay_palette() {
     const QColor base_color = theme_settings::base_color();
     const theme_palette_option& palette_option = theme_palette_registry::option(
@@ -755,6 +883,7 @@ void table_slot::update_overlay_palette() {
     apply_palette_to_widget(
         quiz_bar_widget, panel_color, accent_color, input_color
     );
+    update_quiz_presentation();
 }
 
 void table_slot::apply_palette_to_widget(
@@ -840,6 +969,27 @@ void table_slot::update_overlay_layout() {
 }
 
 bool table_slot::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::KeyPress) {
+        auto* key = static_cast<QKeyEvent*>(event);
+        if (key->key() == Qt::Key_Return || key->key() == Qt::Key_Enter) {
+            if (quiz_spin_box != nullptr
+                && (watched == quiz_spin_box
+                    || watched == quiz_spin_box->findChild<QLineEdit*>())) {
+                if (!key->isAutoRepeat()) {
+                    on_quiz_answer_button_clicked();
+                }
+                return true; // Do not also activate a dialog default button.
+            }
+            auto* button = qobject_cast<QPushButton*>(watched);
+            if (button != nullptr && quiz_chip_widget != nullptr
+                && quiz_chip_widget->isAncestorOf(button)) {
+                if (!key->isAutoRepeat()) {
+                    button->click();
+                }
+                return true;
+            }
+        }
+    }
     if (watched == overlay_widget && event->type() == QEvent::LayoutRequest) {
         update_compact_controls();
     }
@@ -853,6 +1003,22 @@ void table_slot::update_compact_controls() {
     }
     const bool controls_visible = current_phase == slot_phase::paused
         || !card_widget_internal->has_cards() || quiz_prompt_active;
+    if (quiz_prompt_active) {
+        // A stacked page's minimum hint allows wrapped text to be clipped.
+        // Reserve its natural height-for-width before either centering it or
+        // deciding to host it. Derive this from layout hints, never the old
+        // explicit minimum, so shorter feedback/styles can shrink again.
+        QSize quiz_size = quiz_bar_widget->sizeHint().expandedTo(
+            quiz_bar_widget->minimumSizeHint()
+        );
+        quiz_size.setHeight(
+            std::max(
+                quiz_size.height(),
+                quiz_bar_widget->heightForWidth(quiz_size.width())
+            )
+        );
+        quiz_bar_widget->setMinimumSize(quiz_size);
+    }
     // Read the active surfaces, not the outer layout's QWidgetItem cache:
     // that cache can still describe a hidden bar while restoring a question.
     const auto minimum = [](const QWidget* widget) {
@@ -1185,11 +1351,12 @@ void table_slot::on_copy_button_clicked() { emit copy_clicked(this); }
 void table_slot::on_copy_all_button_clicked() { emit copy_all_clicked(this); }
 
 void table_slot::on_quiz_answer_button_clicked() {
-    if (!quiz_prompt_active || quiz_spin_box == nullptr
+    if (!quiz_prompt_active || quiz_feedback_active || quiz_spin_box == nullptr
         || card_widget_internal == nullptr) {
         return;
     }
 
+    quiz_spin_box->interpretText();
     const int expected = card_widget_internal->current_total_weight();
     const int provided = quiz_spin_box->value();
     last_quiz_input_value = provided;
@@ -1216,8 +1383,8 @@ void table_slot::on_quiz_answer_button_clicked() {
 }
 
 void table_slot::on_quiz_skip_button_clicked() {
-    if (!quiz_prompt_active || quiz_spin_box == nullptr
-        || card_widget_internal == nullptr) {
+    if (!quiz_prompt_active || quiz_feedback_active || !allow_skipping_flag
+        || quiz_spin_box == nullptr || card_widget_internal == nullptr) {
         return;
     }
 

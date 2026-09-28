@@ -847,6 +847,26 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
         "policy are unchanged."
     ));
     layout->addRow(str_label("Pickup interval text"), ui_speed_combo);
+    ui_answer_combo = new BaseComboBox(this);
+    ui_answer_combo->setObjectName(QStringLiteral("desktop_ui_answer_entry"));
+    ui_answer_combo->setAccessibleName(str_label("Answer entry"));
+    ui_answer_combo->addItems(
+        { str_label("Preset default"), str_label("Numeric"),
+          str_label("Chip stepper") }
+    );
+    ui_answer_combo->setToolTip(str_label(
+        "Chips adjust the same accumulated count; Check submits it. Typed "
+        "entry remains available."
+    ));
+    layout->addRow(str_label("Answer entry"), ui_answer_combo);
+    ui_feedback_combo = new BaseComboBox(this);
+    ui_feedback_combo->setObjectName(QStringLiteral("desktop_ui_feedback"));
+    ui_feedback_combo->setAccessibleName(str_label("Answer feedback"));
+    ui_feedback_combo->addItems(
+        { str_label("Preset default"), str_label("Classic text"),
+          str_label("Count stamp") }
+    );
+    layout->addRow(str_label("Answer feedback"), ui_feedback_combo);
     auto* reset
         = new QPushButton(str_label("Reset components to preset"), this);
     reset->setObjectName(QStringLiteral("desktop_ui_reset"));
@@ -854,6 +874,8 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
     const auto reset_overrides = [this] {
         ui_frame_combo->setCurrentIndex(0);
         ui_speed_combo->setCurrentIndex(0);
+        ui_answer_combo->setCurrentIndex(0);
+        ui_feedback_combo->setCurrentIndex(0);
     };
     connect(ui_preset_combo, &QComboBox::activated, this, reset_overrides);
     connect(reset, &QPushButton::clicked, this, reset_overrides);
@@ -881,6 +903,16 @@ void settings_template_widget::reset_desktop_component_selection() {
             : *value.speed_readout_override ? 1
                                             : 2
     );
+    ui_answer_combo->setCurrentIndex(
+        !value.answer_override                                   ? 0
+            : *value.answer_override == quiz_answer_style::chips ? 2
+                                                                 : 1
+    );
+    ui_feedback_combo->setCurrentIndex(
+        !value.feedback_override                                     ? 0
+            : *value.feedback_override == quiz_feedback_style::stamp ? 2
+                                                                     : 1
+    );
 }
 
 desktop_ui_preferences
@@ -899,6 +931,16 @@ settings_template_widget::selected_desktop_components() const {
     }
     if (ui_speed_combo->currentIndex() > 0) {
         value.speed_readout_override = ui_speed_combo->currentIndex() == 1;
+    }
+    if (ui_answer_combo->currentIndex() > 0) {
+        value.answer_override = ui_answer_combo->currentIndex() == 2
+            ? quiz_answer_style::chips
+            : quiz_answer_style::numeric;
+    }
+    if (ui_feedback_combo->currentIndex() > 0) {
+        value.feedback_override = ui_feedback_combo->currentIndex() == 2
+            ? quiz_feedback_style::stamp
+            : quiz_feedback_style::classic;
     }
     return value;
 }
@@ -941,8 +983,10 @@ bool settings_template_widget::apply_theme_settings() {
             table_widget->apply_theme();
         }
         if (ui_preset_combo != nullptr) {
-            table_widget->set_frame_style(
-                selected_desktop_components().frame()
+            const auto components = selected_desktop_components();
+            table_widget->set_frame_style(components.frame());
+            table_widget->set_quiz_presentation(
+                components.answer(), components.feedback()
             );
         }
     }

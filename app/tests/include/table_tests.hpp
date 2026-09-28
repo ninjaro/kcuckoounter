@@ -34,6 +34,10 @@ private slots:
     void compact_slot_controls_remain_reachable_data();
     void compact_slot_controls_remain_reachable();
     void compact_controls_follow_slot_lifetime();
+    void quiz_variants_preserve_count_semantics_data();
+    void quiz_variants_preserve_count_semantics();
+    void quiz_presentation_reaches_existing_and_new_slots();
+    void quiz_presentation_editor_applies_and_resets();
     /// @brief Verifies shared cache rasterization populates visible slots.
     void shared_cache_rasterization_populates_visible_slots();
     /// @brief Verifies shared-cache generation cutover keeps bounded active +

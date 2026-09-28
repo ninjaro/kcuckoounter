@@ -367,9 +367,19 @@ bool desktop_ui_preferences::show_speed_readout() const {
     return speed_readout_override.value_or(preset != desktop_ui_preset::quiet);
 }
 
+quiz_answer_style desktop_ui_preferences::answer() const {
+    return answer_override.value_or(quiz_answer_style::numeric);
+}
+
+quiz_feedback_style desktop_ui_preferences::feedback() const {
+    return feedback_override.value_or(quiz_feedback_style::classic);
+}
+
 void desktop_ui_preferences::reset_overrides() {
     frame_override.reset();
     speed_readout_override.reset();
+    answer_override.reset();
+    feedback_override.reset();
 }
 
 desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
@@ -392,6 +402,20 @@ desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
         result.speed_readout_override = true;
     } else if (speed == QStringLiteral("hidden")) {
         result.speed_readout_override = false;
+    }
+    const QString answer
+        = settings.value(QStringLiteral("overrides/answer_entry")).toString();
+    if (answer == QStringLiteral("numeric")) {
+        result.answer_override = quiz_answer_style::numeric;
+    } else if (answer == QStringLiteral("chips")) {
+        result.answer_override = quiz_answer_style::chips;
+    }
+    const QString feedback
+        = settings.value(QStringLiteral("overrides/feedback")).toString();
+    if (feedback == QStringLiteral("classic")) {
+        result.feedback_override = quiz_feedback_style::classic;
+    } else if (feedback == QStringLiteral("stamp")) {
+        result.feedback_override = quiz_feedback_style::stamp;
     }
     settings.endGroup();
     return result;
@@ -425,6 +449,26 @@ bool save_desktop_ui_preferences(
         );
     } else {
         settings.remove(QStringLiteral("overrides/speed_readout"));
+    }
+    if (preferences.answer_override) {
+        settings.setValue(
+            QStringLiteral("overrides/answer_entry"),
+            *preferences.answer_override == quiz_answer_style::chips
+                ? QStringLiteral("chips")
+                : QStringLiteral("numeric")
+        );
+    } else {
+        settings.remove(QStringLiteral("overrides/answer_entry"));
+    }
+    if (preferences.feedback_override) {
+        settings.setValue(
+            QStringLiteral("overrides/feedback"),
+            *preferences.feedback_override == quiz_feedback_style::stamp
+                ? QStringLiteral("stamp")
+                : QStringLiteral("classic")
+        );
+    } else {
+        settings.remove(QStringLiteral("overrides/feedback"));
     }
     settings.endGroup();
     settings.sync();

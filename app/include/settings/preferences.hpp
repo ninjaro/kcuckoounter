@@ -13,6 +13,8 @@ struct strategy_catalog;
 enum class card_orientation_mode { automatic, vertical, horizontal };
 
 enum class slot_frame_style { classic, thin };
+enum class quiz_answer_style { numeric, chips };
+enum class quiz_feedback_style { classic, stamp };
 enum class desktop_ui_preset { classic, quiet };
 
 // Presentation only: never put session/drill or artwork settings here.
@@ -20,9 +22,13 @@ struct desktop_ui_preferences {
     desktop_ui_preset preset = desktop_ui_preset::classic;
     std::optional<slot_frame_style> frame_override;
     std::optional<bool> speed_readout_override;
+    std::optional<quiz_answer_style> answer_override;
+    std::optional<quiz_feedback_style> feedback_override;
 
     [[nodiscard]] slot_frame_style frame() const;
     [[nodiscard]] bool show_speed_readout() const;
+    [[nodiscard]] quiz_answer_style answer() const;
+    [[nodiscard]] quiz_feedback_style feedback() const;
     void reset_overrides();
     bool operator==(const desktop_ui_preferences&) const = default;
 };

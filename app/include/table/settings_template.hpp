@@ -153,6 +153,8 @@ private:
     BaseComboBox* ui_preset_combo = nullptr;
     BaseComboBox* ui_frame_combo = nullptr;
     BaseComboBox* ui_speed_combo = nullptr;
+    BaseComboBox* ui_answer_combo = nullptr;
+    BaseComboBox* ui_feedback_combo = nullptr;
     BaseWidget* theme_palette_preview;
     QButtonGroup* theme_button_group;
     card_preview_carousel* theme_carousel;
