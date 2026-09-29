@@ -60,6 +60,9 @@ public:
     [[nodiscard]] bool is_deck_exhausted() const;
     [[nodiscard]] bool is_quiz_prompt_active() const;
     [[nodiscard]] table_slot_session_state capture_session_state() const;
+    [[nodiscard]] drill_slot_preferences capture_drill_settings() const;
+    // Called by table only after whole-drill preflight and clearing the quiz.
+    void apply_drill_settings(const drill_slot_preferences& settings);
     [[nodiscard]] static bool
     is_session_state_valid(const table_slot_session_state& state);
     bool restore_session_state(const table_slot_session_state& state);

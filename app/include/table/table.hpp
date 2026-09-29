@@ -52,6 +52,11 @@ public:
     raster_cache* shared_raster_cache_service();
     const raster_cache* shared_raster_cache_service() const;
     [[nodiscard]] table_session_state capture_session_state() const;
+    [[nodiscard]] QVector<drill_slot_preferences>
+    capture_drill_settings() const;
+    // Invalid/unsupported input leaves the entire table unchanged. This
+    // prepares a fresh session; normal start_quiz still creates the new shoes.
+    bool configure_drill(const training_drill& drill);
     bool restore_session_state(const table_session_state& state);
 
 public slots:

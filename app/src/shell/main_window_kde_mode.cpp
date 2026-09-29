@@ -163,6 +163,9 @@ void main_window::finalize_platform_shell() {
     if (finish_action != nullptr) {
         game_menu->addAction(finish_action);
     }
+    if (saved_drills_action != nullptr) {
+        game_menu->addAction(saved_drills_action);
+    }
     if (highscores_action != nullptr) {
         game_menu->addAction(highscores_action);
     }

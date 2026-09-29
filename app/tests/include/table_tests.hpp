@@ -7,6 +7,8 @@ class table_tests : public QObject {
     Q_OBJECT
 
 private slots:
+    void drill_configuration_preflight_and_fresh_shoes();
+    void saved_drill_picker_preserves_and_launches_sessions();
     /// @brief Verifies overlay palette applies to settings and swap bars.
     void overlay_palette_applies_to_bars();
     /// @brief Verifies gold text is used for overlay frame palettes.

@@ -138,6 +138,29 @@ void table_slot::set_allow_skipping(bool allow) {
     update_quiz_controls_visibility();
 }
 
+drill_slot_preferences table_slot::capture_drill_settings() const {
+    return { deck_count_spin_box->value(), is_infinity_enabled(),
+             strategy_combo_box->currentData().toString(),
+             is_training_enabled() };
+}
+
+void table_slot::apply_drill_settings(const drill_slot_preferences& settings) {
+    finish_settings_editor(false);
+    const QSignalBlocker infinity_blocker(infinity_check_box);
+    const QSignalBlocker deck_blocker(deck_count_spin_box);
+    const QSignalBlocker strategy_blocker(strategy_combo_box);
+    const QSignalBlocker training_blocker(training_check_box);
+    infinity_check_box->setChecked(settings.infinity_enabled);
+    deck_count_spin_box->setValue(settings.deck_count);
+    strategy_combo_box->setCurrentIndex(
+        strategy_combo_box->findData(settings.strategy_slug)
+    );
+    training_check_box->setChecked(settings.training_mode);
+    update_infinity_state(infinity_check_box, deck_count_spin_box);
+    sync_card_display_settings();
+    update_lockable_settings();
+}
+
 table_slot_session_state table_slot::capture_session_state() const {
     table_slot_session_state state;
     if (card_widget_internal != nullptr) {

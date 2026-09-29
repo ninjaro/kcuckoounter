@@ -2,13 +2,161 @@
 
 #include "settings/strategy_data.hpp"
 
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMetaType>
+#include <QSet>
 #include <QSettings>
 #include <QVariant>
 
+#include <algorithm>
 #include <optional>
 
 namespace {
+
+const QString drills_key = QStringLiteral("training_drills/document");
+constexpr qsizetype maximum_drills_bytes = 1024 * 1024;
+
+bool valid_drill(const training_drill& drill) {
+    if (drill.name.isEmpty() || drill.name != drill.name.trimmed()
+        || drill.name.size() > training_drill_service::maximum_name_length
+        || drill.quiz_type < 0 || drill.quiz_type > 1
+        || (drill.quiz_type == 1 && !drill.wait_for_answers)
+        || drill.dealing_mode < 0 || drill.dealing_mode > 2
+        || drill.pickup_interval_ms
+            < trainer_preferences::minimum_pickup_interval_ms
+        || drill.pickup_interval_ms
+            > trainer_preferences::maximum_pickup_interval_ms
+        || drill.slot_settings.isEmpty()
+        || drill.slot_settings.size() > trainer_preferences::maximum_slot_count)
+        return false;
+    for (const auto character : drill.name)
+        if (character.category() == QChar::Other_Control)
+            return false;
+    return std::ranges::all_of(drill.slot_settings, [](const auto& slot) {
+        return slot.deck_count >= 1 && slot.deck_count <= 16
+            && !slot.strategy_slug.isEmpty() && slot.strategy_slug.size() <= 128
+            && slot.strategy_slug == slot.strategy_slug.trimmed();
+    });
+}
+
+bool valid_drills(const QVector<training_drill>& drills) {
+    if (drills.size() > training_drill_service::maximum_drills)
+        return false;
+    QSet<QString> names;
+    for (const auto& drill : drills) {
+        const auto name = drill.name.normalized(QString::NormalizationForm_C)
+                              .toCaseFolded();
+        if (!valid_drill(drill) || names.contains(name))
+            return false;
+        names.insert(name);
+    }
+    return true;
+}
+
+int drill_integer(const QJsonValue& value, int minimum, int maximum) {
+    if (!value.isDouble())
+        return -1;
+    const double number = value.toDouble();
+    if (!(number >= minimum && number <= maximum))
+        return -1;
+    const int integer = static_cast<int>(number);
+    return number == integer ? integer : -1;
+}
+
+QByteArray encode_drills(const QVector<training_drill>& drills) {
+    QJsonArray entries;
+    for (const auto& drill : drills) {
+        QJsonArray slot_entries;
+        for (const auto& slot : drill.slot_settings)
+            slot_entries.append(
+                QJsonObject {
+                    { QStringLiteral("decks"), slot.deck_count },
+                    { QStringLiteral("infinite"), slot.infinity_enabled },
+                    { QStringLiteral("strategy"), slot.strategy_slug },
+                    { QStringLiteral("training"), slot.training_mode },
+                }
+            );
+        entries.append(
+            QJsonObject {
+                { QStringLiteral("name"), drill.name },
+                { QStringLiteral("quiz"), drill.quiz_type },
+                { QStringLiteral("wait"), drill.wait_for_answers },
+                { QStringLiteral("skip"), drill.allow_skipping },
+                { QStringLiteral("dealing"), drill.dealing_mode },
+                { QStringLiteral("interval_ms"), drill.pickup_interval_ms },
+                { QStringLiteral("slots"), slot_entries },
+            }
+        );
+    }
+    return QJsonDocument(
+               QJsonObject { { QStringLiteral("version"), 1 },
+                             { QStringLiteral("drills"), entries } }
+    ).toJson(QJsonDocument::Compact);
+}
+
+std::optional<QVector<training_drill>> decode_drills(const QByteArray& bytes) {
+    if (bytes.isEmpty() || bytes.size() > maximum_drills_bytes)
+        return std::nullopt;
+    const auto document = QJsonDocument::fromJson(bytes);
+    if (!document.isObject())
+        return std::nullopt;
+    const auto root = document.object();
+    if (drill_integer(root.value(QStringLiteral("version")), 1, 1) != 1
+        || !root.value(QStringLiteral("drills")).isArray())
+        return std::nullopt;
+    const auto entries = root.value(QStringLiteral("drills")).toArray();
+    if (entries.size() > training_drill_service::maximum_drills)
+        return std::nullopt;
+    QVector<training_drill> drills;
+    for (const auto& entry : entries) {
+        if (!entry.isObject())
+            return std::nullopt;
+        const auto object = entry.toObject();
+        if (!object.value(QStringLiteral("name")).isString()
+            || !object.value(QStringLiteral("wait")).isBool()
+            || !object.value(QStringLiteral("skip")).isBool()
+            || !object.value(QStringLiteral("slots")).isArray())
+            return std::nullopt;
+        training_drill drill;
+        drill.name = object.value(QStringLiteral("name")).toString();
+        drill.quiz_type
+            = drill_integer(object.value(QStringLiteral("quiz")), 0, 1);
+        drill.wait_for_answers = object.value(QStringLiteral("wait")).toBool();
+        drill.allow_skipping = object.value(QStringLiteral("skip")).toBool();
+        drill.dealing_mode
+            = drill_integer(object.value(QStringLiteral("dealing")), 0, 2);
+        drill.pickup_interval_ms = drill_integer(
+            object.value(QStringLiteral("interval_ms")),
+            trainer_preferences::minimum_pickup_interval_ms,
+            trainer_preferences::maximum_pickup_interval_ms
+        );
+        const auto slot_entries
+            = object.value(QStringLiteral("slots")).toArray();
+        if (slot_entries.size() > trainer_preferences::maximum_slot_count)
+            return std::nullopt;
+        for (const auto& value : slot_entries) {
+            if (!value.isObject())
+                return std::nullopt;
+            const auto slot = value.toObject();
+            if (!slot.value(QStringLiteral("infinite")).isBool()
+                || !slot.value(QStringLiteral("training")).isBool()
+                || !slot.value(QStringLiteral("strategy")).isString())
+                return std::nullopt;
+            drill.slot_settings.append(
+                {
+                    drill_integer(slot.value(QStringLiteral("decks")), 1, 16),
+                    slot.value(QStringLiteral("infinite")).toBool(),
+                    slot.value(QStringLiteral("strategy")).toString(),
+                    slot.value(QStringLiteral("training")).toBool(),
+                }
+            );
+        }
+        drills.append(drill);
+    }
+    return valid_drills(drills) ? std::make_optional(drills) : std::nullopt;
+}
 
 const QString preferences_group = QStringLiteral("trainer_preferences");
 const QString desktop_shell_group = QStringLiteral("desktop_shell");
@@ -230,6 +378,83 @@ read_current_preferences(QSettings& settings, const strategy_catalog& catalog) {
 }
 
 } // namespace
+
+bool is_drill_configuration_supported(
+    const training_drill& drill, const strategy_catalog& catalog
+) {
+    return valid_drill(drill) && catalog.is_valid()
+        && std::ranges::all_of(drill.slot_settings, [&](const auto& slot) {
+               return std::ranges::any_of(
+                   catalog.strategies, [&](const auto& strategy) {
+                       return strategy.slug == slot.strategy_slug;
+                   }
+               );
+           });
+}
+
+training_drill_service::training_drill_service(QSettings& value)
+    : settings(value) { }
+
+std::optional<QVector<training_drill>>
+training_drill_service::load(QString* error) const {
+    if (error)
+        error->clear();
+    settings.sync();
+    if (settings.status() != QSettings::NoError) {
+        if (error)
+            *error = QStringLiteral(
+                "Could not read saved drills. Stored data has not been changed."
+            );
+        return std::nullopt;
+    }
+    if (!settings.contains(drills_key))
+        return QVector<training_drill> {};
+    auto result = decode_drills(settings.value(drills_key).toByteArray());
+    if (!result && error)
+        *error = QStringLiteral(
+            "Saved drills are damaged or use an unsupported format. Stored "
+            "data has not been changed."
+        );
+    return result;
+}
+
+bool training_drill_service::save(
+    const QVector<training_drill>& drills, QString* error
+) {
+    if (!load(error))
+        return false; // Never replace unreadable or future data with an empty
+                      // list.
+    if (!valid_drills(drills)) {
+        if (error)
+            *error = QStringLiteral(
+                "Use unique names of 1–80 characters and at most 64 valid "
+                "drills."
+            );
+        return false;
+    }
+    const auto bytes = encode_drills(drills);
+    if (bytes.size() > maximum_drills_bytes) {
+        if (error)
+            *error = QStringLiteral("Saved drills exceed the storage limit.");
+        return false;
+    }
+    const auto previous = settings.value(drills_key);
+    settings.setValue(drills_key, bytes);
+    settings.sync();
+    if (settings.status() == QSettings::NoError)
+        return true;
+    // Restore the in-memory value too; a later settings sync must not commit a
+    // mutation for which the UI reported failure.
+    if (previous.isValid())
+        settings.setValue(drills_key, previous);
+    else
+        settings.remove(drills_key);
+    if (error)
+        *error = QStringLiteral(
+            "Could not save drills. Check that settings storage is writable."
+        );
+    return false;
+}
 
 preferences_service::preferences_service(QSettings& settings_value)
     : settings(settings_value) { }

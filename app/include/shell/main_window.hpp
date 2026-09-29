@@ -15,6 +15,7 @@ class QProgressBar;
 class QSlider;
 class settings_template_widget;
 class desktop_status_strip;
+struct training_drill;
 
 class main_window : public BaseMainWindow {
     Q_OBJECT
@@ -35,6 +36,7 @@ private slots:
     void on_setup_dialog_rejected();
     void on_continue_button_clicked();
     void on_new_game_triggered();
+    void on_saved_drills_triggered();
     void on_start_pause_triggered();
     void on_finish_triggered();
     void on_show_highscores_triggered();
@@ -73,6 +75,7 @@ private:
     BaseAction* highscores_action;
     BaseAction* progress_action;
     BaseAction* settings_action;
+    BaseAction* saved_drills_action = nullptr;
     bool quiz_started;
     bool quiz_paused;
     bool quiz_finished;
@@ -103,6 +106,8 @@ private:
     void reset_game_state(bool show_setup_dialog, bool mark_finished = false);
     void show_game_over_dialog();
     void start_quiz_from_ui();
+    [[nodiscard]] training_drill capture_training_drill() const;
+    bool launch_training_drill(const training_drill& drill);
     void pause_for_dialog();
     void persist_setup_preferences() const;
     void persist_desktop_shell_state() const;
