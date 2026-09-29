@@ -7,6 +7,9 @@ class table_tests : public QObject {
     Q_OBJECT
 
 private slots:
+    void strategy_browser_preserves_identity_and_reference_values();
+    void strategy_browser_handles_missing_and_filtered_metadata();
+    void strategy_browser_routes_do_not_change_gameplay();
     void drill_configuration_preflight_and_fresh_shoes();
     void saved_drill_picker_preserves_and_launches_sessions();
     /// @brief Verifies overlay palette applies to settings and swap bars.

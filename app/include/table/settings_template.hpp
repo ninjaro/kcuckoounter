@@ -47,6 +47,13 @@ class table;
 
 enum class settings_tab_kind { appearance, strategies };
 
+// Read-only desktop reference surface. The caller still owns strategy selection
+// and settings transactions; browsing never changes gameplay or preferences.
+QWidget* create_strategy_browser(
+    const strategy_catalog& catalog, const QString& selected_slug,
+    QWidget* parent = nullptr
+);
+
 class settings_template_widget : public BaseWidget {
     Q_OBJECT
 
