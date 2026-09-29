@@ -14,6 +14,7 @@ class QMenu;
 class QProgressBar;
 class QSlider;
 class settings_template_widget;
+class desktop_status_strip;
 
 class main_window : public BaseMainWindow {
     Q_OBJECT
@@ -44,6 +45,7 @@ private slots:
     void on_application_state_changed(Qt::ApplicationState state);
 
 private:
+    bool eventFilter(QObject* watched, QEvent* event) override;
     BaseSpinBox* table_slots_count;
     BaseComboBox* quiz_type;
     BaseCheckBox* wait_for_answers;
@@ -80,13 +82,17 @@ private:
     bool mobile_checkpoint_restored;
     bool mobile_lifecycle_paused;
     qint64 last_mobile_checkpoint_elapsed_ms;
+    bool compact_toolbar = false;
+    desktop_status_strip* desktop_status = nullptr;
 
     void setup_ui();
     void apply_desktop_presentation();
+    void update_toolbar_buttons();
     void setup_game_actions();
     void setup_platform_shell();
     void finalize_platform_shell();
     void setup_status_surface(BaseVBoxLayout* main_layout);
+    BaseWidget* create_desktop_status_surface();
     void register_shell_action(BaseAction* action, const QString& action_name);
     void insert_shell_separator();
     void update_status_text();

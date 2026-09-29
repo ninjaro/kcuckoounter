@@ -69,63 +69,44 @@ void main_window::setup_status_surface(BaseVBoxLayout* main_layout) {
         return;
     }
 
+#if !defined(Q_OS_ANDROID)
+    main_layout->addWidget(create_desktop_status_surface());
+#else
     auto* status_strip = new BaseWidget(this);
-#if defined(Q_OS_ANDROID)
     auto* strip_layout = new QVBoxLayout;
     strip_layout->setContentsMargins(8, 4, 8, 4);
-#else
-    auto* strip_layout = new QHBoxLayout;
-    strip_layout->setContentsMargins(0, 0, 0, 0);
-#endif
     strip_layout->setSpacing(8);
 
     status_label = new QLabel(status_strip);
     status_label->setText(QString());
-#if defined(Q_OS_ANDROID)
     status_label->setWordWrap(true);
-#endif
     strip_layout->addWidget(status_label, 1);
 
     raster_progress = new QProgressBar(status_strip);
     raster_progress->setTextVisible(false);
     raster_progress->setRange(0, 0);
     raster_progress->setVisible(false);
-#if !defined(Q_OS_ANDROID)
-    raster_progress->setFixedWidth(120);
-#endif
     strip_layout->addWidget(raster_progress);
 
-#if defined(Q_OS_ANDROID)
     auto* speed_row = new QHBoxLayout;
     speed_row->setContentsMargins(0, 0, 0, 0);
     speed_row->setSpacing(8);
-#endif
     pickup_interval_label = new QLabel(status_strip);
     pickup_interval_label->setText(QString());
-#if defined(Q_OS_ANDROID)
     pickup_interval_label->setAccessibleName(str_label("Card pickup speed"));
     speed_row->addWidget(pickup_interval_label);
-#else
-    strip_layout->addWidget(pickup_interval_label);
-#endif
 
     speed_slider = new QSlider(Qt::Horizontal, status_strip);
     speed_slider->setRange(100, 1000);
     speed_slider->setValue(300);
     speed_slider->setToolTip(str_label("Card pickup interval (ms)"));
-#if !defined(Q_OS_ANDROID)
-    speed_slider->setFixedWidth(180);
-#endif
     android_ui::apply_slider_style(speed_slider);
-#if defined(Q_OS_ANDROID)
     speed_row->addWidget(speed_slider, 1);
     strip_layout->addLayout(speed_row);
-#else
-    strip_layout->addWidget(speed_slider);
-#endif
 
     status_strip->setLayout(strip_layout);
     main_layout->addWidget(status_strip);
+#endif
 }
 
 void main_window::register_shell_action(

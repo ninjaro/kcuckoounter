@@ -45,6 +45,11 @@ private slots:
     void settings_surfaces_stage_changes();
     void settings_editor_lifecycle_cancels_stale_drafts();
     void classic_settings_dialog_preserves_transaction();
+    void desktop_toolbar_preserves_table_and_commands_data();
+    void desktop_toolbar_preserves_table_and_commands();
+    void desktop_status_reports_existing_values();
+    void desktop_hud_fits_without_changing_policy_data();
+    void desktop_hud_fits_without_changing_policy();
     /// @brief Verifies shared cache rasterization populates visible slots.
     void shared_cache_rasterization_populates_visible_slots();
     /// @brief Verifies shared-cache generation cutover keeps bounded active +

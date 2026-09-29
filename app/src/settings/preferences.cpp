@@ -387,6 +387,10 @@ desktop_toolbar_style desktop_ui_preferences::toolbar() const {
     return toolbar_override.value_or(desktop_toolbar_style::classic);
 }
 
+desktop_hud_style desktop_ui_preferences::hud() const {
+    return hud_override.value_or(desktop_hud_style::classic);
+}
+
 void desktop_ui_preferences::reset_overrides() {
     frame_override.reset();
     speed_readout_override.reset();
@@ -395,6 +399,7 @@ void desktop_ui_preferences::reset_overrides() {
     actions_override.reset();
     settings_override.reset();
     toolbar_override.reset();
+    hud_override.reset();
 }
 
 desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
@@ -458,6 +463,11 @@ desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
         result.toolbar_override = desktop_toolbar_style::classic;
     else if (toolbar == QStringLiteral("compact"))
         result.toolbar_override = desktop_toolbar_style::compact;
+    const auto hud = settings.value(QStringLiteral("overrides/hud")).toString();
+    if (hud == QStringLiteral("classic"))
+        result.hud_override = desktop_hud_style::classic;
+    else if (hud == QStringLiteral("instruments"))
+        result.hud_override = desktop_hud_style::instruments;
     settings.endGroup();
     return result;
 }
@@ -539,10 +549,21 @@ bool save_desktop_ui_preferences(
         settings.setValue(
             QStringLiteral("overrides/toolbar"),
             *preferences.toolbar_override == desktop_toolbar_style::compact
-                ? QStringLiteral("compact") : QStringLiteral("classic")
+                ? QStringLiteral("compact")
+                : QStringLiteral("classic")
         );
     } else {
         settings.remove(QStringLiteral("overrides/toolbar"));
+    }
+    if (preferences.hud_override) {
+        settings.setValue(
+            QStringLiteral("overrides/hud"),
+            *preferences.hud_override == desktop_hud_style::instruments
+                ? QStringLiteral("instruments")
+                : QStringLiteral("classic")
+        );
+    } else {
+        settings.remove(QStringLiteral("overrides/hud"));
     }
     settings.endGroup();
     settings.sync();

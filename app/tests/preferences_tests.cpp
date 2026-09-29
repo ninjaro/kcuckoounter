@@ -380,8 +380,10 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     QCOMPARE(value.actions(), slot_action_style::classic);
     QCOMPARE(value.settings_surface(), slot_settings_style::classic);
     QCOMPARE(value.toolbar(), desktop_toolbar_style::classic);
+    QCOMPARE(value.hud(), desktop_hud_style::classic);
     QVERIFY(value.show_speed_readout());
     value.preset = desktop_ui_preset::quiet;
+    QCOMPARE(value.hud(), desktop_hud_style::classic);
     QCOMPARE(value.toolbar(), desktop_toolbar_style::classic);
     QCOMPARE(value.settings_surface(), slot_settings_style::classic);
     QCOMPARE(value.actions(), slot_action_style::classic);
@@ -396,10 +398,18 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     value.actions_override = slot_action_style::rail;
     value.settings_override = slot_settings_style::drawer;
     value.toolbar_override = desktop_toolbar_style::compact;
+    value.hud_override = desktop_hud_style::instruments;
     QVERIFY(save_desktop_ui_preferences(settings, value));
     QSettings reloaded(path, QSettings::IniFormat);
     QCOMPARE(load_desktop_ui_preferences(reloaded), value);
-    QCOMPARE(load_desktop_ui_preferences(reloaded).toolbar(), desktop_toolbar_style::compact);
+    QCOMPARE(
+        load_desktop_ui_preferences(reloaded).hud(),
+        desktop_hud_style::instruments
+    );
+    QCOMPARE(
+        load_desktop_ui_preferences(reloaded).toolbar(),
+        desktop_toolbar_style::compact
+    );
     QCOMPARE(value.answer(), quiz_answer_style::chips);
     QCOMPARE(value.feedback(), quiz_feedback_style::stamp);
     QCOMPARE(value.actions(), slot_action_style::rail);
@@ -421,6 +431,7 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     value.reset_overrides();
     QVERIFY(save_desktop_ui_preferences(settings, value));
     QCOMPARE(load_desktop_ui_preferences(settings), value);
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/hud")));
     QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/toolbar")));
     QVERIFY(!settings.contains(
         QStringLiteral("desktop_ui/overrides/settings_surface")
@@ -445,6 +456,7 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     value.actions_override = slot_action_style::classic;
     value.settings_override = slot_settings_style::classic;
     value.toolbar_override = desktop_toolbar_style::classic;
+    value.hud_override = desktop_hud_style::classic;
     QVERIFY(save_desktop_ui_preferences(settings, value));
     QVERIFY(!load_desktop_ui_preferences(settings).show_speed_readout());
     QCOMPARE(load_desktop_ui_preferences(settings), value);
@@ -466,6 +478,9 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     );
     settings.setValue(
         QStringLiteral("desktop_ui/overrides/toolbar"), QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/hud"), QStringLiteral("future")
     );
     settings.setValue(
         QStringLiteral("desktop_ui/preset"), QStringLiteral("future")

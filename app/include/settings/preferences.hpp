@@ -18,6 +18,7 @@ enum class quiz_feedback_style { classic, stamp };
 enum class slot_action_style { classic, rail, pills };
 enum class slot_settings_style { classic, card, drawer, sill };
 enum class desktop_toolbar_style { classic, compact };
+enum class desktop_hud_style { classic, instruments };
 enum class desktop_ui_preset { classic, quiet };
 
 // Presentation only: never put session/drill or artwork settings here.
@@ -30,6 +31,7 @@ struct desktop_ui_preferences {
     std::optional<slot_action_style> actions_override;
     std::optional<slot_settings_style> settings_override;
     std::optional<desktop_toolbar_style> toolbar_override;
+    std::optional<desktop_hud_style> hud_override;
 
     [[nodiscard]] slot_frame_style frame() const;
     [[nodiscard]] bool show_speed_readout() const;
@@ -38,6 +40,7 @@ struct desktop_ui_preferences {
     [[nodiscard]] slot_action_style actions() const;
     [[nodiscard]] slot_settings_style settings_surface() const;
     [[nodiscard]] desktop_toolbar_style toolbar() const;
+    [[nodiscard]] desktop_hud_style hud() const;
     void reset_overrides();
     bool operator==(const desktop_ui_preferences&) const = default;
 };

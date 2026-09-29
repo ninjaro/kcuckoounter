@@ -894,6 +894,30 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
         "the same draft in a window."
     ));
     layout->addRow(str_label("Slot settings"), ui_settings_combo);
+    ui_toolbar_combo = new BaseComboBox(this);
+    ui_toolbar_combo->setObjectName(QStringLiteral("desktop_ui_toolbar"));
+    ui_toolbar_combo->setAccessibleName(str_label("Main toolbar"));
+    ui_toolbar_combo->addItems(
+        { str_label("Preset default"), str_label("Classic"),
+          str_label("Compact") }
+    );
+    ui_toolbar_combo->setToolTip(str_label(
+        "Compact keeps Start/Pause/Resume labelled and uses icons for other "
+        "actions. Native menus, shortcuts and toolbar placement are unchanged."
+    ));
+    layout->addRow(str_label("Main toolbar"), ui_toolbar_combo);
+    ui_hud_combo = new BaseComboBox(this);
+    ui_hud_combo->setObjectName(QStringLiteral("desktop_ui_hud"));
+    ui_hud_combo->setAccessibleName(str_label("Session HUD"));
+    ui_hud_combo->addItems(
+        { str_label("Preset default"), str_label("Classic"),
+          str_label("Instrument strip") }
+    );
+    ui_hud_combo->setToolTip(str_label(
+        "Same status, score, time and pickup controls. Instrument strip adds "
+        "emphasis and slider ticks, not new scoring or speed rules."
+    ));
+    layout->addRow(str_label("Session HUD"), ui_hud_combo);
     auto* reset
         = new QPushButton(str_label("Reset components to preset"), this);
     reset->setObjectName(QStringLiteral("desktop_ui_reset"));
@@ -905,6 +929,8 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
         ui_feedback_combo->setCurrentIndex(0);
         ui_actions_combo->setCurrentIndex(0);
         ui_settings_combo->setCurrentIndex(0);
+        ui_toolbar_combo->setCurrentIndex(0);
+        ui_hud_combo->setCurrentIndex(0);
     };
     connect(ui_preset_combo, &QComboBox::activated, this, reset_overrides);
     connect(reset, &QPushButton::clicked, this, reset_overrides);
@@ -955,6 +981,16 @@ void settings_template_widget::reset_desktop_component_selection() {
             : *value.settings_override == slot_settings_style::sill   ? 4
                                                                       : 1
     );
+    ui_toolbar_combo->setCurrentIndex(
+        !value.toolbar_override                                         ? 0
+            : *value.toolbar_override == desktop_toolbar_style::compact ? 2
+                                                                        : 1
+    );
+    ui_hud_combo->setCurrentIndex(
+        !value.hud_override                                         ? 0
+            : *value.hud_override == desktop_hud_style::instruments ? 2
+                                                                    : 1
+    );
 }
 
 desktop_ui_preferences
@@ -999,6 +1035,16 @@ settings_template_widget::selected_desktop_components() const {
             : ui_settings_combo->currentIndex() == 4
             ? slot_settings_style::sill
             : slot_settings_style::classic;
+    }
+    if (ui_toolbar_combo->currentIndex() > 0) {
+        value.toolbar_override = ui_toolbar_combo->currentIndex() == 2
+            ? desktop_toolbar_style::compact
+            : desktop_toolbar_style::classic;
+    }
+    if (ui_hud_combo->currentIndex() > 0) {
+        value.hud_override = ui_hud_combo->currentIndex() == 2
+            ? desktop_hud_style::instruments
+            : desktop_hud_style::classic;
     }
     return value;
 }
