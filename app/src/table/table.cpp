@@ -2,6 +2,7 @@
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
 #include "packing/layout/equal_rectangles.hpp"
+#include "settings/strategy_data.hpp"
 #include "settings/theme_settings.hpp"
 #include "table/table_slot.hpp"
 
@@ -140,6 +141,10 @@ void table::set_slot_count(int count) {
         slot_widgets.reserve(static_cast<std::size_t>(count));
         for (int index = current_count; index < count; ++index) {
             auto slot_widget = new table_slot(this);
+            slot_widget->set_frame_style(frame_style);
+            slot_widget->set_action_style(action_style);
+            slot_widget->set_settings_style(settings_style);
+            slot_widget->set_quiz_presentation(answer_style, feedback_style);
             slot_widget->set_allow_skipping(allow_skipping);
             slot_widget->set_shared_card_faces_mode(true);
             QObject::connect(
@@ -266,6 +271,31 @@ void table::set_card_orientation(card_orientation_mode orientation) {
     update_layout();
     schedule_card_preload();
     update_shared_card_face_need();
+}
+
+QVector<drill_slot_preferences> table::capture_drill_settings() const {
+    QVector<drill_slot_preferences> result;
+    result.reserve(static_cast<qsizetype>(slot_widgets.size()));
+    for (const auto* slot : slot_widgets)
+        result.append(slot->capture_drill_settings());
+    return result;
+}
+
+bool table::configure_drill(const training_drill& drill) {
+    if (!is_drill_configuration_supported(drill, strategy_repository()))
+        return false;
+    clear_quiz();
+    clear_swap_selection();
+    clear_copy_selection();
+    set_slot_count(static_cast<int>(drill.slot_settings.size()));
+    for (qsizetype index = 0; index < drill.slot_settings.size(); ++index)
+        slot_widgets[static_cast<std::size_t>(index)]->apply_drill_settings(
+            drill.slot_settings[index]
+        );
+    set_pick_interval(drill.pickup_interval_ms);
+    set_dealing_mode(drill.dealing_mode);
+    set_allow_skipping(drill.allow_skipping);
+    return true;
 }
 
 table_session_state table::capture_session_state() const {
@@ -406,6 +436,36 @@ void table::prepare_cards_for_start() {
     }
     update_shared_card_face_need(true);
     on_preload_tick();
+}
+
+void table::set_frame_style(slot_frame_style style) {
+    frame_style = style;
+    for (table_slot* slot : slot_widgets) {
+        slot->set_frame_style(style);
+    }
+}
+
+void table::set_quiz_presentation(
+    quiz_answer_style answer, quiz_feedback_style feedback
+) {
+    answer_style = answer;
+    feedback_style = feedback;
+    for (table_slot* slot : slot_widgets) {
+        slot->set_quiz_presentation(answer, feedback);
+    }
+}
+
+void table::set_action_style(slot_action_style style) {
+    action_style = style;
+    for (auto* slot : slot_widgets) {
+        slot->set_action_style(style);
+    }
+}
+
+void table::set_settings_style(slot_settings_style style) {
+    settings_style = style;
+    for (auto* slot : slot_widgets)
+        slot->set_settings_style(style);
 }
 
 void table::apply_theme() {
@@ -1169,17 +1229,15 @@ void table::clear_copy_selection() {
 }
 
 void table::update_copy_button_labels(table_slot* selected_slot) {
-    const auto copy_label = str_label("Copy");
-    const auto set_label = str_label("Set");
-    const auto cancel_label = str_label("Cancel");
     for (table_slot* slot_widget : slot_widgets) {
         if (slot_widget == nullptr) {
             continue;
         }
-        slot_widget->set_copy_button_text(
-            selected_slot == nullptr
-                ? copy_label
-                : (slot_widget == selected_slot ? cancel_label : set_label)
+        slot_widget->set_copy_action(
+            selected_slot == nullptr ? table_slot::copy_action::copy
+                                     : (slot_widget == selected_slot
+                                            ? table_slot::copy_action::cancel
+                                            : table_slot::copy_action::apply)
         );
     }
 }

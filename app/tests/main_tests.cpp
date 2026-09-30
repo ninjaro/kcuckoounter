@@ -1,4 +1,6 @@
 #include <QApplication>
+#include <QSettings>
+#include <QTemporaryDir>
 #include <QtTest/QtTest>
 
 #include "include/asset_locator_tests.hpp"
@@ -15,6 +17,17 @@
 
 int main(int argc, char** argv) {
     QApplication app(argc, argv);
+    // Application-facing settings tests must never write the user's trainer
+    // preferences. Explicit INI fixtures in individual tests remain
+    // independent.
+    QTemporaryDir settings_directory;
+    if (!settings_directory.isValid()) {
+        qFatal("Could not create isolated test settings directory");
+    }
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    QSettings::setPath(
+        QSettings::IniFormat, QSettings::UserScope, settings_directory.path()
+    );
 
     int status = 0;
 

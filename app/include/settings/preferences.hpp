@@ -5,11 +5,55 @@
 
 #include <QByteArray>
 #include <QString>
+#include <QVector>
+#include <optional>
 
 class QSettings;
 struct strategy_catalog;
 
 enum class card_orientation_mode { automatic, vertical, horizontal };
+
+enum class slot_frame_style { classic, thin };
+enum class quiz_answer_style { numeric, chips };
+enum class quiz_feedback_style { classic, stamp };
+enum class slot_action_style { classic, rail, pills };
+enum class slot_settings_style { classic, card, drawer, sill };
+enum class desktop_toolbar_style { classic, compact };
+enum class desktop_hud_style { classic, instruments };
+enum class desktop_ui_preset { classic, quiet };
+
+// Presentation only: never put session/drill or artwork settings here.
+struct desktop_ui_preferences {
+    desktop_ui_preset preset = desktop_ui_preset::classic;
+    std::optional<slot_frame_style> frame_override;
+    std::optional<bool> speed_readout_override;
+    std::optional<quiz_answer_style> answer_override;
+    std::optional<quiz_feedback_style> feedback_override;
+    std::optional<slot_action_style> actions_override;
+    std::optional<slot_settings_style> settings_override;
+    std::optional<desktop_toolbar_style> toolbar_override;
+    std::optional<desktop_hud_style> hud_override;
+
+    [[nodiscard]] slot_frame_style frame() const;
+    [[nodiscard]] bool show_speed_readout() const;
+    [[nodiscard]] quiz_answer_style answer() const;
+    [[nodiscard]] quiz_feedback_style feedback() const;
+    [[nodiscard]] slot_action_style actions() const;
+    [[nodiscard]] slot_settings_style settings_surface() const;
+    [[nodiscard]] desktop_toolbar_style toolbar() const;
+    [[nodiscard]] desktop_hud_style hud() const;
+    void reset_overrides();
+    bool operator==(const desktop_ui_preferences&) const = default;
+};
+
+[[nodiscard]] desktop_ui_preferences
+load_desktop_ui_preferences(QSettings& settings);
+[[nodiscard]] bool save_desktop_ui_preferences(
+    QSettings& settings, const desktop_ui_preferences& preferences
+);
+[[nodiscard]] desktop_ui_preferences load_desktop_ui_preferences();
+[[nodiscard]] bool
+save_desktop_ui_preferences(const desktop_ui_preferences& preferences);
 
 struct trainer_preferences {
     static constexpr int minimum_slot_count = 1;
@@ -29,6 +73,50 @@ struct trainer_preferences {
     int preferred_strategy_id = 0;
 
     bool operator==(const trainer_preferences&) const = default;
+};
+
+// A drill is fresh-session gameplay configuration, not a theme or checkpoint.
+// Presentation (including per-slot labels) and shuffled/progress state stay
+// out.
+struct drill_slot_preferences {
+    int deck_count = 4;
+    bool infinity_enabled = false;
+    QString strategy_slug;
+    bool training_mode = false;
+
+    bool operator==(const drill_slot_preferences&) const = default;
+};
+
+struct training_drill {
+    QString name;
+    int quiz_type = 0;
+    bool wait_for_answers = false;
+    bool allow_skipping = true;
+    int dealing_mode = 0;
+    int pickup_interval_ms = 300;
+    QVector<drill_slot_preferences> slot_settings;
+
+    bool operator==(const training_drill&) const = default;
+};
+
+// Storage validation does not resolve strategy identity: an unavailable drill
+// remains visible/renameable/removable, but must pass this preflight to launch.
+[[nodiscard]] bool is_drill_configuration_supported(
+    const training_drill& drill, const strategy_catalog& catalog
+);
+
+class training_drill_service {
+public:
+    static constexpr int maximum_drills = 64;
+    static constexpr int maximum_name_length = 80;
+    explicit training_drill_service(QSettings& settings);
+    [[nodiscard]] std::optional<QVector<training_drill>>
+    load(QString* error = nullptr) const;
+    [[nodiscard]] bool
+    save(const QVector<training_drill>& drills, QString* error = nullptr);
+
+private:
+    QSettings& settings;
 };
 
 struct desktop_shell_state {

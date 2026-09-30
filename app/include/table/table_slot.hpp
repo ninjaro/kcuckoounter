@@ -2,10 +2,12 @@
 #define KCUCKOOUNTER_TABLE_TABLE_SLOT_HPP
 
 #include "arch/widget_helpers.hpp"
+#include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
 
 #include <QBoxLayout>
 #include <QImage>
+#include <QPointer>
 #include <QSize>
 #include <QString>
 #include <QVector>
@@ -15,6 +17,9 @@ class QResizeEvent;
 class QLabel;
 class QColor;
 class card_widget;
+class QDialog;
+class QToolButton;
+class slot_settings;
 
 class table_slot : public BaseWidget {
     Q_OBJECT
@@ -26,6 +31,12 @@ public:
     void set_swap_selected(bool selected);
     [[nodiscard]] bool swap_selected() const;
     void set_rotated(bool rotated);
+    void set_frame_style(slot_frame_style style);
+    void set_action_style(slot_action_style style);
+    void set_settings_style(slot_settings_style style);
+    void set_quiz_presentation(
+        quiz_answer_style answer, quiz_feedback_style feedback
+    );
     void set_allow_skipping(bool allow);
 
     void start_quiz(int quiz_type_index);
@@ -44,10 +55,14 @@ public:
     void set_shared_card_faces_mode(bool enabled);
     void apply_theme();
     void apply_settings_from(const table_slot& source);
-    void set_copy_button_text(const QString& text);
+    enum class copy_action { copy, cancel, apply };
+    void set_copy_action(copy_action action);
     [[nodiscard]] bool is_deck_exhausted() const;
     [[nodiscard]] bool is_quiz_prompt_active() const;
     [[nodiscard]] table_slot_session_state capture_session_state() const;
+    [[nodiscard]] drill_slot_preferences capture_drill_settings() const;
+    // Called by table only after whole-drill preflight and clearing the quiz.
+    void apply_drill_settings(const drill_slot_preferences& settings);
     [[nodiscard]] static bool
     is_session_state_valid(const table_slot_session_state& state);
     bool restore_session_state(const table_slot_session_state& state);
@@ -62,6 +77,7 @@ signals:
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
+    bool eventFilter(QObject* watched, QEvent* event) override;
 
 private slots:
     void on_infinity_toggled(bool checked);
@@ -83,10 +99,18 @@ private:
     card_widget* card_widget_internal;
 
     BaseWidget* overlay_widget;
+    QToolButton* compact_controls_button = nullptr;
+    QPointer<QDialog> controls_dialog;
     BaseWidget* settings_bar_widget;
     BaseWidget* swap_bar_widget;
     QBoxLayout* overlay_layout;
     QBoxLayout* swap_layout;
+    slot_action_style action_style = slot_action_style::classic;
+    copy_action current_copy_action = copy_action::copy;
+    slot_settings_style settings_style = slot_settings_style::classic;
+    QPointer<BaseWidget> settings_editor_panel;
+    QPointer<QDialog> settings_editor_host;
+    slot_settings* settings_editor_fields = nullptr;
     BaseCheckBox* infinity_check_box;
     BaseSpinBox* deck_count_spin_box;
     BaseComboBox* strategy_combo_box;
@@ -104,6 +128,10 @@ private:
     BaseWidget* quiz_feedback_widget;
     QLabel* quiz_weight_label;
     BaseSpinBox* quiz_spin_box;
+    BaseWidget* quiz_chip_widget = nullptr;
+    QLabel* quiz_feedback_heading = nullptr;
+    quiz_answer_style answer_style = quiz_answer_style::numeric;
+    quiz_feedback_style feedback_style = quiz_feedback_style::classic;
     BasePushButton* quiz_answer_button;
     BasePushButton* quiz_skip_button;
     QLabel* quiz_feedback_label;
@@ -119,7 +147,12 @@ private:
     int last_quiz_input_value;
 
     void setup_overlay();
+    void setup_quiz_chips();
+    void update_quiz_presentation();
     void update_overlay_layout();
+    void update_action_presentation();
+    void update_compact_controls();
+    void show_compact_controls();
     void update_settings_button_state(bool dialog_open = false);
     static void
     update_infinity_state(BaseCheckBox* check_box, BaseSpinBox* spin_box);
@@ -138,6 +171,11 @@ private:
     );
     void update_overlay_palette();
     void update_lockable_settings();
+    void populate_settings_editor(slot_settings* editor);
+    void apply_settings_editor(const slot_settings* editor);
+    void open_settings_editor();
+    void place_settings_editor();
+    void finish_settings_editor(bool apply);
     void
     show_template_dialog(const QString& title, const QString& strategy_name);
 };

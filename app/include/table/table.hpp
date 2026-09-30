@@ -39,6 +39,12 @@ public:
     void set_dealing_mode(int mode_index);
     void set_allow_skipping(bool allow);
     void set_card_orientation(card_orientation_mode orientation);
+    void set_frame_style(slot_frame_style style);
+    void set_action_style(slot_action_style style);
+    void set_settings_style(slot_settings_style style);
+    void set_quiz_presentation(
+        quiz_answer_style answer, quiz_feedback_style feedback
+    );
     void schedule_card_preload();
     void prepare_cards_for_start();
     void apply_theme();
@@ -46,6 +52,11 @@ public:
     raster_cache* shared_raster_cache_service();
     const raster_cache* shared_raster_cache_service() const;
     [[nodiscard]] table_session_state capture_session_state() const;
+    [[nodiscard]] QVector<drill_slot_preferences>
+    capture_drill_settings() const;
+    // Invalid/unsupported input leaves the entire table unchanged. This
+    // prepares a fresh session; normal start_quiz still creates the new shoes.
+    bool configure_drill(const training_drill& drill);
     bool restore_session_state(const table_session_state& state);
 
 public slots:
@@ -79,6 +90,11 @@ private:
     table_slot* swap_source_slot;
     table_slot* copy_source_slot;
     card_orientation_mode card_orientation;
+    slot_frame_style frame_style = slot_frame_style::classic;
+    slot_action_style action_style = slot_action_style::classic;
+    slot_settings_style settings_style = slot_settings_style::classic;
+    quiz_answer_style answer_style = quiz_answer_style::numeric;
+    quiz_feedback_style feedback_style = quiz_feedback_style::classic;
     int pick_interval_ms;
     qint64 pick_elapsed_ms;
     bool quiz_running;

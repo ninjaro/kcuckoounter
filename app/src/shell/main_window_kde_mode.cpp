@@ -18,8 +18,6 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMenuBar>
-#include <QProgressBar>
-#include <QSlider>
 #include <QStatusBar>
 
 namespace main_window_kde_score_support {
@@ -165,6 +163,9 @@ void main_window::finalize_platform_shell() {
     if (finish_action != nullptr) {
         game_menu->addAction(finish_action);
     }
+    if (saved_drills_action != nullptr) {
+        game_menu->addAction(saved_drills_action);
+    }
     if (highscores_action != nullptr) {
         game_menu->addAction(highscores_action);
     }
@@ -202,7 +203,9 @@ void main_window::finalize_platform_shell() {
             actionCollection()->addAction(
                 QStringLiteral("view_statusbar"), status_bar_action
             );
-            status_bar_action->setChecked(window_status_bar->isVisible());
+            // The main window has not been shown yet. Effective visibility is
+            // false even when the status bar has not been explicitly hidden.
+            status_bar_action->setChecked(!window_status_bar->isHidden());
             settings_menu->addAction(status_bar_action);
         }
     }
@@ -243,31 +246,12 @@ void main_window::setup_status_surface(BaseVBoxLayout* main_layout) {
         return;
     }
 
-    status_label = new QLabel(this);
-    status_label->setText(QString());
-    window_status_bar->addPermanentWidget(status_label, 1);
-
-    raster_progress = new QProgressBar(this);
-    raster_progress->setTextVisible(false);
-    raster_progress->setRange(0, 0);
-    raster_progress->setVisible(false);
-    raster_progress->setFixedWidth(120);
-    window_status_bar->addPermanentWidget(raster_progress);
-
-    pickup_interval_label = new QLabel(this);
-    pickup_interval_label->setText(QString());
-    window_status_bar->addPermanentWidget(pickup_interval_label);
-
-    speed_slider = new QSlider(Qt::Horizontal, this);
-    speed_slider->setRange(100, 1000);
-    speed_slider->setValue(300);
-    speed_slider->setToolTip(str_label("Card pickup interval (ms)"));
-    speed_slider->setFixedWidth(160);
-    window_status_bar->addPermanentWidget(speed_slider);
-
-    clock_label = new QLabel(this);
-    clock_label->setText(str_label("00:00:00"));
-    window_status_bar->addPermanentWidget(clock_label);
+    // KMainWindow's single-line status bar is vertically Fixed. Let its native
+    // layout use the strip's height-for-width when controls need another row.
+    auto policy = window_status_bar->sizePolicy();
+    policy.setVerticalPolicy(QSizePolicy::Preferred);
+    window_status_bar->setSizePolicy(policy);
+    window_status_bar->addPermanentWidget(create_desktop_status_surface(), 1);
 
     kde_clock = new KGameClock(this, KGameClock::HourMinSec);
     QObject::connect(

@@ -3,6 +3,7 @@
 
 #include "arch/widget_helpers.hpp"
 #include "image/raster_cache.hpp"
+#include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 
 #include <QFutureWatcher>
@@ -46,6 +47,13 @@ class table;
 
 enum class settings_tab_kind { appearance, strategies };
 
+// Read-only desktop reference surface. The caller still owns strategy selection
+// and settings transactions; browsing never changes gameplay or preferences.
+QWidget* create_strategy_browser(
+    const strategy_catalog& catalog, const QString& selected_slug,
+    QWidget* parent = nullptr
+);
+
 class settings_template_widget : public BaseWidget {
     Q_OBJECT
 
@@ -57,13 +65,19 @@ public:
         settings_shared_state* shared_state_ptr = nullptr
     );
     ~settings_template_widget() override;
-    void apply_theme_settings();
+    bool apply_theme_settings();
     void reset_theme_selection();
+
+signals:
+    void desktop_presentation_applied();
 
 private:
     void setup_ui(const QString& selected_strategy);
     void setup_strategy_ui(const QString& selected_strategy);
     void setup_appearance_ui();
+    void setup_desktop_components(QFormLayout* layout);
+    void reset_desktop_component_selection();
+    desktop_ui_preferences selected_desktop_components() const;
     void sync_theme_combo_shared_state(int index);
     void on_theme_source_button_clicked(QAbstractButton* button);
     void update_strategy_details(int index);
@@ -143,6 +157,15 @@ private:
     BaseComboBox* suit_combo_box;
     BaseComboBox* theme_combo_box;
     BaseComboBox* orientation_combo_box;
+    BaseComboBox* ui_preset_combo = nullptr;
+    BaseComboBox* ui_frame_combo = nullptr;
+    BaseComboBox* ui_speed_combo = nullptr;
+    BaseComboBox* ui_answer_combo = nullptr;
+    BaseComboBox* ui_feedback_combo = nullptr;
+    BaseComboBox* ui_actions_combo = nullptr;
+    BaseComboBox* ui_settings_combo = nullptr;
+    BaseComboBox* ui_toolbar_combo = nullptr;
+    BaseComboBox* ui_hud_combo = nullptr;
     BaseWidget* theme_palette_preview;
     QButtonGroup* theme_button_group;
     card_preview_carousel* theme_carousel;

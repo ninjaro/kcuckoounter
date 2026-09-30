@@ -17,6 +17,9 @@ private slots:
     void session_checkpoint_rejects_inconsistent_slot_state();
     void training_progress_is_bounded();
     void training_progress_rejects_huge_history_values();
+    void desktop_components_preserve_domain_settings();
+    void drills_round_trip_without_presentation_or_progress();
+    void drills_reject_invalid_storage_without_overwriting();
 };
 
 #endif // KCUCKOOUNTER_TESTS_PREFERENCES_TESTS_HPP

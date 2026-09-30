@@ -7,6 +7,11 @@ class table_tests : public QObject {
     Q_OBJECT
 
 private slots:
+    void strategy_browser_preserves_identity_and_reference_values();
+    void strategy_browser_handles_missing_and_filtered_metadata();
+    void strategy_browser_routes_do_not_change_gameplay();
+    void drill_configuration_preflight_and_fresh_shoes();
+    void saved_drill_picker_preserves_and_launches_sessions();
     /// @brief Verifies overlay palette applies to settings and swap bars.
     void overlay_palette_applies_to_bars();
     /// @brief Verifies gold text is used for overlay frame palettes.
@@ -29,6 +34,27 @@ private slots:
     void shared_card_faces_presence_tracks_set_and_clear();
     /// @brief Verifies persisted orientation modes constrain packed slots.
     void card_orientation_constrains_packed_slot_geometry();
+    void presentation_preserves_packed_slots_data();
+    void presentation_preserves_packed_slots();
+    void compact_slot_controls_remain_reachable_data();
+    void compact_slot_controls_remain_reachable();
+    void compact_controls_follow_slot_lifetime();
+    void quiz_variants_preserve_count_semantics_data();
+    void quiz_variants_preserve_count_semantics();
+    void quiz_presentation_reaches_existing_and_new_slots();
+    void quiz_presentation_editor_applies_and_resets();
+    void action_variants_reuse_controls_data();
+    void action_variants_reuse_controls();
+    void action_variants_preserve_copy_and_swap_workflows();
+    void settings_surfaces_stage_changes_data();
+    void settings_surfaces_stage_changes();
+    void settings_editor_lifecycle_cancels_stale_drafts();
+    void classic_settings_dialog_preserves_transaction();
+    void desktop_toolbar_preserves_table_and_commands_data();
+    void desktop_toolbar_preserves_table_and_commands();
+    void desktop_status_reports_existing_values();
+    void desktop_hud_fits_without_changing_policy_data();
+    void desktop_hud_fits_without_changing_policy();
     /// @brief Verifies shared cache rasterization populates visible slots.
     void shared_cache_rasterization_populates_visible_slots();
     /// @brief Verifies shared-cache generation cutover keeps bounded active +

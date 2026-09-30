@@ -14,6 +14,8 @@ class QMenu;
 class QProgressBar;
 class QSlider;
 class settings_template_widget;
+class desktop_status_strip;
+struct training_drill;
 
 class main_window : public BaseMainWindow {
     Q_OBJECT
@@ -34,6 +36,7 @@ private slots:
     void on_setup_dialog_rejected();
     void on_continue_button_clicked();
     void on_new_game_triggered();
+    void on_saved_drills_triggered();
     void on_start_pause_triggered();
     void on_finish_triggered();
     void on_show_highscores_triggered();
@@ -44,6 +47,7 @@ private slots:
     void on_application_state_changed(Qt::ApplicationState state);
 
 private:
+    bool eventFilter(QObject* watched, QEvent* event) override;
     BaseSpinBox* table_slots_count;
     BaseComboBox* quiz_type;
     BaseCheckBox* wait_for_answers;
@@ -71,6 +75,7 @@ private:
     BaseAction* highscores_action;
     BaseAction* progress_action;
     BaseAction* settings_action;
+    BaseAction* saved_drills_action = nullptr;
     bool quiz_started;
     bool quiz_paused;
     bool quiz_finished;
@@ -80,12 +85,17 @@ private:
     bool mobile_checkpoint_restored;
     bool mobile_lifecycle_paused;
     qint64 last_mobile_checkpoint_elapsed_ms;
+    bool compact_toolbar = false;
+    desktop_status_strip* desktop_status = nullptr;
 
     void setup_ui();
+    void apply_desktop_presentation();
+    void update_toolbar_buttons();
     void setup_game_actions();
     void setup_platform_shell();
     void finalize_platform_shell();
     void setup_status_surface(BaseVBoxLayout* main_layout);
+    BaseWidget* create_desktop_status_surface();
     void register_shell_action(BaseAction* action, const QString& action_name);
     void insert_shell_separator();
     void update_status_text();
@@ -96,6 +106,8 @@ private:
     void reset_game_state(bool show_setup_dialog, bool mark_finished = false);
     void show_game_over_dialog();
     void start_quiz_from_ui();
+    [[nodiscard]] training_drill capture_training_drill() const;
+    bool launch_training_drill(const training_drill& drill);
     void pause_for_dialog();
     void persist_setup_preferences() const;
     void persist_desktop_shell_state() const;

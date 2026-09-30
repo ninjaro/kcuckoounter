@@ -89,6 +89,156 @@ void store_checkpoint_root(QSettings& settings, const QJsonObject& root) {
 
 } // namespace
 
+void preferences_tests::drills_round_trip_without_presentation_or_progress() {
+    QTemporaryDir directory;
+    auto settings = temporary_settings(directory);
+    settings.setValue(
+        QStringLiteral("desktop_ui/preset"), QStringLiteral("quiet")
+    );
+    settings.setValue(
+        QStringLiteral("trainer_preferences/appearance/palette"),
+        QStringLiteral("blue")
+    );
+    settings.setValue(QStringLiteral("training_progress/sentinel"), 17);
+    settings.setValue(
+        QStringLiteral("trainer_session/payload"), QByteArray("checkpoint")
+    );
+    const auto keys = settings.allKeys();
+    QVariantMap unrelated;
+    for (const auto& key : keys)
+        unrelated.insert(key, settings.value(key));
+    training_drill_service service(settings);
+    QString error;
+    const auto empty = service.load(&error);
+    QVERIFY(empty && empty->isEmpty());
+    QCOMPARE(settings.allKeys(), keys);
+    training_drill drill;
+    drill.name = QStringLiteral("Mixed shoes ♥");
+    drill.quiz_type = 1;
+    drill.wait_for_answers = true;
+    drill.allow_skipping = false;
+    drill.dealing_mode = 2;
+    drill.pickup_interval_ms = 735;
+    drill.slot_settings
+        = { { 1, false, QStringLiteral("first_strategy"), false },
+            { 16, true, QStringLiteral("renamed_strategy"), true } };
+    QVERIFY(is_drill_configuration_supported(drill, test_catalog()));
+    QVERIFY2(service.save({ drill }, &error), qPrintable(error));
+    auto reopened = temporary_settings(directory);
+    const auto loaded = training_drill_service(reopened).load(&error);
+    QVERIFY(loaded);
+    QCOMPARE(*loaded, QVector<training_drill> { drill });
+    const auto payload
+        = settings.value(QStringLiteral("training_drills/document"))
+              .toByteArray();
+    for (const auto* excluded :
+         { "palette", "orientation", "deck_position", "score",
+           "show_card_indexing", "elapsed", "preset" })
+        QVERIFY(!payload.contains(excluded));
+    for (auto it = unrelated.cbegin(); it != unrelated.cend(); ++it)
+        QCOMPARE(settings.value(it.key()), it.value());
+    auto unavailable = drill;
+    unavailable.name = QStringLiteral("Old catalogue entry");
+    unavailable.slot_settings.last().strategy_slug
+        = QStringLiteral("removed_strategy");
+    QVERIFY(!is_drill_configuration_supported(unavailable, test_catalog()));
+    QVERIFY(service.save({ drill, unavailable }, &error));
+    QCOMPARE(service.load()->size(), 2);
+    QVERIFY(service.save({}, &error));
+    QVERIFY(service.load()->isEmpty());
+    QSettings unwritable(
+        directory.path(), QSettings::IniFormat
+    ); // path is a directory
+    QVERIFY(!training_drill_service(unwritable).save({ drill }, &error));
+    QVERIFY(!error.isEmpty());
+}
+
+void preferences_tests::drills_reject_invalid_storage_without_overwriting() {
+    QTemporaryDir directory;
+    auto settings = temporary_settings(directory);
+    training_drill_service service(settings);
+    training_drill drill;
+    drill.name = QStringLiteral("Daily");
+    drill.slot_settings
+        = { { 4, false, QStringLiteral("first_strategy"), false } };
+    QVERIFY(service.save({ drill }));
+    const auto key = QStringLiteral("training_drills/document");
+    const auto good = settings.value(key).toByteArray();
+    const auto root = QJsonDocument::fromJson(good).object();
+    QVector<QByteArray> bad { QByteArray(), QByteArray("{"),
+                              QByteArray(1024 * 1024 + 1, ' ') };
+    auto future = root;
+    future.insert(QStringLiteral("version"), 2);
+    bad.append(QJsonDocument(future).toJson());
+    const auto entry
+        = root.value(QStringLiteral("drills")).toArray().first().toObject();
+    const auto with_entry = [&](QJsonObject value) {
+        auto result = root;
+        result.insert(QStringLiteral("drills"), QJsonArray { value });
+        return QJsonDocument(result).toJson();
+    };
+    for (const auto& field :
+         { QStringLiteral("quiz"), QStringLiteral("dealing"),
+           QStringLiteral("interval_ms") }) {
+        for (const auto& value : { QJsonValue(1.5), QJsonValue(1e100),
+                                   QJsonValue("1"), QJsonValue(-1) }) {
+            auto invalid = entry;
+            invalid.insert(field, value);
+            bad.append(with_entry(invalid));
+        }
+    }
+    for (const auto& field :
+         { QStringLiteral("wait"), QStringLiteral("skip") }) {
+        auto invalid = entry;
+        invalid.insert(field, QStringLiteral("false"));
+        bad.append(with_entry(invalid));
+    }
+    auto invalid = entry;
+    invalid.insert(QStringLiteral("slots"), QJsonArray {});
+    bad.append(with_entry(invalid));
+    invalid = entry;
+    invalid.insert(QStringLiteral("quiz"), 1); // multi-question must pause
+    bad.append(with_entry(invalid));
+    for (const auto& bytes : bad) {
+        settings.setValue(key, bytes);
+        QString error;
+        QVERIFY(!service.load(&error));
+        QVERIFY(!error.isEmpty());
+        QVERIFY(!service.save({ drill }, &error));
+        QCOMPARE(settings.value(key).toByteArray(), bytes);
+    }
+    settings.setValue(key, good);
+    auto duplicate = drill;
+    duplicate.name = QStringLiteral("DAILY");
+    QVERIFY(!service.save({ drill, duplicate }));
+    QCOMPARE(settings.value(key).toByteArray(), good);
+    for (const auto& name :
+         { QString(), QStringLiteral(" padded "), QStringLiteral("line\nbreak"),
+           QString(81, 'x') }) {
+        duplicate.name = name;
+        QVERIFY(!service.save({ duplicate }));
+    }
+    for (const int decks : { 0, 17 }) {
+        duplicate = drill;
+        duplicate.slot_settings.first().deck_count = decks;
+        QVERIFY(!service.save({ duplicate }));
+    }
+    duplicate = drill;
+    duplicate.slot_settings
+        = QVector<drill_slot_preferences>(17, drill.slot_settings.first());
+    QVERIFY(!service.save({ duplicate }));
+    QVector<training_drill> many;
+    for (int i = 0; i < training_drill_service::maximum_drills; ++i) {
+        duplicate = drill;
+        duplicate.name = QString::number(i);
+        many.append(duplicate);
+    }
+    QVERIFY(service.save(many));
+    many.append(drill);
+    QVERIFY(!service.save(many));
+    QCOMPARE(service.load()->size(), training_drill_service::maximum_drills);
+}
+
 void preferences_tests::round_trip_preserves_valid_values() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
@@ -354,6 +504,151 @@ void preferences_tests::training_progress_rejects_huge_history_values() {
     );
     settings.sync();
     QVERIFY(service.load().recent_results.isEmpty());
+}
+
+void preferences_tests::desktop_components_preserve_domain_settings() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const auto path = directory.filePath(QStringLiteral("ui.ini"));
+    QSettings settings(path, QSettings::IniFormat);
+    const QStringList unrelated {
+        QStringLiteral("trainer_preferences/setup/slot_count"),
+        QStringLiteral("trainer_preferences/appearance/palette"),
+        QStringLiteral("desktop_shell/window/geometry"),
+        QStringLiteral("session_checkpoint/payload"),
+        QStringLiteral("training_progress/payload")
+    };
+    for (const auto& key : unrelated) {
+        settings.setValue(key, QByteArray("unchanged"));
+    }
+    QCOMPARE(load_desktop_ui_preferences(settings), desktop_ui_preferences {});
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/preset")));
+    desktop_ui_preferences value;
+    QCOMPARE(value.frame(), slot_frame_style::classic);
+    QCOMPARE(value.answer(), quiz_answer_style::numeric);
+    QCOMPARE(value.feedback(), quiz_feedback_style::classic);
+    QCOMPARE(value.actions(), slot_action_style::classic);
+    QCOMPARE(value.settings_surface(), slot_settings_style::classic);
+    QCOMPARE(value.toolbar(), desktop_toolbar_style::classic);
+    QCOMPARE(value.hud(), desktop_hud_style::classic);
+    QVERIFY(value.show_speed_readout());
+    value.preset = desktop_ui_preset::quiet;
+    QCOMPARE(value.hud(), desktop_hud_style::classic);
+    QCOMPARE(value.toolbar(), desktop_toolbar_style::classic);
+    QCOMPARE(value.settings_surface(), slot_settings_style::classic);
+    QCOMPARE(value.actions(), slot_action_style::classic);
+    QCOMPARE(value.frame(), slot_frame_style::thin);
+    QCOMPARE(value.answer(), quiz_answer_style::numeric);
+    QCOMPARE(value.feedback(), quiz_feedback_style::classic);
+    QVERIFY(!value.show_speed_readout());
+    value.frame_override = slot_frame_style::classic;
+    value.speed_readout_override = true;
+    value.answer_override = quiz_answer_style::chips;
+    value.feedback_override = quiz_feedback_style::stamp;
+    value.actions_override = slot_action_style::rail;
+    value.settings_override = slot_settings_style::drawer;
+    value.toolbar_override = desktop_toolbar_style::compact;
+    value.hud_override = desktop_hud_style::instruments;
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QSettings reloaded(path, QSettings::IniFormat);
+    QCOMPARE(load_desktop_ui_preferences(reloaded), value);
+    QCOMPARE(
+        load_desktop_ui_preferences(reloaded).hud(),
+        desktop_hud_style::instruments
+    );
+    QCOMPARE(
+        load_desktop_ui_preferences(reloaded).toolbar(),
+        desktop_toolbar_style::compact
+    );
+    QCOMPARE(value.answer(), quiz_answer_style::chips);
+    QCOMPARE(value.feedback(), quiz_feedback_style::stamp);
+    QCOMPARE(value.actions(), slot_action_style::rail);
+    for (const auto style :
+         { slot_settings_style::card, slot_settings_style::drawer,
+           slot_settings_style::sill }) {
+        value.settings_override = style;
+        QVERIFY(save_desktop_ui_preferences(settings, value));
+        QCOMPARE(load_desktop_ui_preferences(settings), value);
+        QCOMPARE(
+            load_desktop_ui_preferences(settings).settings_surface(), style
+        );
+    }
+    value.actions_override = slot_action_style::pills;
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QCOMPARE(load_desktop_ui_preferences(settings), value);
+    QCOMPARE(value.frame(), slot_frame_style::classic);
+    QVERIFY(value.show_speed_readout());
+    value.reset_overrides();
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QCOMPARE(load_desktop_ui_preferences(settings), value);
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/hud")));
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/toolbar")));
+    QVERIFY(!settings.contains(
+        QStringLiteral("desktop_ui/overrides/settings_surface")
+    ));
+    QVERIFY(
+        !settings.contains(QStringLiteral("desktop_ui/overrides/slot_actions"))
+    );
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/frame")));
+    QVERIFY(
+        !settings.contains(QStringLiteral("desktop_ui/overrides/answer_entry"))
+    );
+    QVERIFY(
+        !settings.contains(QStringLiteral("desktop_ui/overrides/feedback"))
+    );
+    QVERIFY(
+        !settings.contains(QStringLiteral("desktop_ui/overrides/speed_readout"))
+    );
+    value.preset = desktop_ui_preset::classic;
+    value.speed_readout_override = false;
+    value.answer_override = quiz_answer_style::numeric;
+    value.feedback_override = quiz_feedback_style::classic;
+    value.actions_override = slot_action_style::classic;
+    value.settings_override = slot_settings_style::classic;
+    value.toolbar_override = desktop_toolbar_style::classic;
+    value.hud_override = desktop_hud_style::classic;
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QVERIFY(!load_desktop_ui_preferences(settings).show_speed_readout());
+    QCOMPARE(load_desktop_ui_preferences(settings), value);
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/answer_entry"),
+        QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/feedback"),
+        QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/slot_actions"),
+        QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/settings_surface"),
+        QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/toolbar"), QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/hud"), QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/preset"), QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/frame"), QStringLiteral("future")
+    );
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/speed_readout"),
+        QStringLiteral("invalid")
+    );
+    QCOMPARE(load_desktop_ui_preferences(settings), desktop_ui_preferences {});
+    for (const auto& key : unrelated) {
+        QCOMPARE(settings.value(key).toByteArray(), QByteArray("unchanged"));
+    }
+    // A directory is not a writable INI file; the caller must see failure.
+    QSettings unwritable(directory.path(), QSettings::IniFormat);
+    QVERIFY(!save_desktop_ui_preferences(unwritable, value));
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,
