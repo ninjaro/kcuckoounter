@@ -71,6 +71,15 @@ function successful(env, prefix, optional = false) {
   'Incomplete native result: ' + prefix);
   return status;
 }
+// This version only attests whole-project verification. A changed-file or
+// presentation-only result needs its own contract before it can authorize reuse.
+function fullVerification(kind, tree, manifest) {
+  const stages = kind === 'checks'
+    ? ['repository', 'build', 'tests', 'java', 'tidy', 'format', 'coverage']
+    : ['repository', 'build', 'analysis'];
+  return {scope: 'full', selection: {kind: 'whole-tree', tree, manifest},
+    stages: Object.fromEntries(stages.map(stage => [stage, 'full']))};
+}
 function artifactName(kind, runId, attempt) {
   return `manifesto-evidence-${kind}-${runId}-${attempt}`;
 }
@@ -133,6 +142,7 @@ async function presentation({context, core, root = process.cwd(), env = process.
 async function record({github, context, core, root = process.cwd(), env = process.env}) {
   const kind = env.EVIDENCE_KIND;
   requireValue(kinds[kind], 'Unknown evidence kind');
+  requireValue(env.VERIFICATION_SCOPE === 'full', 'Reusable evidence requires explicit full verification scope');
   let config;
   try { config = policy(root); }
   catch (error) { core.notice('No reusable receipt: ' + error.message); return; }
@@ -156,13 +166,15 @@ async function record({github, context, core, root = process.cwd(), env = proces
     && run.event === context.eventName, 'Run metadata does not identify this verification');
   const pr = context.payload.pull_request;
   requireValue(run.head_sha === tested || run.head_sha === pr?.head.sha, 'Run does not identify the tested commit');
+  const tree = git(root, 'rev-parse', 'HEAD^{tree}');
   const receipt = {
-    schema: 1, kind, repository: {id: context.payload.repository.id, name: `${context.repo.owner}/${context.repo.repo}`},
+    schema: 2, kind, repository: {id: context.payload.repository.id, name: `${context.repo.owner}/${context.repo.repo}`},
     run_id: run.id, run_attempt: attempt, workflow_id: run.workflow_id, workflow: run.path, event: run.event,
-    run_head: run.head_sha, tested_commit: tested, tested_tree: git(root, 'rev-parse', 'HEAD^{tree}'),
+    run_head: run.head_sha, tested_commit: tested, tested_tree: tree,
     pr: pr ? {number: pr.number, head: pr.head.sha, base: pr.base.sha, base_ref: pr.base.ref,
       head_repository: pr.head.repo.id} : null,
-    policy: config, tooling_commit: tooling, coverage, files: {},
+    policy: config, tooling_commit: tooling, coverage,
+    verification: fullVerification(kind, tree, config.manifest), files: {},
   };
   const destination = safePath(root, `.ecosystem/github/evidence/${kind}`);
   writeBundle(root, receipt, destination, fileNames(kind, coverage));
@@ -271,13 +283,15 @@ async function verifiedRun({api, run, kind, repository, context, tree, config, t
   const allowed = ['receipt.json', ...fileNames(kind, 'passed')];
   execFileSync('python3', ['-c', unpackProgram, archive, directory, JSON.stringify(allowed)], {stdio: 'pipe'});
   const receipt = JSON.parse(readFile(directory, 'receipt.json', true));
-  requireValue(receipt.schema === 1 && receipt.kind === kind && receipt.repository?.id === repository.id
+  requireValue(receipt.schema === 2 && receipt.kind === kind && receipt.repository?.id === repository.id
     && receipt.repository.name === `${context.repo.owner}/${context.repo.repo}` && receipt.run_id === run.id
     && receipt.run_attempt === run.run_attempt && receipt.workflow_id === run.workflow_id
     && receipt.workflow === run.path && receipt.event === run.event && receipt.run_head === run.head_sha
     && /^[0-9a-f]{40}$/.test(receipt.tested_commit || '') && receipt.tested_tree === tree
     && equal(receipt.policy, config) && receipt.tooling_commit === (config.tooling.bootstrap === 'checkout'
       ? receipt.tested_commit : config.tooling.revision), 'Receipt provenance differs from the source tree/configuration');
+  requireValue(equal(receipt.verification, fullVerification(kind, tree, config.manifest)),
+    'Receipt does not attest the required whole-project verification scope');
   if (pr) {
     const pointer = run.pull_requests.find(item => item.number === pr.number);
     requireValue(receipt.pr?.number === pr.number && receipt.pr.head === pr.head.sha && receipt.pr.base === pointer.base.sha
@@ -305,7 +319,7 @@ async function verifiedRun({api, run, kind, repository, context, tree, config, t
   }
   await unchangedRun(api, run, matches);
   return {receipt, directory, source: {run_id: run.id, run_attempt: run.run_attempt,
-    artifact_id: artifact.id, artifact_digest: artifact.digest}};
+    artifact_id: artifact.id, artifact_digest: artifact.digest, verification: receipt.verification}};
 }
 async function reusablePair({github, context, root, temporary}) {
   const repository = context.payload.repository;

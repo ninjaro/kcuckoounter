@@ -5,6 +5,7 @@
 #include "image/raster_cache.hpp"
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
+#include "table/strategy_browser.hpp"
 
 #include <QFutureWatcher>
 #include <QImage>
@@ -47,13 +48,6 @@ class table;
 
 enum class settings_tab_kind { appearance, strategies };
 
-// Read-only desktop reference surface. The caller still owns strategy selection
-// and settings transactions; browsing never changes gameplay or preferences.
-QWidget* create_strategy_browser(
-    const strategy_catalog& catalog, const QString& selected_slug,
-    QWidget* parent = nullptr
-);
-
 class settings_template_widget : public BaseWidget {
     Q_OBJECT
 
@@ -86,56 +80,49 @@ private:
     QString selected_theme_source_id() const;
     void update_weights_carousel(int suit_index);
     void update_suit_selection(int index);
-    QPixmap
-    request_active_theme_preview_card(int card_index, const QSize& size);
-    QPixmap request_theme_preview_card(
-        int card_index, int suit_index, const QSize& size
-    );
-    QPixmap
-    request_active_weighted_preview_card(int card_index, const QSize& size);
-    QPixmap request_weighted_preview_card(
-        int card_index, int suit_index, const QSize& size
-    );
-    std::optional<QImage> request_theme_preview_face_image(
+    /** Render the selected suit, retaining the active cache generation. */
+    QPixmap active_theme_card(int card_index, const QSize& size);
+    QPixmap theme_card(int card_index, int suit_index, const QSize& size);
+    /** Selected-suit preview with strategy weights, not a separate face cache.
+     */
+    QPixmap active_weighted_card(int card_index, const QSize& size);
+    QPixmap weighted_card(int card_index, int suit_index, const QSize& size);
+    std::optional<QImage> preview_face(
         int card_index, int suit_index, const QSize& size,
         QSet<raster_cache::entry_key>& tracked_keys
     );
-    void enqueue_theme_preview_render(const raster_cache::entry_key& key);
-    void process_pending_theme_preview_render();
-    void on_theme_preview_render_finished();
-    bool
-    is_theme_preview_key_relevant(const raster_cache::entry_key& key) const;
-    void prune_pending_theme_preview_queue();
-    void on_theme_preview_cache_updated(const raster_cache::entry_key& key);
-    void flush_coalesced_preview_refresh();
+    void enqueue_preview(const raster_cache::entry_key& key);
+    void render_next_preview();
+    void preview_render_finished();
+    bool preview_key_relevant(const raster_cache::entry_key& key) const;
+    void prune_preview_queue();
+    void preview_cache_updated(const raster_cache::entry_key& key);
+    void flush_preview_refresh();
     void clear_displayed_theme_entries();
     void mark_preview_refresh_pending(bool theme_preview, bool weights_preview);
-    static void note_displayed_theme_preview_entry(
+    static void track_preview_entry(
         const raster_cache::entry_key& key,
         QSet<raster_cache::entry_key>& tracked_keys
     );
-    static void clear_displayed_theme_preview_entries(
-        QSet<raster_cache::entry_key>& tracked_keys
-    );
-    void ensure_theme_preview_generation(
-        const QString& source_id, int target_bucket_px
-    );
-    void begin_theme_preview_warming_generation(
-        const QString& source_id, int target_bucket_px
-    );
-    bool try_cutover_theme_preview_generation();
-    raster_cache::entry_key theme_preview_entry_key(
+    static void
+    clear_preview_entries(QSet<raster_cache::entry_key>& tracked_keys);
+    void
+    ensure_preview_generation(const QString& source_id, int target_bucket_px);
+    void
+    warm_preview_generation(const QString& source_id, int target_bucket_px);
+    bool cutover_preview_generation();
+    raster_cache::entry_key preview_key(
         const QString& source_id, int target_bucket_px, qint64 generation_id,
         const QString& element_id
     ) const;
-    bool is_theme_preview_key_ready(
+    bool preview_key_ready(
         const QString& source_id, int target_bucket_px, qint64 generation_id,
         const QString& element_id
     ) const;
-    void retire_theme_preview_generation(
+    void retire_preview_generation(
         const QString& source_id, int target_bucket_px, qint64 generation_id
     );
-    static QImage render_theme_preview_face_image(
+    static QImage render_preview_face(
         const QString& source_id, const QString& element_id,
         int target_bucket_px
     );
@@ -169,28 +156,28 @@ private:
     BaseWidget* theme_palette_preview;
     QButtonGroup* theme_button_group;
     card_preview_carousel* theme_carousel;
-    int active_theme_preview_suit_index;
-    int active_weights_preview_suit_index;
-    qint64 theme_preview_instance_id;
-    QString active_theme_preview_source_id;
-    int active_theme_preview_bucket_px;
-    qint64 active_theme_preview_generation_id;
+    int theme_suit;
+    int weights_suit;
+    qint64 preview_id;
+    QString active_preview_source;
+    int active_preview_bucket;
+    qint64 active_preview_generation;
     QSet<QString> active_preview_element_ids;
-    QString warming_theme_preview_source_id;
-    int warming_theme_preview_bucket_px;
-    qint64 warming_theme_preview_generation_id;
+    QString warming_preview_source;
+    int warming_preview_bucket;
+    qint64 warming_preview_generation;
     QSet<QString> warming_preview_element_ids;
-    qint64 next_theme_preview_generation_id;
-    QFutureWatcher<QImage> theme_preview_render_watcher;
-    std::optional<raster_cache::entry_key> active_theme_preview_render_key;
-    QQueue<raster_cache::entry_key> pending_theme_preview_render_queue;
-    QSet<raster_cache::entry_key> pending_theme_preview_render_set;
-    bool theme_preview_render_scheduled;
-    bool theme_preview_refresh_scheduled;
+    qint64 next_preview_generation;
+    QFutureWatcher<QImage> preview_watcher;
+    std::optional<raster_cache::entry_key> active_render_key;
+    QQueue<raster_cache::entry_key> pending_preview_queue;
+    QSet<raster_cache::entry_key> pending_preview_keys;
+    bool preview_render_scheduled;
+    bool preview_refresh_scheduled;
     bool theme_preview_needs_refresh;
     bool weights_preview_needs_refresh;
-    QSet<raster_cache::entry_key> displayed_theme_preview_entries;
-    QSet<raster_cache::entry_key> displayed_weights_preview_entries;
+    QSet<raster_cache::entry_key> displayed_theme_entries;
+    QSet<raster_cache::entry_key> displayed_weights_entries;
 };
 
 #endif // KCUCKOOUNTER_TABLE_SETTINGS_TEMPLATE_HPP

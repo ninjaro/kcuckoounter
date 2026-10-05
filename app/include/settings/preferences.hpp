@@ -11,6 +11,13 @@
 class QSettings;
 struct strategy_catalog;
 
+// Appearance only; suit order matches the existing card/preview selectors:
+// Clubs, Diamonds, Hearts, Spades. No trainer/drill/checkpoint field.
+[[nodiscard]] int load_default_suit_preference(QSettings& settings);
+[[nodiscard]] bool save_default_suit_preference(QSettings& settings, int index);
+[[nodiscard]] int load_default_suit_preference();
+[[nodiscard]] bool save_default_suit_preference(int index);
+
 enum class card_orientation_mode { automatic, vertical, horizontal };
 
 enum class slot_frame_style { classic, thin };

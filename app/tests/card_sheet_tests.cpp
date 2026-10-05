@@ -18,20 +18,20 @@
 
 static QString alternate_svg_id_for_test(const QString& logical_id) {
     static const QStringList suits = {
-        str_label("club"),
-        str_label("diamond"),
-        str_label("heart"),
-        str_label("spade"),
+        QStringLiteral("club"),
+        QStringLiteral("diamond"),
+        QStringLiteral("heart"),
+        QStringLiteral("spade"),
     };
 
-    if (logical_id == str_label("back")) {
-        return str_label("card_back");
+    if (logical_id == QStringLiteral("back")) {
+        return QStringLiteral("card_back");
     }
-    if (logical_id == str_label("joker_black")) {
-        return str_label("black_joker");
+    if (logical_id == QStringLiteral("joker_black")) {
+        return QStringLiteral("black_joker");
     }
-    if (logical_id == str_label("joker_red")) {
-        return str_label("red_joker");
+    if (logical_id == QStringLiteral("joker_red")) {
+        return QStringLiteral("red_joker");
     }
 
     const QStringList parts = logical_id.split(QChar('_'), Qt::SkipEmptyParts);
@@ -40,10 +40,10 @@ static QString alternate_svg_id_for_test(const QString& logical_id) {
     }
 
     if (suits.contains(parts.at(0))) {
-        return str_label("%1_%2").arg(parts.at(1), parts.at(0));
+        return QStringLiteral("%1_%2").arg(parts.at(1), parts.at(0));
     }
     if (suits.contains(parts.at(1))) {
-        return str_label("%1_%2").arg(parts.at(1), parts.at(0));
+        return QStringLiteral("%1_%2").arg(parts.at(1), parts.at(0));
     }
     return logical_id;
 }
@@ -109,8 +109,31 @@ void card_sheet_tests::contains_expected_elements() {
     );
 }
 
-void card_sheet_tests::
-    available_themes_include_bundled_and_installed_when_present() {
+void card_sheet_tests::logical_resource_ids_are_literal() {
+    QStringList expected;
+    for (const auto& suit :
+         { QStringLiteral("club"), QStringLiteral("diamond"),
+           QStringLiteral("heart"), QStringLiteral("spade") }) {
+        for (int rank = 1; rank <= 10; ++rank)
+            expected.append(QStringLiteral("%1_%2").arg(suit).arg(rank));
+        for (const auto& rank :
+             { QStringLiteral("jack"), QStringLiteral("queen"),
+               QStringLiteral("king") })
+            expected.append(QStringLiteral("%1_%2").arg(rank, suit));
+    }
+    expected.append(QStringLiteral("joker_black"));
+    expected.append(QStringLiteral("joker_red"));
+    QCOMPARE(card_element_ids(), expected);
+    for (qsizetype index = 0; index < expected.size(); ++index)
+        QCOMPARE(
+            card_element_id_from_index(static_cast<int>(index)), expected[index]
+        );
+    expected.append(QStringLiteral("back"));
+    QCOMPARE(required_card_ids_with_back(), expected);
+    QCOMPARE(card_back_element_id(), QStringLiteral("back"));
+}
+
+void card_sheet_tests::themes_include_bundled_and_available_installed() {
     const QVector<card_theme_option>& themes = available_card_themes();
     QVERIFY(!themes.isEmpty());
 

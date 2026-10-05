@@ -808,3 +808,33 @@ bool save_desktop_ui_preferences(const desktop_ui_preferences& preferences) {
     );
     return save_desktop_ui_preferences(settings, preferences);
 }
+
+int load_default_suit_preference(QSettings& settings) {
+    bool valid = false;
+    const int index = settings.value(QStringLiteral("appearance/default_suit"))
+                          .toString()
+                          .toInt(&valid);
+    return valid && index >= 0 && index <= 3 ? index : 0;
+}
+
+bool save_default_suit_preference(QSettings& settings, int index) {
+    if (index < 0 || index > 3)
+        return false;
+    settings.setValue(QStringLiteral("appearance/default_suit"), index);
+    settings.sync();
+    return settings.status() == QSettings::NoError;
+}
+
+int load_default_suit_preference() {
+    QSettings settings(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    return load_default_suit_preference(settings);
+}
+
+bool save_default_suit_preference(int index) {
+    QSettings settings(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    return save_default_suit_preference(settings, index);
+}

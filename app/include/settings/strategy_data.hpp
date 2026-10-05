@@ -7,6 +7,18 @@
 #include <QStringList>
 #include <QVector>
 
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+
+// Decoded once from controlled catalogue metadata, not a general expression.
+struct strategy_initial_count {
+    std::int64_t value = 0;
+    bool per_deck = false;
+
+    [[nodiscard]] std::optional<std::int64_t> evaluate(std::size_t decks) const;
+};
+
 struct strategy_data {
     int id = 0;
     QString slug;
@@ -21,6 +33,12 @@ struct strategy_data {
     QVector<int> weights;
     QMap<QString, double> metrics;
     QMap<QString, QString> unique_fields;
+    std::optional<strategy_initial_count> initial_count;
+
+    // Missing metadata keeps the zero-start training convention. A defined
+    // rule is automatic, including when practicing below min_decks.
+    [[nodiscard]] std::optional<std::int64_t>
+    initial_running_count_for(std::size_t decks) const;
 
     struct strategy_reference {
         QString type;

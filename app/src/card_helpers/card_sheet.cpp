@@ -198,8 +198,10 @@ static const QStringList& suit_labels() {
 }
 
 static const QStringList& suit_ids() {
-    static const QStringList ids = { str_label("club"), str_label("diamond"),
-                                     str_label("heart"), str_label("spade") };
+    // SVG keys and aliases are data, not user-visible/translatable labels.
+    static const QStringList ids
+        = { QStringLiteral("club"), QStringLiteral("diamond"),
+            QStringLiteral("heart"), QStringLiteral("spade") };
     return ids;
 }
 
@@ -252,13 +254,13 @@ static QString canonical_rank_token(int rank_index) {
         return QString::number(rank_index + 1);
     }
     if (rank_index == 10) {
-        return str_label("jack");
+        return QStringLiteral("jack");
     }
     if (rank_index == 11) {
-        return str_label("queen");
+        return QStringLiteral("queen");
     }
     if (rank_index == 12) {
-        return str_label("king");
+        return QStringLiteral("king");
     }
     return {};
 }
@@ -267,14 +269,14 @@ static QStringList rank_aliases(int rank_index) {
     QStringList aliases;
     append_unique(aliases, canonical_rank_token(rank_index));
     if (rank_index == 0) {
-        append_unique(aliases, str_label("a"));
-        append_unique(aliases, str_label("ace"));
+        append_unique(aliases, QStringLiteral("a"));
+        append_unique(aliases, QStringLiteral("ace"));
     } else if (rank_index == 10) {
-        append_unique(aliases, str_label("j"));
+        append_unique(aliases, QStringLiteral("j"));
     } else if (rank_index == 11) {
-        append_unique(aliases, str_label("q"));
+        append_unique(aliases, QStringLiteral("q"));
     } else if (rank_index == 12) {
-        append_unique(aliases, str_label("k"));
+        append_unique(aliases, QStringLiteral("k"));
     }
     return aliases;
 }
@@ -322,24 +324,24 @@ candidate_card_element_ids(const QString& logical_element_id) {
 
     const QString normalized = logical_element_id.toLower();
     if (normalized == QStringLiteral("back")) {
-        append_unique(candidates, str_label("card_back"));
-        append_unique(candidates, str_label("cardback"));
+        append_unique(candidates, QStringLiteral("card_back"));
+        append_unique(candidates, QStringLiteral("cardback"));
         return candidates;
     }
     if (normalized == QStringLiteral("base")) {
-        append_unique(candidates, str_label("card_base"));
+        append_unique(candidates, QStringLiteral("card_base"));
         return candidates;
     }
     if (normalized == QStringLiteral("joker_black")) {
-        append_unique(candidates, str_label("black_joker"));
-        append_unique(candidates, str_label("joker_1"));
-        append_unique(candidates, str_label("joker1"));
+        append_unique(candidates, QStringLiteral("black_joker"));
+        append_unique(candidates, QStringLiteral("joker_1"));
+        append_unique(candidates, QStringLiteral("joker1"));
         return candidates;
     }
     if (normalized == QStringLiteral("joker_red")) {
-        append_unique(candidates, str_label("red_joker"));
-        append_unique(candidates, str_label("joker_2"));
-        append_unique(candidates, str_label("joker2"));
+        append_unique(candidates, QStringLiteral("red_joker"));
+        append_unique(candidates, QStringLiteral("joker_2"));
+        append_unique(candidates, QStringLiteral("joker2"));
         return candidates;
     }
 
@@ -352,8 +354,8 @@ candidate_card_element_ids(const QString& logical_element_id) {
     const QString& suit = suit_ids().at(parsed.suit_index);
     const QStringList aliases = rank_aliases(parsed.rank_index);
     for (const QString& rank : aliases) {
-        append_unique(candidates, str_label("%1_%2").arg(suit, rank));
-        append_unique(candidates, str_label("%1_%2").arg(rank, suit));
+        append_unique(candidates, QStringLiteral("%1_%2").arg(suit, rank));
+        append_unique(candidates, QStringLiteral("%1_%2").arg(rank, suit));
     }
     return candidates;
 }
@@ -386,16 +388,16 @@ static QString rank_suit_element_id(int rank_index, int suit_index) {
 
     const QString& suit_id = suit_list.at(suit_index);
     if (rank_index <= 9) {
-        return str_label("%1_%2").arg(suit_id).arg(rank_index + 1);
+        return QStringLiteral("%1_%2").arg(suit_id).arg(rank_index + 1);
     }
     if (rank_index == 10) {
-        return str_label("jack_%1").arg(suit_id);
+        return QStringLiteral("jack_%1").arg(suit_id);
     }
     if (rank_index == 11) {
-        return str_label("queen_%1").arg(suit_id);
+        return QStringLiteral("queen_%1").arg(suit_id);
     }
     if (rank_index == 12) {
-        return str_label("king_%1").arg(suit_id);
+        return QStringLiteral("king_%1").arg(suit_id);
     }
     return {};
 }
@@ -539,7 +541,7 @@ public:
 
     static QRectF base_bounds(const QSvgRenderer& renderer) {
         const QString id
-            = resolve_element_id_for_renderer(renderer, str_label("base"));
+            = resolve_element_id_for_renderer(renderer, QStringLiteral("base"));
         return id.isEmpty() ? QRectF() : renderer.boundsOnElement(id);
     }
 
@@ -717,8 +719,8 @@ static QStringList build_card_element_ids() {
             list.append(rank_suit_element_id(rank_index, suit_index));
         }
     }
-    list.append(str_label("joker_black"));
-    list.append(str_label("joker_red"));
+    list.append(QStringLiteral("joker_black"));
+    list.append(QStringLiteral("joker_red"));
     return list;
 }
 
@@ -787,7 +789,7 @@ const QStringList& card_element_ids() {
     return ids;
 }
 
-QString card_back_element_id() { return str_label("back"); }
+QString card_back_element_id() { return QStringLiteral("back"); }
 
 QStringList required_card_ids_with_back() {
     QStringList ids = card_element_ids();

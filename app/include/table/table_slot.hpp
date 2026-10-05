@@ -4,6 +4,8 @@
 #include "arch/widget_helpers.hpp"
 #include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
+#include "table/gameplay_session.hpp"
+#include "table/table.hpp"
 
 #include <QBoxLayout>
 #include <QImage>
@@ -11,6 +13,7 @@
 #include <QSize>
 #include <QString>
 #include <QVector>
+#include <optional>
 
 class QStackedLayout;
 class QResizeEvent;
@@ -19,18 +22,27 @@ class QColor;
 class card_widget;
 class QDialog;
 class QToolButton;
+class QLineEdit;
 class slot_settings;
+
+namespace gameplay {
+class deck_setup_widget;
+}
 
 class table_slot : public BaseWidget {
     Q_OBJECT
+    friend class table;
 
 public:
     explicit table_slot(BaseWidget* parent = nullptr);
     ~table_slot() override;
+    [[nodiscard]] bool has_cards() const;
+    [[nodiscard]] std::optional<gameplay::deck_id> gameplay_deck_id() const;
 
     void set_swap_selected(bool selected);
     [[nodiscard]] bool swap_selected() const;
     void set_rotated(bool rotated);
+    void set_gameplay_layout_rotation(std::optional<qreal> degrees);
     void set_frame_style(slot_frame_style style);
     void set_action_style(slot_action_style style);
     void set_settings_style(slot_settings_style style);
@@ -74,6 +86,10 @@ signals:
     void rasterization_busy_changed(bool busy);
     void dialog_opened();
     void score_adjusted(int correct_delta, int total_delta);
+    // Target setup invalidation and hint changes have different host duties.
+    void gameplay_configuration_changed();
+    void gameplay_show_count_changed();
+    void gameplay_correction_dismissed();
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
@@ -95,6 +111,26 @@ private slots:
     void on_strategy_name_changed(const QString& text);
 
 private:
+    gameplay::session* gameplay_owner = nullptr;
+    gameplay::deck_id gameplay_id { 0 };
+    table* gameplay_host = nullptr;
+    QLineEdit* gameplay_input = nullptr;
+    QLabel* gameplay_input_error = nullptr;
+    QLabel* gameplay_correction_label = nullptr;
+    std::optional<table::gameplay_prompt_key> gameplay_prompt;
+    std::optional<std::int64_t> gameplay_projected_input;
+    std::optional<gameplay::quiz_answer> gameplay_feedback;
+    // Table-only lifetime: views are destroyed before the owned session.
+    [[nodiscard]] bool bind_gameplay_deck(
+        table& host, gameplay::session& owner, gameplay::deck_id id
+    );
+    void refresh_gameplay_deck();
+    void setup_gameplay_input();
+    void refresh_gameplay_quiz();
+    [[nodiscard]] std::optional<std::int64_t> gameplay_input_value() const;
+    void on_gameplay_input_edited();
+    void show_gameplay_answer(const gameplay::quiz_answer& answer);
+    void focus_gameplay_input();
     enum class slot_phase { running, paused } current_phase;
     card_widget* card_widget_internal;
 
@@ -111,6 +147,7 @@ private:
     QPointer<BaseWidget> settings_editor_panel;
     QPointer<QDialog> settings_editor_host;
     slot_settings* settings_editor_fields = nullptr;
+    gameplay::deck_setup_widget* gameplay_editor_fields = nullptr;
     BaseCheckBox* infinity_check_box;
     BaseSpinBox* deck_count_spin_box;
     BaseComboBox* strategy_combo_box;

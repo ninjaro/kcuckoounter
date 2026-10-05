@@ -7,7 +7,7 @@ class asset_locator_tests : public QObject {
     Q_OBJECT
 
 private slots:
-    void bundled_assets_resolve_from_an_unrelated_working_directory();
+    void bundled_assets_resolve_from_unrelated_directory();
     void traversal_and_absolute_names_are_rejected();
 };
 

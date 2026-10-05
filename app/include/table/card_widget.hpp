@@ -8,17 +8,20 @@
 #include "image/image_cacher.hpp"
 #include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
+#include "table/gameplay_session.hpp"
 #include <QFutureWatcher>
 #include <QImage>
 #include <QPixmap>
 #include <QPointF>
 #include <QRectF>
+#include <QSizeF>
 #include <QString>
 #include <QStringList>
 #include <QSvgRenderer>
 #include <QVector>
 #include <deque>
 #include <memory>
+#include <optional>
 
 class QPaintEvent;
 class QResizeEvent;
@@ -34,10 +37,21 @@ public:
 class card_widget : public BaseWidget {
     Q_OBJECT
     friend class card_widget_tests;
+    friend class table;
 
 public:
     explicit card_widget(BaseWidget* parent = nullptr);
     ~card_widget() override;
+
+    // Target-mode projection only. The GUI-thread session must outlive this
+    // widget at a stable address. Bind an empty legacy widget once; its deck
+    // identity stays fixed through Swap. Host refreshes after accepted domain
+    // changes; no shoe/count copy, autonomous dealing or v1 recovery is used.
+    [[nodiscard]] bool
+    bind_gameplay_deck(const gameplay::session& owner, gameplay::deck_id id);
+    void refresh_gameplay_deck();
+    // Explicit teardown before owner replacement; resets only presentation.
+    void unbind_gameplay_deck();
 
     void set_swap_selected(bool selected);
     bool swap_selected() const;
@@ -49,6 +63,9 @@ public:
     void set_infinity(bool enabled);
     void set_running(bool running);
     void set_slot_rotated(bool rotated);
+    // Bound target presentation only. A transient 0..90-degree angle preserves
+    // jitter/marking through resize frames; nullopt restores endpoint painting.
+    void set_gameplay_layout_rotation(std::optional<qreal> degrees);
     void set_frame_style(slot_frame_style style);
     void set_show_card_indexing(bool enabled);
     void set_show_strategy_name(bool enabled);
@@ -62,6 +79,8 @@ public:
     bool has_current_card() const;
     bool is_deck_exhausted() const;
     void mark_deck_exhausted();
+    // Legacy picker/checkpoint accessors only. A bound target has no picker
+    // payload; its host reads typed counters from the session and uses G8.
     int current_position() const;
     int current_total_weight() const;
     [[nodiscard]] card_session_state capture_session_state() const;
@@ -89,6 +108,9 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
 
 private:
+    const gameplay::session* gameplay_owner = nullptr;
+    gameplay::deck_id gameplay_id { 0 };
+    std::uint64_t presented_physical_cards = 0;
     bool running;
     bool swap_selected_flag;
     card_picker picker;
@@ -96,6 +118,10 @@ private:
     qreal card_rotation_deg;
     QPointF card_offset;
     bool slot_rotated;
+    std::optional<qreal> gameplay_layout_rotation_deg;
+    // Table's temporary paint layer borrows this renderer, never its images or
+    // domain state. Native controls/accessibility remain on the bound widget.
+    bool gameplay_paint_external = false;
     slot_frame_style frame_style = slot_frame_style::classic;
     bool show_card_indexing_flag;
     bool show_strategy_name_flag;
@@ -147,9 +173,18 @@ private:
     };
 
     paint_geometry layout_geometry() const;
+    paint_geometry layout_geometry(const QSizeF& size) const;
+    void
+    paint_slot_frame(QPainter& painter, const paint_geometry& geometry) const;
+    void paint_deck_content(QPainter& painter, const paint_geometry& geometry);
 
     void update_card_jitter();
     void update_accessible_description();
+    [[nodiscard]] const gameplay::deck_state* gameplay_deck() const;
+    [[nodiscard]] int display_card_index() const;
+    [[nodiscard]] bool display_running() const;
+    [[nodiscard]] bool display_hidden() const;
+    [[nodiscard]] QStringList gameplay_extra_lines() const;
     void update_table_marking();
     QSize card_face_target_size() const;
     static QSize raster_cache_size(const QSize& target_size);
@@ -175,7 +210,7 @@ private:
     ) const;
     void draw_card_index(
         QPainter& painter, const QRectF& oriented_card_rect,
-        qreal slot_rotation_deg
+        qreal slot_rotation_deg, const QPointF& offset
     ) const;
     static void draw_card_shape(
         QPainter& painter, const QRectF& oriented_card_rect,
@@ -199,12 +234,13 @@ private:
     );
     void draw_card_extra_lines(
         QPainter& painter, const QRectF& oriented_card_rect,
-        qreal slot_rotation_deg, const QStringList& extra_lines
+        qreal slot_rotation_deg, const QPointF& offset,
+        const QStringList& extra_lines
     ) const;
     QString current_index_text() const;
     static int total_cards_for_quiz_type(int quiz_type_index);
     static qreal compute_font_point_size(const QRectF& card_rect);
-    static QString weight_text_for_value(int weight);
+    static QString weight_text_for_value(std::int64_t weight);
     static int rank_index_from_card_index(int card_index);
     static int blend_color_channel(int from, int to, qreal strength);
     static QColor

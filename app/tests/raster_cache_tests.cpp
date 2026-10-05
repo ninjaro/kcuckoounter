@@ -276,7 +276,7 @@ void raster_cache_tests::settings_namespace_evicts_oldest_entries() {
                 .has_value());
 }
 
-void raster_cache_tests::settings_namespace_limit_can_be_tuned_at_runtime() {
+void raster_cache_tests::settings_limit_is_runtime_tunable() {
     raster_cache service;
     service.set_namespace_entry_limit(
         raster_cache::cache_namespace::settings, 5

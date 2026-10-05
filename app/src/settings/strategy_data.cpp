@@ -12,11 +12,20 @@
 #include <QSet>
 
 #include <cmath>
+#include <limits>
+#include <utility>
 
 namespace {
 
 constexpr int card_rank_count = 13;
 constexpr int maximum_absolute_weight = 10;
+const QStringList canonical_rank_order {
+    QStringLiteral("A"),  QStringLiteral("2"), QStringLiteral("3"),
+    QStringLiteral("4"),  QStringLiteral("5"), QStringLiteral("6"),
+    QStringLiteral("7"),  QStringLiteral("8"), QStringLiteral("9"),
+    QStringLiteral("10"), QStringLiteral("J"), QStringLiteral("Q"),
+    QStringLiteral("K"),
+};
 
 void add_diagnostic(
     strategy_catalog* catalog, const QString& location, const QString& message
@@ -237,6 +246,40 @@ QMap<QString, QString> optional_string_map(
     return values;
 }
 
+std::optional<strategy_initial_count> validated_initial_count(
+    const QMap<QString, QString>& fields, strategy_catalog* catalog,
+    const QString& location
+) {
+    const auto it
+        = fields.constFind(QStringLiteral("initial_running_count_formula"));
+    if (it == fields.cend()) {
+        return std::nullopt;
+    }
+    // Today's catalogue needs only a constant or a signed per-deck multiplier.
+    // Reject arbitrary expressions/annotations rather than guessing/evaluating
+    // them. Human explanation belongs in a separate descriptive field.
+    static const QRegularExpression pattern(
+        QStringLiteral("^([+-]?[0-9]+)(?:\\s*\\*\\s*(decks))?$")
+    );
+    const auto match = pattern.match(it.value().trimmed());
+    bool converted = false;
+    const auto number = match.captured(1).toLongLong(&converted);
+    if (!match.hasMatch() || !converted) {
+        add_diagnostic(
+            catalog, location,
+            QStringLiteral(
+                "'unique_fields.initial_running_count_formula' must be "
+                "a signed 64-bit integer or '<integer> * decks'"
+            )
+        );
+        return std::nullopt;
+    }
+    return strategy_initial_count {
+        .value = static_cast<std::int64_t>(number),
+        .per_deck = !match.captured(2).isEmpty(),
+    };
+}
+
 QVector<strategy_data::strategy_reference> validated_references(
     const QJsonObject& object, strategy_catalog* catalog,
     const QString& location
@@ -284,6 +327,38 @@ QVector<strategy_data::strategy_reference> validated_references(
 }
 
 } // namespace
+
+std::optional<std::int64_t>
+strategy_initial_count::evaluate(std::size_t decks) const {
+    if (decks == 0) {
+        return std::nullopt;
+    }
+    if (!per_deck || value == 0) {
+        return value;
+    }
+    // Unsigned magnitude handles INT64_MIN without signed negation overflow.
+    const auto magnitude = value < 0
+        ? static_cast<std::uint64_t>(-(value + 1)) + 1
+        : static_cast<std::uint64_t>(value);
+    const auto positive_limit
+        = static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max());
+    const auto limit = value < 0 ? positive_limit + 1 : positive_limit;
+    if (std::cmp_greater(decks, limit / magnitude)) {
+        return std::nullopt;
+    }
+    const auto product = magnitude * static_cast<std::uint64_t>(decks);
+    if (product > positive_limit) {
+        return std::numeric_limits<std::int64_t>::min();
+    }
+    const auto count = static_cast<std::int64_t>(product);
+    return value < 0 ? -count : count;
+}
+
+std::optional<std::int64_t>
+strategy_data::initial_running_count_for(std::size_t decks) const {
+    return initial_count ? initial_count->evaluate(decks)
+                         : strategy_initial_count {}.evaluate(decks);
+}
 
 bool strategy_catalog::is_valid() const {
     return diagnostics.isEmpty() && !strategies.isEmpty();
@@ -339,6 +414,15 @@ strategy_catalog parse_strategy_catalog(const QByteArray& json_data) {
                 continue;
             }
             ranks.insert(rank.toString());
+            if (rank.toString() != canonical_rank_order.at(index)) {
+                add_diagnostic(
+                    &catalog, QStringLiteral("document"),
+                    QStringLiteral(
+                        "'card_rank_order' must be A,2,3,4,5,6,7,8,9,10,J,Q,K"
+                    )
+                );
+                break;
+            }
         }
     }
 
@@ -432,6 +516,8 @@ strategy_catalog parse_strategy_catalog(const QByteArray& json_data) {
         data.unique_fields = optional_string_map(
             object, QStringLiteral("unique_fields"), &catalog, location
         );
+        data.initial_count
+            = validated_initial_count(data.unique_fields, &catalog, location);
         data.references = validated_references(object, &catalog, location);
 
         if (!data.slug.isEmpty() && !slug_pattern.match(data.slug).hasMatch()) {

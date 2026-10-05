@@ -17,7 +17,7 @@ private slots:
     void finish_active_request_rejects_stale_completion();
     void namespaces_keep_separate_ready_entries();
     void settings_namespace_evicts_oldest_entries();
-    void settings_namespace_limit_can_be_tuned_at_runtime();
+    void settings_limit_is_runtime_tunable();
     void settings_lookup_can_fallback_to_main_namespace();
     void settings_lookup_prefers_settings_when_both_ready();
     void render_scope_normalizes_for_cache_hits();

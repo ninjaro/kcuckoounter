@@ -2,7 +2,9 @@
 #define KCUCKOOUNTER_MAIN_WINDOW_HPP
 
 #include "arch/widget_helpers.hpp"
+#include "settings/preferences.hpp"
 
+#include <QPointer>
 #include <QString>
 #include <QtCore/Qt>
 
@@ -15,6 +17,13 @@ class QProgressBar;
 class QSlider;
 class settings_template_widget;
 class desktop_status_strip;
+class QTimer;
+class QVBoxLayout;
+class QTableWidget;
+
+namespace gameplay {
+class setup_widget;
+}
 struct training_drill;
 
 class main_window : public BaseMainWindow {
@@ -36,6 +45,9 @@ private slots:
     void on_setup_dialog_rejected();
     void on_continue_button_clicked();
     void on_new_game_triggered();
+    void on_new_gameplay_triggered();
+    void on_gameplay_review_triggered();
+    void on_gameplay_roster_changed(int count);
     void on_saved_drills_triggered();
     void on_start_pause_triggered();
     void on_finish_triggered();
@@ -76,6 +88,17 @@ private:
     BaseAction* progress_action;
     BaseAction* settings_action;
     BaseAction* saved_drills_action = nullptr;
+    BaseAction* new_gameplay_action = nullptr;
+    BaseAction* gameplay_review_action = nullptr;
+    QPointer<QDialog> gameplay_review_dialog;
+    QTableWidget* gameplay_review_rows = nullptr;
+    QPointer<QDialog> gameplay_setup_dialog;
+    QPointer<gameplay::setup_widget> gameplay_setup_fields;
+    BaseSpinBox* gameplay_slot_count = nullptr;
+    QVBoxLayout* gameplay_setup_layout = nullptr;
+    QLabel* gameplay_setup_error = nullptr;
+    QTimer* gameplay_geometry_timer = nullptr;
+    bool gameplay_geometry_ready = false;
     bool quiz_started;
     bool quiz_paused;
     bool quiz_finished;
@@ -87,6 +110,8 @@ private:
     qint64 last_mobile_checkpoint_elapsed_ms;
     bool compact_toolbar = false;
     desktop_status_strip* desktop_status = nullptr;
+    desktop_hud_style gameplay_hud_style = desktop_hud_style::classic;
+    int gameplay_default_suit = 0;
 
     void setup_ui();
     void apply_desktop_presentation();
@@ -106,6 +131,15 @@ private:
     void reset_game_state(bool show_setup_dialog, bool mark_finished = false);
     void show_game_over_dialog();
     void start_quiz_from_ui();
+    void open_gameplay_setup_dialog();
+    void close_gameplay_setup_dialog();
+    void close_gameplay_review_dialog();
+    void refresh_gameplay_review();
+    void rebuild_gameplay_setup_fields();
+    void refresh_gameplay_setup();
+    void refresh_gameplay_actions();
+    void report_gameplay_error(const QString& message);
+    [[nodiscard]] bool start_gameplay_from_ui();
     [[nodiscard]] training_drill capture_training_drill() const;
     bool launch_training_drill(const training_drill& drill);
     void pause_for_dialog();
