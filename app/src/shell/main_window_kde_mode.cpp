@@ -3,6 +3,7 @@
 #ifdef KC_KDE
 
 #include "arch/str_label.hpp"
+#include "table/table.hpp"
 
 #include <KActionCollection>
 #include <KGameClock>
@@ -157,12 +158,16 @@ void main_window::finalize_platform_shell() {
     if (new_game_action != nullptr) {
         game_menu->addAction(new_game_action);
     }
+    if (new_gameplay_action != nullptr)
+        game_menu->addAction(new_gameplay_action);
     if (start_pause_action != nullptr) {
         game_menu->addAction(start_pause_action);
     }
     if (finish_action != nullptr) {
         game_menu->addAction(finish_action);
     }
+    if (gameplay_review_action != nullptr)
+        game_menu->addAction(gameplay_review_action);
     if (saved_drills_action != nullptr) {
         game_menu->addAction(saved_drills_action);
     }
@@ -277,6 +282,11 @@ void main_window::register_shell_action(
 void main_window::insert_shell_separator() { }
 
 void main_window::refresh_clock_label() const {
+    if (table_widget && table_widget->active_gameplay_session()) {
+        if (clock_label)
+            clock_label->setText(table_widget->gameplay_clock_text());
+        return;
+    }
     if (clock_timer == nullptr || clock_label == nullptr) {
         return;
     }

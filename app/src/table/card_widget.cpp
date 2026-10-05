@@ -4,20 +4,14 @@
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
 #include "settings/theme_settings.hpp"
-#include <QColor>
 #include <QFutureWatcher>
 #include <QImage>
-#include <QPaintEvent>
-#include <QPainter>
-#include <QResizeEvent>
-#include <QSize>
-#include <QSizeF>
 #include <QString>
 #include <QStringList>
-#include <QtConcurrent>
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 int card_widget::total_cards_for_quiz_type(int quiz_type_index) {
     if (quiz_type_index == 1) {
@@ -26,14 +20,13 @@ int card_widget::total_cards_for_quiz_type(int quiz_type_index) {
     return 52;
 }
 
-qreal card_widget::compute_font_point_size(const QRectF& card_rect) {
-    qreal point_size = card_rect.height() * 0.10;
-    return std::clamp(point_size, 8.0, 20.0);
-}
-
-QString card_widget::weight_text_for_value(int weight) {
+QString card_widget::weight_text_for_value(std::int64_t weight) {
     if (weight >= 0) {
-        return str_label("+%1").arg(weight);
+#ifdef KC_KDE
+        return i18n("+%1", static_cast<qlonglong>(weight));
+#else
+        return str_label("+%1").arg(static_cast<qlonglong>(weight));
+#endif
     }
     return QString::number(weight);
 }
@@ -43,35 +36,6 @@ int card_widget::rank_index_from_card_index(int card_index) {
         return -1;
     }
     return card_index % 13;
-}
-
-int card_widget::blend_color_channel(int from, int to, qreal strength) {
-    const qreal clamped = std::clamp(strength, 0.0, 1.0);
-    return static_cast<int>(from + (to - from) * clamped);
-}
-
-QColor
-card_widget::blend_color(const QColor& from, const QColor& to, qreal strength) {
-    QColor blended(
-        blend_color_channel(from.red(), to.red(), strength),
-        blend_color_channel(from.green(), to.green(), strength),
-        blend_color_channel(from.blue(), to.blue(), strength),
-        blend_color_channel(from.alpha(), to.alpha(), strength)
-    );
-    return blended;
-}
-
-QVector<QImage> card_widget::rasterize_card_faces(
-    const QString& source, const QSize& raster_size
-) {
-    return rasterize_card_faces_with_fallback(source, raster_size);
-}
-
-void card_rasterize_watcher::waitForFinished() {
-    QFutureWatcher<QVector<QImage>>::waitForFinished();
-    if (isFinished()) {
-        Q_EMIT finished();
-    }
 }
 
 card_widget::card_widget(BaseWidget* parent)
@@ -131,6 +95,106 @@ card_widget::card_widget(BaseWidget* parent)
 
 card_widget::~card_widget() = default;
 
+bool card_widget::bind_gameplay_deck(
+    const gameplay::session& owner, gameplay::deck_id id
+) {
+    if (!owner.deck(id) || picker.has_cards()
+        || (gameplay_owner && (gameplay_owner != &owner || gameplay_id != id)))
+        return false;
+    gameplay_owner = &owner;
+    gameplay_id = id;
+    refresh_gameplay_deck();
+    return true;
+}
+
+void card_widget::refresh_gameplay_deck() {
+    const auto* deck = gameplay_deck();
+    if (!deck)
+        return;
+    const auto exposure = deck->dealt_physical_cards;
+    if (exposure != presented_physical_cards) {
+        if (exposure < presented_physical_cards)
+            discard_history.clear();
+        else if (presented_physical_cards > 0)
+            record_discard();
+        // One transform for the newly presented face, not a replay of missed
+        // frames or an owned card-history copy. Same-state refresh is inert.
+        presented_physical_cards = exposure;
+        if (picks_since_rasterize < std::numeric_limits<int>::max())
+            ++picks_since_rasterize;
+        update_card_jitter();
+    }
+    update_accessible_description();
+    update();
+}
+
+void card_widget::unbind_gameplay_deck() {
+    if (!gameplay_owner)
+        return;
+    gameplay_owner = nullptr;
+    gameplay_layout_rotation_deg.reset();
+    gameplay_paint_external = false;
+    presented_physical_cards = 0;
+    hide_cards_flag = false;
+    clear_quiz();
+}
+
+const gameplay::deck_state* card_widget::gameplay_deck() const {
+    return gameplay_owner ? gameplay_owner->deck(gameplay_id) : nullptr;
+}
+
+int card_widget::display_card_index() const {
+    if (const auto* deck = gameplay_deck()) {
+        return deck->next_card > 0
+                && deck->next_card <= deck->stream.cards.size()
+            ? static_cast<int>(deck->stream.cards[deck->next_card - 1])
+            : -1;
+    }
+    return picker.current_card_index();
+}
+
+bool card_widget::display_running() const {
+    if (const auto* deck = gameplay_deck()) {
+        return deck->status == gameplay::deck_status::completed
+            || (deck->status == gameplay::deck_status::active
+                && gameplay_owner->phase() == gameplay::session_phase::running);
+    }
+    return running;
+}
+
+bool card_widget::display_hidden() const {
+    if (const auto* deck = gameplay_deck())
+        return deck->status == gameplay::deck_status::active
+            && (hide_cards_flag || deck->quiz.has_value());
+    return hide_cards_flag;
+}
+
+QStringList card_widget::gameplay_extra_lines() const {
+    QStringList lines;
+    const auto* deck = gameplay_deck();
+    if (!deck)
+        return lines;
+    if (show_strategy_name_flag && !strategy_name.isEmpty())
+        lines.append(strategy_name);
+    if (deck->status == gameplay::deck_status::completed) {
+#ifdef KC_KDE
+        lines.append(i18n(
+            "Expected final count: %1",
+            static_cast<qlonglong>(deck->running_count)
+        ));
+#else
+        lines.append(str_label("Expected final count: %1")
+                         .arg(static_cast<qlonglong>(deck->running_count)));
+#endif
+    } else if (
+        deck->status == gameplay::deck_status::active
+        && deck->configuration.training && deck->show_count
+    ) {
+        lines.append(weight_text_for_value(deck->running_count));
+    }
+    return lines;
+}
+
 void card_widget::set_swap_selected(bool selected) {
     if (swap_selected_flag == selected) {
         return;
@@ -153,6 +217,8 @@ bool card_widget::swap_selected() const { return swap_selected_flag; }
 void card_widget::start_quiz(
     int quiz_type_index, int requested_decks_count, bool infinity_enabled_flag
 ) {
+    if (gameplay_owner)
+        return;
     const int total_per_deck = total_cards_for_quiz_type(quiz_type_index);
     if (requested_decks_count <= 0) {
         requested_decks_count = 1;
@@ -170,12 +236,16 @@ void card_widget::start_quiz(
 }
 
 void card_widget::set_infinity(bool enabled) {
+    if (gameplay_owner)
+        return;
     picker.set_infinity(enabled);
     infinity_enabled = enabled;
     update();
 }
 
 void card_widget::set_running(bool new_running) {
+    if (gameplay_owner)
+        return;
     if (running == new_running) {
         return;
     }
@@ -191,6 +261,18 @@ void card_widget::set_slot_rotated(bool rotated) {
     }
 
     slot_rotated = rotated;
+    update();
+}
+
+void card_widget::set_gameplay_layout_rotation(std::optional<qreal> degrees) {
+    if (!gameplay_owner
+        || (degrees
+            && (!std::isfinite(*degrees) || *degrees < 0.0 || *degrees > 90.0))
+        || gameplay_layout_rotation_deg == degrees)
+        return;
+    gameplay_layout_rotation_deg = degrees;
+    if (!degrees)
+        update_table_marking(); // Final geometry only, not every motion frame.
     update();
 }
 
@@ -221,6 +303,8 @@ void card_widget::set_show_strategy_name(bool enabled) {
 }
 
 void card_widget::set_training_mode(bool enabled) {
+    if (gameplay_owner)
+        return;
     if (training_mode_flag == enabled) {
         return;
     }
@@ -239,6 +323,8 @@ void card_widget::set_strategy_name(const QString& name) {
 }
 
 void card_widget::set_strategy_weights(const QVector<int>& weights) {
+    if (gameplay_owner)
+        return;
     if (strategy_weights == weights) {
         return;
     }
@@ -263,7 +349,7 @@ void card_widget::set_hide_cards(bool hide) {
 }
 
 void card_widget::advance_card() {
-    if (!running) {
+    if (gameplay_owner || !running) {
         return;
     }
 
@@ -275,15 +361,23 @@ void card_widget::advance_card() {
     update();
 }
 
-bool card_widget::has_cards() const { return picker.has_cards(); }
-
-bool card_widget::has_current_card() const {
-    return picker.current_card_index() >= 0;
+bool card_widget::has_cards() const {
+    if (const auto* deck = gameplay_deck())
+        return !deck->stream.cards.empty();
+    return picker.has_cards();
 }
 
-bool card_widget::is_deck_exhausted() const { return picker.is_depleted(); }
+bool card_widget::has_current_card() const { return display_card_index() >= 0; }
+
+bool card_widget::is_deck_exhausted() const {
+    if (const auto* deck = gameplay_deck())
+        return deck->status != gameplay::deck_status::active;
+    return picker.is_depleted();
+}
 
 void card_widget::mark_deck_exhausted() {
+    if (gameplay_owner)
+        return;
     picker.set_infinity(false);
     infinity_enabled = false;
     picker.mark_depleted();
@@ -298,6 +392,10 @@ int card_widget::current_total_weight() const {
 }
 
 card_session_state card_widget::capture_session_state() const {
+    // Empty/invalid v1 state instead of serializing a target deck through the
+    // legacy picker. The target host must use G8's eventual versioned codec.
+    if (gameplay_owner)
+        return {};
     return {
         .cards_per_deck = cards_per_deck,
         .decks_count = decks_count,
@@ -309,7 +407,7 @@ card_session_state card_widget::capture_session_state() const {
 }
 
 bool card_widget::restore_session_state(const card_session_state& state) {
-    if (!can_restore_session_state(state)
+    if (gameplay_owner || !can_restore_session_state(state)
         || !picker.restore(
             state.deck, state.deck_position, state.infinity_enabled,
             state.cards_per_deck
@@ -346,6 +444,8 @@ bool card_widget::can_restore_session_state(const card_session_state& state) {
 }
 
 void card_widget::clear_quiz() {
+    if (gameplay_owner)
+        return;
     picker.setup(0, 0, false);
     cards_per_deck = 0;
     decks_count = 0;
@@ -369,18 +469,41 @@ void card_widget::clear_quiz() {
 void card_widget::update_accessible_description() {
     // Mirror paintEvent's visibility precedence, including the paused back.
     // A quiz prompt must not expose the hidden face to assistive technology.
-    if (!picker.has_cards()) {
+    if (!has_cards()) {
         setAccessibleDescription(str_label("Empty card slot"));
-    } else if (hide_cards_flag) {
+    } else if (
+        const auto* deck = gameplay_deck();
+        deck && deck->status == gameplay::deck_status::failed
+    ) {
+        setAccessibleDescription(str_label("Failed deck. Card back."));
+    } else if (display_hidden()) {
         setAccessibleDescription(str_label("Card hidden"));
-    } else if (!running || picker.current_card_index() < 0) {
+    } else if (!display_running() || display_card_index() < 0) {
         setAccessibleDescription(str_label("Card back"));
     } else {
         setAccessibleDescription(
+#ifdef KC_KDE
+            i18n(
+                "Current card: %1", card_label_from_index(display_card_index())
+            )
+#else
             str_label("Current card: %1")
-                .arg(card_label_from_index(picker.current_card_index()))
+                .arg(card_label_from_index(display_card_index()))
+#endif
         );
     }
+    const auto lines = gameplay_extra_lines();
+    if (const auto* deck = gameplay_deck();
+        deck && deck->status == gameplay::deck_status::completed)
+        setAccessibleDescription(
+            str_label("Completed deck.") + QLatin1Char('\n')
+            + accessibleDescription()
+        );
+    if (has_cards() && !lines.isEmpty())
+        setAccessibleDescription(
+            accessibleDescription() + QLatin1Char('\n')
+            + lines.join(QLatin1Char('\n'))
+        );
 }
 
 void card_widget::trigger_highlight(int duration_ms) {
@@ -410,708 +533,12 @@ void card_widget::tick_highlight(int delta_ms) {
     update();
 }
 
-void card_widget::prepare_card_faces() {
-    const QSize target_size = card_face_target_size();
-    if (target_size.isEmpty()) {
-        return;
-    }
-    update_card_faces(target_size);
-}
-
-void card_widget::set_shared_card_faces(
-    const QVector<QImage>& face_images, const QSize& raster_size
-) {
-    if (face_images.isEmpty() || raster_size.isEmpty()) {
-        return;
-    }
-
-    apply_rasterized_images(face_images, raster_size);
-    shared_card_faces_active = true;
-
-    if (rasterizing) {
-        pending_raster_size = QSize();
-        set_rasterizing(false);
-    }
-
-    if (!card_face_size.isEmpty()) {
-        update_card_faces(card_face_size);
-    }
-    update();
-}
-
-void card_widget::clear_shared_card_faces() {
-    shared_card_faces_active = false;
-}
-
-bool card_widget::has_shared_card_faces() const {
-    return shared_card_faces_active && !card_faces_rasterized.isEmpty();
-}
-
-void card_widget::set_shared_card_faces_mode(bool enabled) {
-    if (shared_card_faces_mode == enabled) {
-        return;
-    }
-
-    shared_card_faces_mode = enabled;
-    if (shared_card_faces_mode && rasterizing) {
-        pending_raster_size = QSize();
-        set_rasterizing(false);
-    }
-    if (!card_face_size.isEmpty()) {
-        update_card_faces(card_face_size);
-    }
-}
-
-void card_widget::sync_card_sheet_source() {
-    const QString next_source = card_sheet_source_path();
-    if (card_sheet_source == next_source) {
-        return;
-    }
-
-    card_sheet_source = next_source;
-    card_sheet_renderer.load(card_sheet_source);
-    invalidate_selected_card_face();
-    card_faces_rasterized.clear();
-    card_face_raster_size = QSize();
-    picks_since_rasterize = 0;
-
-    if (rasterizing) {
-        pending_raster_size = raster_cache_size(card_face_size);
-    }
-
-    if (!card_face_size.isEmpty()) {
-        update_card_faces(card_face_size);
-    }
-    update();
-}
-
-int card_widget::card_face_target_short_px() const {
-    const QSize target_size = card_face_target_size();
-    if (target_size.isEmpty()) {
-        return 0;
-    }
-
-    return std::min(target_size.width(), target_size.height());
-}
-
-QPointF
-card_widget::paint_geometry::bounded_offset(const QPointF& offset) const {
-    return { std::clamp(offset.x(), -jitter_limit, jitter_limit),
-             std::clamp(offset.y(), -jitter_limit, jitter_limit) };
-}
-
-card_widget::paint_geometry card_widget::layout_geometry() const {
-    paint_geometry result;
-    const qreal outer_margin = std::min(3.0, std::min(width(), height()) / 8.0);
-    const QRectF slot_rect = QRectF(rect()).adjusted(
-        outer_margin, outer_margin, -outer_margin, -outer_margin
-    );
-    result.min_dim = std::min(slot_rect.width(), slot_rect.height());
-    if (result.min_dim <= 0.0) {
-        return result;
-    }
-    const qreal frame_margin = std::min(
-        std::clamp(result.min_dim * 0.05, 4.0, 10.0), result.min_dim / 8.0
-    );
-    const QRectF base_slot_frame_rect = slot_rect.adjusted(
-        frame_margin, frame_margin, -frame_margin, -frame_margin
-    );
-    QPointF selection_offset(0.0, 0.0);
-    if (swap_selected_flag) {
-        const qreal jitter = 1.8;
-        selection_offset = QPointF(
-            std::sin(selection_phase) * jitter,
-            std::cos(selection_phase * 1.3) * jitter
-        );
-    }
-    result.frame = base_slot_frame_rect.translated(selection_offset);
-    const qreal frame_short
-        = std::min(result.frame.width(), result.frame.height());
-    const qreal inset = std::min(
-        std::clamp(result.min_dim * 0.08, 4.0, 12.0), frame_short / 4.0
-    );
-    result.jitter_limit = std::min(inset * 0.6, frame_short / 16.0);
-    QSizeF card_size
-        = result.frame.adjusted(inset, inset, -inset, -inset).size();
-
-    // Bound all rotations in [-3.5, 3.5], not only one random draw. cos(theta)
-    // <= 1 gives a conservative envelope even for very unusual aspect ratios.
-    // Reserve room for the frame/card strokes and integer pixmap rounding.
-    const qreal stroke_room = std::min(4.0, frame_short / 8.0);
-    const qreal sine = std::sin(3.5 * std::acos(-1.0) / 180.0);
-    const qreal envelope_width = card_size.width() + card_size.height() * sine;
-    const qreal envelope_height = card_size.height() + card_size.width() * sine;
-    const qreal scale = std::min(
-        { 1.0,
-          (result.frame.width() - 2.0 * (stroke_room + result.jitter_limit))
-              / envelope_width,
-          (result.frame.height() - 2.0 * (stroke_room + result.jitter_limit))
-              / envelope_height }
-    );
-    card_size *= std::max(0.0, scale);
-    result.slot_rotation = slot_rotated ? 0.0 : 90.0;
-    if (!slot_rotated) {
-        card_size.transpose();
-    }
-    result.card = QRectF(
-        result.frame.center()
-            - QPointF(card_size.width() / 2.0, card_size.height() / 2.0),
-        card_size
-    );
-    return result;
-}
-
-void card_widget::paintEvent(QPaintEvent* event) {
-    BaseWidget::paintEvent(event);
-
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    const auto geometry = layout_geometry();
-    const QRectF& slot_frame_rect = geometry.frame;
-    const QRectF& oriented_card_rect = geometry.card;
-    const qreal min_dim = geometry.min_dim;
-    const qreal slot_rotation_deg = geometry.slot_rotation;
-    const QPointF rendered_offset = geometry.bounded_offset(card_offset);
-    if (oriented_card_rect.isEmpty()) {
-        return;
-    }
-
-    const bool has_deck = picker.has_cards();
-    const int card_index = picker.current_card_index();
-    const bool has_current_card = card_index >= 0;
-    const bool show_back = has_deck && (!running || !has_current_card);
-
-    const QColor slot_fill_color = theme_settings::slot_fill_color();
-    const QColor slot_border_color = swap_selected_flag
-        ? theme_settings::slot_border_selected_color()
-        : theme_settings::slot_border_color();
-    painter.setPen(QPen(
-        slot_border_color, frame_style == slot_frame_style::thin ? 1.0 : 6.6
-    ));
-    painter.setBrush(QBrush(slot_fill_color));
-    painter.drawRoundedRect(slot_frame_rect, 10.0, 10.0);
-
-    const qreal strength = highlight_strength();
-
-    if (!has_deck) {
-        draw_table_marking(painter, slot_frame_rect, min_dim);
-        return;
-    }
-
-    if (hide_cards_flag) {
-        draw_table_marking(painter, slot_frame_rect, min_dim);
-        draw_card_index(painter, oriented_card_rect, slot_rotation_deg);
-        return;
-    }
-    draw_table_marking(painter, slot_frame_rect, min_dim);
-
-    const QColor discard_fill_color(248, 248, 248, 235);
-    const QColor discard_border_color(220, 220, 220, 210);
-    for (const discard_card& discard : discard_history) {
-        draw_card_shape(
-            painter, oriented_card_rect, slot_rotation_deg,
-            discard.rotation_deg, geometry.bounded_offset(discard.offset),
-            discard_fill_color, discard_border_color
-        );
-    }
-
-    const auto& element_ids = card_element_ids();
-    const int max_card_index
-        = element_ids.isEmpty() ? -1 : static_cast<int>(element_ids.size()) - 1;
-    const int mapped_card_index
-        = card_index < 0 ? -1 : std::min(card_index, max_card_index);
-    const int back_index = static_cast<int>(element_ids.size());
-
-    if (show_back) {
-        const QColor base_card_fill(250, 250, 250);
-        const QColor base_card_border(210, 210, 210, 220);
-        draw_card_shape(
-            painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-            rendered_offset, base_card_fill, base_card_border
-        );
-
-        const QSize target_size
-            = oriented_card_rect.size().toSize().expandedTo(QSize(1, 1));
-        update_card_faces(target_size);
-        const QPixmap& back = card_face_pixmap(back_index);
-
-        if (!back.isNull()) {
-            draw_card_pixmap(
-                painter, oriented_card_rect, slot_rotation_deg,
-                card_rotation_deg, rendered_offset, back
-            );
-        } else {
-            draw_card_center_text(
-                painter, oriented_card_rect, slot_rotation_deg,
-                card_rotation_deg, rendered_offset, str_label("Back")
-            );
-        }
-        return;
-    }
-
-    QString text;
-    if (card_index >= 0) {
-        text = card_label_from_index(card_index);
-    } else {
-        text = str_label("Card");
-    }
-
-    const QColor base_card_fill(250, 250, 250);
-    const QColor base_card_border(210, 210, 210, 220);
-    const QColor highlight_fill_target(214, 232, 255, 250);
-    const QColor highlight_border_target(120, 170, 235, 235);
-    const QColor card_fill_color
-        = blend_color(base_card_fill, highlight_fill_target, strength);
-    const QColor card_border_color
-        = blend_color(base_card_border, highlight_border_target, strength);
-
-    draw_card_shape(
-        painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-        rendered_offset, card_fill_color, card_border_color
-    );
-
-    const QSize target_size
-        = oriented_card_rect.size().toSize().expandedTo(QSize(1, 1));
-    update_card_faces(target_size);
-    const QPixmap& face = card_face_pixmap(mapped_card_index);
-
-    if (!face.isNull()) {
-        draw_card_pixmap(
-            painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-            rendered_offset, face
-        );
-    } else if (!text.isEmpty()) {
-        draw_card_text(
-            painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-            rendered_offset, text
-        );
-    }
-
-    QStringList extra_lines;
-    if (show_strategy_name_flag && !strategy_name.isEmpty()) {
-        extra_lines.append(strategy_name);
-    }
-    if (training_mode_flag) {
-        if (picker.current_card_index() >= 0) {
-            const int total_weight = total_weight_for_picks();
-            extra_lines.append(weight_text_for_value(total_weight));
-        }
-    }
-
-    if (!extra_lines.isEmpty()) {
-        draw_card_extra_lines(
-            painter, oriented_card_rect, slot_rotation_deg, extra_lines
-        );
-    }
-
-    draw_card_index(painter, oriented_card_rect, slot_rotation_deg);
-}
-
-void card_widget::resizeEvent(QResizeEvent* event) {
-    BaseWidget::resizeEvent(event);
-    update_card_jitter();
-    update_table_marking();
-}
-
-void card_widget::update_card_jitter() {
-    const qreal max_offset = layout_geometry().jitter_limit;
-
-    const auto rotation
-        = static_cast<qreal>(random_gen.uniform_real(-3.5, 3.5));
-    const auto offset_x
-        = static_cast<qreal>(random_gen.uniform_real(-max_offset, max_offset));
-    const auto offset_y
-        = static_cast<qreal>(random_gen.uniform_real(-max_offset, max_offset));
-
-    card_rotation_deg = rotation;
-    card_offset = QPointF(offset_x, offset_y);
-}
-
-void card_widget::update_table_marking() {
-    const QRectF slot_frame_rect = layout_geometry().frame;
-    const qreal target_dim
-        = std::min(slot_frame_rect.width(), slot_frame_rect.height()) * 0.5;
-    const int size = static_cast<int>(std::max(1.0, target_dim));
-    table_marking.set_target_size(QSize(size, size));
-}
-
-QSize card_widget::card_face_target_size() const {
-    const QRectF card_rect = layout_geometry().card;
-    if (card_rect.isEmpty()) {
-        return {};
-    }
-    return card_rect.size().toSize().expandedTo(QSize(1, 1));
-}
-
-QSize card_widget::raster_cache_size(const QSize& target_size) {
-    if (target_size.isEmpty()) {
-        return {};
-    }
-    const qreal base_scale = 1.75;
-    const qreal min_side = std::min(target_size.width(), target_size.height());
-    qreal scale = base_scale;
-    if (min_side > 0.0) {
-        scale = std::max(scale, 63.0 / min_side);
-    }
-    const int width
-        = std::max(1, static_cast<int>(std::ceil(target_size.width() * scale)));
-    const int height = std::max(
-        1, static_cast<int>(std::ceil(target_size.height() * scale))
-    );
-    return { width, height };
-}
-
-void card_widget::update_card_faces(const QSize& target_size) {
-    if (target_size.isEmpty()) {
-        invalidate_selected_card_face();
-        card_face_size = QSize();
-        card_faces_rasterized.clear();
-        card_face_raster_size = QSize();
-        picks_since_rasterize = 0;
-        pending_raster_size = QSize();
-        return;
-    }
-
-    if (!card_sheet_renderer.isValid()) {
-        card_sheet_renderer.load(card_sheet_source);
-    }
-
-    if (!card_sheet_renderer.isValid()) {
-        invalidate_selected_card_face();
-        card_face_size = QSize();
-        card_faces_rasterized.clear();
-        card_face_raster_size = QSize();
-        picks_since_rasterize = 0;
-        pending_raster_size = QSize();
-        return;
-    }
-
-    const bool size_changed = card_face_size != target_size;
-    const QSize raster_target_size = raster_cache_size(target_size);
-    const bool raster_size_changed
-        = card_face_raster_size != raster_target_size;
-    const bool raster_cache_ready
-        = !card_faces_rasterized.isEmpty() && !card_face_raster_size.isEmpty();
-    const bool allow_local_rasterization
-        = !shared_card_faces_mode && !shared_card_faces_active;
-    const bool should_rasterize = !raster_cache_ready
-        || (allow_local_rasterization && raster_size_changed
-            && picks_since_rasterize >= 3);
-
-    if (should_rasterize && allow_local_rasterization) {
-        if (!rasterizing) {
-            start_rasterization(raster_target_size);
-        } else if (raster_task_size != raster_target_size) {
-            pending_raster_size = raster_target_size;
-        }
-    }
-
-    if (!size_changed && !should_rasterize) {
-        return;
-    }
-
-    if (size_changed) {
-        invalidate_selected_card_face();
-    }
-    card_face_size = target_size;
-}
-
-void card_widget::invalidate_selected_card_face() {
-    selected_card_face = QPixmap();
-    selected_card_face_index = -1;
-}
-
-const QPixmap& card_widget::card_face_pixmap(int index) {
-    if (index < 0 || index >= card_faces_rasterized.size()
-        || card_face_size.isEmpty()) {
-        invalidate_selected_card_face();
-        return selected_card_face;
-    }
-    if (selected_card_face_index != index) {
-        // Widgets share immutable raster handles. Only the face being painted
-        // needs a platform pixmap at this widget's current display size.
-        selected_card_face
-            = QPixmap::fromImage(card_faces_rasterized.at(index));
-        if (!selected_card_face.isNull()) {
-            selected_card_face = selected_card_face.scaled(
-                card_face_size, Qt::IgnoreAspectRatio, Qt::FastTransformation
-            );
-        }
-        selected_card_face_index = index;
-    }
-    return selected_card_face;
-}
-
-void card_widget::start_rasterization(const QSize& target_size) {
-    if (target_size.isEmpty()) {
-        return;
-    }
-
-    raster_task_size = target_size;
-    raster_task_source = card_sheet_source;
-    pending_raster_size = QSize();
-    set_rasterizing(true);
-
-    const QString source = raster_task_source;
-    const QSize raster_size = target_size;
-
-    rasterize_watcher.setFuture(
-        QtConcurrent::run(
-            &card_widget::rasterize_card_faces, source, raster_size
-        )
-    );
-}
-
-void card_widget::apply_rasterized_images(
-    const QVector<QImage>& images, const QSize& target_size
-) {
-    card_faces_rasterized = images;
-    card_face_raster_size = target_size;
-    invalidate_selected_card_face();
-    picks_since_rasterize = 0;
-}
-
-void card_widget::set_rasterizing(bool active) {
-    if (rasterizing == active) {
-        return;
-    }
-
-    rasterizing = active;
-    emit rasterization_busy_changed(active);
-}
-
-void card_widget::apply_card_transform(
-    QPainter& painter, const QRectF& oriented_card_rect,
-    qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset
-) {
-    const QPointF transform_center = oriented_card_rect.center() + offset;
-    painter.translate(transform_center);
-    painter.rotate(rotation_deg + slot_rotation_deg);
-    painter.translate(-oriented_card_rect.center());
-}
-
-void card_widget::draw_table_marking(
-    QPainter& painter, const QRectF& slot_frame_rect, qreal min_dim
-) const {
-    if (table_marking.is_ready()) {
-        const QPixmap& marking = table_marking.pixmap();
-        const QSizeF marking_size = table_marking.display_size();
-        const QPointF marking_top_left(
-            slot_frame_rect.center().x() - marking_size.width() / 2.0,
-            slot_frame_rect.center().y() - marking_size.height() / 2.0
-        );
-        const QRectF marking_rect(marking_top_left, marking_size);
-        painter.drawPixmap(marking_rect, marking, marking.rect());
-        return;
-    }
-
-    QColor marking_color(str_label("#D4AF37"));
-    marking_color.setAlpha(150);
-    QFont marking_font = painter.font();
-    marking_font.setBold(true);
-    marking_font.setPointSizeF(std::clamp(min_dim * 0.09, 9.0, 18.0));
-    painter.setFont(marking_font);
-
-    painter.save();
-    painter.setPen(marking_color);
-    const bool long_side_horizontal
-        = slot_frame_rect.width() >= slot_frame_rect.height();
-    const QPointF marking_center = slot_frame_rect.center();
-    if (!long_side_horizontal) {
-        painter.translate(marking_center);
-        painter.rotate(90.0);
-        painter.translate(-marking_center);
-    }
-
-    const QRectF marking_rect = slot_frame_rect.adjusted(
-        slot_frame_rect.width() * 0.08, slot_frame_rect.height() * 0.08,
-        -slot_frame_rect.width() * 0.08, -slot_frame_rect.height() * 0.08
-    );
-    painter.drawText(marking_rect, Qt::AlignCenter, str_label("kcuckoounter"));
-    painter.restore();
-}
-
-QString card_widget::current_index_text() const {
-    if (!show_card_indexing_flag) {
-        return {};
-    }
-
-    const int position = picker.current_position();
-    if (position < 0) {
-        return {};
-    }
-
-    const int current_value = position + 1;
-    if (infinity_enabled) {
-        return QString::number(current_value);
-    }
-
-    const int total = std::max(1, cards_per_deck * decks_count);
-    return str_label("%1/%2").arg(current_value).arg(total);
-}
-
-void card_widget::draw_card_index(
-    QPainter& painter, const QRectF& oriented_card_rect, qreal slot_rotation_deg
-) const {
-    const QString index_text = current_index_text();
-    if (index_text.isEmpty()) {
-        return;
-    }
-
-    QFont index_font = painter.font();
-    index_font.setBold(true);
-    index_font.setPointSizeF(
-        std::clamp(compute_font_point_size(oriented_card_rect) * 0.6, 6.0, 12.0)
-    );
-    painter.setFont(index_font);
-    painter.setPen(QColor(40, 80, 50));
-
-    painter.save();
-    apply_card_transform(
-        painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-        layout_geometry().bounded_offset(card_offset)
-    );
-    const QRectF index_rect = oriented_card_rect.adjusted(
-        8.0, 8.0, -8.0, -oriented_card_rect.height() * 0.7
-    );
-    painter.drawText(index_rect, Qt::AlignRight | Qt::AlignTop, index_text);
-    painter.restore();
-}
-
-void card_widget::draw_card_shape(
-    QPainter& painter, const QRectF& oriented_card_rect,
-    qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-    const QColor& fill, const QColor& border
-) {
-    painter.save();
-    apply_card_transform(
-        painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
-    );
-    painter.setPen(QPen(border, 1.6));
-    painter.setBrush(QBrush(fill));
-    painter.drawRoundedRect(oriented_card_rect, 9.0, 9.0);
-    painter.restore();
-}
-
-void card_widget::draw_card_pixmap(
-    QPainter& painter, const QRectF& oriented_card_rect,
-    qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-    const QPixmap& pixmap
-) {
-    painter.save();
-    apply_card_transform(
-        painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
-    );
-    painter.drawPixmap(oriented_card_rect.toRect(), pixmap);
-    painter.restore();
-}
-
-void card_widget::draw_card_text(
-    QPainter& painter, const QRectF& oriented_card_rect,
-    qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-    const QString& text
-) {
-    QFont font = painter.font();
-    font.setBold(true);
-    font.setPointSizeF(compute_font_point_size(oriented_card_rect));
-    painter.setFont(font);
-    painter.setPen(QColor(20, 60, 35));
-
-    painter.save();
-    apply_card_transform(
-        painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
-    );
-
-    const qreal bottom_margin = oriented_card_rect.height() * 0.45;
-    const QRectF text_rect
-        = oriented_card_rect.adjusted(8.0, 8.0, -8.0, -bottom_margin);
-    painter.drawText(
-        text_rect, Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap, text
-    );
-    painter.restore();
-}
-
-void card_widget::draw_card_center_text(
-    QPainter& painter, const QRectF& oriented_card_rect,
-    qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-    const QString& text
-) {
-    QFont font = painter.font();
-    font.setBold(true);
-    font.setPointSizeF(compute_font_point_size(oriented_card_rect));
-    painter.setFont(font);
-    painter.setPen(QColor(20, 60, 35));
-
-    painter.save();
-    apply_card_transform(
-        painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
-    );
-    painter.drawText(oriented_card_rect, Qt::AlignCenter, text);
-    painter.restore();
-}
-
-void card_widget::draw_card_extra_lines(
-    QPainter& painter, const QRectF& oriented_card_rect,
-    qreal slot_rotation_deg, const QStringList& extra_lines
-) const {
-    QFont extra_font = painter.font();
-    extra_font.setBold(false);
-    extra_font.setPointSizeF(
-        std::clamp(
-            compute_font_point_size(oriented_card_rect) * 0.75, 7.0, 14.0
-        )
-    );
-    painter.setFont(extra_font);
-    painter.setPen(QColor(30, 70, 40));
-
-    painter.save();
-    apply_card_transform(
-        painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
-        layout_geometry().bounded_offset(card_offset)
-    );
-
-    const QRectF extra_rect = oriented_card_rect.adjusted(
-        8.0, oriented_card_rect.height() * 0.58, -8.0, -8.0
-    );
-    painter.drawText(
-        extra_rect, Qt::AlignHCenter | Qt::AlignBottom | Qt::TextWordWrap,
-        extra_lines.join('\n')
-    );
-    painter.restore();
-}
-
-void card_widget::on_rasterization_finished() {
-    const QString finished_source = raster_task_source;
-    const QVector<QImage> images = rasterize_watcher.result();
-    const bool source_still_current = finished_source == card_sheet_source;
-
-    if (source_still_current) {
-        apply_rasterized_images(images, raster_task_size);
-    }
-
-    if (!source_still_current && pending_raster_size.isEmpty()
-        && !card_face_size.isEmpty()) {
-        pending_raster_size = raster_cache_size(card_face_size);
-    }
-
-    if (!pending_raster_size.isEmpty()
-        && (pending_raster_size != raster_task_size || !source_still_current)) {
-        const QSize next_size = pending_raster_size;
-        start_rasterization(next_size);
-        update();
-        return;
-    }
-
-    set_rasterizing(false);
-    update();
-}
-
 void card_widget::record_discard() {
-    if (!picker.has_cards()) {
+    if (!has_cards()) {
         return;
     }
 
-    const int card_index = picker.current_card_index();
+    const int card_index = display_card_index();
     if (card_index < 0) {
         return;
     }

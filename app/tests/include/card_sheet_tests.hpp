@@ -9,7 +9,8 @@ class card_sheet_tests : public QObject {
 private slots:
     void loads_svg();
     void contains_expected_elements();
-    void available_themes_include_bundled_and_installed_when_present();
+    void logical_resource_ids_are_literal();
+    void themes_include_bundled_and_available_installed();
     void source_path_switches_between_themes();
     void required_ids_and_fallback_resolution_are_deterministic();
     void alternate_svg_id_conventions_are_resolved();

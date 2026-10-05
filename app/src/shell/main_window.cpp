@@ -1,5 +1,9 @@
 #include "shell/main_window.hpp"
+#include "shell/desktop_status_strip.hpp"
 
+#include "card_helpers/card_sheet.hpp"
+#include "table/gameplay_setup.hpp"
+#include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
 #include "table/table.hpp"
 
@@ -13,31 +17,21 @@
 #include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 
-#include <QAbstractButton>
-#include <QDateTime>
 #include <QDialog>
-#include <QDialogButtonBox>
 #include <QEvent>
 #include <QFrame>
 #include <QGuiApplication>
 #include <QLabel>
 #include <QLayout>
-#include <QLineEdit>
-#include <QListWidget>
-#include <QMessageBox>
-#include <QPlainTextEdit>
+#include <QPointer>
 #include <QProgressBar>
-#include <QScrollArea>
-#include <QSettings>
 #include <QSignalBlocker>
 #include <QSlider>
 #include <QStringList>
-#include <QTabWidget>
 #include <QToolButton>
 #include <QToolTip>
 
 #include <algorithm>
-#include <functional>
 
 namespace {
 
@@ -49,246 +43,46 @@ QString pickup_interval_text(int interval_ms) {
 #endif
 }
 
-// Measure and place using the same width, including before the native status
-// bar assigns geometry. Changing a box/grid direction in resizeEvent is too
-// late: its old height-for-width can already have enlarged the main window.
-class desktop_status_layout final : public QLayout {
-public:
-    explicit desktop_status_layout(QWidget* parent)
-        : QLayout(parent) {
-        setContentsMargins(0, 0, 0, 0);
-        setSpacing(8);
-    }
-
-    ~desktop_status_layout() override {
-        while (auto* item = takeAt(0))
-            delete item;
-    }
-
-    void addItem(QLayoutItem* item) override { fields.append(item); }
-
-    int count() const override { return static_cast<int>(fields.size()); }
-
-    QLayoutItem* itemAt(int index) const override {
-        return fields.value(index);
-    }
-
-    QLayoutItem* takeAt(int index) override {
-        return index >= 0 && index < count() ? fields.takeAt(index) : nullptr;
-    }
-
-    Qt::Orientations expandingDirections() const override {
-        return Qt::Horizontal;
-    }
-
-    bool hasHeightForWidth() const override { return true; }
-
-    int heightForWidth(int width) const override {
-        return arrange(QRect(0, 0, width, 0), false);
-    }
-
-    QSize sizeHint() const override {
-        int width = 0;
-        for (int i = 0; i < count(); ++i)
-            if (visible(i))
-                width += preferred_width(i) + (width ? spacing() : 0);
-        width += contentsMargins().left() + contentsMargins().right();
-        return QSize(width, heightForWidth(width));
-    }
-
-    QSize minimumSize() const override {
-        // Narrow composition: status, pickup label + slider, progress + clock.
-        const auto minimum_width = [this](int i) {
-            return visible(i) ? itemAt(i)->minimumSize().width() : 0;
-        };
-        const auto pair_width = [&](int first, int second) {
-            return minimum_width(first) + minimum_width(second)
-                + (visible(first) && visible(second) ? spacing() : 0);
-        };
-        int height = 0;
-        for (const auto* item : fields)
-            if (!item->isEmpty())
-                height = std::max(height, item->minimumSize().height());
-        const auto margins = contentsMargins();
-        return QSize(
-            std::max({ minimum_width(0), pair_width(2, 3), pair_width(1, 4) })
-                + margins.left() + margins.right(),
-            height + margins.top() + margins.bottom()
-        );
-    }
-
-    void setGeometry(const QRect& rect) override {
-        QLayout::setGeometry(rect);
-        arrange(rect, true);
-    }
-
-private:
-    // Field order: status, progress, pickup readout, slider, clock.
-    QList<QLayoutItem*> fields;
-
-    bool visible(int index) const {
-        return itemAt(index) && !itemAt(index)->isEmpty();
-    }
-
-    int preferred_width(int index) const {
-        auto* item = itemAt(index);
-        int width = item->sizeHint().width();
-        if (auto* label = qobject_cast<QLabel*>(item->widget()))
-            width = label->fontMetrics().horizontalAdvance(label->text());
-        return std::clamp(
-            width, item->minimumSize().width(), item->maximumSize().width()
-        );
-    }
-
-    int arrange(const QRect& bounds, bool place) const {
-        const auto margins = contentsMargins();
-        const auto rect = bounds.marginsRemoved(margins);
-        const int width = std::max(0, rect.width());
-        int controls_width = 0;
-        for (int i = 1; i < count(); ++i)
-            if (visible(i))
-                controls_width
-                    += preferred_width(i) + (controls_width ? spacing() : 0);
-        const bool separate_status = visible(0)
-            && preferred_width(0) + controls_width + spacing() > width;
-        const bool wrap_controls = controls_width > width;
-        int y = rect.y();
-        // The expanding field takes remaining space; all other fields retain
-        // their preferred width. A long readout wraps alongside the slider.
-        const auto put_row = [&](std::initializer_list<int> indexes,
-                                 int expanding) {
-            QList<int> row;
-            int fixed_width = 0;
-            for (const int i : indexes) {
-                if (!visible(i))
-                    continue;
-                row.append(i);
-                if (i != expanding)
-                    fixed_width += preferred_width(i);
-            }
-            if (row.isEmpty())
-                return;
-            fixed_width += (static_cast<int>(row.size()) - 1) * spacing();
-            int row_height = 0;
-            for (const int i : row) {
-                auto* item = itemAt(i);
-                const int item_width = i == expanding
-                    ? std::max(0, width - fixed_width)
-                    : preferred_width(i);
-                const int height = item->hasHeightForWidth()
-                    ? item->heightForWidth(item_width)
-                    : item->sizeHint().height();
-                row_height = std::max(
-                    row_height, std::max(item->minimumSize().height(), height)
-                );
-            }
-            if (place) {
-                int x = rect.x();
-                for (const int i : row) {
-                    const int item_width = i == expanding
-                        ? std::max(0, width - fixed_width)
-                        : preferred_width(i);
-                    itemAt(i)->setGeometry(
-                        QStyle::visualRect(
-                            parentWidget()->layoutDirection(), rect,
-                            QRect(x, y, item_width, row_height)
-                        )
-                    );
-                    x += item_width + spacing();
-                }
-            }
-            y += row_height + spacing();
-        };
-        if (!separate_status && !wrap_controls) {
-            put_row({ 0, 1, 2, 3, 4 }, 0);
-        } else {
-            put_row({ 0 }, 0);
-            if (wrap_controls) {
-                put_row({ 2, 3 }, 2);
-                put_row({ 1, 4 }, -1);
-            } else {
-                put_row({ 1, 2, 3, 4 }, -1);
-            }
-        }
-        return std::max(0, y - rect.y() - spacing()) + margins.top()
-            + margins.bottom();
-    }
-};
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+QString gameplay_lives_text(
+    const gameplay::session& owner, desktop_hud_style style, int default_suit
+) {
+    if (owner.configuration().failure != gameplay::failure_policy::lives)
+        return {};
+    const int remaining = owner.remaining_lives();
+    const int lost = owner.configuration().initial_lives - remaining;
+    // Validated session limits this projection to 12 glyphs, even when a
+    // large Multi batch records more errors than the initial life count.
+    static const QStringList filled { QStringLiteral("♣"), QStringLiteral("♦"),
+                                      QStringLiteral("♥"),
+                                      QStringLiteral("♠") };
+    static const QStringList outlined { QStringLiteral("♧"),
+                                        QStringLiteral("♢"),
+                                        QStringLiteral("♡"),
+                                        QStringLiteral("♤") };
+    const bool classic = style == desktop_hud_style::classic;
+    const auto live_symbols
+        = (classic ? QStringLiteral("♥") : filled.at(default_suit))
+              .repeated(remaining);
+    const auto lost_symbols
+        = (classic ? QStringLiteral("♠") : outlined.at(default_suit))
+              .repeated(lost);
+#ifdef KC_KDE
+    return i18n(
+        "Remaining lives: %1 %2  Lost lives: %3 %4", remaining, live_symbols,
+        lost, lost_symbols
+    );
+#else
+    return str_label("Remaining lives: %1 %2  Lost lives: %3 %4")
+        .arg(remaining)
+        .arg(live_symbols)
+        .arg(lost)
+        .arg(lost_symbols);
+#endif
+}
+#endif
 
 } // namespace
-
-// Private desktop composition, shared by the Qt central strip and KDE status
-// bar. The shell still owns every value/handler; this widget only arranges
-// them.
-class desktop_status_strip : public QFrame {
-public:
-    explicit desktop_status_strip(QWidget* parent)
-        : QFrame(parent) {
-        setObjectName(QStringLiteral("desktop_status_surface"));
-        row = new desktop_status_layout(this);
-        status = new QLabel(this);
-        status->setTextFormat(Qt::PlainText);
-        status->setWordWrap(true);
-        progress = new QProgressBar(this);
-        progress->setTextVisible(false);
-        progress->setRange(0, 0);
-        progress->setMinimumWidth(40);
-        progress->setMaximumWidth(120);
-        progress->setAccessibleName(str_label("Preparing card images"));
-        progress->hide();
-        readout = new QLabel(this);
-        readout->setTextFormat(Qt::PlainText);
-        readout->setWordWrap(true);
-        slider = new QSlider(Qt::Horizontal, this);
-        slider->setRange(
-            trainer_preferences::minimum_pickup_interval_ms,
-            trainer_preferences::maximum_pickup_interval_ms
-        );
-        slider->setValue(300);
-        slider->setMinimumWidth(96);
-#ifdef KC_KDE
-        slider->setMaximumWidth(160);
-        clock = new QLabel(str_label("00:00:00"), this);
-        clock->setObjectName(QStringLiteral("session_clock"));
-#else
-        slider->setMaximumWidth(180);
-#endif
-        slider->setAccessibleName(str_label("Card pickup interval (ms)"));
-        slider->setToolTip(str_label("Card pickup interval (ms)"));
-        readout->setBuddy(slider);
-        row->addWidget(status);
-        row->addWidget(progress);
-        row->addWidget(readout);
-        row->addWidget(slider);
-        if (clock)
-            row->addWidget(clock);
-    }
-
-    void set_instruments(bool enabled) {
-        setFrameShape(enabled ? QFrame::StyledPanel : QFrame::NoFrame);
-        setFrameShadow(QFrame::Plain);
-        const int margin = enabled ? 6 : 0;
-        row->setContentsMargins(margin, margin, margin, margin);
-        auto label_font = font();
-        if (enabled)
-            label_font.setBold(true);
-        status->setFont(label_font);
-        slider->setTickPosition(
-            enabled ? QSlider::TicksBelow : QSlider::NoTicks
-        );
-        slider->setTickInterval(100);
-        row->invalidate();
-    }
-
-    QLabel* status = nullptr;
-    QLabel* readout = nullptr;
-    QLabel* clock = nullptr;
-    QSlider* slider = nullptr;
-    QProgressBar* progress = nullptr;
-
-private:
-    desktop_status_layout* row = nullptr;
-};
 
 BaseWidget* main_window::create_desktop_status_surface() {
     desktop_status = new desktop_status_strip(this);
@@ -342,6 +136,8 @@ main_window::main_window(BaseWidget* parent)
 }
 
 main_window::~main_window() {
+    close_gameplay_review_dialog();
+    close_gameplay_setup_dialog(); // borrowing view dies before table owner
     if (quiz_started) {
         persist_mobile_session_checkpoint(
             !quiz_paused || mobile_lifecycle_paused
@@ -438,6 +234,38 @@ void main_window::setup_game_actions() {
     );
 
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    new_gameplay_action
+        = new BaseAction(str_label("New gameplay session…"), this);
+    new_gameplay_action->setObjectName(QStringLiteral("game_new_gameplay"));
+    new_gameplay_action->setToolTip(str_label(
+        "New gameplay model; not saved/recovered yet. Finish the current game "
+        "first."
+    ));
+    register_shell_action(
+        new_gameplay_action, QStringLiteral("game_new_gameplay")
+    );
+    connect(
+        new_gameplay_action, &QAction::triggered, this,
+        &main_window::on_new_gameplay_triggered
+    );
+
+    gameplay_review_action
+        = new BaseAction(str_label("Review corrections…"), this);
+    gameplay_review_action->setObjectName(
+        QStringLiteral("game_review_corrections")
+    );
+    gameplay_review_action->setEnabled(false);
+    gameplay_review_action->setToolTip(str_label(
+        "Review retained per-deck corrections without pausing or answering"
+    ));
+    register_shell_action(
+        gameplay_review_action, QStringLiteral("game_review_corrections")
+    );
+    connect(
+        gameplay_review_action, &QAction::triggered, this,
+        &main_window::on_gameplay_review_triggered
+    );
+
     saved_drills_action = new BaseAction(str_label("Saved drills…"), this);
     saved_drills_action->setObjectName(QStringLiteral("game_saved_drills"));
     saved_drills_action->setShortcut(
@@ -545,6 +373,14 @@ void main_window::setup_ui() {
     setup_layout->addLayout(form_layout);
     setup_layout->addWidget(continue_button);
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    auto* gameplay_button
+        = new QPushButton(str_label("New gameplay session…"), setup_widget);
+    gameplay_button->setObjectName(QStringLiteral("setup_new_gameplay"));
+    connect(
+        gameplay_button, &QPushButton::clicked, this,
+        &main_window::on_new_gameplay_triggered
+    );
+    setup_layout->addWidget(gameplay_button);
     auto* drills_button
         = new QPushButton(str_label("Saved drills…"), setup_widget);
     drills_button->setObjectName(QStringLiteral("setup_saved_drills"));
@@ -606,6 +442,73 @@ void main_window::setup_ui() {
         );
     }
     if (table_widget != nullptr) {
+        const auto refresh_target_hud = [this] {
+            if (const auto* owner = table_widget->active_gameplay_session()) {
+                if (speed_slider) {
+                    const QSignalBlocker blocker(speed_slider);
+                    speed_slider->setValue(owner->pick_interval_ms());
+                    speed_slider->setEnabled(
+                        owner->phase() != gameplay::session_phase::finished
+                    );
+                }
+                if (pickup_interval_label)
+                    pickup_interval_label->setText(
+                        pickup_interval_text(owner->pick_interval_ms())
+                    );
+            } else if (speed_slider) {
+                const QSignalBlocker blocker(speed_slider);
+                speed_slider->setValue(table_widget->pick_interval());
+                speed_slider->setEnabled(true);
+                if (pickup_interval_label)
+                    pickup_interval_label->setText(
+                        pickup_interval_text(speed_slider->value())
+                    );
+            }
+            refresh_clock_label();
+            update_status_text();
+            refresh_gameplay_actions();
+        };
+        connect(
+            table_widget, &table::gameplay_runtime_updated, this,
+            refresh_target_hud
+        );
+        connect(
+            table_widget, &table::gameplay_session_changed, this,
+            refresh_target_hud
+        );
+        table_widget->installEventFilter(this);
+        connect(
+            table_widget, &table::gameplay_session_about_to_change, this,
+            [this] {
+                close_gameplay_review_dialog();
+                delete gameplay_setup_fields.data();
+                gameplay_setup_fields = nullptr;
+            }
+        );
+        connect(table_widget, &table::gameplay_session_changed, this, [this] {
+            refresh_gameplay_review();
+            if (!table_widget->active_gameplay_session())
+                close_gameplay_setup_dialog();
+            else if (gameplay_setup_dialog)
+                rebuild_gameplay_setup_fields();
+        });
+        connect(table_widget, &table::gameplay_layout_changed, this, [this] {
+            refresh_gameplay_review();
+            if (gameplay_geometry_timer)
+                gameplay_geometry_timer->start();
+        });
+        connect(
+            table_widget, &table::gameplay_preparation_required, this,
+            &main_window::refresh_gameplay_setup
+        );
+        connect(
+            table_widget, &table::gameplay_runtime_failed, this,
+            &main_window::report_gameplay_error
+        );
+        connect(
+            table_widget, &table::gameplay_corrections_changed, this,
+            &main_window::refresh_gameplay_review
+        );
         QObject::connect(
             table_widget, &table::rasterization_busy_changed, this,
             &main_window::on_table_rasterization_busy_changed
@@ -722,6 +625,8 @@ void main_window::setup_ui() {
 void main_window::apply_desktop_presentation() {
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     const auto value = load_desktop_ui_preferences();
+    gameplay_hud_style = value.hud();
+    gameplay_default_suit = load_default_suit_preference();
     if (table_widget != nullptr) {
         table_widget->set_frame_style(value.frame());
         table_widget->set_action_style(value.actions());
@@ -743,6 +648,7 @@ void main_window::apply_desktop_presentation() {
         );
         update_toolbar_buttons();
     }
+    update_status_text();
 #endif
 }
 
@@ -768,6 +674,9 @@ void main_window::update_toolbar_buttons() {
 }
 
 bool main_window::eventFilter(QObject* watched, QEvent* event) {
+    if (watched == table_widget && event->type() == QEvent::Resize
+        && gameplay_geometry_timer)
+        gameplay_geometry_timer->start();
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     auto* button = qobject_cast<QToolButton*>(watched);
     if (compact_toolbar && button != nullptr
@@ -788,6 +697,8 @@ bool main_window::eventFilter(QObject* watched, QEvent* event) {
 }
 
 void main_window::on_clock_ticked(qint64 elapsed_ms, qint64 delta_ms) {
+    if (table_widget && table_widget->active_gameplay_session())
+        return;
     Q_UNUSED(elapsed_ms);
     Q_UNUSED(delta_ms);
 
@@ -813,6 +724,8 @@ void main_window::on_table_rasterization_busy_changed(bool busy) {
 }
 
 void main_window::on_table_score_adjusted(int correct_delta, int total_delta) {
+    if (table_widget && table_widget->active_gameplay_session())
+        return;
     score_correct = std::max(0, score_correct + correct_delta);
     score_total = std::max(0, score_total + total_delta);
     update_status_text();
@@ -822,6 +735,34 @@ void main_window::on_table_score_adjusted(int correct_delta, int total_delta) {
 }
 
 void main_window::on_speed_slider_value_changed(int value) {
+    if (table_widget && table_widget->active_gameplay_session()) {
+        const QPointer<main_window> guard(this);
+        auto* owner = table_widget->active_gameplay_session();
+        if (owner->phase() == gameplay::session_phase::setup) {
+            (void)owner->set_pick_interval_ms(value);
+            table_widget->refresh_gameplay_session();
+        } else {
+            (void)table_widget->set_gameplay_pick_interval(value);
+        }
+        if (!guard)
+            return;
+        owner = table_widget->active_gameplay_session();
+        if (!owner) {
+            update_status_text();
+            return;
+        }
+        // Rejection and setup-only edits still project the accepted value.
+        if (speed_slider) {
+            const QSignalBlocker blocker(speed_slider);
+            speed_slider->setValue(owner->pick_interval_ms());
+        }
+        if (pickup_interval_label)
+            pickup_interval_label->setText(
+                pickup_interval_text(owner->pick_interval_ms())
+            );
+        update_status_text();
+        return;
+    }
     if (table_widget != nullptr) {
         table_widget->set_pick_interval(value);
     }
@@ -831,6 +772,8 @@ void main_window::on_speed_slider_value_changed(int value) {
 }
 
 void main_window::on_dealing_mode_changed(int index) {
+    if (table_widget && table_widget->active_gameplay_session())
+        return;
     if (table_widget != nullptr) {
         table_widget->set_dealing_mode(index);
     }
@@ -838,6 +781,8 @@ void main_window::on_dealing_mode_changed(int index) {
 }
 
 void main_window::on_quiz_type_changed(int index) {
+    if (table_widget && table_widget->active_gameplay_session())
+        return;
     if (wait_for_answers == nullptr) {
         return;
     }
@@ -851,6 +796,8 @@ void main_window::on_quiz_type_changed(int index) {
 }
 
 void main_window::on_table_slot_count_changed(int value) {
+    if (table_widget && table_widget->active_gameplay_session())
+        return;
     persist_setup_preferences();
     if (table_widget == nullptr) {
         return;
@@ -860,666 +807,23 @@ void main_window::on_table_slot_count_changed(int value) {
     table_widget->schedule_card_preload();
 }
 
-void main_window::persist_setup_preferences() const {
-    if (table_slots_count == nullptr || quiz_type == nullptr
-        || wait_for_answers == nullptr || allow_skipping == nullptr
-        || dealing_mode == nullptr || speed_slider == nullptr) {
-        return;
-    }
-
-    trainer_preferences preferences = load_trainer_preferences();
-    preferences.slot_count = table_slots_count->value();
-    preferences.quiz_type = quiz_type->currentIndex();
-    preferences.wait_for_answers = wait_for_answers->isChecked();
-    preferences.allow_skipping = allow_skipping->isChecked();
-    preferences.dealing_mode = dealing_mode->currentIndex();
-    preferences.pickup_interval_ms = speed_slider->value();
-    save_trainer_preferences(preferences);
-}
-
-void main_window::persist_desktop_shell_state() const {
-#if defined(Q_OS_ANDROID)
-    return;
-#else
-    desktop_shell_state state;
-    state.geometry = saveGeometry();
-    state.main_window_state
-        = saveState(desktop_shell_state::qt_main_window_state_version);
-    save_desktop_shell_state(state);
-#endif
-}
-
-void main_window::restore_desktop_shell_state() {
-#if defined(Q_OS_ANDROID)
-    return;
-#else
-    const desktop_shell_state state = load_desktop_shell_state();
-    if (!state.geometry.isEmpty()) {
-        restoreGeometry(state.geometry);
-    }
-    if (!state.main_window_state.isEmpty()) {
-        restoreState(
-            state.main_window_state,
-            desktop_shell_state::qt_main_window_state_version
-        );
-    }
-#endif
-}
-
-void main_window::open_setup_dialog() {
-    if (setup_dialog != nullptr) {
-#if defined(Q_OS_ANDROID)
-        setup_dialog->setWindowState(Qt::WindowMaximized);
-#endif
-        setup_dialog->open();
-    }
-}
-
-void main_window::on_setup_dialog_rejected() {
-    if (start_pause_action != nullptr && !quiz_started) {
-        start_pause_action->setEnabled(true);
-    }
-    update_status_text();
-}
-
-void main_window::on_continue_button_clicked() {
-    int slot_count = table_slots_count->value();
-
-    if (table_widget != nullptr) {
-        table_widget->set_slot_count(slot_count);
-        table_widget->show();
-        table_widget->schedule_card_preload();
-    }
-
-    if (setup_dialog != nullptr) {
-        setup_dialog->accept();
-    }
-
-    quiz_started = false;
-    quiz_paused = false;
-    quiz_finished = false;
-    score_correct = 0;
-    score_total = 0;
-    mobile_checkpoint_restored = false;
-    mobile_lifecycle_paused = false;
-    clear_mobile_session_checkpoint();
-
-    if (clock_timer != nullptr) {
-        clock_timer->reset();
-        refresh_clock_label();
-    }
-    update_status_text();
-
-    if (start_pause_action != nullptr) {
-        start_pause_action->setText(str_label("Start"));
-        start_pause_action->setIcon(
-            icon_loader::themed(
-                { "media-playback-start", "media-playback-play", "play" },
-                QStyle::SP_MediaPlay
-            )
-        );
-        start_pause_action->setEnabled(true);
-    }
-    if (finish_action != nullptr) {
-        finish_action->setEnabled(false);
-    }
-}
-
-training_drill main_window::capture_training_drill() const {
-    training_drill drill;
-    drill.quiz_type = quiz_type->currentIndex();
-    drill.wait_for_answers = wait_for_answers->isChecked();
-    drill.allow_skipping = allow_skipping->isChecked();
-    drill.dealing_mode = dealing_mode->currentIndex();
-    drill.pickup_interval_ms = speed_slider->value();
-    drill.slot_settings = table_widget->capture_drill_settings();
-    return drill;
-}
-
-bool main_window::launch_training_drill(const training_drill& drill) {
-    if (!table_widget->configure_drill(drill))
-        return false;
-    {
-        const QSignalBlocker count_blocker(table_slots_count);
-        const QSignalBlocker quiz_blocker(quiz_type);
-        const QSignalBlocker wait_blocker(wait_for_answers);
-        const QSignalBlocker skip_blocker(allow_skipping);
-        const QSignalBlocker dealing_blocker(dealing_mode);
-        table_slots_count->setValue(
-            static_cast<int>(drill.slot_settings.size())
-        );
-        quiz_type->setCurrentIndex(drill.quiz_type);
-        wait_for_answers->setChecked(drill.wait_for_answers);
-        wait_for_answers->setEnabled(drill.quiz_type == 0);
-        allow_skipping->setChecked(drill.allow_skipping);
-        dealing_mode->setCurrentIndex(drill.dealing_mode);
-    }
-    speed_slider->setValue(drill.pickup_interval_ms);
-    on_continue_button_clicked();
-    persist_setup_preferences();
-    on_start_pause_triggered();
-    return true;
-}
-
-void main_window::on_saved_drills_triggered() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    return;
-#else
-    const bool resume_on_cancel = quiz_started && !quiz_paused;
-    pause_for_dialog();
-    const auto current = capture_training_drill();
-    QSettings settings(
-        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
-    );
-    training_drill_service service(settings);
-    QString error;
-    auto stored = service.load(&error);
-
-    QDialog dialog(this);
-    dialog.setObjectName(QStringLiteral("saved_drills_dialog"));
-    dialog.setWindowTitle(str_label("Pick a drill"));
-    auto* layout = new QVBoxLayout(&dialog);
-    auto* explanation = new QLabel(
-        str_label(
-            "Save the current table's gameplay settings, then launch fresh "
-            "shoes later. "
-            "Appearance and progress are not saved in a drill. Close to keep "
-            "the current session."
-        ),
-        &dialog
-    );
-    explanation->setWordWrap(true);
-    layout->addWidget(explanation);
-    auto* list = new QListWidget(&dialog);
-    list->setObjectName(QStringLiteral("saved_drills_list"));
-    list->setAccessibleName(str_label("Saved drills"));
-    layout->addWidget(list, 1);
-    auto* details = new QPlainTextEdit(&dialog);
-    details->setObjectName(QStringLiteral("saved_drill_details"));
-    details->setAccessibleName(str_label("Drill settings"));
-    details->setReadOnly(true);
-    layout->addWidget(details, 1);
-    auto* name = new QLineEdit(&dialog);
-    name->setObjectName(QStringLiteral("saved_drill_name"));
-    name->setMaxLength(training_drill_service::maximum_name_length);
-    auto* name_label = new QLabel(str_label("Drill name"), &dialog);
-    name_label->setBuddy(name);
-    layout->addWidget(name_label);
-    layout->addWidget(name);
-    auto* edits = new QDialogButtonBox(&dialog);
-    auto* save = edits->addButton(
-        str_label("Save current"), QDialogButtonBox::ActionRole
-    );
-    auto* rename
-        = edits->addButton(str_label("Rename"), QDialogButtonBox::ActionRole);
-    auto* remove
-        = edits->addButton(str_label("Delete"), QDialogButtonBox::ActionRole);
-    save->setObjectName(QStringLiteral("save_current_drill"));
-    rename->setObjectName(QStringLiteral("rename_drill"));
-    remove->setObjectName(QStringLiteral("delete_drill"));
-    for (auto* button : { save, rename, remove })
-        button->setAutoDefault(false);
-    layout->addWidget(edits);
-    auto* message = new QLabel(error, &dialog);
-    message->setObjectName(QStringLiteral("saved_drill_message"));
-    message->setTextFormat(Qt::PlainText);
-    message->setWordWrap(true);
-    layout->addWidget(message);
-    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, &dialog);
-    auto* launch = buttons->addButton(
-        str_label("Launch drill"), QDialogButtonBox::ActionRole
-    );
-    launch->setObjectName(QStringLiteral("launch_drill"));
-    launch->setAutoDefault(false); // typing a name must not replace a session
-    buttons->button(QDialogButtonBox::Close)->setDefault(true);
-    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-    layout->addWidget(buttons);
-
-    const auto selection_changed = [&] {
-        const int index = list->currentRow();
-        const bool selected = stored && index >= 0 && index < stored->size();
-        rename->setEnabled(selected);
-        remove->setEnabled(selected);
-        launch->setEnabled(
-            selected
-            && is_drill_configuration_supported(
-                stored->at(index), strategy_repository()
-            )
-        );
-        if (!selected) {
-            if (!stored)
-                details->setPlainText(error);
-            else if (stored->isEmpty())
-                details->setPlainText(str_label(
-                    "No saved drills. Configure the table with New game and "
-                    "slot Details, then save it here."
-                ));
-            else
-                details->setPlainText(
-                    str_label("Select a saved drill to review its settings.")
-                );
-            return;
-        }
-        const auto& drill = stored->at(index);
-        name->setText(drill.name);
-        QStringList lines;
-        lines << str_label("Pickup interval (ms)") + QStringLiteral(": ")
-                + QString::number(drill.pickup_interval_ms)
-              << str_label("Quiz mode") + QStringLiteral(": ")
-                + quiz_type->itemText(drill.quiz_type)
-              << str_label("Pause for answers") + QStringLiteral(": ")
-                + (drill.wait_for_answers ? str_label("Yes") : str_label("No"))
-              << str_label("Allow skipping") + QStringLiteral(": ")
-                + (drill.allow_skipping ? str_label("Yes") : str_label("No"))
-              << str_label("Dealing mode") + QStringLiteral(": ")
-                + dealing_mode->itemText(drill.dealing_mode);
-        int number = 0;
-        for (const auto& slot : drill.slot_settings) {
-            QString strategy_name = slot.strategy_slug;
-            for (const auto& strategy : strategy_repository().strategies)
-                if (strategy.slug == slot.strategy_slug)
-                    strategy_name = strategy.name;
-            lines << QString()
-                  << str_label("Slot") + QStringLiteral(" ")
-                    + QString::number(++number)
-                  << strategy_name
-                  << str_label("Deck count") + QStringLiteral(": ")
-                    + QString::number(slot.deck_count)
-                  << (slot.infinity_enabled ? str_label("Infinite shoe")
-                                            : str_label("Finite shoe"))
-                  << (slot.training_mode ? str_label("Training mode")
-                                         : str_label("Scored mode"));
-        }
-        if (!launch->isEnabled())
-            lines.prepend(str_label(
-                "Cannot launch: a saved strategy is unavailable. No "
-                "replacement strategy will be chosen."
-            ));
-        details->setPlainText(lines.join(QLatin1Char('\n')));
-    };
-    connect(list, &QListWidget::currentRowChanged, &dialog, selection_changed);
-    const auto refresh = [&](int selected) {
-        list->clear();
-        save->setEnabled(stored.has_value());
-        if (stored)
-            for (const auto& drill : *stored)
-                list->addItem(drill.name);
-        list->setCurrentRow(selected);
-        selection_changed();
-    };
-    const auto persist
-        = [&](const QVector<training_drill>& updated, int selected) {
-              // Avoid overwriting changes made by another settings reader while
-              // this modal picker was open. This is not a multi-process
-              // transaction API.
-              const auto latest = service.load(&error);
-              if (!latest || latest != stored) {
-                  stored = latest;
-                  message->setText(
-                      latest ? str_label(
-                                   "Saved drills changed. Review the refreshed "
-                                   "list and try again."
-                               )
-                             : error
-                  );
-                  refresh(-1);
-                  return;
-              }
-              if (!service.save(updated, &error)) {
-                  message->setText(error);
-                  return;
-              }
-              stored = updated;
-              message->clear();
-              refresh(selected);
-          };
-    connect(save, &QPushButton::clicked, &dialog, [&] {
-        if (!stored)
-            return;
-        auto drill = current;
-        drill.name = name->text().trimmed();
-        auto updated = *stored;
-        updated.append(drill);
-        persist(updated, static_cast<int>(updated.size()) - 1);
-    });
-    connect(rename, &QPushButton::clicked, &dialog, [&] {
-        if (!stored || list->currentRow() < 0)
-            return;
-        auto updated = *stored;
-        updated[list->currentRow()].name = name->text().trimmed();
-        persist(updated, list->currentRow());
-    });
-    connect(remove, &QPushButton::clicked, &dialog, [&] {
-        if (!stored || list->currentRow() < 0)
-            return;
-        if (QMessageBox::question(
-                &dialog, str_label("Delete drill"),
-                str_label(
-                    "Delete the selected saved drill? This does not change the "
-                    "current session."
-                ),
-                QMessageBox::Yes | QMessageBox::No, QMessageBox::No
-            )
-            != QMessageBox::Yes)
-            return;
-        auto updated = *stored;
-        updated.removeAt(list->currentRow());
-        persist(updated, updated.isEmpty() ? -1 : 0);
-    });
-    bool launched = false;
-    connect(launch, &QPushButton::clicked, &dialog, [&] {
-        if (!stored || list->currentRow() < 0)
-            return;
-        const auto drill = stored->at(list->currentRow());
-        if (quiz_started
-            && QMessageBox::question(
-                   &dialog, str_label("Launch drill"),
-                   str_label(
-                       "Discard the current session and start fresh shoes? "
-                       "This session will not be recorded as a result."
-                   ),
-                   QMessageBox::Yes | QMessageBox::No, QMessageBox::No
-               ) != QMessageBox::Yes)
-            return;
-        if (!launch_training_drill(drill)) {
-            message->setText(str_label(
-                "This drill can no longer be launched. The current session has "
-                "not been changed."
-            ));
-            return;
-        }
-        launched = true;
-        dialog.accept();
-    });
-    refresh(stored && !stored->isEmpty() ? 0 : -1);
-    dialog.resize(460, 570);
-    dialog.exec();
-    if (!launched && resume_on_cancel && quiz_started && quiz_paused)
-        on_start_pause_triggered();
-#endif
-}
-
-void main_window::on_new_game_triggered() {
-    if (quiz_started) {
-        on_finish_triggered();
-        return;
-    }
-    if (setup_dialog != nullptr) {
-#if defined(Q_OS_ANDROID)
-        setup_dialog->setWindowState(Qt::WindowMaximized);
-#endif
-        setup_dialog->show();
-        setup_dialog->raise();
-        setup_dialog->activateWindow();
-    }
-}
-
-void main_window::on_start_pause_triggered() {
-    if (table_widget == nullptr) {
-        return;
-    }
-
-    if (!quiz_started) {
-        table_widget->prepare_cards_for_start();
-        start_quiz_from_ui();
-        return;
-    }
-
-    if (!quiz_paused) {
-        table_widget->set_paused(true);
-        quiz_paused = true;
-
-        if (start_pause_action != nullptr) {
-            update_start_pause_action(true);
-        }
-
-        if (clock_timer != nullptr) {
-            clock_timer->pause();
-            refresh_clock_label();
-        }
-        update_status_text();
-        mobile_checkpoint_restored = false;
-        mobile_lifecycle_paused = false;
-        persist_mobile_session_checkpoint(false);
-    } else {
-        table_widget->set_paused(false);
-        quiz_paused = false;
-
-        if (start_pause_action != nullptr) {
-            update_start_pause_action(false);
-        }
-
-        if (clock_timer != nullptr) {
-            clock_timer->start(true);
-            refresh_clock_label();
-        }
-        update_status_text();
-        mobile_checkpoint_restored = false;
-        mobile_lifecycle_paused = false;
-        persist_mobile_session_checkpoint(true);
-    }
-}
-
-void main_window::on_finish_triggered() {
-    const bool restore_running_quiz
-        = table_widget != nullptr && quiz_started && !quiz_paused;
-    if (restore_running_quiz) {
-        table_widget->set_paused(true);
-        quiz_paused = true;
-        if (start_pause_action != nullptr) {
-            update_start_pause_action(true);
-        }
-        if (clock_timer != nullptr) {
-            clock_timer->pause();
-            refresh_clock_label();
-        }
-        update_status_text();
-    }
-
-    const QMessageBox::StandardButton answer = QMessageBox::question(
-        this, str_label("Finish"), str_label("Do you want to finish?"),
-        QMessageBox::Yes | QMessageBox::No, QMessageBox::No
-    );
-    if (answer != QMessageBox::Yes) {
-        if (restore_running_quiz) {
-            table_widget->set_paused(false);
-            quiz_paused = false;
-            if (start_pause_action != nullptr) {
-                update_start_pause_action(false);
-            }
-            if (clock_timer != nullptr) {
-                clock_timer->start(true);
-                refresh_clock_label();
-            }
-            update_status_text();
-        }
-        return;
-    }
-
-    show_game_over_dialog();
-}
-
-void main_window::start_quiz_from_ui() {
-    if (table_widget == nullptr || quiz_started) {
-        return;
-    }
-
-    int quiz_type_index = 0;
-    if (quiz_type != nullptr) {
-        quiz_type_index = quiz_type->currentIndex();
-    }
-
-    bool wait_answers = false;
-    if (wait_for_answers != nullptr) {
-        wait_answers = wait_for_answers->isChecked();
-    }
-    if (quiz_type_index == 1) {
-        wait_answers = true;
-    }
-
-    if (table_widget != nullptr && allow_skipping != nullptr) {
-        table_widget->set_allow_skipping(allow_skipping->isChecked());
-    }
-    table_widget->start_quiz(quiz_type_index, wait_answers);
-
-    quiz_started = true;
-    quiz_paused = wait_answers;
-
-    if (start_pause_action != nullptr) {
-        update_start_pause_action(quiz_paused);
-    }
-    if (finish_action != nullptr) {
-        finish_action->setEnabled(true);
-    }
-
-    if (clock_timer != nullptr) {
-        clock_timer->reset();
-        if (!quiz_paused) {
-            clock_timer->start(true);
-        }
-        refresh_clock_label();
-    }
-    update_status_text();
-    persist_mobile_session_checkpoint(!quiz_paused);
-}
-
-void main_window::on_settings_triggered() {
-    pause_for_dialog();
-
-    if (settings_dialog != nullptr) {
-#if defined(Q_OS_ANDROID)
-        settings_dialog->setWindowState(Qt::WindowMaximized);
-#endif
-        settings_dialog->show();
-        settings_dialog->raise();
-        settings_dialog->activateWindow();
-        return;
-    }
-
-    settings_dialog = new QDialog(this, Qt::Window);
-    settings_dialog->setAttribute(Qt::WA_DeleteOnClose, true);
-    settings_dialog->setModal(false);
-    settings_dialog->setWindowModality(Qt::NonModal);
-    settings_dialog->setWindowTitle(str_label("Settings"));
-
-    auto dialog_layout = new QVBoxLayout(settings_dialog);
-
-    auto tab_widget = new QTabWidget(settings_dialog);
-    auto shared_state = new settings_shared_state(settings_dialog);
-    appearance_settings_widget = new settings_template_widget(
-        settings_tab_kind::appearance, tab_widget, QString(), table_widget,
-        shared_state
-    );
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
-    auto* appearance_scroll = new QScrollArea(tab_widget);
-    appearance_scroll->setWidgetResizable(true);
-    appearance_scroll->setFrameShape(QFrame::NoFrame);
-    appearance_scroll->setWidget(appearance_settings_widget);
-    tab_widget->addTab(appearance_scroll, str_label("Appearance"));
-#else
-    tab_widget->addTab(appearance_settings_widget, str_label("Appearance"));
-#endif
-    connect(
-        appearance_settings_widget,
-        &settings_template_widget::desktop_presentation_applied, this,
-        &main_window::apply_desktop_presentation
-    );
-    tab_widget->addTab(
-        new settings_template_widget(
-            settings_tab_kind::strategies, tab_widget, QString(), nullptr,
-            shared_state
-        ),
-        str_label("Strategies")
-    );
-    dialog_layout->addWidget(tab_widget);
-
-    auto button_box = new QDialogButtonBox(settings_dialog);
-    auto save_button
-        = button_box->addButton(str_label("Save"), QDialogButtonBox::ApplyRole);
-    auto cancel_button = button_box->addButton(
-        str_label("Cancel"), QDialogButtonBox::ResetRole
-    );
-    auto close_button = button_box->addButton(
-        str_label("Save and close"), QDialogButtonBox::AcceptRole
-    );
-    QObject::connect(
-        save_button, &QAbstractButton::clicked, appearance_settings_widget,
-        &settings_template_widget::apply_theme_settings
-    );
-    QObject::connect(
-        cancel_button, &QAbstractButton::clicked, appearance_settings_widget,
-        &settings_template_widget::reset_theme_selection
-    );
-    QObject::connect(
-        close_button, &QAbstractButton::clicked, this,
-        &main_window::on_settings_commit_requested
-    );
-    dialog_layout->addWidget(button_box);
-
-    QObject::connect(
-        settings_dialog, &QDialog::finished, this,
-        &main_window::on_settings_dialog_finished
-    );
-
-#if defined(Q_OS_ANDROID)
-    settings_dialog->setWindowState(Qt::WindowMaximized);
-#else
-    settings_dialog->resize(820, 620);
-#endif
-    settings_dialog->show();
-    settings_dialog->raise();
-    settings_dialog->activateWindow();
-}
-
-void main_window::on_show_highscores_triggered() { show_platform_highscores(); }
-
-void main_window::on_progress_triggered() {
-    const training_progress progress = load_training_progress();
-    const int accuracy = progress.answered_questions > 0
-        ? static_cast<int>(
-              (progress.correct_answers * 100 + progress.answered_questions / 2)
-              / progress.answered_questions
-          )
-        : 0;
-    const int best_accuracy = progress.best_answered > 0
-        ? (progress.best_correct * 100 + progress.best_answered / 2)
-            / progress.best_answered
-        : 0;
-    QMessageBox::information(
-        this, str_label("Training progress"),
-        str_label(
-            "Completed games: %1\nQuestions: %2\nCorrect: %3 (%4%)\n"
-            "Best game: %5/%6 (%7%)"
-        )
-            .arg(progress.completed_sessions)
-            .arg(progress.answered_questions)
-            .arg(progress.correct_answers)
-            .arg(accuracy)
-            .arg(progress.best_correct)
-            .arg(progress.best_answered)
-            .arg(best_accuracy)
-    );
-}
-
-void main_window::on_settings_commit_requested() {
-    if (appearance_settings_widget != nullptr
-        && !appearance_settings_widget->apply_theme_settings()) {
-        return;
-    }
-    if (settings_dialog != nullptr) {
-        settings_dialog->close();
-    }
-}
-
-void main_window::on_settings_dialog_finished(int result) {
-    Q_UNUSED(result);
-
-    settings_dialog = nullptr;
-    appearance_settings_widget = nullptr;
-}
-
 void main_window::update_status_text() {
     if (status_label == nullptr) {
+        return;
+    }
+    if (table_widget && table_widget->active_gameplay_session()) {
+        auto text = table_widget->gameplay_status_text();
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+        const auto lives = gameplay_lives_text(
+            *table_widget->active_gameplay_session(), gameplay_hud_style,
+            gameplay_default_suit
+        );
+        if (!lives.isEmpty())
+            text += QStringLiteral("  ") + lives;
+#endif
+        if (rasterization_busy)
+            text.prepend(str_label("Processing") + QStringLiteral(" / "));
+        status_label->setText(text);
         return;
     }
 
@@ -1569,191 +873,5 @@ void main_window::update_status_text() {
                               .arg(score_correct)
                               .arg(score_total)
                               .arg(time_label));
-#endif
-}
-
-void main_window::pause_for_dialog() {
-    if (table_widget == nullptr || !quiz_started || quiz_paused) {
-        return;
-    }
-
-    table_widget->set_paused(true);
-    quiz_paused = true;
-
-    if (start_pause_action != nullptr) {
-        update_start_pause_action(true);
-    }
-
-    if (clock_timer != nullptr) {
-        clock_timer->pause();
-        refresh_clock_label();
-    }
-    update_status_text();
-}
-
-void main_window::reset_game_state(bool show_setup_dialog, bool mark_finished) {
-    if (show_setup_dialog && setup_dialog != nullptr) {
-#if defined(Q_OS_ANDROID)
-        setup_dialog->setWindowState(Qt::WindowMaximized);
-#endif
-        setup_dialog->show();
-        setup_dialog->raise();
-        setup_dialog->activateWindow();
-    }
-
-    if (table_widget != nullptr) {
-        table_widget->clear_quiz();
-        table_widget->set_paused(true);
-    }
-
-    quiz_started = false;
-    quiz_paused = false;
-    quiz_finished = mark_finished;
-    score_correct = 0;
-    score_total = 0;
-    mobile_checkpoint_restored = false;
-    mobile_lifecycle_paused = false;
-    clear_mobile_session_checkpoint();
-
-    if (clock_timer != nullptr) {
-        clock_timer->reset();
-        refresh_clock_label();
-    }
-    update_status_text();
-
-    if (start_pause_action != nullptr) {
-        start_pause_action->setText(str_label("Start"));
-        start_pause_action->setIcon(
-            icon_loader::themed(
-                { "media-playback-start", "media-playback-play", "play" },
-                QStyle::SP_MediaPlay
-            )
-        );
-        start_pause_action->setEnabled(!show_setup_dialog);
-    }
-    if (finish_action != nullptr) {
-        finish_action->setEnabled(false);
-    }
-}
-
-void main_window::show_game_over_dialog() {
-    if (clock_timer != nullptr) {
-        clock_timer->pause();
-    }
-    clear_mobile_session_checkpoint();
-    const QString score_text
-        = str_label("Score: %1/%2").arg(score_correct).arg(score_total);
-    if (score_total > 0) {
-        record_training_result(
-            {
-                .correct = score_correct,
-                .answered = score_total,
-                .elapsed_ms
-                = clock_timer != nullptr ? clock_timer->elapsed_time_ms() : 0,
-                .completed_at_utc_ms = QDateTime::currentMSecsSinceEpoch(),
-            }
-        );
-    }
-    QMessageBox::information(
-        this, str_label("Game over"), str_label("Game over\n%1").arg(score_text)
-    );
-    record_platform_score();
-    reset_game_state(true, true);
-}
-
-void main_window::persist_mobile_session_checkpoint(bool was_running) const {
-#if defined(Q_OS_ANDROID)
-    if (!quiz_started || table_widget == nullptr || clock_timer == nullptr) {
-        return;
-    }
-    trainer_session_checkpoint checkpoint;
-    checkpoint.table = table_widget->capture_session_state();
-    checkpoint.score_correct = score_correct;
-    checkpoint.score_total = score_total;
-    checkpoint.elapsed_ms = clock_timer->elapsed_time_ms();
-    checkpoint.was_running = was_running;
-    checkpoint.saved_at_utc_ms = QDateTime::currentMSecsSinceEpoch();
-    save_trainer_session_checkpoint(checkpoint);
-#else
-    Q_UNUSED(was_running);
-#endif
-}
-
-bool main_window::restore_mobile_session_checkpoint() {
-#if !defined(Q_OS_ANDROID)
-    return false;
-#else
-    const std::optional<trainer_session_checkpoint> checkpoint
-        = load_trainer_session_checkpoint();
-    if (!checkpoint.has_value() || table_widget == nullptr
-        || clock_timer == nullptr
-        || !table_widget->restore_session_state(checkpoint->table)) {
-        if (checkpoint.has_value()) {
-            clear_trainer_session_checkpoint();
-        }
-        return false;
-    }
-
-    if (table_slots_count != nullptr) {
-        const QSignalBlocker blocker(table_slots_count);
-        table_slots_count->setValue(
-            static_cast<int>(checkpoint->table.slot_states.size())
-        );
-    }
-    score_correct = checkpoint->score_correct;
-    score_total = checkpoint->score_total;
-    quiz_started = true;
-    quiz_paused = true;
-    quiz_finished = false;
-    mobile_checkpoint_restored = true;
-    mobile_lifecycle_paused = checkpoint->was_running;
-    clock_timer->set_elapsed_time_ms(checkpoint->elapsed_ms);
-    last_mobile_checkpoint_elapsed_ms = checkpoint->elapsed_ms;
-    if (start_pause_action != nullptr) {
-        update_start_pause_action(true);
-        start_pause_action->setEnabled(true);
-    }
-    if (finish_action != nullptr) {
-        finish_action->setEnabled(true);
-    }
-    if (setup_dialog != nullptr) {
-        setup_dialog->hide();
-    }
-    refresh_clock_label();
-    update_status_text();
-    return true;
-#endif
-}
-
-void main_window::clear_mobile_session_checkpoint() {
-#if defined(Q_OS_ANDROID)
-    clear_trainer_session_checkpoint();
-#endif
-}
-
-void main_window::on_application_state_changed(Qt::ApplicationState state) {
-#if defined(Q_OS_ANDROID)
-    if (state == Qt::ApplicationActive || !quiz_started) {
-        update_status_text();
-        return;
-    }
-
-    const bool was_running = !quiz_paused || mobile_lifecycle_paused;
-    if (was_running && table_widget != nullptr) {
-        table_widget->set_paused(true);
-        quiz_paused = true;
-        mobile_lifecycle_paused = true;
-        if (start_pause_action != nullptr) {
-            update_start_pause_action(true);
-        }
-        if (clock_timer != nullptr) {
-            clock_timer->pause();
-        }
-    }
-    persist_setup_preferences();
-    persist_mobile_session_checkpoint(was_running);
-    update_status_text();
-#else
-    Q_UNUSED(state);
 #endif
 }

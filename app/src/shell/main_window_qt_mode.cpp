@@ -4,6 +4,7 @@
 
 #include "arch/android_ui.hpp"
 #include "arch/str_label.hpp"
+#include "table/table.hpp"
 
 #include <QCoreApplication>
 #include <QHBoxLayout>
@@ -143,6 +144,11 @@ void main_window::register_shell_action(
 void main_window::insert_shell_separator() { }
 
 void main_window::refresh_clock_label() const {
+    if (table_widget && table_widget->active_gameplay_session()) {
+        if (clock_label)
+            clock_label->setText(table_widget->gameplay_clock_text());
+        return;
+    }
     if (clock_timer != nullptr && clock_label != nullptr) {
         clock_label->setText(clock_timer->time_string_hh_mm_ss());
     }

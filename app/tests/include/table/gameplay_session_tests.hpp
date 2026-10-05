@@ -1,0 +1,94 @@
+#ifndef KCUCKOOUNTER_TESTS_GAMEPLAY_SESSION_TESTS_HPP
+#define KCUCKOOUNTER_TESTS_GAMEPLAY_SESSION_TESTS_HPP
+
+#include <QObject>
+
+class gameplay_session_tests : public QObject {
+    Q_OBJECT
+
+private slots:
+    void configuration_and_slot_limits();
+    void slot_recommendations_follow_actual_packing();
+    void slot_recommendations_reject_invalid_geometry();
+    void slot_limit_refresh_preserves_payload_requires_consent();
+    void invalid_configuration_is_atomic();
+    void prepared_cards_and_setup_edits();
+    void gameplay_configuration_locks_after_start();
+    void swaps_preserve_identity_and_payload();
+    void completion_failure_and_training_are_distinct();
+    void pause_and_finish_guard_mutations();
+    void traversal_requires_a_complete_physical_permutation();
+    void sequential_selection_handles_nondivisible_counts_and_holes();
+    void traversal_anchor_survives_swaps_and_repacking();
+    void packing_traversal_selects_slots_without_moving_decks();
+    void repack_preserves_physical_ids_and_current_geometry();
+    void layout_rejects_invalid_updates_atomically();
+    void layout_terminal_repack_preserves_frozen_gameplay();
+    void layout_swap_moves_decks_between_fixed_slots();
+    void layout_interleaved_swap_and_resize_are_continuous();
+    void strategy_counts_are_automatic_limits_are_advisory();
+    void strategy_rejects_invalid_or_locked_edits_atomically();
+    void strategy_recommendations_are_explicit_fresh_preset_defaults();
+    void fresh_presets_preserve_templates_and_validate_defaults();
+    void generated_shoes_have_exact_composition_and_replay();
+    void generated_targets_are_independent_end_before_exhaustion();
+    void generation_rejects_invalid_inputs_and_bounds();
+    void finite_preparation_resolves_strategies_and_preserves_identity();
+    void finite_multi_preparation_owns_one_table_schedule();
+    void finite_preparation_failure_is_atomic_and_locked();
+    void prepared_schedules_validate_ownership_and_invalidation();
+    void multi_cadence_uses_minimum_for_ordered_modes();
+    void random_cadence_uses_average_and_lower_guard();
+    void cadence_includes_training_and_excludes_stopped_decks();
+    void multi_cadence_reevaluates_current_roster_without_consumption();
+    void multi_cadence_integer_boundaries_and_reference_oracle();
+    void cadence_query_preserves_preparation_and_lifecycle();
+    void infinite_chunks_are_balanced_bounded_and_replayable();
+    void infinite_rollover_preserves_payload_and_continuation();
+    void infinite_rollover_rejects_invalid_boundaries_atomically();
+    void infinite_quiz_pages_continue_independently_of_chunks();
+    void infinite_pages_freeze_policy_and_reject_overflow();
+    void mixed_preparation_owns_bounded_buffers_and_schedules();
+    void mixed_preparation_budget_and_lifecycle_are_atomic();
+    void infinite_preparation_validates_metadata_and_invalidation();
+    void dealing_sequential_matches_live_traversal_oracle();
+    void repack_swap_keep_physical_anchor_and_counts();
+    void dealing_simultaneous_completes_each_deck_once();
+    void random_dealing_replays_filters_allows_immediate_repeats();
+    void physical_jokers_index_without_count_or_segment();
+    void dealing_phase_and_arithmetic_guards_are_atomic();
+    void dealing_infinite_rollover_preserves_owned_payload();
+    void late_rollover_failure_keeps_whole_step_unchanged();
+    void dealing_consumes_actual_multi_cadence_targets_once();
+    void single_quiz_freezes_triggered_decks_or_table();
+    void quiz_single_accumulates_prompts_without_a_countdown();
+    void multi_joker_snapshots_live_decks_including_training();
+    void non_global_multi_quiz_coalesces_overlapping_targets();
+    void quiz_multi_reevaluates_after_terminal_transitions();
+    void infinite_single_pages_cross_chunks_without_reset();
+    void infinite_multi_pages_remain_table_owned_bounded();
+    void quiz_multi_live_set_catchup_coalesces_pages();
+    void quiz_page_failure_rejects_whole_dealing_step();
+    void countdown_extensions_reset_batches_including_training();
+    void quiz_manual_pause_preserves_inputs_and_countdown();
+    void quiz_timeout_snapshots_normal_answers_without_resurrection();
+    void quiz_memory_and_correction_preserve_latest_edits();
+    void quiz_focus_and_swap_follow_physical_traversal();
+    void quiz_action_guards_and_terminal_cleanup();
+    void scoring_avoids_double_counting_and_tail_credit();
+    void physical_jokers_and_zero_weight_cards_differ();
+    void lives_scoring_resolves_whole_batch_after_zero();
+    void timeout_records_every_error_and_correct_segment();
+    void block_filters_failed_decks_keeps_training_live();
+    void block_reevaluates_multi_cadence_after_wrong_answer();
+    void schedule_failure_keeps_answer_and_statistics_atomic();
+    void manual_finish_preserves_statuses_and_infinite_context();
+    void results_points_and_errors_are_independent_dimensions();
+    void natural_finish_preserves_reveal_and_random_ordinal();
+    void running_frozen_and_paused_times_are_distinct();
+    void non_global_quizzes_overlap_without_double_counting();
+    void timeout_clips_elapsed_and_excludes_stopped_decks();
+    void timing_overflow_rejects_the_whole_slice_atomically();
+};
+
+#endif // KCUCKOOUNTER_TESTS_GAMEPLAY_SESSION_TESTS_HPP

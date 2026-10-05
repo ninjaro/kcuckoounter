@@ -5,15 +5,16 @@
 
 #include "include/asset_locator_tests.hpp"
 #include "include/card_sheet_tests.hpp"
-#include "include/card_widget_tests.hpp"
 #include "include/image_cacher_tests.hpp"
 #include "include/infinity_spinbox_tests.hpp"
-#include "include/preferences_tests.hpp"
 #include "include/preview_carousel_tests.hpp"
 #include "include/raster_cache_tests.hpp"
 #include "include/rasterization_runner_tests.hpp"
+#include "include/settings/preferences_tests.hpp"
 #include "include/strategy_data_tests.hpp"
-#include "include/table_tests.hpp"
+#include "include/table/card_widget_tests.hpp"
+#include "include/table/gameplay_session_tests.hpp"
+#include "include/table/table_tests.hpp"
 
 int main(int argc, char** argv) {
     QApplication app(argc, argv);
@@ -28,8 +29,18 @@ int main(int argc, char** argv) {
     QSettings::setPath(
         QSettings::IniFormat, QSettings::UserScope, settings_directory.path()
     );
+    // Organization/application constructors use NativeFormat independently
+    // of the default format. Isolate those production entry points too.
+    QSettings::setPath(
+        QSettings::NativeFormat, QSettings::UserScope, settings_directory.path()
+    );
 
     int status = 0;
+
+    {
+        gameplay_session_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
 
     {
         asset_locator_tests t;

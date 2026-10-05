@@ -26,8 +26,7 @@ private:
 
 } // namespace
 
-void asset_locator_tests::
-    bundled_assets_resolve_from_an_unrelated_working_directory() {
+void asset_locator_tests::bundled_assets_resolve_from_unrelated_directory() {
     const QString expected
         = bundled_asset_path(QStringLiteral("strategies.json"));
     QVERIFY2(!expected.isEmpty(), "bundled strategy data was not staged");
