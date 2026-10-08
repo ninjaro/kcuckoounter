@@ -22,8 +22,8 @@ void table::stop_gameplay_clock() {
 }
 
 bool table::start_gameplay_runtime(std::uint64_t dealing_seed) {
-    if (!gameplay_owner || gameplay_runtime_attached || !gameplay_layout
-        || slot_widgets.size() != gameplay_owner->size()
+    if (gameplay_start_pending || !gameplay_owner || gameplay_runtime_attached
+        || !gameplay_layout || slot_widgets.size() != gameplay_owner->size()
         || !has_usable_gameplay_layout()
         || !gameplay_owner->start(dealing_seed))
         return false;
@@ -136,6 +136,13 @@ void table::publish_gameplay_runtime(
 ) {
     const QPointer<table> guard(this);
     const auto revision = gameplay_scene_revision;
+    // Retain terminal metadata before correction/HUD callbacks can retire its
+    // owner. The private sink does no I/O/publication and is consumed once.
+    if (gameplay_completion && gameplay_runtime_attached && gameplay_owner
+        && gameplay_owner->result()) {
+        auto capture = std::exchange(gameplay_completion, {});
+        capture(*gameplay_owner->result());
+    }
     const bool active_quiz_host
         = std::ranges::any_of(slot_widgets, [](const auto* slot) {
               return slot->controls_dialog

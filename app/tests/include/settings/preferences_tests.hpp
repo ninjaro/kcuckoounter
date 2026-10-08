@@ -7,6 +7,22 @@ class preferences_tests : public QObject {
     Q_OBJECT
 
 private slots:
+    void gameplay_drills_round_trip_data();
+    void gameplay_drills_round_trip();
+    void gameplay_drills_keep_legacy_storage();
+    void gameplay_drills_validate_configuration();
+    void gameplay_drills_protect_invalid_storage();
+    void gameplay_drills_report_failed_write();
+    void gameplay_drills_restore_fresh_setup();
+    void gameplay_drills_capture_no_live_state();
+    void legacy_drill_conversion_requires_target_policy();
+    void legacy_drill_conversion_rejects_invalid_input();
+    void gameplay_defaults_absence_preserves_legacy();
+    void gameplay_defaults_round_trip_data();
+    void gameplay_defaults_round_trip();
+    void gameplay_defaults_validate_domain();
+    void gameplay_defaults_reject_invalid_storage();
+    void gameplay_defaults_report_failed_write();
     void default_suit_is_independent_persistent_appearance();
     void default_suit_rejects_invalid_storage_without_rewriting();
     void round_trip_preserves_valid_values();

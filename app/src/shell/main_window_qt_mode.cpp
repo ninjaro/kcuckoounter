@@ -56,11 +56,11 @@ void main_window::finalize_platform_shell() {
     if (game_menu != nullptr) {
         game_menu->addSeparator();
         auto* quit_action = game_menu->addAction(str_label("Quit"));
+        quit_action->setObjectName(QStringLiteral("file_quit"));
         quit_action->setShortcut(QKeySequence::Quit);
-        QObject::connect(
-            quit_action, &QAction::triggered, QCoreApplication::instance(),
-            &QCoreApplication::quit
-        );
+        QObject::connect(quit_action, &QAction::triggered, this, [this] {
+            close();
+        });
     }
 #endif
 }

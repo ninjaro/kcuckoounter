@@ -121,9 +121,7 @@ function resolve({context, root = process.cwd()}) {
   }
 }
 
-function collect({context, core, root = process.cwd()}) {
-  const result = resolve({context, root});
-  const serialized = JSON.stringify(result);
+function writeReport(root, name, value) {
   // Never follow a checkout-controlled symlink or overwrite an authored file.
   let directory = root;
   for (const part of ['.ecosystem', 'github']) {
@@ -133,8 +131,15 @@ function collect({context, core, root = process.cwd()}) {
     requireValue(fs.lstatSync(directory).isDirectory() && !fs.lstatSync(directory).isSymbolicLink(),
       'unsafe-change-report-directory');
   }
-  const report = path.join(directory, 'changes.json');
-  fs.writeFileSync(report, serialized + '\n', {flag: 'wx'});
+  const report = path.join(directory, name);
+  fs.writeFileSync(report, JSON.stringify(value) + '\n', {flag: 'wx'});
+  return report;
+}
+
+function collect({context, core, root = process.cwd()}) {
+  const result = resolve({context, root});
+  const serialized = JSON.stringify(result);
+  const report = writeReport(root, 'changes.json', result);
   core.setOutput('changes', serialized);
   core.setOutput('changes-file', report);
   core.info(result.complete ? `Resolved ${result.paths.length} changed paths (${result.reason}).`
@@ -142,4 +147,30 @@ function collect({context, core, root = process.cwd()}) {
   return result;
 }
 
-module.exports = {resolve, collect};
+// The adapter transports the native policy without interpreting relevance.
+// Execution or output failures fail the stage; native uncertainty returns full.
+function inspect({root = process.cwd(), binary}) {
+  requireValue(typeof binary === 'string' && path.isAbsolute(binary), 'missing-engels-binary');
+  const output = execFileSync(binary, ['report', 'changes', '--json'], {
+    cwd: root, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024, timeout: 60000,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  const result = JSON.parse(output);
+  requireValue(result?.schema === 1 && typeof result.project === 'string'
+    && typeof result.delta_validated === 'boolean'
+    && ['full', 'affected', 'presentation', 'none'].includes(result.classification)
+    && ['full', 'repository'].includes(result.execution?.codeql),
+  'invalid-native-classification');
+  return result;
+}
+
+function classify({core, root = process.cwd(), binary}) {
+  const result = inspect({root, binary});
+  const report = writeReport(root, 'classification.json', result);
+  core.setOutput('classification-file', report);
+  core.setOutput('codeql', result.execution.codeql);
+  core.info(`Change classification: ${result.classification} (${result.reason}).`);
+  return result;
+}
+
+module.exports = {resolve, collect, inspect, classify};

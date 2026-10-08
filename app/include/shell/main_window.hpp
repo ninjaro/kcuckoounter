@@ -8,6 +8,9 @@
 #include <QString>
 #include <QtCore/Qt>
 
+#include <cstdint>
+#include <memory>
+
 class table;
 class KGameClock;
 class QLabel;
@@ -20,11 +23,14 @@ class desktop_status_strip;
 class QTimer;
 class QVBoxLayout;
 class QTableWidget;
+class QCloseEvent;
+class gameplay_reservation;
 
 namespace gameplay {
 class setup_widget;
 }
 struct training_drill;
+struct gameplay_drill;
 
 class main_window : public BaseMainWindow {
     Q_OBJECT
@@ -59,7 +65,9 @@ private slots:
     void on_application_state_changed(Qt::ApplicationState state);
 
 private:
+    friend class gameplay_host_tests;
     bool eventFilter(QObject* watched, QEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
     BaseSpinBox* table_slots_count;
     BaseComboBox* quiz_type;
     BaseCheckBox* wait_for_answers;
@@ -112,6 +120,14 @@ private:
     desktop_status_strip* desktop_status = nullptr;
     desktop_hud_style gameplay_hud_style = desktop_hud_style::classic;
     int gameplay_default_suit = 0;
+    // Operations retain a local copy through callbacks retiring this window.
+    std::shared_ptr<gameplay_reservation> gameplay_binding;
+    BaseAction* gameplay_retry_action = nullptr;
+    bool gameplay_recovery_checked = false;
+    bool gameplay_recovery_ready = false;
+    bool gameplay_storage_busy = false;
+    bool gameplay_completion_attempted = false;
+    QString gameplay_storage_error;
 
     void setup_ui();
     void apply_desktop_presentation();
@@ -140,8 +156,17 @@ private:
     void refresh_gameplay_actions();
     void report_gameplay_error(const QString& message);
     [[nodiscard]] bool start_gameplay_from_ui();
+    bool recover_gameplay_from_ui();
+    void retry_gameplay_from_ui();
+    bool gameplay_storage_ready();
+    bool gameplay_retirement_allowed();
+    bool reserve_gameplay_from_ui(std::uint64_t seed);
+    bool complete_gameplay_from_ui();
+    bool save_gameplay_from_ui();
+    void report_gameplay_storage(const QString& error);
     [[nodiscard]] training_drill capture_training_drill() const;
     bool launch_training_drill(const training_drill& drill);
+    bool load_gameplay_drill(const gameplay_drill& drill);
     void pause_for_dialog();
     void persist_setup_preferences() const;
     void persist_desktop_shell_state() const;
