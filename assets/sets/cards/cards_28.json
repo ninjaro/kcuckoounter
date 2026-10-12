@@ -1,0 +1,1488 @@
+{
+  "schema": 1,
+  "id": "cards_28",
+  "number": 28,
+  "name": "OpenClipart white playing cards",
+  "generated_at": "2026-10-06T14:41:49.622597Z",
+  "access_mode": "group_sprite",
+  "source": {
+    "category": "Category:OpenClipart white playing cards",
+    "url": "https://commons.wikimedia.org/wiki/Category:OpenClipart_white_playing_cards",
+    "related_sources": []
+  },
+  "authors": [
+    "Nicu Buculei"
+  ],
+  "licenses": [
+    {
+      "name": "CC0",
+      "spdx": "CC0-1.0",
+      "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+    }
+  ],
+  "status": "Derived Qt-compatible packaging; artwork geometry retained, canonical card IDs added. See curation repairs.",
+  "output": "cards_28.svg",
+  "output_sha256": "94973aea22adb7f0ac0f2d9e75fd8fd1ebbf6eaa9894e7f2c02d654a3c2a9ac6",
+  "output_size": 1119787,
+  "card_count": 54,
+  "frame": {
+    "width": 1000.0,
+    "height": 1357.0,
+    "value": 0.73691968,
+    "fraction": "507:688",
+    "view_box": "0 0 1000 1357",
+    "outline": true,
+    "outline_color": "#111111",
+    "outline_width": 2.0
+  },
+  "preview": {
+    "columns": 13,
+    "rows": 5,
+    "gap": 25,
+    "view_box": "0 0 13300 6885"
+  },
+  "cards": [
+    {
+      "key": "c_10",
+      "source_file": "White c 10.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/4d/White_c_10.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_10.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "aa8fb6345dff7f43d899885e80a27585e32948767bfb9e09bb4d21d23b42bef3",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_2",
+      "source_file": "White c 2.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/90/White_c_2.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_2.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "58ee674c80066591fa9a1dde3df3980dbe01285d03cf1dbe2296ef3e7b93f951",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_3",
+      "source_file": "White c 3.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/99/White_c_3.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_3.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "142c4227d201c5b2839a13a35b2d9a023bc4876a3dd7d3f19357c7a96bc883bd",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_4",
+      "source_file": "White c 4.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/White_c_4.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_4.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "aec091d69bbe4e1289ffd68037df8a5f8ae103e42db43be1559a8644d09d860e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_5",
+      "source_file": "White c 5.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/White_c_5.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_5.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "9813fe37b76a0af28f35e9bbaee2fdd0724d8e62743e153273df520c76cfed5a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_6",
+      "source_file": "White c 6.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/70/White_c_6.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_6.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "7ebd81a303cda6b7f00dce28bf9d057ec614383b2d0e1470da980cc30a18da7b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_7",
+      "source_file": "White c 7.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/09/White_c_7.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_7.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "d4b95d896e07b82b677ac7149c46e23cf44ff163a2861a35293a8717a90680cb",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_8",
+      "source_file": "White c 8.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/b8/White_c_8.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_8.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "98ad29424b8a5a7433667f521b49c230459a98d2c48b1ae3a44bed4a3e7df19c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_9",
+      "source_file": "White c 9.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/95/White_c_9.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_9.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "44067bac6634d938d3eff5f971e5554d893b150924e518eef297480bebbab132",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_a",
+      "source_file": "White c a.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/55/White_c_a.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_a.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "d33652d4ba4c85f87a5089c28b1010d0c142240bdcc5db56de3dee4b6fefd7f6",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_j",
+      "source_file": "White c j.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e1/White_c_j.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_j.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "69642983ec380aaaf273b2c60ed70e4a8d740a83d4de6843cd59ad691c9b618e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_k",
+      "source_file": "White c k.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/24/White_c_k.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_k.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "c9b4ffdb440805511009672bf86df6fa71ccccb08ee895e2e1db031aa58b78f2",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "c_q",
+      "source_file": "White c q.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/55/White_c_q.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_c_q.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "cdd788dcd2d3a6ff0080c9d4fd149d1957b43bca827e40e8ebd6e236cb21a9ad",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_10",
+      "source_file": "White d 10.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/5c/White_d_10.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_10.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "5434a3b4c3c680575695fac5e150dacc2444b18f6d36e247b49a4b2e3bc375cb",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_2",
+      "source_file": "White d 2.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e5/White_d_2.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_2.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "509bc4f69a6427e8359bce7e846bc8b8c367aec6f801fa379aa4ffc0e00f8336",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_3",
+      "source_file": "White d 3.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/54/White_d_3.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_3.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "af61f90fe7c2a46bd9e1cd7c594350d3c45ff577963e4722edb4d57dfdf9f740",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_4",
+      "source_file": "White d 4.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/bf/White_d_4.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_4.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "63202ab395c4e73fffd2ddb67a2634d9d9c5a7451770459d6db634ef1a92d9eb",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_5",
+      "source_file": "White d 5.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0c/White_d_5.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_5.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "1042f801a1c1dbea694d771ffbac54a9a5f80b04f96730348fc180f4f70731cd",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_6",
+      "source_file": "White d 6.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/76/White_d_6.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_6.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "e5824eaa35cfedd79f54e653c3365e9140c526c6a424cfdf07405aac880ea5f5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_7",
+      "source_file": "White d 7.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/White_d_7.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_7.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "46f3219e95ce0fdb70b9274a4f9fe5e65f853d2686e5020d9fda373883b95ed2",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_8",
+      "source_file": "White d 8.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/38/White_d_8.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_8.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "047ca06f6f00c8a6877dba16af5368c24c3b576c58383b40c380960e97c6d49c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_9",
+      "source_file": "White d 9.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/41/White_d_9.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_9.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "ed05a22ad5a1320710e68e257aa5f9a3b832813e5edad33120e868149b46dc1a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_a",
+      "source_file": "White d a.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/64/White_d_a.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_a.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "489582c241a69c44e5b4993593ffd71242af73195aae4a29c05868ff04ed19c8",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_j",
+      "source_file": "White d j.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c0/White_d_j.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_j.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "4f91a7b714e7a6b6c1440fd115178181dc1c0f194442369b65526d0e9b2ca7f1",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_k",
+      "source_file": "White d k.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/White_d_k.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_k.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "8782255567768b70d14b648dc40af410486d6481a540c301bd60d782248dddea",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "d_q",
+      "source_file": "White d q.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/38/White_d_q.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_d_q.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "6611c408c351fbab5c77c10f23d9e8f6cd514fba3a8700fbfd1c9e19be4eb3c4",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_10",
+      "source_file": "White h 10.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/76/White_h_10.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_10.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "6deb300c693b1db9bea4db212d0869c2581817c461f689ceea5a73509d1e3026",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_2",
+      "source_file": "White h 2.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/ff/White_h_2.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_2.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "579da49edd603a7030777700f448f4d33ed76deac6324c3900762ab0e31ac93f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_3",
+      "source_file": "White h 3.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3b/White_h_3.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_3.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "465ba816bb5e84a0e7ab3b433693751505ed7f3ed21426094185a635362894e3",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_4",
+      "source_file": "White h 4.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/cb/White_h_4.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_4.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "56a7d9e65f414ec6597c69b6e9ca9d421d50285ea85b09f9bd0ea6674d8adfa8",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_5",
+      "source_file": "White h 5.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/94/White_h_5.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_5.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "f7028931774668d8a2e82d66cf67e6e4271a00a31e8000b3debf5f7793dd9558",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_6",
+      "source_file": "White h 6.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/White_h_6.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_6.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "8fd2852e249c93ee5222accb391a502203e034a12372fba0c78829013c67d5ab",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_7",
+      "source_file": "White h 7.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/White_h_7.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_7.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "887d63db18aaadfce1676992e127deff7db1aef239f50ad536a8d02423bf8ea1",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_8",
+      "source_file": "White h 8.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/ba/White_h_8.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_8.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "98a7a877e21267c20207d26ffd0091b34160af771ed3d8d3f726aebf87559052",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_9",
+      "source_file": "White h 9.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/89/White_h_9.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_9.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "c3f05e87aee23a39c2760e315ce98cd4ab21b2a89110a6703a541fe3912ba25e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_a",
+      "source_file": "White h a.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/White_h_a.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_a.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "4a9df334b05f50759bb425d91341d74d1958bcdca23cd250c05990bb80872dda",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_j",
+      "source_file": "White h j.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/69/White_h_j.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_j.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "1cf24b2c28e36f5c52f9a515525d4ea1738fe934ef8705bc48a3857cdc8df6aa",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_k",
+      "source_file": "White h k.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/19/White_h_k.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_k.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "8f1ae40710bd92fc924dc2cb8783216831d888a144d813ddf29aebf34c99d03c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "h_q",
+      "source_file": "White h q.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/White_h_q.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_h_q.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "14a9104672e7b31a754568019290df03128d3987a95e5d665df2661c2f922982",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "joker_black",
+      "source_file": "White jk b.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f2/White_jk_b.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_jk_b.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "24b79b10a68ddeb985f27d285358760f9584f2fc1ed89a5018cd88a3393c39b5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "joker_red",
+      "source_file": "White jk r.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/White_jk_r.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_jk_r.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "620708505795c2bbaa98845f39d078a43fe8bdb15015dae6eb06b3d6e1b17637",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_10",
+      "source_file": "White s 10.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/71/White_s_10.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_10.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "098c1c75fb8d3e76d804fb06f72595e1a893a372fe1585a9efb1cb26357722df",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_2",
+      "source_file": "White s 2.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e4/White_s_2.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_2.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "0a31930efe5ea4e5e6a0d7025b3e45ee2279c86048d04e6084fbc016aeb72296",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_3",
+      "source_file": "White s 3.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/46/White_s_3.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_3.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "ff4a4f1f0df3c5dd57449b7dab046a8ac261047193fccc8c709bef2592ef6b05",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_4",
+      "source_file": "White s 4.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/27/White_s_4.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_4.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "ce35d31e6abd386c751ee90df3c66d9f339dea60ac867ac8d027b7adf392a02f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_5",
+      "source_file": "White s 5.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/37/White_s_5.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_5.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "1cc4d59dc22459fde76f35c8071594e632110b53acfd4dce8bac86fd393603d5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_6",
+      "source_file": "White s 6.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/White_s_6.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_6.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "96dfde12e61e209030e2bcef2cbfcad1689636a9b51ea2165d0c1c854f8cd0c9",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_7",
+      "source_file": "White s 7.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/73/White_s_7.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_7.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "d876ef00c23b80d6e8a232608f71526f17d3724d3d6ab022cd95f251e0bc33ff",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_8",
+      "source_file": "White s 8.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/White_s_8.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_8.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "c4cfdeb4bdc8650095c3efffbefac1760ad1a72eb261f4e1f853a63339fdb608",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_9",
+      "source_file": "White s 9.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/5f/White_s_9.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_9.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "e069843f05e197ab269e8e37a8c2d17e263cedbb33e4c77f5179b752bfcbfb41",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_a",
+      "source_file": "White s a.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/05/White_s_a.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_a.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "ec5692fb05ed333e7571a6bf0102e9baa635979536cfdca401cac9d425b56fee",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_j",
+      "source_file": "White s j.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/White_s_j.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_j.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "12476a4a62475cb64f2d1b26b461fafa495695c454a7fc5b3c87c9771f7dc881",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_k",
+      "source_file": "White s k.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/75/White_s_k.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_k.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "8dee9aa4f8f0213203168d004c0778ac1f59f6428359a2168d92a7dc039560c2",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    },
+    {
+      "key": "s_q",
+      "source_file": "White s q.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/89/White_s_q.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:White_s_q.svg",
+      "author": "Nicu Buculei",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "92b368f218f780a795affff0dd35d35898a9fa618fd7f553a79a4e1ede0e280b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        140.0,
+        190.0
+      ],
+      "source_aspect_ratio": {
+        "width": 140.0,
+        "height": 190.0,
+        "value": 0.73684211,
+        "fraction": "14:19"
+      }
+    }
+  ],
+  "description": "Repaired white-background OpenClipart design.",
+  "composition": {
+    "graphic_count": 54,
+    "faces": 52,
+    "jokers": 2,
+    "backs": 0,
+    "extra_graphics": {},
+    "standard_52_complete": true,
+    "ranks": [
+      "A",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K"
+    ],
+    "suits": [
+      "clubs",
+      "diamonds",
+      "hearts",
+      "spades"
+    ],
+    "count_basis": "Authored per-card records and visual/XML inspection; graphic count includes backs and extras, not the game deck size."
+  },
+  "source_selection": {
+    "record_type": "Historical import selection; not a regeneration instruction or verified license",
+    "kind": "commons_category",
+    "category": "Category:OpenClipart white playing cards",
+    "include": ".*\\.svg$"
+  },
+  "license_audit": {
+    "reviewed_at": "2026-10-10",
+    "status": "PARTIAL_NOT_VERIFIED",
+    "notes": "Commons Simple_c_j.svg sample credits Nicu Buculei and CC0/OpenClipart public-domain dedication. Every individual record across these variants has NOT been independently verified.",
+    "evidence_urls": [
+      "https://commons.wikimedia.org/wiki/Category:OpenClipart_white_playing_cards",
+      "https://commons.wikimedia.org/wiki/File:Simple_c_j.svg"
+    ],
+    "redistribution_approved": false,
+    "attribution_requirements": "NOT VERIFIED for the complete set: resolve the original license version/notice and per-graphic attribution requirements before publication; preserve existing source credits."
+  },
+  "curation": {
+    "reviewed_at": "2026-10-10",
+    "classification": "REVIEW",
+    "reason": "Repaired white-background OpenClipart design; preferred readable family representative. No back; source CC0 checked only for a sample.",
+    "developer_review_required": true,
+    "original_sha256": "1a935200c4930a8248a01dddba425a83b3084c3fe5e967a994e4442f73d8212a",
+    "repairs": [
+      "Replace unsupported symbol/nested SVG wrappers with explicit viewBox transforms and addressable groups.",
+      "Add the existing application card IDs while retaining original artwork/source IDs; optional missing graphics use the unchanged default deck."
+    ]
+  },
+  "runtime": {
+    "tested_qt": "6.11.2",
+    "svg_valid": true,
+    "active_ids": 54,
+    "default_ids": 1,
+    "placeholder_ids": 0,
+    "blank_application_images": 0,
+    "native_card_theme": true,
+    "notes": "Bundled theme discovery reads the curated cards.json catalog, preserving noncontiguous numeric IDs. Default and optional fallback graphics remain cards_0.svg. Selection does not approve redistribution.",
+    "optional_graphics": {
+      "back": {
+        "source": "default",
+        "source_svg": "cards_0.svg",
+        "element_id": "back",
+        "selected_original_id": "back",
+        "empty_image": false
+      },
+      "joker_black": {
+        "source": "active",
+        "source_svg": "cards_28.svg",
+        "element_id": "joker_black",
+        "selected_original_id": "joker_black",
+        "empty_image": false
+      },
+      "joker_red": {
+        "source": "active",
+        "source_svg": "cards_28.svg",
+        "element_id": "joker_red",
+        "selected_original_id": "joker_red",
+        "empty_image": false
+      }
+    }
+  }
+}

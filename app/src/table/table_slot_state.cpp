@@ -117,8 +117,8 @@ bool table_slot::restore_session_state(const table_slot_session_state& state) {
     if (card_widget_internal != nullptr) {
         card_widget_internal->set_hide_cards(quiz_prompt_active);
         card_widget_internal->set_table_marking_source(bundled_asset_path(
-            quiz_prompt_active ? QStringLiteral("mad.svg")
-                               : QStringLiteral("cuckoo.svg")
+            quiz_prompt_active ? QStringLiteral("brand/mad.svg")
+                               : QStringLiteral("brand/cuckoo.svg")
         ));
     }
     update_overlay_layout();

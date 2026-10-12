@@ -18,6 +18,10 @@
 namespace {
 
 bool is_primary_shell_action(const QString& action_name) {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    if (action_name == QStringLiteral("game_retry_storage"))
+        return true;
+#endif
     return action_name == QStringLiteral("game_new")
         || action_name == QStringLiteral("game_start_pause")
         || action_name == QStringLiteral("game_finish")
@@ -28,7 +32,7 @@ bool is_primary_shell_action(const QString& action_name) {
 } // namespace
 
 void main_window::setup_platform_shell() {
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     menuBar()->hide();
     primary_toolbar = new BaseToolBar(str_label("Navigation"), this);
     primary_toolbar->setObjectName(QStringLiteral("mobile_navigation_toolbar"));
@@ -50,7 +54,7 @@ void main_window::setup_platform_shell() {
 }
 
 void main_window::finalize_platform_shell() {
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     return;
 #else
     if (game_menu != nullptr) {
@@ -70,7 +74,7 @@ void main_window::setup_status_surface(BaseVBoxLayout* main_layout) {
         return;
     }
 
-#if !defined(Q_OS_ANDROID)
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     main_layout->addWidget(create_desktop_status_surface());
 #else
     auto* status_strip = new BaseWidget(this);
@@ -117,7 +121,7 @@ void main_window::register_shell_action(
         return;
     }
 
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     if (primary_toolbar != nullptr && is_primary_shell_action(action_name)) {
         primary_toolbar->addAction(action);
     }

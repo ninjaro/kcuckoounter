@@ -1,0 +1,1545 @@
+{
+  "schema": 1,
+  "id": "cards_23",
+  "number": 23,
+  "name": "Atlasnye — keyed sprite",
+  "generated_at": "2026-10-06T17:00:36.581310Z",
+  "access_mode": "group_sprite",
+  "source": {
+    "category": "Category:SVG Atlasnye playing cards",
+    "url": "https://commons.wikimedia.org/wiki/Category:SVG_Atlasnye_playing_cards",
+    "related_sources": [
+      "https://commons.wikimedia.org/wiki/File:Atlasnye_playing_cards_deck.svg"
+    ]
+  },
+  "authors": [
+    "Jonatan Svensson Glad",
+    "Дмитрий Фомин (Dmitry Fomin)"
+  ],
+  "licenses": [
+    {
+      "name": "CC0",
+      "spdx": "CC0-1.0",
+      "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+    }
+  ],
+  "status": "Derived Qt-compatible packaging; artwork geometry retained, canonical card IDs added. See curation repairs.",
+  "output": "cards_23.svg",
+  "output_sha256": "f3a3e4b699a4f7ac377c36b3ab8bed839aa8e5e5083db8a9a71653f2144cc540",
+  "output_size": 1881579,
+  "card_count": 56,
+  "frame": {
+    "width": 1000.0,
+    "height": 1500.0,
+    "value": 0.66666667,
+    "fraction": "2:3",
+    "view_box": "0 0 1000 1500",
+    "outline": true,
+    "outline_color": "#111111",
+    "outline_width": 2.0
+  },
+  "preview": {
+    "columns": 13,
+    "rows": 5,
+    "gap": 25,
+    "view_box": "0 0 13300 7600"
+  },
+  "cards": [
+    {
+      "key": "c_10",
+      "source_file": "Atlas deck 10 of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/26/Atlas_deck_10_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_10_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "65403e227e6b79455370ae362172880474b8023eb0e9cfcda40d3a1cc795d946",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_10",
+      "source_file": "Atlas deck 10 of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Atlas_deck_10_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_10_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "86c489dfb5a69afb3f6a7c5ef03a891c397bcebe8d10bfaf546996b492ab785c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_10",
+      "source_file": "Atlas deck 10 of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/73/Atlas_deck_10_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_10_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "18def3d9c6416b034f71acaa17a8e88e018053d469dac2684983035d8c8d9840",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_10",
+      "source_file": "Atlas deck 10 of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/91/Atlas_deck_10_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_10_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "f063122b3b94ddc9e3bf56d240b72194f15a146e203c00226bad1cd3e320f916",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_2",
+      "source_file": "Atlas deck 2 of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/06/Atlas_deck_2_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_2_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "3569c35ad7c2f1fd24fa2f3ad60aba2a70d088a5f3ce56625706193dff0d220c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_2",
+      "source_file": "Atlas deck 2 of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/4b/Atlas_deck_2_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_2_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "f116f8a2d2c9b02f92a225b0601a5c356a95341825feb0d7e64b946b3b4da6e6",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_2",
+      "source_file": "Atlas deck 2 of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Atlas_deck_2_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_2_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "3762e75b5b663cb57887f2b770feb4f6d8e4fd2a5ce3a4b0b041f5a406c68bd8",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_2",
+      "source_file": "Atlas deck 2 of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/00/Atlas_deck_2_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_2_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "2f74a899b0b9c3f97f09fc95c449223f1ca9a02b442d1119e5d5351e92bc0ab5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_3",
+      "source_file": "Atlas deck 3 of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/57/Atlas_deck_3_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_3_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "b0d191087186e94e7c7b45be718192bfc789020221285fa1f7b24e0163a174b8",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_3",
+      "source_file": "Atlas deck 3 of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Atlas_deck_3_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_3_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "57a3a78ecb99e2381626f37ab5e6da160ac155d223731f55489ef30dadc5a259",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_3",
+      "source_file": "Atlas deck 3 of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Atlas_deck_3_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_3_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "63f2a7d056a80bd912e8c94d85b56b06078c5d6c36c3af0a8cc0e8da2432e2f0",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_3",
+      "source_file": "Atlas deck 3 of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/89/Atlas_deck_3_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_3_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "8da599508e7ec116c19672a5f2079cd7b5912a3f84daa08413917824b7b64fc5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_4",
+      "source_file": "Atlas deck 4 of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Atlas_deck_4_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_4_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "d150b025b80a4a28cf957f34059207d59640cc1677c5fd4e71f4cd2231ced444",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_4",
+      "source_file": "Atlas deck 4 of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Atlas_deck_4_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_4_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "37739912183593f984828b22cc58b660a7f7ba7ace94b7ddb3a9094ba2e9ff5b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_4",
+      "source_file": "Atlas deck 4 of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Atlas_deck_4_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_4_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "178fe20a43e518ff57f782f90de5c90f6423fdf3824f13a8a465e3e6efa1e9c1",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_4",
+      "source_file": "Atlas deck 4 of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Atlas_deck_4_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_4_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "8c3753819952295cd9e8fee7ac49d97b2d6b794f624de7e6950a95f5f3e01916",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_5",
+      "source_file": "Atlas deck 5 of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/88/Atlas_deck_5_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_5_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "fbd7770f91d040e4b65620e14e0f6fb2e4b9e69b3d1e2dfa5e6ff68e15f449d3",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_5",
+      "source_file": "Atlas deck 5 of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a1/Atlas_deck_5_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_5_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "59e3e38016aa89b3e1537b9f21230912490d41a82fc7268248cc8324f98a9d65",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_5",
+      "source_file": "Atlas deck 5 of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/57/Atlas_deck_5_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_5_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "903ff4d76421a0474e38b7dbe870c3366b8ba80376729af1f46473520264a604",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_5",
+      "source_file": "Atlas deck 5 of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/ed/Atlas_deck_5_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_5_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "5db44185488e97323be42e14d9924064cf861ef7eeb39175dffe5dcbf1fab0b5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_6",
+      "source_file": "Atlas deck 6 of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/88/Atlas_deck_6_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_6_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "72adb171eda76b9fdcd705fd9e2533d0287f2cde10c903f3afb929adb04d3da3",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_6",
+      "source_file": "Atlas deck 6 of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/74/Atlas_deck_6_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_6_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "a3f109f3a75df579ff305779bf74fec7214b06cf22c1f6dc8b4d7959e8c4444d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_6",
+      "source_file": "Atlas deck 6 of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Atlas_deck_6_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_6_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "ea3940528b11d02d47bbfb24f0a82831eb2db861cc7d06f952fba17538ee342b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_6",
+      "source_file": "Atlas deck 6 of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Atlas_deck_6_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_6_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "81b9f32842fedc1c7bf6322e4f065c5d5a0b55c369bdc7dbc3d9c001344f3c2e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_7",
+      "source_file": "Atlas deck 7 of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Atlas_deck_7_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_7_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "8122543b0560d8808c3ab155b9db5a6182ae888e3dccf2f78a643e1bed4ff21d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_7",
+      "source_file": "Atlas deck 7 of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Atlas_deck_7_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_7_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "7a74ec557afc3357122eafa07c1fcc938ee598a7de256d6a4bd8a1f7aa52148f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_7",
+      "source_file": "Atlas deck 7 of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/b0/Atlas_deck_7_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_7_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "6de8c8c94b287fbe3519cdc24de6641371af9ee75b019e5b8f1a6ef9311a920e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_7",
+      "source_file": "Atlas deck 7 of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Atlas_deck_7_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_7_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "962db5b61a1bca8e6a8ce5d0c7db2780226336e6678b03efdb6c7c40a7ddba56",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_8",
+      "source_file": "Atlas deck 8 of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/50/Atlas_deck_8_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_8_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "54bf9407bbe17e01cd1f34bffd5e390230e167f02ce17c39ce27281472bbaa6a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_8",
+      "source_file": "Atlas deck 8 of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Atlas_deck_8_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_8_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "19cea508497e3f762b5f0a9fe2c4bdd3214e212c2992e922a814a7e32cebef90",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_8",
+      "source_file": "Atlas deck 8 of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/Atlas_deck_8_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_8_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "cc7a493c8ca02a57c92f358b834aac1b7900fd456652c54c5009802fb7136f17",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_8",
+      "source_file": "Atlas deck 8 of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f2/Atlas_deck_8_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_8_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "a442e9f6840a99a354accbe0e9710eb80d33525432f6a9a4c51c2de9044c9d50",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_9",
+      "source_file": "Atlas deck 9 of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/27/Atlas_deck_9_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_9_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "fa2432fdbd70813d18ca6db545d7c712a17f3a647e0353ff651c5a28592f31dd",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_9",
+      "source_file": "Atlas deck 9 of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/77/Atlas_deck_9_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_9_of_diamonds.svg",
+      "author": "Jonatan Svensson Glad",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "ba6c2c9b0a8c909dc94c232a46b7377599aedfc8527a6446972d5c2816c83b95",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_9",
+      "source_file": "Atlas deck 9 of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Atlas_deck_9_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_9_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "5778cb0e96e4de56f3bf00823d19067a770adfcb6e6dae417f568cb329206b6e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_9",
+      "source_file": "Atlas deck 9 of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a2/Atlas_deck_9_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_9_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "acfd2c12446cd09d0b8739a924245c37ca3e965ca90f4afba6500f5bc65f5222",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_a",
+      "source_file": "Atlas deck ace of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/Atlas_deck_ace_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_ace_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "eeb817a4a5ae2291e6bc680d64ef620e15899ff7bdf5105c330e93af18e24b87",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_a",
+      "source_file": "Atlas deck ace of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/1a/Atlas_deck_ace_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_ace_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "320a29b924e7ef80484771c3cc1598938fbe3bbbfb6a1dca29debd05c8645770",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_a",
+      "source_file": "Atlas deck ace of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3e/Atlas_deck_ace_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_ace_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "fcd33210e0991ffef587803d8b5c1fa4c2c93297775451bf7e879af947e677a6",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_a",
+      "source_file": "Atlas deck ace of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/75/Atlas_deck_ace_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_ace_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "ec33bcdc07655c11834a8821d4794a3f33abef50dc3ee282bdc28e04ceaae5b2",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_blue",
+      "source_file": "Atlas deck card back blue and brown.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/Atlas_deck_card_back_blue_and_brown.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_card_back_blue_and_brown.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "db41640fdbb360cfdabd0d0a9629b26fb05596f049a7b291a0daa95ddb06b8de",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_red",
+      "source_file": "Atlas deck card back green and dark red.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Atlas_deck_card_back_green_and_dark_red.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_card_back_green_and_dark_red.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "2d832e4de60ea756a48fbc503f24d284e30e6daa62740bdbe02d57bf2efdaee8",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_j",
+      "source_file": "Atlas deck jack of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Atlas_deck_jack_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_jack_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "665dcdd9e6639cefa7bd4925309260c5ef5d92f4559a40bb2c05872edde8ef56",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_j",
+      "source_file": "Atlas deck jack of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/6e/Atlas_deck_jack_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_jack_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "553be856d654bf944ca3f587e43a36eb8b8cec28b9daecbe192317b02c844362",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_j",
+      "source_file": "Atlas deck jack of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a3/Atlas_deck_jack_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_jack_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "0aa295525d16aa5e003b1bb6df184ea45f9e7cf06119986cbf3efd1ed5c71658",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_j",
+      "source_file": "Atlas deck jack of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2e/Atlas_deck_jack_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_jack_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "3d7c4510b817e099057bcd42b3e62f95a25cbd90dd83df1c89138e804a85fa1d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "joker_black",
+      "source_file": "Atlas deck joker black.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/28/Atlas_deck_joker_black.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_joker_black.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "1cbd213abb60377f6dab63589d49136955d7847b9349240f37537cf573fd0a8b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "joker_red",
+      "source_file": "Atlas deck joker red.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a7/Atlas_deck_joker_red.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_joker_red.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "e6f044a37683e332344eaad07a4f3c00d4a14b735acb1a8c740da9e993ceae75",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_k",
+      "source_file": "Atlas deck king of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c5/Atlas_deck_king_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_king_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "e217bd2a7202fa415250b5eae74326b563c30ba74a7cc8dd96f9c40930bec5b1",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_k",
+      "source_file": "Atlas deck king of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Atlas_deck_king_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_king_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "ab1441afcd634d6fe5f4fe1033a2c72005881eae812ac3136577ee90b1d2ba2d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_k",
+      "source_file": "Atlas deck king of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Atlas_deck_king_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_king_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "1a9b295f72c7bdec86c59931aecb4e07a823f045efecef2011b04ac081ff5837",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_k",
+      "source_file": "Atlas deck king of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Atlas_deck_king_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_king_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "c2488ea27779cc2788ccb261b1e17cedad03c9229f1028aa5e1a5ff163dcec75",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_q",
+      "source_file": "Atlas deck queen of clubs.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/59/Atlas_deck_queen_of_clubs.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_queen_of_clubs.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "e87cba822406f96ac7ebe06f2e5889e35d730e32286c229e114a30ad02df6a8a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_q",
+      "source_file": "Atlas deck queen of diamonds.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Atlas_deck_queen_of_diamonds.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_queen_of_diamonds.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "b4896bc64c287b4f29ecd305f17a9e8630ecdb1051ccd5e943da876c0872c565",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_q",
+      "source_file": "Atlas deck queen of hearts.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/60/Atlas_deck_queen_of_hearts.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_queen_of_hearts.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "8830c72ef7e88e289d929308ed0ad78a46df9b20add8dcf8a0c581b199696ba6",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_q",
+      "source_file": "Atlas deck queen of spades.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Atlas_deck_queen_of_spades.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:Atlas_deck_queen_of_spades.svg",
+      "author": "Дмитрий Фомин (Dmitry Fomin)",
+      "license": {
+        "name": "CC0",
+        "spdx": "CC0-1.0",
+        "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+      },
+      "sha256": "0f251abc24bb5567b01668299d6fd1a5ebe46ebd53e6177ab69c51bd269678df",
+      "source_view_box": [
+        0.0,
+        0.0,
+        360.0,
+        540.0
+      ],
+      "source_aspect_ratio": {
+        "width": 360.0,
+        "height": 540.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    }
+  ],
+  "description": "Repaired and readable Atlas courts, two backs and two jokers.",
+  "composition": {
+    "graphic_count": 56,
+    "faces": 52,
+    "jokers": 2,
+    "backs": 2,
+    "extra_graphics": {},
+    "standard_52_complete": true,
+    "ranks": [
+      "A",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K"
+    ],
+    "suits": [
+      "clubs",
+      "diamonds",
+      "hearts",
+      "spades"
+    ],
+    "count_basis": "Authored per-card records and visual/XML inspection; graphic count includes backs and extras, not the game deck size."
+  },
+  "source_selection": {
+    "record_type": "Historical import selection; not a regeneration instruction or verified license",
+    "kind": "commons_category",
+    "category": "Category:SVG Atlasnye playing cards",
+    "include": "^File:Atlas deck (?:ace|[2-9]|10|jack|queen|king) of (?:clubs|diamonds|hearts|spades)\\.svg$|^File:Atlas deck joker (?:black|red)\\.svg$|^File:Atlas deck card back .*\\.svg$",
+    "exclude": "ace of diamonds 2",
+    "related_sources": [
+      "https://commons.wikimedia.org/wiki/File:Atlasnye_playing_cards_deck.svg"
+    ]
+  },
+  "license_audit": {
+    "reviewed_at": "2026-10-10",
+    "status": "PARTIAL_NOT_VERIFIED",
+    "notes": "Related full-deck Commons page has a CC0 statement; per-card and extra-graphic source claims are retained but not independently checked in full.",
+    "evidence_urls": [
+      "https://commons.wikimedia.org/wiki/Category:SVG_Atlasnye_playing_cards",
+      "https://commons.wikimedia.org/wiki/File:Atlasnye_playing_cards_deck.svg"
+    ],
+    "redistribution_approved": false,
+    "attribution_requirements": "NOT VERIFIED for the complete set: resolve the original license version/notice and per-graphic attribution requirements before publication; preserve existing source credits."
+  },
+  "curation": {
+    "reviewed_at": "2026-10-10",
+    "classification": "REVIEW",
+    "reason": "Repaired and readable Atlas courts, two backs and two jokers; blue back is default. Family CC0 evidence checked, all extra source claims not fully verified.",
+    "developer_review_required": true,
+    "original_sha256": "4868600475033a9ede06e2ddd685c183a474cbab125546c8b7e6d133ecb686b9",
+    "repairs": [
+      "Replace unsupported symbol/nested SVG wrappers with explicit viewBox transforms and addressable groups.",
+      "Add the existing application card IDs while retaining original artwork/source IDs; optional missing graphics use the unchanged default deck."
+    ]
+  },
+  "runtime": {
+    "tested_qt": "6.11.2",
+    "svg_valid": true,
+    "active_ids": 55,
+    "default_ids": 0,
+    "placeholder_ids": 0,
+    "blank_application_images": 0,
+    "native_card_theme": true,
+    "notes": "Bundled theme discovery reads the curated cards.json catalog, preserving noncontiguous numeric IDs. Default and optional fallback graphics remain cards_0.svg. Selection does not approve redistribution.",
+    "optional_graphics": {
+      "back": {
+        "source": "active",
+        "source_svg": "cards_23.svg",
+        "element_id": "back",
+        "selected_original_id": "back_blue",
+        "empty_image": false
+      },
+      "joker_black": {
+        "source": "active",
+        "source_svg": "cards_23.svg",
+        "element_id": "joker_black",
+        "selected_original_id": "joker_black",
+        "empty_image": false
+      },
+      "joker_red": {
+        "source": "active",
+        "source_svg": "cards_23.svg",
+        "element_id": "joker_red",
+        "selected_original_id": "joker_red",
+        "empty_image": false
+      }
+    }
+  }
+}

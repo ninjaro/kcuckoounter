@@ -18,6 +18,7 @@
 #include "include/table/card_widget_tests.hpp"
 #include "include/table/gameplay_completion_tests.hpp"
 #include "include/table/gameplay_host_tests.hpp"
+#include "include/table/gameplay_mobile_tests.hpp"
 #include "include/table/gameplay_restore_tests.hpp"
 #include "include/table/gameplay_session_tests.hpp"
 #include "include/table/gameplay_start_tests.hpp"
@@ -121,6 +122,10 @@ int main(int argc, char** argv) {
     }
     {
         gameplay_host_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        gameplay_mobile_tests t;
         status |= QTest::qExec(&t, argc, argv);
     }
 

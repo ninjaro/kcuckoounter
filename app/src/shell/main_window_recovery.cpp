@@ -10,9 +10,14 @@
 #include <QSettings>
 
 void main_window::report_gameplay_storage(const QString& error) {
-    gameplay_storage_error = error.isEmpty() ? QString()
-                                             : error + QLatin1Char(' ')
-            + str_label("Use Game → Retry gameplay storage to try again.");
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    const auto hint = str_label("Use Retry gameplay storage to try again.");
+#else
+    const auto hint
+        = str_label("Use Game → Retry gameplay storage to try again.");
+#endif
+    gameplay_storage_error
+        = error.isEmpty() ? QString() : error + QLatin1Char(' ') + hint;
     update_status_text();
     if (!gameplay_storage_error.isEmpty())
         report_gameplay_error(gameplay_storage_error);
@@ -24,6 +29,9 @@ bool main_window::recover_gameplay_from_ui() {
     if (gameplay_storage_busy)
         return false;
     const QPointer<main_window> guard(this);
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    const bool first_check = !gameplay_recovery_checked;
+#endif
     gameplay_recovery_checked = true;
     gameplay_recovery_ready = false;
     const auto binding = std::make_shared<gameplay_reservation>();
@@ -50,20 +58,28 @@ bool main_window::recover_gameplay_from_ui() {
             && setup_dialog)
             setup_dialog->hide();
     }
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    // First native actions and queued startup share this ordered check. Never
+    // let early legacy Start overwrite a checkpoint not yet offered to Resume.
+    if (first_check && gameplay_recovery_ready
+        && !table_widget->active_gameplay_session() && !quiz_started)
+        (void)restore_mobile_session_checkpoint();
+    if (!guard)
+        return false;
+#endif
     report_gameplay_storage(error);
     if (!guard)
         return false;
     if (binding->completion() && !gameplay_completion_attempted)
         (void)complete_gameplay_from_ui();
+    if (guard && mobile_checkpoint_pending)
+        pause_mobile_gameplay();
     if (guard)
         refresh_gameplay_actions();
     return guard && guard->gameplay_recovery_ready;
 }
 
 bool main_window::gameplay_storage_ready() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    return true; // Target Android lifecycle activation remains separate.
-#else
     if (gameplay_storage_busy)
         return false;
     if (!gameplay_recovery_checked)
@@ -73,7 +89,6 @@ bool main_window::gameplay_storage_ready() {
         return false;
     }
     return true;
-#endif
 }
 
 bool main_window::gameplay_retirement_allowed() {
@@ -93,7 +108,7 @@ bool main_window::gameplay_retirement_allowed() {
 }
 
 bool main_window::reserve_gameplay_from_ui(std::uint64_t seed) {
-    if (gameplay_storage_busy)
+    if (gameplay_storage_busy || mobile_background)
         return false;
     const QPointer<main_window> guard(this);
     const auto binding = std::make_shared<gameplay_reservation>();
@@ -126,6 +141,8 @@ bool main_window::reserve_gameplay_from_ui(std::uint64_t seed) {
     // busy. Retry only after the binding's serialized operation has returned.
     if (binding->completion() && !gameplay_completion_attempted)
         (void)complete_gameplay_from_ui();
+    if (guard && mobile_checkpoint_pending)
+        pause_mobile_gameplay();
     if (guard)
         refresh_gameplay_actions();
     return guard && started;

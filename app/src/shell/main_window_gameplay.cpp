@@ -198,12 +198,16 @@ void main_window::open_gameplay_setup_dialog() {
 }
 
 void main_window::report_gameplay_error(const QString& message) {
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     if (table_widget->active_gameplay_session()) {
         const QPointer<main_window> guard(this);
         open_gameplay_setup_dialog();
         if (guard && gameplay_setup_error)
             gameplay_setup_error->setText(message);
-    } else if (status_label) {
+        return;
+    }
+#endif
+    if (status_label) {
         status_label->setText(message);
     }
 }
@@ -212,10 +216,14 @@ void main_window::refresh_gameplay_actions() {
     const auto* owner = table_widget->active_gameplay_session();
     const bool retained = gameplay_binding && gameplay_binding->sequence()
         && !gameplay_binding->acknowledged();
-    if (gameplay_retry_action)
+    if (gameplay_retry_action) {
         gameplay_retry_action->setEnabled(
             !gameplay_storage_busy && !gameplay_storage_error.isEmpty()
         );
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+        gameplay_retry_action->setVisible(!gameplay_storage_error.isEmpty());
+#endif
+    }
     if (new_gameplay_action)
         new_gameplay_action->setEnabled(
             !gameplay_storage_busy && !retained
@@ -415,6 +423,8 @@ void main_window::on_gameplay_roster_changed(int count) {
 }
 
 bool main_window::start_gameplay_from_ui() {
+    if (mobile_background)
+        return false;
     const QPointer<main_window> guard(this);
     if (!gameplay_storage_ready() || !guard || !gameplay_retirement_allowed()
         || !guard)
@@ -482,22 +492,11 @@ bool main_window::start_gameplay_from_ui() {
     table_widget->refresh_gameplay_session();
     if (!guard || table_widget->gameplay_scene() != scene)
         return false;
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    const bool started = table_widget->start_gameplay_runtime(
-#else
-    const bool started = reserve_gameplay_from_ui(
-#endif
-        QRandomGenerator::global()->generate64()
-    );
+    const bool started
+        = reserve_gameplay_from_ui(QRandomGenerator::global()->generate64());
     if (!guard)
         return false;
     if (!started) {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-        report_gameplay_error(str_label(
-            "The prepared session could not start. Check its setup and slot "
-            "consent."
-        ));
-#endif
         return false;
     }
     refresh_gameplay_setup();

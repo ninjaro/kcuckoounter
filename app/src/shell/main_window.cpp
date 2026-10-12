@@ -279,6 +279,7 @@ void main_window::setup_game_actions() {
         saved_drills_action, &QAction::triggered, this,
         &main_window::on_saved_drills_triggered
     );
+#endif
 
     gameplay_retry_action
         = new BaseAction(str_label("Retry gameplay storage"), this);
@@ -290,6 +291,8 @@ void main_window::setup_game_actions() {
     connect(gameplay_retry_action, &QAction::triggered, this, [this] {
         retry_gameplay_from_ui();
     });
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    gameplay_retry_action->setVisible(false);
 #endif
 
 #if defined(Q_OS_ANDROID)
@@ -638,13 +641,11 @@ void main_window::setup_ui() {
 
     if (setup_dialog != nullptr) {
         time_interface::single_shot(0, this, [this]() {
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
             const QPointer<main_window> guard(this);
             if (!gameplay_recovery_checked)
                 (void)recover_gameplay_from_ui();
             if (!guard)
                 return;
-#endif
             if (!mobile_checkpoint_restored) {
                 open_setup_dialog();
             }
@@ -655,12 +656,11 @@ void main_window::setup_ui() {
         );
     }
 
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     QObject::connect(
         qApp, &QGuiApplication::applicationStateChanged, this,
         &main_window::on_application_state_changed
     );
-    restore_mobile_session_checkpoint();
 #endif
 }
 
@@ -747,7 +747,7 @@ void main_window::on_clock_ticked(qint64 elapsed_ms, qint64 delta_ms) {
     refresh_clock_label();
     update_status_text();
 
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     if (quiz_started && clock_timer != nullptr
         && clock_timer->elapsed_time_ms() - last_mobile_checkpoint_elapsed_ms
             >= 10000) {

@@ -34,6 +34,21 @@
 
 using namespace table_test;
 
+namespace {
+
+void reveal_quiz_controls(table_slot& slot) {
+    // Feedback can outgrow an inline slot under a native theme or translation.
+    // Open the existing controls affordance before asserting screen visibility.
+    auto* trigger = slot.findChild<QToolButton*>(
+        QStringLiteral("compact_slot_controls")
+    );
+    if (trigger != nullptr && trigger->isVisible()) {
+        QTest::mouseClick(trigger, Qt::LeftButton);
+    }
+}
+
+} // namespace
+
 void table_tests::quiz_hides_skip_when_skipping_disabled() {
     table_slot slot;
     slot.start_quiz(0);
@@ -107,6 +122,7 @@ void table_tests::quiz_wrong_answer_exhausts_deck_without_training() {
 
 void table_tests::quiz_wrong_answer_shows_continue_in_training() {
     table_slot slot;
+    QSignalSpy score_spy(&slot, &table_slot::score_adjusted);
     auto training_check_box
         = slot.findChild<BaseCheckBox*>(QStringLiteral("training_check_box"));
     QVERIFY(training_check_box != nullptr);
@@ -131,6 +147,10 @@ void table_tests::quiz_wrong_answer_shows_continue_in_training() {
     QVERIFY(answer_button != nullptr);
     QVERIFY(feedback_label != nullptr);
     QVERIFY(continue_button != nullptr);
+    reveal_quiz_controls(slot);
+    QVERIFY(spin_box->isVisible());
+    QVERIFY(answer_button->isVisible());
+    QVERIFY(continue_button->isHidden());
 
     auto card = slot.findChild<card_widget*>();
     QVERIFY(card != nullptr);
@@ -144,12 +164,40 @@ void table_tests::quiz_wrong_answer_shows_continue_in_training() {
               .arg(provided)
               .arg(expected);
     QCOMPARE(feedback_label->text(), expected_message);
+    reveal_quiz_controls(slot);
+    QVERIFY(feedback_label->isVisible());
     QVERIFY(continue_button->isVisible());
+    QVERIFY(continue_button->isEnabled());
+    QVERIFY(!answer_button->isVisible());
     QVERIFY(!slot.is_deck_exhausted());
+    QVERIFY(score_spy.isEmpty());
+
+    QTest::mouseClick(continue_button, Qt::LeftButton);
+    QVERIFY(!slot.is_quiz_prompt_active());
+    QVERIFY(continue_button->isHidden());
+    const auto continued = slot.capture_session_state();
+    continue_button->click();
+    QCOMPARE(slot.capture_session_state(), continued);
+    QVERIFY(score_spy.isEmpty());
+
+    for (int i = 0; i < 30; ++i) {
+        slot.advance_card();
+    }
+    QVERIFY(slot.is_quiz_prompt_active());
+    reveal_quiz_controls(slot);
+    QVERIFY(continue_button->isHidden());
+    spin_box->setValue(card->current_total_weight());
+    QTest::mouseClick(answer_button, Qt::LeftButton);
+    QVERIFY(!slot.is_quiz_prompt_active());
+    QVERIFY(!feedback_label->isVisible());
+    QVERIFY(continue_button->isHidden());
+    QVERIFY(!slot.is_deck_exhausted());
+    QVERIFY(score_spy.isEmpty());
 }
 
 void table_tests::quiz_skip_shows_continue_feedback() {
     table_slot slot;
+    QSignalSpy score_spy(&slot, &table_slot::score_adjusted);
     slot.start_quiz(0);
     for (int i = 0; i < 29; ++i) {
         slot.advance_card();
@@ -169,6 +217,11 @@ void table_tests::quiz_skip_shows_continue_feedback() {
     QVERIFY(skip_button != nullptr);
     QVERIFY(feedback_label != nullptr);
     QVERIFY(continue_button != nullptr);
+    reveal_quiz_controls(slot);
+    QVERIFY(spin_box->isVisible());
+    QVERIFY(skip_button->isVisible());
+    QVERIFY(continue_button->isHidden());
+    score_spy.clear();
 
     auto card = slot.findChild<card_widget*>();
     QVERIFY(card != nullptr);
@@ -182,7 +235,37 @@ void table_tests::quiz_skip_shows_continue_feedback() {
               .arg(provided)
               .arg(expected);
     QCOMPARE(feedback_label->text(), expected_message);
+    reveal_quiz_controls(slot);
+    QVERIFY(feedback_label->isVisible());
     QVERIFY(continue_button->isVisible());
+    QVERIFY(continue_button->isEnabled());
+    QVERIFY(!skip_button->isVisible());
+    QCOMPARE(score_spy.count(), 1);
+    QCOMPARE(score_spy.at(0).at(1).toInt(), -1);
+
+    QTest::mouseClick(continue_button, Qt::LeftButton);
+    QVERIFY(!slot.is_quiz_prompt_active());
+    QVERIFY(continue_button->isHidden());
+    const auto continued = slot.capture_session_state();
+    continue_button->click();
+    QCOMPARE(slot.capture_session_state(), continued);
+    QCOMPARE(score_spy.count(), 1);
+
+    for (int i = 0; i < 30; ++i) {
+        slot.advance_card();
+    }
+    QVERIFY(slot.is_quiz_prompt_active());
+    reveal_quiz_controls(slot);
+    QVERIFY(continue_button->isHidden());
+    score_spy.clear();
+    QTest::mouseClick(skip_button, Qt::LeftButton);
+    reveal_quiz_controls(slot);
+    QVERIFY(feedback_label->isVisible());
+    QVERIFY(continue_button->isVisible());
+    QTest::mouseClick(continue_button, Qt::LeftButton);
+    QVERIFY(!slot.is_quiz_prompt_active());
+    QVERIFY(continue_button->isHidden());
+    QCOMPARE(score_spy.count(), 1);
 }
 
 void table_tests::quiz_spin_box_remembers_last_input() {

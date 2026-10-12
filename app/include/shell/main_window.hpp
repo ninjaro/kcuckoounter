@@ -66,6 +66,7 @@ private slots:
 
 private:
     friend class gameplay_host_tests;
+    friend class gameplay_mobile_tests;
     bool eventFilter(QObject* watched, QEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
     BaseSpinBox* table_slots_count;
@@ -128,6 +129,9 @@ private:
     bool gameplay_storage_busy = false;
     bool gameplay_completion_attempted = false;
     QString gameplay_storage_error;
+    bool mobile_background = false;
+    bool mobile_checkpoint_pending = false;
+    std::uint64_t mobile_pause_revision = 0;
 
     void setup_ui();
     void apply_desktop_presentation();
@@ -174,6 +178,8 @@ private:
     void persist_mobile_session_checkpoint(bool was_running) const;
     bool restore_mobile_session_checkpoint();
     void clear_mobile_session_checkpoint();
+    void apply_mobile_state(Qt::ApplicationState state);
+    void pause_mobile_gameplay();
 };
 
 #endif // KCUCKOOUNTER_MAIN_WINDOW_HPP

@@ -13,6 +13,9 @@ private slots:
     void themes_include_bundled_and_available_installed();
     void source_path_switches_between_themes();
     void required_ids_and_fallback_resolution_are_deterministic();
+    void retained_themes_render_all_logical_cards_data();
+    void retained_themes_render_all_logical_cards();
+    void removed_bundled_sources_fall_back_to_default();
     void alternate_svg_id_conventions_are_resolved();
     void context_reuses_parsed_sources_after_file_removal();
     void context_loads_fallback_on_first_missing_face();

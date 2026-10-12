@@ -74,7 +74,7 @@ QString bundled_asset_path(const QString& relative_name) {
     );
     append_candidate(
         &candidates,
-        source_dir.filePath(QStringLiteral("../../assets/%1").arg(cleaned))
+        source_dir.filePath(QStringLiteral("../../../assets/%1").arg(cleaned))
     );
 #endif
 

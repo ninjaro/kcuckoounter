@@ -24,7 +24,7 @@
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     QApplication::setWindowIcon(
-        QIcon(bundled_asset_path(QStringLiteral("favicon.ico")))
+        QIcon(bundled_asset_path(QStringLiteral("brand/favicon.ico")))
     );
 
 #ifdef KC_KDE

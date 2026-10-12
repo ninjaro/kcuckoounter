@@ -180,14 +180,14 @@ void gameplay_start_tests::gate_survives_destruction_and_exceptions() {
     table view;
     view.resize(1000, 800);
     QVERIFY(view.install_gameplay_session(owned_clock_fixture(1)));
-    QVERIFY_EXCEPTION_THROWN(
+    QVERIFY_THROWS_EXCEPTION(
+        std::runtime_error,
         (void)view.start_gameplay_runtime(
             4,
             [](const auto&) -> bool {
                 throw std::runtime_error("admission failed");
             }
-        ),
-        std::runtime_error
+        )
     );
     QVERIFY(!view.gameplay_start_pending);
     QCOMPARE(view.gameplay_owner->phase(), gameplay::session_phase::setup);

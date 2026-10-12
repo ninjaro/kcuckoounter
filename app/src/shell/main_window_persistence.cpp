@@ -32,8 +32,10 @@ bool main_window::complete_gameplay_from_ui() {
     const bool saved = binding->complete(recovery, &error);
     if (!guard)
         return false;
-    if (saved)
+    if (saved) {
         gameplay_recovery_ready = true;
+        mobile_checkpoint_pending = false;
+    }
     report_gameplay_storage(error);
     return guard && saved;
 }
@@ -81,14 +83,15 @@ bool main_window::save_gameplay_from_ui() {
     }
     if (!guard)
         return false;
-    if (saved)
+    if (saved) {
         gameplay_recovery_ready = true;
+        mobile_checkpoint_pending = false;
+    }
     report_gameplay_storage(error);
     return guard && saved;
 }
 
 void main_window::closeEvent(QCloseEvent* event) {
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     if (gameplay_storage_busy) {
         event->ignore();
         return;
@@ -116,6 +119,5 @@ void main_window::closeEvent(QCloseEvent* event) {
     }
     if (!guard)
         return;
-#endif
     BaseMainWindow::closeEvent(event);
 }

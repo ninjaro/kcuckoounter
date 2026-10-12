@@ -15,8 +15,10 @@
 #include "settings/theme_palette.hpp"
 #include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
+#include "shell/gameplay_reservation.hpp"
 
 #include <QDateTime>
+#include <QDialog>
 #include <QSignalBlocker>
 
 void main_window::persist_setup_preferences() const {
@@ -39,7 +41,7 @@ void main_window::persist_setup_preferences() const {
 }
 
 void main_window::persist_desktop_shell_state() const {
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     return;
 #else
     desktop_shell_state state;
@@ -51,7 +53,7 @@ void main_window::persist_desktop_shell_state() const {
 }
 
 void main_window::restore_desktop_shell_state() {
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     return;
 #else
     const desktop_shell_state state = load_desktop_shell_state();
@@ -68,7 +70,7 @@ void main_window::restore_desktop_shell_state() {
 }
 
 void main_window::persist_mobile_session_checkpoint(bool was_running) const {
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     if (!quiz_started || table_widget == nullptr || clock_timer == nullptr) {
         return;
     }
@@ -86,7 +88,7 @@ void main_window::persist_mobile_session_checkpoint(bool was_running) const {
 }
 
 bool main_window::restore_mobile_session_checkpoint() {
-#if !defined(Q_OS_ANDROID)
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     return false;
 #else
     const std::optional<trainer_session_checkpoint> checkpoint
@@ -132,17 +134,51 @@ bool main_window::restore_mobile_session_checkpoint() {
 }
 
 void main_window::clear_mobile_session_checkpoint() {
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     clear_trainer_session_checkpoint();
 #endif
 }
 
 void main_window::on_application_state_changed(Qt::ApplicationState state) {
-#if defined(Q_OS_ANDROID)
-    if (state == Qt::ApplicationActive || !quiz_started) {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    apply_mobile_state(state);
+#else
+    Q_UNUSED(state);
+#endif
+}
+
+void main_window::pause_mobile_gameplay() {
+    const QPointer<main_window> guard(this);
+    mobile_checkpoint_pending = true;
+    if (const auto* owner = table_widget->active_gameplay_session();
+        owner && owner->phase() == gameplay::session_phase::running)
+        (void)table_widget->pause_gameplay_runtime();
+    if (!guard || gameplay_storage_busy)
+        return; // Admission drains this request after its serialized operation.
+    mobile_checkpoint_pending = false;
+    const auto binding = gameplay_binding;
+    if (binding && binding->completion())
+        (void)complete_gameplay_from_ui();
+    else
+        (void)save_gameplay_from_ui();
+}
+
+void main_window::apply_mobile_state(Qt::ApplicationState state) {
+    if (state != Qt::ApplicationActive && !mobile_background)
+        ++mobile_pause_revision;
+    mobile_background = state != Qt::ApplicationActive;
+    if (!mobile_background) {
         update_status_text();
+        return; // Foregrounding never implicitly resumes either engine.
+    }
+    if (table_widget
+        && (table_widget->active_gameplay_session()
+            || (gameplay_binding && gameplay_binding->completion()))) {
+        pause_mobile_gameplay();
         return;
     }
+    if (!quiz_started)
+        return;
 
     const bool was_running = !quiz_paused || mobile_lifecycle_paused;
     if (was_running && table_widget != nullptr) {
@@ -159,7 +195,4 @@ void main_window::on_application_state_changed(Qt::ApplicationState state) {
     persist_setup_preferences();
     persist_mobile_session_checkpoint(was_running);
     update_status_text();
-#else
-    Q_UNUSED(state);
-#endif
 }

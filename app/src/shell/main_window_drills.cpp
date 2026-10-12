@@ -79,6 +79,7 @@ void main_window::on_saved_drills_triggered() {
     const bool resume = owned
         ? owner->phase() == gameplay::session_phase::running
         : quiz_started && !quiz_paused;
+    const auto pause_revision = mobile_pause_revision;
     const auto cap = gameplay::desktop_slot_technical_cap;
     const drill_picker_policy policy {
         { cap, cap },
@@ -112,7 +113,8 @@ void main_window::on_saved_drills_triggered() {
             report_gameplay_error(
                 str_label("Could not capture current gameplay configuration.")
             );
-            if (resume)
+            if (resume && !mobile_background
+                && pause_revision == mobile_pause_revision)
                 (void)table_widget->resume_gameplay_runtime();
             return;
         }
@@ -144,7 +146,8 @@ void main_window::on_saved_drills_triggered() {
                 "unchanged."
             ));
     }
-    if (!loaded && resume) {
+    if (!loaded && resume && !mobile_background
+        && pause_revision == mobile_pause_revision) {
         if (owned) {
             auto* active = table_widget->active_gameplay_session();
             if (active && active->phase() == gameplay::session_phase::paused)

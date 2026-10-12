@@ -94,13 +94,11 @@ void main_window::on_continue_button_clicked() {
 void main_window::on_new_game_triggered() {
     if (gameplay_storage_busy)
         return;
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     const QPointer<main_window> startup_guard(this);
     if (!gameplay_recovery_checked)
         (void)recover_gameplay_from_ui();
     if (!startup_guard)
         return;
-#endif
     if (const auto* owner = table_widget->active_gameplay_session()) {
         if (owner->phase() == gameplay::session_phase::running
             || owner->phase() == gameplay::session_phase::paused) {
@@ -134,17 +132,15 @@ void main_window::on_new_game_triggered() {
 }
 
 void main_window::on_start_pause_triggered() {
-    if (table_widget == nullptr) {
+    if (table_widget == nullptr || mobile_background) {
         return;
     }
 
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     const QPointer<main_window> guard(this);
     if (!gameplay_recovery_checked)
         (void)recover_gameplay_from_ui();
-    if (!guard || gameplay_storage_busy)
+    if (!guard || gameplay_storage_busy || mobile_background)
         return;
-#endif
 
     if (const auto* owner = table_widget->active_gameplay_session()) {
         switch (owner->phase()) {
@@ -208,6 +204,7 @@ void main_window::on_start_pause_triggered() {
 void main_window::on_finish_triggered() {
     if (gameplay_storage_busy)
         return;
+    const auto pause_revision = mobile_pause_revision;
     if (const auto* owner = table_widget->active_gameplay_session()) {
         const auto phase = owner->phase();
         if (phase != gameplay::session_phase::running
@@ -239,7 +236,10 @@ void main_window::on_finish_triggered() {
             return; // a modal event loop must not finish a replacement scene
         if (answer == QMessageBox::Yes)
             (void)table_widget->finish_gameplay_runtime();
-        else if (was_running)
+        else if (
+            was_running && !mobile_background
+            && pause_revision == mobile_pause_revision
+        )
             (void)table_widget->resume_gameplay_runtime();
         return;
     }
@@ -263,7 +263,8 @@ void main_window::on_finish_triggered() {
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No
     );
     if (answer != QMessageBox::Yes) {
-        if (restore_running_quiz) {
+        if (restore_running_quiz && !mobile_background
+            && pause_revision == mobile_pause_revision) {
             table_widget->set_paused(false);
             quiz_paused = false;
             if (start_pause_action != nullptr) {
@@ -282,6 +283,8 @@ void main_window::on_finish_triggered() {
 }
 
 void main_window::start_quiz_from_ui() {
+    if (mobile_background)
+        return;
     if (table_widget && table_widget->active_gameplay_session())
         return;
     if (table_widget == nullptr || quiz_started) {

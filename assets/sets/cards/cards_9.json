@@ -1,0 +1,1514 @@
+{
+  "schema": 1,
+  "id": "cards_9",
+  "number": 9,
+  "name": "Block52 playing cards",
+  "generated_at": "2026-10-04T20:36:28.435622Z",
+  "access_mode": "group_sprite",
+  "source": {
+    "repository": "block52/cards",
+    "url": "https://github.com/block52/cards",
+    "branch": "main",
+    "commit_sha": "b98d06dd84579c405f8f3b806adc5048385315d8",
+    "archive_sha256": "fb1043003695285ab507d48c13fff44c5145d15a990c651bb3a8a507ea3d6d8e"
+  },
+  "authors": [
+    "block52/cards contributors"
+  ],
+  "licenses": [
+    {
+      "name": "See upstream repository",
+      "spdx": null,
+      "url": null
+    }
+  ],
+  "status": "Derived Qt-compatible packaging; artwork geometry retained, canonical card IDs added. See curation repairs.",
+  "output": "cards_9.svg",
+  "output_sha256": "94c284c61dd11e1c66369d2ec25e3635f504d490c2b6b5c79958d1b34de96134",
+  "output_size": 475758,
+  "card_count": 55,
+  "frame": {
+    "width": 1000.0,
+    "height": 1464.0,
+    "value": 0.68306011,
+    "fraction": "125:183",
+    "view_box": "0 0 1000 1464",
+    "outline": true,
+    "outline_color": "#111111",
+    "outline_width": 2.0
+  },
+  "preview": {
+    "columns": 13,
+    "rows": 5,
+    "gap": 25,
+    "view_box": "0 0 13300 7420"
+  },
+  "cards": [
+    {
+      "key": "c_2",
+      "source_file": "2C.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/2C.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/2C.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "ec493a321c70c872535c3ec5f6b16849946a5aa0de06934b0d42d7466472c297",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_2",
+      "source_file": "2D.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/2D.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/2D.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "d1d5487861d932903337832986b5867f0b155efa8fc2fb59afd9ef7dcbb83bd3",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_2",
+      "source_file": "2H.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/2H.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/2H.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "a6ab47922920ef71819fa664d88a73f0c05c8512bb5cf3fa4316b44c6d822bcc",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_2",
+      "source_file": "2S.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/2S.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/2S.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "e3ec04a9823f82ec5ed55f854d6be70b9604952b8d4cb01e750c656b3b8a6a78",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "c_3",
+      "source_file": "3C.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/3C.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/3C.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "a91c12786dcb8452f639c9dcf195cd8a1bf240fcdd0277294e30bdfde0b79694",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_3",
+      "source_file": "3D.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/3D.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/3D.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "d4ca9d5f3a86ff98e1ec61cb479347a2924cfb6e2b30e93f26b9ee638e4a3a4a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_3",
+      "source_file": "3H.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/3H.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/3H.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "a49dbe7e8a569723b92cc48db9324c29089e22bd26a7666ffc40571a864284c3",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_3",
+      "source_file": "3S.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/3S.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/3S.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "c70fd2f64370a706c72931c57d2417ca5f31ab7b448a90463c88d687a1864a99",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "c_4",
+      "source_file": "4C.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/4C.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/4C.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "a39e58c2f51f50fd95f62237e1285cd2306ed240a7db34c4e6ef1ebb9d79009f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_4",
+      "source_file": "4D.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/4D.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/4D.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "371db3c0649ad7098f3cd176da4f62e34d174cef931ac4fb48683b2df978ccd9",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_4",
+      "source_file": "4H.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/4H.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/4H.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "1f3ddfde15ccf7d56e56f00a518ab6ce7b0c0a685085a051265ada12eb38ab11",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_4",
+      "source_file": "4S.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/4S.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/4S.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "731ed924c391fade36dc75a6e5461d7b343f57abfc8a5c617394447844d76ac3",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "c_5",
+      "source_file": "5C.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/5C.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/5C.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "7dce9f92afe20d94af31b5fb36ce98bb12846e9f6d423aa776748e5503441821",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_5",
+      "source_file": "5D.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/5D.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/5D.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "dd4f8bdd2abf5b6ed8b062fe1771ca2bd9d3e2a817522cc5a6cb9318cb9dc61a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_5",
+      "source_file": "5H.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/5H.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/5H.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "bef5a3347f10b28bcdc16493049eb0cb35c08576f43e72b524002300f35ed687",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_5",
+      "source_file": "5S.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/5S.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/5S.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "1e0ff12f6b3acc0d58ed2bda4e826d3fc537bc1c32f196b0684f2e2d0f0db6c8",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "c_6",
+      "source_file": "6C.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/6C.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/6C.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "0a568f73ef709107558656aa5e2a064c20c6265cc4e4c4280722199d95e6c7e4",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_6",
+      "source_file": "6D.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/6D.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/6D.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "263a06aa1b2ab2caa1151a8ee9b589c018bde29352afb22475f0815601df4466",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_6",
+      "source_file": "6H.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/6H.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/6H.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "98e2ba40adfe5f791c5f9e216372f2b2d478d917a8994ed992a5a18fe188a2b2",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_6",
+      "source_file": "6S.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/6S.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/6S.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "d08c82f916078901e6041f3fb892d05e3f05fca66970247ac051bb5fc4a42415",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "c_7",
+      "source_file": "7C.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/7C.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/7C.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "5589753f9841474094c8998a353225b8e34aa7955d68ec0ca68b7a25c3f671d5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_7",
+      "source_file": "7D.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/7D.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/7D.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "d3f38e3315ec6b351f8ffd021b50f365052bfa0a5d373a7dfbbd335fe463b949",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_7",
+      "source_file": "7H.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/7H.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/7H.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "23af5be3333ddf65c5682b2ff3f84385026cb668d5aa45b967810fd33c6b5719",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_7",
+      "source_file": "7S.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/7S.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/7S.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "90d36fc093b973bd969ab6ce802900de617e908c1bd9da1fe7a5b70fdfd8881c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "c_8",
+      "source_file": "8C.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/8C.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/8C.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "5b3d81fddc515a0cb82296e931f82c870bed4c7f25f3813e61099ef55648e8d0",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_8",
+      "source_file": "8D.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/8D.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/8D.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "edc382af2071fa05ed50ae433ee86068290a28c328823c590e130ef2c3d858d0",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_8",
+      "source_file": "8H.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/8H.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/8H.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "6794ba0f7c101c183ce2f590a279a440f9183b04374ed5334532fc0a804cb2bf",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_8",
+      "source_file": "8S.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/8S.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/8S.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "5d608349d07c9a0ce0431187ab06bee88df22e3bde012efd87977932e2ae1b7f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "c_9",
+      "source_file": "9C.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/9C.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/9C.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "de5648d5a956a9e179098d45c36da92473188218b86576a21de30675310e170e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_9",
+      "source_file": "9D.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/9D.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/9D.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "66dc773b4f3547b06642665e4643751ac46196da08fccaf598a8a39245f2bb05",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_9",
+      "source_file": "9H.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/9H.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/9H.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "3df7149664a1078d0565a9889ff100d7e1ac9002a2e275d68515799021eae50f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_9",
+      "source_file": "9S.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/9S.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/9S.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "b0ca769f33c02d45b367e4fa241eb055a19c69078f83436b70c034e3264acb4b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        546.0,
+        808.0
+      ],
+      "source_aspect_ratio": {
+        "width": 546.0,
+        "height": 808.0,
+        "value": 0.67574257,
+        "fraction": "273:404"
+      }
+    },
+    {
+      "key": "c_a",
+      "source_file": "AC.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/AC.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/AC.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "100d4cf8c27e0db4378e0a9ef1806d5381001e713978c58f6fd8e6450b006c23",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_a",
+      "source_file": "AD.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/AD.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/AD.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "5ad3bc34fc4a9a0cac48cc5b0a955ce6f6becbc08d30fd544cf1bc8cd71ebd0a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_a",
+      "source_file": "AH.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/AH.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/AH.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "00b8281a98da010709ade4b584db47e01c257627d0506275695cd4bfef001f37",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_a",
+      "source_file": "AS.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/AS.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/AS.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "8121c0e70b457e19c7c4ac4449c60c640631f7fa93eb9b126ca2958d52768792",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "back",
+      "source_file": "b52CardBack.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/b52CardBack.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/b52CardBack.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "b7cc1c5b1bd73fb1a66e057a272b56d8c47ca57405098cebfc0f5a21583e4219",
+      "source_view_box": [
+        0.0,
+        0.0,
+        108.75,
+        149.999998
+      ],
+      "source_aspect_ratio": {
+        "width": 108.75,
+        "height": 149.999998,
+        "value": 0.72500001,
+        "fraction": "29:40"
+      }
+    },
+    {
+      "key": "back__2",
+      "source_file": "Back.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/Back.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/Back.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "21e309f08c43e038f14af9caed0b8efd86ad93649b5d991ded3cae1ee6f731ca",
+      "source_view_box": [
+        0.0,
+        0.0,
+        580.0,
+        800.0
+      ],
+      "source_aspect_ratio": {
+        "width": 580.0,
+        "height": 800.0,
+        "value": 0.725,
+        "fraction": "29:40"
+      }
+    },
+    {
+      "key": "back__3",
+      "source_file": "BackCustom.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/BackCustom.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/BackCustom.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "52d2a6974605c70810a0179e17625cf1f3154afe41220228e4a5b80c56527a01",
+      "source_view_box": [
+        0.0,
+        0.0,
+        108.75,
+        149.999998
+      ],
+      "source_aspect_ratio": {
+        "width": 108.75,
+        "height": 149.999998,
+        "value": 0.72500001,
+        "fraction": "29:40"
+      }
+    },
+    {
+      "key": "c_j",
+      "source_file": "JC.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/JC.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/JC.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "70af4e219a7c49054b6dec405417dea99fef5713d12d240f206f846c11b630b5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_j",
+      "source_file": "JD.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/JD.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/JD.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "3da00223bf7a108999d658c8c624971888442b1926de8249044a1252e1664822",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_j",
+      "source_file": "JH.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/JH.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/JH.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "e9f4c9bf78c254019abd69ec7382d267edc662c73e1210d6dff213f084192f81",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_j",
+      "source_file": "JS.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/JS.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/JS.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "23bcff384f3a4e0ef60f12d10b60909db7fff38180a8c348cf81ec1fffb39b50",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "c_k",
+      "source_file": "KC.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/KC.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/KC.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "c98163e56c2188fc00aab9c583210e3b890e2e91ef5392d126330c5ed9eff8ab",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_k",
+      "source_file": "KD.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/KD.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/KD.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "e129b5fd14aa662a36aa6551fdd78f374ba77ab172096e7e9fcdf22cc6f9e76c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_k",
+      "source_file": "KH.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/KH.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/KH.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "f226f5bca85bc20c48fca18ea6ecbef83a4d07eaacd59abd5661c557a1d7c891",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_k",
+      "source_file": "KS.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/KS.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/KS.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "bcc7b9311aa149ff45be2ab971829eb60259477e8066f5ba21d442b6b204785b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "c_q",
+      "source_file": "QC.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/QC.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/QC.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "c2b1e59750a62cfd6eda94602aeb45f790e1b6f5f1d4087a2d6626ca4b999178",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_q",
+      "source_file": "QD.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/QD.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/QD.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "902e57fb69d02b7dd1276397f09c0357dc07b6a2bf2caa463cb43ee9497eb4f5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_q",
+      "source_file": "QH.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/QH.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/QH.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "7b173387dfeb51d8521166d4dc586ca9cb1b48178923943dc4e7157e2fa574b5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_q",
+      "source_file": "QS.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/QS.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/QS.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "8e7be8cfafcdb90c0a20c3e22bb71dae03f7bfbc2a2a33f27ba2c41778196714",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "c_10",
+      "source_file": "TC.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/TC.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/TC.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "c15957c153d53057b4b712e72fa7182d6c6fa187f73e05afcabab41072835ea6",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "d_10",
+      "source_file": "TD.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/TD.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/TD.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "cc57ac15147d3c2c1116c6fd196665d13f743300e38c9dedb9df066f4e7f0f7f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "h_10",
+      "source_file": "TH.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/TH.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/TH.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "4d26035174885e21a5a99ac8328f2bcc76f8a495257cb1dbb0f6a949e994844d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    },
+    {
+      "key": "s_10",
+      "source_file": "TS.svg",
+      "source_url": "https://raw.githubusercontent.com/block52/cards/b98d06dd84579c405f8f3b806adc5048385315d8/TS.svg",
+      "source_page": "https://github.com/block52/cards/blob/b98d06dd84579c405f8f3b806adc5048385315d8/TS.svg",
+      "author": "block52/cards contributors",
+      "license": {
+        "name": "See upstream repository",
+        "spdx": null,
+        "url": null
+      },
+      "sha256": "19c074561cb8a95dc10e45912fca4deded994c47baad356e64cbd172863224e2",
+      "source_view_box": [
+        0.0,
+        0.0,
+        550.0,
+        805.0
+      ],
+      "source_aspect_ratio": {
+        "width": 550.0,
+        "height": 805.0,
+        "value": 0.68322981,
+        "fraction": "110:161"
+      }
+    }
+  ],
+  "description": "Repaired faces.",
+  "composition": {
+    "graphic_count": 55,
+    "faces": 52,
+    "jokers": 0,
+    "backs": 3,
+    "extra_graphics": {},
+    "standard_52_complete": true,
+    "ranks": [
+      "A",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K"
+    ],
+    "suits": [
+      "clubs",
+      "diamonds",
+      "hearts",
+      "spades"
+    ],
+    "count_basis": "Authored per-card records and visual/XML inspection; graphic count includes backs and extras, not the game deck size."
+  },
+  "source_selection": {
+    "record_type": "Historical import selection; not a regeneration instruction or verified license",
+    "kind": "github_repo",
+    "repo": "block52/cards",
+    "include": "^(?:[2-9TJQKA][CDHS]|b52CardBack|Back|BackCustom)\\.svg$"
+  },
+  "license_audit": {
+    "reviewed_at": "2026-10-10",
+    "status": "UNKNOWN",
+    "notes": "UNKNOWN / NOT VERIFIED: captured data only points to the upstream repository; no permission or license identifier has been verified.",
+    "evidence_urls": [
+      "https://github.com/block52/cards"
+    ],
+    "redistribution_approved": false,
+    "attribution_requirements": "NOT VERIFIED for the complete set: resolve the original license version/notice and per-graphic attribution requirements before publication; preserve existing source credits."
+  },
+  "curation": {
+    "reviewed_at": "2026-10-10",
+    "classification": "REVIEW",
+    "reason": "Repaired faces; backs differ in proportions and include a branded logo. No verified license beyond an upstream-repository pointer.",
+    "developer_review_required": true,
+    "original_sha256": "eac25845e7c9993b9483970e0e300321039170e81e5f5f36bc968834a8213b2f",
+    "repairs": [
+      "Replace unsupported symbol/nested SVG wrappers with explicit viewBox transforms and addressable groups.",
+      "Add the existing application card IDs while retaining original artwork/source IDs; optional missing graphics use the unchanged default deck."
+    ]
+  },
+  "runtime": {
+    "tested_qt": "6.11.2",
+    "svg_valid": true,
+    "active_ids": 53,
+    "default_ids": 2,
+    "placeholder_ids": 0,
+    "blank_application_images": 0,
+    "native_card_theme": true,
+    "notes": "Bundled theme discovery reads the curated cards.json catalog, preserving noncontiguous numeric IDs. Default and optional fallback graphics remain cards_0.svg. Selection does not approve redistribution.",
+    "optional_graphics": {
+      "back": {
+        "source": "active",
+        "source_svg": "cards_9.svg",
+        "element_id": "back",
+        "selected_original_id": "back",
+        "empty_image": false
+      },
+      "joker_black": {
+        "source": "default",
+        "source_svg": "cards_0.svg",
+        "element_id": "joker_black",
+        "selected_original_id": "joker_black",
+        "empty_image": false
+      },
+      "joker_red": {
+        "source": "default",
+        "source_svg": "cards_0.svg",
+        "element_id": "joker_red",
+        "selected_original_id": "joker_red",
+        "empty_image": false
+      }
+    }
+  }
+}

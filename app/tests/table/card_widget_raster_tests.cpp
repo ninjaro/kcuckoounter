@@ -2,6 +2,7 @@
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
 
+#include "arch/asset_locator.hpp"
 #include "table/card_widget_tests.hpp"
 
 #include "arch/str_label.hpp"
@@ -182,11 +183,11 @@ void card_widget_tests::theme_source_change_invalidates_stale_raster_result() {
     card_widget widget;
     widget.start_quiz(0, 1, false);
 
-    widget.card_sheet_source = str_label("assets/cards_0.svg");
+    widget.card_sheet_source = bundled_asset_path(QStringLiteral("sets/cards/cards_0.svg"));
     widget.card_sheet_renderer.load(widget.card_sheet_source);
     widget.start_rasterization(QSize(120, 180));
 
-    widget.card_sheet_source = str_label("assets/cards_1.svg");
+    widget.card_sheet_source = bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg"));
     widget.card_sheet_renderer.load(widget.card_sheet_source);
     widget.pending_raster_size = QSize(120, 180);
 

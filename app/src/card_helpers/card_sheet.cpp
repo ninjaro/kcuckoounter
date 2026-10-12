@@ -4,9 +4,13 @@
 #include "arch/str_label.hpp"
 
 #include <QDir>
+#include <QFile>
 #include <QFileInfo>
 #include <QHash>
 #include <QImage>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QPainter>
 #include <QRect>
 #include <QRectF>
@@ -25,25 +29,8 @@ static constexpr int k_joker_count = 2;
 
 static const QString& default_card_sheet_source_value() {
     static const QString source
-        = bundled_asset_path(QStringLiteral("cards_0.svg"));
+        = bundled_asset_path(QStringLiteral("sets/cards/cards_0.svg"));
     return source;
-}
-
-static QString bundled_card_theme_path(int theme_index) {
-    return bundled_asset_path(QStringLiteral("cards_%1.svg").arg(theme_index));
-}
-
-static QString bundled_card_theme_label(int theme_index) {
-    if (theme_index == 0) {
-        return str_label("Bundled: Base card theme");
-    }
-    if (theme_index == 1) {
-        return str_label("Bundled: Alternative card theme 1");
-    }
-    if (theme_index == 2) {
-        return str_label("Bundled: Alternative card theme 2");
-    }
-    return str_label("Bundled: Theme %1").arg(theme_index);
 }
 
 static bool card_theme_source_is_reachable(const QString& source_path) {
@@ -113,15 +100,45 @@ static bool card_theme_option_label_less(
 
 static QVector<card_theme_option> build_available_card_themes() {
     QVector<card_theme_option> themes;
-    for (int theme_index = 0; theme_index <= 2; ++theme_index) {
-        const QString source_path = bundled_card_theme_path(theme_index);
-        if (!card_theme_source_is_reachable(source_path)) {
+    const QString default_source = default_card_sheet_source_value();
+    if (card_theme_source_is_reachable(default_source)) {
+        themes.push_back(card_theme_option {
+            .label = str_label("Bundled: Base card theme"),
+            .source_path = default_source,
+            .installed = false,
+        });
+    }
+
+    QFile catalog(bundled_asset_path(QStringLiteral("sets/cards/cards.json")));
+    QJsonArray bundled_sets;
+    if (catalog.open(QIODevice::ReadOnly)) {
+        bundled_sets = QJsonDocument::fromJson(catalog.readAll())
+                           .object().value(QStringLiteral("sets")).toArray();
+    }
+    for (const QJsonValue& value : bundled_sets) {
+        const QJsonObject entry = value.toObject();
+        const QString id = entry.value(QStringLiteral("id")).toString();
+        const QString svg = entry.value(QStringLiteral("svg")).toString();
+        bool numeric_id = false;
+        const int number = id.mid(6).toInt(&numeric_id);
+        if (!id.startsWith(QStringLiteral("cards_")) || !numeric_id
+            || number <= 0 || id != QStringLiteral("cards_%1").arg(number)
+            || svg != id + QStringLiteral(".svg")) {
             continue;
         }
-
+        const QString source_path
+            = bundled_asset_path(QStringLiteral("sets/cards/%1").arg(svg));
+        if (!card_theme_source_is_reachable(source_path)
+            || std::any_of(themes.cbegin(), themes.cend(),
+                           [&source_path](const card_theme_option& theme) {
+                               return theme.source_path == source_path;
+                           })) {
+            continue;
+        }
+        const QString name = entry.value(QStringLiteral("name")).toString();
         themes.push_back(
             card_theme_option {
-                .label = bundled_card_theme_label(theme_index),
+                .label = str_label("Bundled: %1").arg(name.isEmpty() ? id : name),
                 .source_path = source_path,
                 .installed = false,
             }
@@ -738,6 +755,30 @@ const QVector<card_theme_option>& available_card_themes() {
 
 void set_card_sheet_source_path(const QString& source_path) {
     if (source_path.isEmpty()) {
+        active_card_sheet_source() = default_card_sheet_source_value();
+        return;
+    }
+    // Rebind stored bundled paths through the current catalog. Old staged or
+    // installed copies must not keep a removed bundle selectable.
+    const QString normalized = QDir::fromNativeSeparators(source_path);
+    const QFileInfo info(source_path);
+    if (info.fileName().startsWith(QStringLiteral("cards_"))
+        && info.suffix() == QStringLiteral("svg")
+        && (normalized.contains(QStringLiteral("/sets/cards/"))
+            || normalized.startsWith(QStringLiteral("sets/cards/"))
+            || normalized.startsWith(QStringLiteral(":/kcuckoounter/"))
+            || normalized.startsWith(QStringLiteral("assets/cards_")))) {
+        for (const card_theme_option& theme : available_card_themes()) {
+            if (!theme.installed
+                && QFileInfo(theme.source_path).fileName() == info.fileName()) {
+                active_card_sheet_source() = theme.source_path;
+                return;
+            }
+        }
+        active_card_sheet_source() = default_card_sheet_source_value();
+        return;
+    }
+    if (!info.exists() || !info.isFile()) {
         active_card_sheet_source() = default_card_sheet_source_value();
         return;
     }

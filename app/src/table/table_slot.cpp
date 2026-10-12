@@ -154,7 +154,7 @@ void table_slot::start_quiz(int quiz_type_index) {
     if (card_widget_internal != nullptr) {
         card_widget_internal->set_hide_cards(false);
         card_widget_internal->set_table_marking_source(
-            bundled_asset_path(QStringLiteral("cuckoo.svg"))
+            bundled_asset_path(QStringLiteral("brand/cuckoo.svg"))
         );
     }
 
@@ -170,7 +170,7 @@ void table_slot::clear_quiz() {
         card_widget_internal->clear_quiz();
         card_widget_internal->set_hide_cards(false);
         card_widget_internal->set_table_marking_source(
-            bundled_asset_path(QStringLiteral("cuckoo.svg"))
+            bundled_asset_path(QStringLiteral("brand/cuckoo.svg"))
         );
     }
     quiz_prompt_active = false;

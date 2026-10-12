@@ -1,0 +1,2193 @@
+{
+  "schema": 1,
+  "id": "cards_11",
+  "number": 11,
+  "name": "Noto Sans Symbols2 playing cards",
+  "generated_at": "2026-10-05T23:01:29.315147Z",
+  "access_mode": "group_sprite",
+  "source": {
+    "category": "Category:SVG playing cards/Noto Sans Symbols2",
+    "url": "https://commons.wikimedia.org/wiki/Category:SVG_playing_cards%2FNoto_Sans_Symbols2",
+    "related_sources": []
+  },
+  "authors": [
+    "Ekirahardian"
+  ],
+  "licenses": [
+    {
+      "name": "OFL",
+      "spdx": null,
+      "url": "https://openfontlicense.org/open-font-license-official-text/"
+    }
+  ],
+  "status": "Derived Qt-compatible packaging; artwork geometry retained, canonical card IDs added. See curation repairs.",
+  "output": "cards_11.svg",
+  "output_sha256": "c4ea49a7912d8fb43311ad72a8098f54f972422e8d54641af5a7d4c6d067d64f",
+  "output_size": 1723702,
+  "card_count": 82,
+  "frame": {
+    "width": 1000.0,
+    "height": 1334.0,
+    "value": 0.74962519,
+    "fraction": "500:667",
+    "view_box": "0 0 1000 1334",
+    "outline": true,
+    "outline_color": "#111111",
+    "outline_width": 2.0
+  },
+  "preview": {
+    "columns": 13,
+    "rows": 7,
+    "gap": 25,
+    "view_box": "0 0 13300 9488"
+  },
+  "cards": [
+    {
+      "key": "c_a",
+      "source_file": "PLAYING CARD ACE OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/06/PLAYING_CARD_ACE_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_ACE_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "7db51b3b8ecf381efb01e74c98b06c309288c4036815eebadcecde92c6a77790",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93753,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93753,
+        "height": 661.82811,
+        "value": 0.74934492,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "d_a",
+      "source_file": "PLAYING CARD ACE OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/cc/PLAYING_CARD_ACE_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_ACE_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "621e16fa13b79167893298e5b474620bc00df6d727dc9113a479f5118f79f70b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "h_a",
+      "source_file": "PLAYING CARD ACE OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/45/PLAYING_CARD_ACE_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_ACE_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "a91013b3b7db356b807ddfe70ac9dd1da1d329417e49d82f3c0d1cc83fa569ff",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "s_a",
+      "source_file": "PLAYING CARD ACE OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/PLAYING_CARD_ACE_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_ACE_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "bcfb5c4fe74a7b50d84ee900d1cc4ac495ee7843dea4181f9508b71616cb6599",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "back",
+      "source_file": "PLAYING CARD BACK.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/ea/PLAYING_CARD_BACK.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_BACK.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "fe71f34e146b3cf3d99be3c000caead335ea0ee7825a8dc748e331204ef2f737",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "joker_black",
+      "source_file": "PLAYING CARD BLACK JOKER.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c9/PLAYING_CARD_BLACK_JOKER.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_BLACK_JOKER.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "8e76ae1b614d1e9ed5679346063424c98518cb9b649d1332349b01c7ea768add",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_eight_of_clubs",
+      "source_file": "PLAYING CARD EIGHT OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/8c/PLAYING_CARD_EIGHT_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_EIGHT_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "9d5ed06bb569d1a0f32e59b3d08872cf518c3bf1e9e7f58b8c2744005d08a434",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_eight_of_diamonds",
+      "source_file": "PLAYING CARD EIGHT OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/9c/PLAYING_CARD_EIGHT_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_EIGHT_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "c7ecf9aa7ecca4f31130cd4482596b3867dab950b26f0d6876d2ae008fb6349a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_eight_of_hearts",
+      "source_file": "PLAYING CARD EIGHT OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/df/PLAYING_CARD_EIGHT_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_EIGHT_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "c611c0040e20f7f20fc76f6b18300a1834a11498eb64d6d3e8890881ec7db6e7",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_eight_of_spades",
+      "source_file": "PLAYING CARD EIGHT OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/PLAYING_CARD_EIGHT_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_EIGHT_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "7b9c4b59bd4bec740bf55a22af5cb3fb1db2fec884ac188d5b0b6108372db32a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_five_of_clubs",
+      "source_file": "PLAYING CARD FIVE OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/36/PLAYING_CARD_FIVE_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_FIVE_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "54ae48806aced86535bc62b133d8db5e1109096b0805b69d07ab70ee7ab37d31",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_five_of_diamonds",
+      "source_file": "PLAYING CARD FIVE OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/32/PLAYING_CARD_FIVE_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_FIVE_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "17e4ee2bbf5d4e5d3150c75a96c384cea1331702b777add39d692c11d7c10d74",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_five_of_hearts",
+      "source_file": "PLAYING CARD FIVE OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/48/PLAYING_CARD_FIVE_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_FIVE_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "e77ab2ec14a1d80592816b38bcce87941c8fb7b9603179aed51312bf49f17252",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_five_of_spades",
+      "source_file": "PLAYING CARD FIVE OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/PLAYING_CARD_FIVE_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_FIVE_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "c90baaad236fd8ab15172828913516d0c97c66166068470396466ddbe6fd784b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_fool",
+      "source_file": "PLAYING CARD FOOL.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/PLAYING_CARD_FOOL.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_FOOL.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "f6864a9f7e14b457e1f0988ed4beeacc962ef4a5c290d9c79a6a3e5a7c591c4f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_four_of_clubs",
+      "source_file": "PLAYING CARD FOUR OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/af/PLAYING_CARD_FOUR_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_FOUR_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "1d6b10e6039fb703b63574a43904844bfd45380911caf55793e502b27443226d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_four_of_diamonds",
+      "source_file": "PLAYING CARD FOUR OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/dc/PLAYING_CARD_FOUR_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_FOUR_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "f85bdc8c853647bae2f424d00e89b5daeb6c8b85b2e585b408481ccb143e3936",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_four_of_hearts",
+      "source_file": "PLAYING CARD FOUR OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/PLAYING_CARD_FOUR_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_FOUR_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "fae947f8300c9086a5458ca5e99e4a8103bd759e8335c6cf1d53f1ecfe02e6d1",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_four_of_spades",
+      "source_file": "PLAYING CARD FOUR OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/20/PLAYING_CARD_FOUR_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_FOUR_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "a56198dff8f0e31224d66d526af206646ce540f6ef1228a96cceb4568782c913",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "c_j",
+      "source_file": "PLAYING CARD JACK OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2e/PLAYING_CARD_JACK_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_JACK_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "1f6ccac4d927a230a128ff2ed6c4f0ca449f0b8623559040b7002b327fe421af",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "d_j",
+      "source_file": "PLAYING CARD JACK OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/39/PLAYING_CARD_JACK_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_JACK_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "f27b115f20bc781a4d1123fcd63238df2d027ea970cce93b12dfc5997256766d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "h_j",
+      "source_file": "PLAYING CARD JACK OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/50/PLAYING_CARD_JACK_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_JACK_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "bf64fcd9b9252c6b6270bbdf200b504acd0faa053fc25d63eb69cda63efb2c06",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "s_j",
+      "source_file": "PLAYING CARD JACK OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/33/PLAYING_CARD_JACK_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_JACK_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "70a03e067d529b12114855d309c4c906685e2f49fe5372d85f7ac72fbc798267",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "c_k",
+      "source_file": "PLAYING CARD KING OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/61/PLAYING_CARD_KING_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_KING_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "686c0cca64fa0760540728d8d13f7349fd694bb153febbff133d25c7b2bfe70a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "d_k",
+      "source_file": "PLAYING CARD KING OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f8/PLAYING_CARD_KING_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_KING_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "36d7c6c4ef8e96206dac6db8d15abef9885a4442e61256e603a58d6845fe2738",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "h_k",
+      "source_file": "PLAYING CARD KING OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/PLAYING_CARD_KING_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_KING_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "c4483f32d87365d1c72f38e68c9ed357064aed9a4ba4150d791c45af2553c1a8",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "s_k",
+      "source_file": "PLAYING CARD KING OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/85/PLAYING_CARD_KING_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_KING_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "d9271ecf906bfe99e7b204451a35749d8c3cb7831c9e30f3f30566a26eb3441d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_knight_of_clubs",
+      "source_file": "PLAYING CARD KNIGHT OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/48/PLAYING_CARD_KNIGHT_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_KNIGHT_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "bcf1cc8996f0ed9c24f7e92d261b71c322a96bd1a7583f0520a38b2e48e80fc0",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_knight_of_diamonds",
+      "source_file": "PLAYING CARD KNIGHT OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/PLAYING_CARD_KNIGHT_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_KNIGHT_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "87a5151d70056006fe9b8c3698d03fc41f2c7b6d7f60a179c869e25edc448bce",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_knight_of_hearts",
+      "source_file": "PLAYING CARD KNIGHT OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/PLAYING_CARD_KNIGHT_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_KNIGHT_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "651a2ab1d46704f51e8f5f54a957f8933feb7d8f79cbda3b0ab2da1f13e85423",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_knight_of_spades",
+      "source_file": "PLAYING CARD KNIGHT OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/07/PLAYING_CARD_KNIGHT_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_KNIGHT_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "38de7d9e417dec3f21a8db12751b80ad3a935c24dc54e14e5f0f020cee06b9e2",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_nine_of_clubs",
+      "source_file": "PLAYING CARD NINE OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/7e/PLAYING_CARD_NINE_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_NINE_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "c6d84923eb161d880823a79f39e4b6bab3dd35fd2f3e1cd03264e3469aea6885",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_nine_of_diamonds",
+      "source_file": "PLAYING CARD NINE OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a6/PLAYING_CARD_NINE_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_NINE_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "06d7dc5616eb9a4145fc940d40e4486c60358c36dec9619722a80882d602de29",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_nine_of_hearts",
+      "source_file": "PLAYING CARD NINE OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/31/PLAYING_CARD_NINE_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_NINE_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "1380f2f5dd0679ede6881ca373cd42631e56e6db7d06838b24dba6f431cc2ee8",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_nine_of_spades",
+      "source_file": "PLAYING CARD NINE OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/46/PLAYING_CARD_NINE_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_NINE_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "779e55028dd7f8dc0a7a79ab7ed3f22e00bfb149cfcce627d4930ffb2ce40b23",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "c_q",
+      "source_file": "PLAYING CARD QUEEN OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/PLAYING_CARD_QUEEN_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_QUEEN_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "9355cc829d8faf183223c4264be4e2217ffe2204c900a6670012d727dd4903e7",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93753,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93753,
+        "height": 661.82811,
+        "value": 0.74934492,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "d_q",
+      "source_file": "PLAYING CARD QUEEN OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c2/PLAYING_CARD_QUEEN_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_QUEEN_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "1eddfc3e20c2c10b6e7b2fa964f6dd4e8e6e64e240da67b3cde429f0654b362d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "h_q",
+      "source_file": "PLAYING CARD QUEEN OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d7/PLAYING_CARD_QUEEN_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_QUEEN_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "e50a817ac2fb7472925f379eabd6a3c4b156fd4b51d0146fbbbfec74513bad27",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "s_q",
+      "source_file": "PLAYING CARD QUEEN OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/08/PLAYING_CARD_QUEEN_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_QUEEN_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "7edf1b0f969f8c0157abf1771fe7ee69b9680d78da8a9ed25263825321d057e2",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93753,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93753,
+        "height": 661.82811,
+        "value": 0.74934492,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "joker_red",
+      "source_file": "PLAYING CARD RED JOKER.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c6/PLAYING_CARD_RED_JOKER.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_RED_JOKER.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "20bebaebb57c7b171e86614ee294ed4425e41d371eff66e350a898069d3ff5da",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_seven_of_clubs",
+      "source_file": "PLAYING CARD SEVEN OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/5c/PLAYING_CARD_SEVEN_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_SEVEN_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "a688f13c3c526fc582ec122117fefd039ce226b0116e06ad73717aa0b9be8951",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_seven_of_diamonds",
+      "source_file": "PLAYING CARD SEVEN OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/48/PLAYING_CARD_SEVEN_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_SEVEN_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "5662f559f3d59f3ff9779b828afe130d8691673418cbf10010557b49a1e05939",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_seven_of_hearts",
+      "source_file": "PLAYING CARD SEVEN OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e0/PLAYING_CARD_SEVEN_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_SEVEN_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "00316392392b2ac17dfd49de58041e5efbbdcd617ebc0ff3a18363614f3d0269",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_seven_of_spades",
+      "source_file": "PLAYING CARD SEVEN OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/9/93/PLAYING_CARD_SEVEN_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_SEVEN_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "7e9ad0bc2182fc08b926d5feb54309c7c69613296a71e3a78f0adb4fd4203a7a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_six_of_clubs",
+      "source_file": "PLAYING CARD SIX OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/63/PLAYING_CARD_SIX_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_SIX_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "6357f7d516ca83d4f81708ee87ee2cb09baec2c032858e67e7b1033322ed5479",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_six_of_diamonds",
+      "source_file": "PLAYING CARD SIX OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e0/PLAYING_CARD_SIX_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_SIX_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "4a81f7a810aaa75a76ef3c2b7ddf386abbdf95852ead6759ebcd0c3d80d242ef",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_six_of_hearts",
+      "source_file": "PLAYING CARD SIX OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/d/d1/PLAYING_CARD_SIX_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_SIX_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "4860fce93effb3447ccb252a0f76e1ddab2c68dbf9ed79407789a5ca491d3f55",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93753,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93753,
+        "height": 661.82811,
+        "value": 0.74934492,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_six_of_spades",
+      "source_file": "PLAYING CARD SIX OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/71/PLAYING_CARD_SIX_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_SIX_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "3a0af5ced00c5c71ede38335028051018c802519a49ffc67fa8db89f31af3016",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_ten_of_clubs",
+      "source_file": "PLAYING CARD TEN OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/30/PLAYING_CARD_TEN_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TEN_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "d9c6148536a8d5285496d425a0f6fd7d6af4349f8aabd82cb75337d084f0e14a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_ten_of_diamonds",
+      "source_file": "PLAYING CARD TEN OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/28/PLAYING_CARD_TEN_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TEN_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "8352dbd65ed149951d0d08111ea467814b5ec43ba1b5544fc77f1bd29737548f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_ten_of_hearts",
+      "source_file": "PLAYING CARD TEN OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/27/PLAYING_CARD_TEN_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TEN_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "8a0a964da38644b358bbf6fe63cc9ced22f2cecc41a8ba667b32833ea1eca940",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_ten_of_spades",
+      "source_file": "PLAYING CARD TEN OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/07/PLAYING_CARD_TEN_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TEN_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "59547c265de5dc0c7c90e37501bc9c49bc7e6cc430e0f5c3374df97a94544545",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_three_of_clubs",
+      "source_file": "PLAYING CARD THREE OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/4/48/PLAYING_CARD_THREE_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_THREE_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "64103394f6b5fc5e86056811e05f88be7b874e83df2cb3cfbe9b1cf9663e3cc9",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_three_of_diamonds",
+      "source_file": "PLAYING CARD THREE OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e4/PLAYING_CARD_THREE_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_THREE_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "31de50c76aa54ffe5eac70f02117c0daae22f0d0a37fefcda7d81c95292647cd",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_three_of_hearts",
+      "source_file": "PLAYING CARD THREE OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/63/PLAYING_CARD_THREE_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_THREE_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "67e86e5a957856fb598aa30370b153b536794c5d655d088bb0c594a886f813c1",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_three_of_spades",
+      "source_file": "PLAYING CARD THREE OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/01/PLAYING_CARD_THREE_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_THREE_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "221ca720fa4863fb75d5f4ecb96f69e9bf236322ed78af3d40ded04fedaf1908",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_1",
+      "source_file": "PLAYING CARD TRUMP-1.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/b3/PLAYING_CARD_TRUMP-1.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-1.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "b91c0d9ed483eca2ce52c089662c04b94c6033591e0202d95b1c8bc655d43949",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_10",
+      "source_file": "PLAYING CARD TRUMP-10.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/PLAYING_CARD_TRUMP-10.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-10.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "5c72f19a7848293fd684519cea5b30cec88c26ed7378071e085a05fd3ce912ee",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_11",
+      "source_file": "PLAYING CARD TRUMP-11.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/8/81/PLAYING_CARD_TRUMP-11.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-11.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "023defbf317e6760cad82be52d344a217f3da916c691cd3ae756b16cd7399a81",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_12",
+      "source_file": "PLAYING CARD TRUMP-12.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0a/PLAYING_CARD_TRUMP-12.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-12.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "5ad503d7a5cda0eec746797b2df0e05674fb7980e001dfe868509e345c1bf25a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_13",
+      "source_file": "PLAYING CARD TRUMP-13.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/PLAYING_CARD_TRUMP-13.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-13.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "78ddc1548e6633200d9c317de0c6824eb15f9c1a717273f38bf12cc12a149242",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_14",
+      "source_file": "PLAYING CARD TRUMP-14.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/e/e7/PLAYING_CARD_TRUMP-14.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-14.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "d35e2e85005a16ea7a000353a40585f3eef46e03ce4a19bc8d1c2723e00da637",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93753,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93753,
+        "height": 661.82811,
+        "value": 0.74934492,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_15",
+      "source_file": "PLAYING CARD TRUMP-15.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/PLAYING_CARD_TRUMP-15.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-15.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "66ae7292bdec9e124dcd42c32eaa0687aededb5e47ba5f2dbb7636b17520fb22",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93753,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93753,
+        "height": 661.82811,
+        "value": 0.74934492,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_16",
+      "source_file": "PLAYING CARD TRUMP-16.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/a0/PLAYING_CARD_TRUMP-16.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-16.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "8d581d74b881e1c05c942464a37f8c92e8e6e876207f3f9282a02153aee23056",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_17",
+      "source_file": "PLAYING CARD TRUMP-17.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/31/PLAYING_CARD_TRUMP-17.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-17.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "ad1316ed8a3899dd7f3112d8d439b46cc28e7ff30460cc6ff100828f9328b6a9",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93753,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93753,
+        "height": 661.82811,
+        "value": 0.74934492,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_18",
+      "source_file": "PLAYING CARD TRUMP-18.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/1b/PLAYING_CARD_TRUMP-18.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-18.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "863f33416f91034ba6da37242e358c2756d3b66259fc8b0c5f4fa0debff5f69f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_19",
+      "source_file": "PLAYING CARD TRUMP-19.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2f/PLAYING_CARD_TRUMP-19.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-19.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "b02be304437c26620f1c0d577ae203a1f0bdb8ed07396cb1bfac919cbcea9ff4",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_2",
+      "source_file": "PLAYING CARD TRUMP-2.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/b/b4/PLAYING_CARD_TRUMP-2.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-2.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "f8244b54fef36daa64420aabde492fa4bd058e69db117be4e47b3e0e65435cc7",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_20",
+      "source_file": "PLAYING CARD TRUMP-20.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/6/6f/PLAYING_CARD_TRUMP-20.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-20.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "e3f11636e837185252e51d121cc4826882a5506b30f35507623ca9df8786be5f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_21",
+      "source_file": "PLAYING CARD TRUMP-21.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/1/1c/PLAYING_CARD_TRUMP-21.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-21.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "4b0c2b7ce63117ae78aeb7add592c6f3d85454f43fda5f85a49554c081104e1f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_3",
+      "source_file": "PLAYING CARD TRUMP-3.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c9/PLAYING_CARD_TRUMP-3.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-3.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "abc53b328daa4625adec18c7bd9fac2b7e208bf4fb0297488f6da46727212595",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_4",
+      "source_file": "PLAYING CARD TRUMP-4.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/32/PLAYING_CARD_TRUMP-4.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-4.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "0e2c47185c9adc10f97dc78b86afbff2bcaab54c12d3dc2c63ebfce0e67e23a4",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_5",
+      "source_file": "PLAYING CARD TRUMP-5.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/08/PLAYING_CARD_TRUMP-5.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-5.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "01322fc1267567cb2c36f749504f0689f9c2e0f96f17e3c28f5ceef34cc40abc",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_6",
+      "source_file": "PLAYING CARD TRUMP-6.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/PLAYING_CARD_TRUMP-6.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-6.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "82520f69d0f93f81ac1d9a37a3138000f0f989204f453df085d423f1cd8f1e48",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_7",
+      "source_file": "PLAYING CARD TRUMP-7.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/PLAYING_CARD_TRUMP-7.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-7.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "95907aa83d691da5a81a3115f1bc89255a1b52ee0bb59763103e54855c2eb4ac",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_8",
+      "source_file": "PLAYING CARD TRUMP-8.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/7/71/PLAYING_CARD_TRUMP-8.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-8.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "631df5b926c3bbafffe4df760e2a3737d8c080da248780f3a759d21aa07b681f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_trump_9",
+      "source_file": "PLAYING CARD TRUMP-9.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/PLAYING_CARD_TRUMP-9.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TRUMP-9.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "5863628556606221839e43fe4ee521572a9795acbdd5e94a51e001aba5ccca92",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_two_of_clubs",
+      "source_file": "PLAYING CARD TWO OF CLUBS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/PLAYING_CARD_TWO_OF_CLUBS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TWO_OF_CLUBS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "b7963b4e3b7d07fc6c8898a30d3bb7c2dd9ee309b1141837ddd2b06a80f388b1",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_two_of_diamonds",
+      "source_file": "PLAYING CARD TWO OF DIAMONDS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/0/0b/PLAYING_CARD_TWO_OF_DIAMONDS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TWO_OF_DIAMONDS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "73b449b7e3c3e862138dcd8e10dd3d32cbdc2b2addf3773f8354506438a94ea1",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_two_of_hearts",
+      "source_file": "PLAYING CARD TWO OF HEARTS.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/PLAYING_CARD_TWO_OF_HEARTS.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TWO_OF_HEARTS.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "ab36fb74c2498aa8011f78ef6c57fee5d21e178d5cec122d660b3cd68f33ee62",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "playing_card_two_of_spades",
+      "source_file": "PLAYING CARD TWO OF SPADES.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/2/24/PLAYING_CARD_TWO_OF_SPADES.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_TWO_OF_SPADES.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "5047b86cea0989e956d14a5aec9ef7242ae13b686de5af80f4667f6c0e509770",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    },
+    {
+      "key": "joker",
+      "source_file": "PLAYING CARD WHITE JOKER.svg",
+      "source_url": "https://upload.wikimedia.org/wikipedia/commons/3/30/PLAYING_CARD_WHITE_JOKER.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "source_page": "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_WHITE_JOKER.svg",
+      "author": "Ekirahardian",
+      "license": {
+        "name": "OFL",
+        "spdx": null,
+        "url": "https://openfontlicense.org/open-font-license-official-text/"
+      },
+      "sha256": "2301cba333192eb0cc1c51a4b5c838e96c2f147d2d9d71f0ab628ebf99bfc81f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        495.93752,
+        661.82811
+      ],
+      "source_aspect_ratio": {
+        "width": 495.93752,
+        "height": 661.82811,
+        "value": 0.7493449,
+        "fraction": "571:762"
+      }
+    }
+  ],
+  "description": "Repaired font-outline faces and glyph bounds.",
+  "composition": {
+    "graphic_count": 82,
+    "faces": 52,
+    "jokers": 3,
+    "backs": 1,
+    "extra_graphics": {
+      "knights": 4,
+      "trumps": 22
+    },
+    "standard_52_complete": true,
+    "ranks": [
+      "A",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K"
+    ],
+    "suits": [
+      "clubs",
+      "diamonds",
+      "hearts",
+      "spades"
+    ],
+    "count_basis": "Authored per-card records and visual/XML inspection; graphic count includes backs and extras, not the game deck size."
+  },
+  "source_selection": {
+    "record_type": "Historical import selection; not a regeneration instruction or verified license",
+    "kind": "commons_category",
+    "category": "Category:SVG playing cards/Noto Sans Symbols2",
+    "include": ".*\\.svg$"
+  },
+  "license_audit": {
+    "reviewed_at": "2026-10-10",
+    "status": "PARTIAL_NOT_VERIFIED",
+    "notes": "Commons PLAYING_CARD_ACE_OF_CLUBS sample credits Ekirahardian and Google font artwork under OFL 1.1; other 81 source records not independently verified.",
+    "evidence_urls": [
+      "https://commons.wikimedia.org/wiki/Category:SVG_playing_cards%2FNoto_Sans_Symbols2",
+      "https://commons.wikimedia.org/wiki/File:PLAYING_CARD_ACE_OF_CLUBS.svg"
+    ],
+    "redistribution_approved": false,
+    "attribution_requirements": "NOT VERIFIED for the complete set: resolve the original license version/notice and per-graphic attribution requirements before publication; preserve existing source credits."
+  },
+  "curation": {
+    "reviewed_at": "2026-10-10",
+    "classification": "REVIEW",
+    "reason": "Repaired font-outline faces and glyph bounds; distinctive compact courts plus tarot extras. OFL evidence checked for a sample, not every source.",
+    "developer_review_required": true,
+    "original_sha256": "a6e919ff8c97d72f29d9872cd98c07f529e2069cbeff08c6cfd447c9d4ad4a25",
+    "repairs": [
+      "Replace unsupported symbol/nested SVG wrappers with explicit viewBox transforms and addressable groups.",
+      "Add the existing application card IDs while retaining original artwork/source IDs; optional missing graphics use the unchanged default deck.",
+      "Normalize nested glyph viewports; move unused definitions outside card bounds.",
+      "Inline glyph geometry with unique instance IDs where Qt use inheritance/namespace handling distorts the card."
+    ]
+  },
+  "runtime": {
+    "tested_qt": "6.11.2",
+    "svg_valid": true,
+    "active_ids": 55,
+    "default_ids": 0,
+    "placeholder_ids": 0,
+    "blank_application_images": 0,
+    "native_card_theme": true,
+    "notes": "Bundled theme discovery reads the curated cards.json catalog, preserving noncontiguous numeric IDs. Default and optional fallback graphics remain cards_0.svg. Selection does not approve redistribution.",
+    "optional_graphics": {
+      "back": {
+        "source": "active",
+        "source_svg": "cards_11.svg",
+        "element_id": "back",
+        "selected_original_id": "back",
+        "empty_image": false
+      },
+      "joker_black": {
+        "source": "active",
+        "source_svg": "cards_11.svg",
+        "element_id": "joker_black",
+        "selected_original_id": "joker_black",
+        "empty_image": false
+      },
+      "joker_red": {
+        "source": "active",
+        "source_svg": "cards_11.svg",
+        "element_id": "joker_red",
+        "selected_original_id": "joker_red",
+        "empty_image": false
+      }
+    }
+  }
+}

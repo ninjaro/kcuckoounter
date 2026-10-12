@@ -39,6 +39,7 @@ class table : public BaseWidget {
     friend class gameplay_restore_tests;
     friend class gameplay_completion_tests;
     friend class gameplay_host_tests;
+    friend class gameplay_mobile_tests;
     friend class gameplay_reservation;
 
 public:

@@ -1,0 +1,1447 @@
+{
+  "schema": 1,
+  "id": "cards_40",
+  "number": 40,
+  "name": "OpenGameArt classic 4-color poker deck",
+  "generated_at": "2026-10-05T11:41:53.131611Z",
+  "access_mode": "group_sprite",
+  "source": {
+    "url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+    "page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+    "archive_sha256": "2892fdbaa68e47eef618f2a4a34f2a1f532fe2030ccae4f0206b1482e853c5ba"
+  },
+  "authors": [
+    "Heratexx"
+  ],
+  "licenses": [
+    {
+      "name": "CC0-1.0",
+      "spdx": "CC0-1.0",
+      "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  ],
+  "status": "Derived Qt-compatible packaging; artwork geometry retained, canonical card IDs added. See curation repairs.",
+  "output": "cards_40.svg",
+  "output_sha256": "88120b3c37f9058dc9b57874800c1cb17004289293d5a716675231e14578fa9c",
+  "output_size": 480704,
+  "card_count": 52,
+  "frame": {
+    "width": 1000.0,
+    "height": 1392.0,
+    "value": 0.7183908,
+    "fraction": "125:174",
+    "view_box": "0 0 1000 1392",
+    "outline": true,
+    "outline_color": "#111111",
+    "outline_width": 2.0
+  },
+  "preview": {
+    "columns": 13,
+    "rows": 4,
+    "gap": 25,
+    "view_box": "0 0 13300 5643"
+  },
+  "cards": [
+    {
+      "key": "c_2",
+      "source_file": "2c.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "d44c3ba99b2bf676db84f7c21e5ee96eaa8fb24b8348b0f80e84f7cc0ee9ae2d",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_2",
+      "source_file": "2d.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "3801c9cec67eb98437be075e4695f1c3182576f89b6ee7a077a55b61e9f41d2e",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_2",
+      "source_file": "2h.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "d7493fec459de26c3ab831463f658f166281067bea5a6c261a393e707c83f99d",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_2",
+      "source_file": "2s.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "dcb6bd6ab62cd0f1c334bb91114845a6fe2abafb9cf0e5a809e9caac5e6c0d13",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_3",
+      "source_file": "3c.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "e363fa38a704d10a6f4e42a90b23b65074d6c45c2d9163edc6c6be31a60fbfce",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_3",
+      "source_file": "3d.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "3b2fffe261d76cbc688289457fb5b9adf7bd1c813ee579344a3c1bb052fa6fa0",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_3",
+      "source_file": "3h.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "7a4ad6275938ebb8d77abb7757515a725625645c24c00c0ca7d86d80a5ffc4f8",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_3",
+      "source_file": "3s.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "59fcb37681c2e93a0b6cb9cd3c6f4c72bd33df26bee3592051854531d4286f3f",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_4",
+      "source_file": "4c.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "b2734ddd2953b16bb453cec259549f6926ab242bae82b0178860444255ac40b9",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_4",
+      "source_file": "4d.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "58d776672ef9f2273c21abb9fe19b299d493e7e11f739cf78f35fd371a255ceb",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_4",
+      "source_file": "4h.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "a26519b23b63488f799057be77b6f4019c8deadc259dc66fa97c23060368d0c4",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_4",
+      "source_file": "4s.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "d0f2bc5f9e58c5b19e98d33780adfeeb03866dc15e135dfbc6da314b8471bb4a",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_5",
+      "source_file": "5c.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "520bb630d9a92b19e2e884b36a981637d58ca420d17a722cb7934ba06d425349",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_5",
+      "source_file": "5d.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "a9f49a0c7bafef968a54f38e96c3fd1d42d2eef5a8fc55c13505e211fda966f7",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_5",
+      "source_file": "5h.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "26c05360739d78189424d561f210dab5dbaa82aa0e411bdd297e53fba0b8a7e2",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_5",
+      "source_file": "5s.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "3b0ffb59ae969b769678166100490ab376643b17023eaf0d094ce8b628d44128",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_6",
+      "source_file": "6c.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "8b1f71763c883d9b0ac002d00496c66e859cb4276c2f91dfdb1825ad2bbdcc23",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_6",
+      "source_file": "6d.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "d0cdecb623b55f01381813925126e744f9d963176cede16be74785ece80233af",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_6",
+      "source_file": "6h.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "29458f6007bb3b2bab7df90bc88fb67139737d9707b8c4a7bd0882c38282c2d4",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_6",
+      "source_file": "6s.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "342b8453391049de4ea29be0709a11e31850bf51504c9439de63a39d57d7dc98",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_7",
+      "source_file": "7c.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "1a1adb623b9c3f54121b735eb292b9e63103e675eaeb796d988d55fb80d1c7c8",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_7",
+      "source_file": "7d.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "483c5f2e4cb0a358f5e0710ae3de3fa688729c73c78d466ed583618991598192",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_7",
+      "source_file": "7h.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "72b784c166c071f3d6256ae4906e115385d55e37ff13c09fdb42ac75475d5f4a",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_7",
+      "source_file": "7s.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "ca78380da308303388de024324551d7d925f450617dd95595af4519f56e06ad2",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_8",
+      "source_file": "8c.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "ce28209d9d0adb3902f1f8f937524b43466fecc1139f01d5fe2a5d37ed472108",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_8",
+      "source_file": "8d.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "fecbe789d58bc2ee3842e5df548d21c189d1b24e0973b93fb20b0c7645872035",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_8",
+      "source_file": "8h.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "9771c22bca179313758ec0229e9046bc9c04d887e0dd51d231c76e3012ff2e27",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_8",
+      "source_file": "8s.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "e31391c212137ce656dc22b47b67530ea70f38ff50d93afcca00ce05804be672",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_9",
+      "source_file": "9c.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "ddee699b8b9962fa345f597fa37f288d790c96f0ce5ba7373ba261ff5a614b82",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_9",
+      "source_file": "9d.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "2d8236c08fed84b206c88e4caf64a0dc4c6653172246554ff6b6c284c9395345",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_9",
+      "source_file": "9h.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "805e7b0251738146eac2b4f8ee4c7841d6d95f82f6fd304a1f29a5c442f9dbeb",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_9",
+      "source_file": "9s.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "561d30bd71dc77890d95a58282871c50d08b65ffa7792fd3879a1b46dab8b3f7",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_a",
+      "source_file": "Ac.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "99242726e902ed14e68df124932cd8316ad2fdd9d8f16a203288abf9d3981bee",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_a",
+      "source_file": "Ad.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "9de3536dc165cbdb6e1393047fcce2d7fbccf27bb30a597653d4f7d33de1046c",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_a",
+      "source_file": "Ah.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "4988cd55c5e5ebbb8bba52168f840c91fdfc22c13c1b6a56311b6990d2ec2623",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_a",
+      "source_file": "As.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "e1bfa8b5bf237cba8df8b58087ef3a200e2ebad2df56a1870c49635f6ec83ba2",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_j",
+      "source_file": "Jc.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "58b71c0f7aab0caf67d3b3da10af3ac2ebe422abd2f21c0511cfc10c029d5543",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_j",
+      "source_file": "Jd.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "15c9212f40c66405e98b4c6d70fc1cce54f4cd926edbf8d5beb957d50a3f89db",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_j",
+      "source_file": "Jh.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "0515f0de2854555d4d4b35d73de78269106558da31b025af9c5198bab37e05c9",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_j",
+      "source_file": "Js.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "d6b3f9e2d9fbf4db6d44bf4980337f4f8c6f933f9c15efbb595a5e0e7b7122c4",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_k",
+      "source_file": "Kc.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "8f4c935f2401022781fa31907284eca8a1060d395007eb170ee49fdddf931b9c",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_k",
+      "source_file": "Kd.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "34ce7858ca7469e9941087d16c6676b622fd0c75cfe364c22cd34ba1945540e8",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_k",
+      "source_file": "Kh.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "0a2b6bf5686482dd5750ef6e696b22a25bab0aed2c0868daecd026d7bf3dd104",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_k",
+      "source_file": "Ks.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "010ba7c5aade4281c7ab952a117e36ce0a8e34a92f10897b76c05bb5cf550560",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_q",
+      "source_file": "Qc.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "115f353a461a0b5f447620e4bcdb68adf6779f8767df9185c346d2b40ff91592",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_q",
+      "source_file": "Qd.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "2bb0ad8b18974155915330b48967b45e0e65216888d38647c652655e29535f9c",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_q",
+      "source_file": "Qh.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "d206c00b1eba173479a2e2c3d7c019ad81c176ca9a713e369534131e1517e26c",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_q",
+      "source_file": "Qs.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "6e0dd4f39150e84db2af15f5dc5eb30ef04d2bdb281676176af30d7b736f5463",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "c_10",
+      "source_file": "Tc.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "6701f0911aea7db73bf51ccccfb7019e273c29b8f1b937072df08f6e60eb604d",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "d_10",
+      "source_file": "Td.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "ed4a468b3730f9b8433461309ac257db5cefe6aefbe282cae5e68e902158b7e5",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "h_10",
+      "source_file": "Th.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "8dac6c012b740d2ca779672747fdc122f63bbebccb175f850e42b07254be6e82",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    },
+    {
+      "key": "s_10",
+      "source_file": "Ts.svg",
+      "source_url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+      "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+      "author": "Heratexx",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "deeb90be0b99f13e5f8463284fa9da89ae771de0f9ea90cf827843a450cb61e7",
+      "source_view_box": [
+        -120.0,
+        -167.0,
+        240.0,
+        334.0
+      ],
+      "source_aspect_ratio": {
+        "width": 240.0,
+        "height": 334.0,
+        "value": 0.71856287,
+        "fraction": "120:167"
+      }
+    }
+  ],
+  "description": "Readable four-color poker faces.",
+  "composition": {
+    "graphic_count": 52,
+    "faces": 52,
+    "jokers": 0,
+    "backs": 0,
+    "extra_graphics": {},
+    "standard_52_complete": true,
+    "ranks": [
+      "A",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K"
+    ],
+    "suits": [
+      "clubs",
+      "diamonds",
+      "hearts",
+      "spades"
+    ],
+    "count_basis": "Authored per-card records and visual/XML inspection; graphic count includes backs and extras, not the game deck size."
+  },
+  "source_selection": {
+    "record_type": "Historical import selection; not a regeneration instruction or verified license",
+    "kind": "remote_zip",
+    "url": "https://opengameart.org/sites/default/files/4color_deck_by_heratexx.zip",
+    "source_page": "https://opengameart.org/content/classic-4-color-poker-deck-svg",
+    "author_override": "Heratexx",
+    "license_override": {
+      "name": "CC0-1.0",
+      "spdx": "CC0-1.0",
+      "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    },
+    "include": ".*\\.svg$"
+  },
+  "license_audit": {
+    "reviewed_at": "2026-10-10",
+    "status": "VERIFIED_UPSTREAM_STATEMENT",
+    "notes": "Upstream author/license statement checked on the source page; this is a provenance check, not a project publication approval.",
+    "evidence_urls": [
+      "https://opengameart.org/content/classic-4-color-poker-deck-svg"
+    ],
+    "redistribution_approved": false,
+    "attribution_requirements": "Upstream CC0 statement has no mandatory attribution; retain source/creator credits."
+  },
+  "curation": {
+    "reviewed_at": "2026-10-10",
+    "classification": "KEEP",
+    "reason": "Readable four-color poker faces; repaired symbol/viewBox and xlink compatibility without redrawing artwork. Optional jokers/back use default; upstream Heratexx CC0 statement checked.",
+    "developer_review_required": false,
+    "original_sha256": "a19d801b1cb37c76c769d1754b1f856af7caabeb44b0ecc4b85e2854fab0eb85",
+    "repairs": [
+      "Replace unsupported symbol/nested SVG wrappers with explicit viewBox transforms and addressable groups.",
+      "Add the existing application card IDs while retaining original artwork/source IDs; optional missing graphics use the unchanged default deck.",
+      "Normalize nested glyph viewports; move unused definitions outside card bounds.",
+      "Inline glyph geometry with unique instance IDs where Qt use inheritance/namespace handling distorts the card.",
+      "Normalize xlink prefix for Qt 6.10; preserve source symbol-opacity behavior (non-inherited opacity must not fade inlined artwork)."
+    ]
+  },
+  "runtime": {
+    "tested_qt": "6.11.2",
+    "svg_valid": true,
+    "active_ids": 52,
+    "default_ids": 3,
+    "placeholder_ids": 0,
+    "blank_application_images": 0,
+    "native_card_theme": true,
+    "notes": "Bundled theme discovery reads the curated cards.json catalog, preserving noncontiguous numeric IDs. Default and optional fallback graphics remain cards_0.svg. Selection does not approve redistribution.",
+    "optional_graphics": {
+      "back": {
+        "source": "default",
+        "source_svg": "cards_0.svg",
+        "element_id": "back",
+        "selected_original_id": "back",
+        "empty_image": false
+      },
+      "joker_black": {
+        "source": "default",
+        "source_svg": "cards_0.svg",
+        "element_id": "joker_black",
+        "selected_original_id": "joker_black",
+        "empty_image": false
+      },
+      "joker_red": {
+        "source": "default",
+        "source_svg": "cards_0.svg",
+        "element_id": "joker_red",
+        "selected_original_id": "joker_red",
+        "empty_image": false
+      }
+    }
+  }
+}

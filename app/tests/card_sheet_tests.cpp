@@ -2,6 +2,7 @@
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
 
+#include "arch/asset_locator.hpp"
 #include "include/card_sheet_tests.hpp"
 
 #include "arch/str_label.hpp"
@@ -141,6 +142,7 @@ void card_sheet_tests::themes_include_bundled_and_available_installed() {
     bool found_installed_theme = false;
     bool installed_section_started = false;
     QSet<QString> seen_sources;
+    QStringList bundled_names;
     for (const card_theme_option& theme : themes) {
         QVERIFY(!theme.label.isEmpty());
         QVERIFY(!theme.source_path.isEmpty());
@@ -162,12 +164,20 @@ void card_sheet_tests::themes_include_bundled_and_available_installed() {
             installed_section_started = true;
             found_installed_theme = true;
             QVERIFY(info.isAbsolute());
-        } else if (installed_section_started) {
-            QFAIL("bundled themes must stay before installed themes");
+        } else {
+            QVERIFY(!installed_section_started);
+            bundled_names.append(info.fileName());
         }
     }
 
     QVERIFY(found_default_theme);
+    QCOMPARE(themes.first().source_path, default_card_sheet_source_path());
+    QCOMPARE(bundled_names, QStringList({
+        QStringLiteral("cards_0.svg"), QStringLiteral("cards_4.svg"),
+        QStringLiteral("cards_9.svg"), QStringLiteral("cards_11.svg"),
+        QStringLiteral("cards_23.svg"), QStringLiteral("cards_28.svg"),
+        QStringLiteral("cards_40.svg"), QStringLiteral("cards_42.svg"),
+    }));
 
     const QString installed_standard_theme
         = QStringLiteral("/usr/share/carddecks/svg-standard/standard.svgz");
@@ -184,8 +194,8 @@ void card_sheet_tests::source_path_switches_between_themes() {
         ~source_restore_guard() { set_card_sheet_source_path(source); }
     } guard { card_sheet_source_path() };
 
-    const QString theme_one = str_label("assets/cards_1.svg");
-    const QString theme_two = str_label("assets/cards_2.svg");
+    const QString theme_one = bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg"));
+    const QString theme_two = bundled_asset_path(QStringLiteral("sets/cards/cards_40.svg"));
 
     set_card_sheet_source_path(theme_one);
     QCOMPARE(card_sheet_source_path(), theme_one);
@@ -212,14 +222,14 @@ void card_sheet_tests::
     QCOMPARE(required_ids.constLast(), card_back_element_id());
 
     const card_sheet_fallback_resolution active_resolution
-        = resolve_required_card_face_sources(str_label("assets/cards_1.svg"));
+        = resolve_required_card_face_sources(bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg")));
     QCOMPARE(active_resolution.active_theme_keys, required_ids.size());
     QCOMPARE(active_resolution.default_theme_keys, 0);
     QCOMPARE(active_resolution.placeholder_keys, 0);
 
     card_sheet_fallback_resolution active_raster_resolution;
     const QVector<QImage> active_images = rasterize_card_faces_with_fallback(
-        str_label("assets/cards_1.svg"), QSize(72, 72),
+        bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg")), QSize(72, 72),
         &active_raster_resolution
     );
     QCOMPARE(active_images.size(), required_ids.size());
@@ -227,6 +237,53 @@ void card_sheet_tests::
     QCOMPARE(active_raster_resolution.default_theme_keys, 0);
     QCOMPARE(active_raster_resolution.placeholder_keys, 0);
     for (const QImage& image : active_images) {
+        QVERIFY(!image.isNull());
+        bool has_ink = false;
+        for (int y = 0; y < image.height() && !has_ink; ++y) {
+            for (int x = 0; x < image.width(); ++x) {
+                const QColor color = image.pixelColor(x, y);
+                if (color.alpha() > 64
+                    && (color.red() < 200 || color.green() < 200
+                        || color.blue() < 200)) {
+                    has_ink = true;
+                    break;
+                }
+            }
+        }
+        QVERIFY(has_ink);
+    }
+
+    // A valid SVG with no card IDs uses the default without changing the deck.
+    // This isolated fixture replaces the retired laid-out sheet dependency.
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const QString sheet_path = directory.filePath(QStringLiteral("poster.svg"));
+    QFile sheet_file(sheet_path);
+    QVERIFY(sheet_file.open(QIODevice::WriteOnly));
+    const QByteArray sheet_svg
+        = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"63\" height=\"88\">"
+          "<rect width=\"63\" height=\"88\" fill=\"white\"/></svg>";
+    QCOMPARE(sheet_file.write(sheet_svg), sheet_svg.size());
+    sheet_file.close();
+    QVERIFY(QSvgRenderer(sheet_path).isValid());
+    const card_sheet_fallback_resolution sheet_resolution
+        = resolve_required_card_face_sources(sheet_path);
+    QCOMPARE(sheet_resolution.active_theme_keys, 0);
+    QCOMPARE(sheet_resolution.default_theme_keys, required_ids.size());
+    QCOMPARE(sheet_resolution.placeholder_keys, 0);
+
+    // The four-color sprite has all 52 faces but no jokers or back. Only those
+    // optional graphics should come from the default deck.
+    card_sheet_fallback_resolution optional_resolution;
+    const QVector<QImage> optional_images = rasterize_card_faces_with_fallback(
+        bundled_asset_path(QStringLiteral("sets/cards/cards_40.svg")),
+        QSize(72, 72), &optional_resolution
+    );
+    QCOMPARE(optional_images.size(), required_ids.size());
+    QCOMPARE(optional_resolution.active_theme_keys, required_ids.size() - 3);
+    QCOMPARE(optional_resolution.default_theme_keys, 3);
+    QCOMPARE(optional_resolution.placeholder_keys, 0);
+    for (const QImage& image : optional_images) {
         QVERIFY(!image.isNull());
     }
 
@@ -252,6 +309,88 @@ void card_sheet_tests::
     for (const QImage& image : fallback_images) {
         QVERIFY(!image.isNull());
     }
+}
+
+void card_sheet_tests::retained_themes_render_all_logical_cards_data() {
+    QTest::addColumn<int>("number");
+    QTest::addColumn<int>("active_count");
+    for (const auto& [number, active_count] :
+         { std::pair { 0, 55 }, { 4, 55 }, { 9, 53 }, { 11, 55 },
+           { 23, 55 }, { 28, 54 }, { 40, 52 }, { 42, 55 } }) {
+        QTest::newRow(qPrintable(QStringLiteral("set-%1").arg(number)))
+            << number << active_count;
+    }
+}
+
+void card_sheet_tests::retained_themes_render_all_logical_cards() {
+    QFETCH(int, number);
+    QFETCH(int, active_count);
+    const QString source = bundled_asset_path(
+        QStringLiteral("sets/cards/cards_%1.svg").arg(number)
+    );
+    QVERIFY(!source.isEmpty());
+    card_sheet_fallback_resolution resolution;
+    const auto images
+        = rasterize_card_faces_with_fallback(source, QSize(72, 108), &resolution);
+    QCOMPARE(resolution.active_theme_keys, active_count);
+    QCOMPARE(resolution.default_theme_keys, 55 - active_count);
+    QCOMPARE(resolution.placeholder_keys, 0);
+    QCOMPARE(images.size(), required_card_ids_with_back().size());
+    for (const QImage& image : images) {
+        QVERIFY(!image.isNull());
+        bool has_ink = false;
+        for (int y = 0; y < image.height() && !has_ink; ++y) {
+            for (int x = 0; x < image.width(); ++x) {
+                const QColor color = image.pixelColor(x, y);
+                if (color.alpha() > 64
+                    && (color.red() < 200 || color.green() < 200
+                        || color.blue() < 200)) {
+                    has_ink = true;
+                    break;
+                }
+            }
+        }
+        QVERIFY(has_ink);
+    }
+}
+
+void card_sheet_tests::removed_bundled_sources_fall_back_to_default() {
+    struct source_restore_guard {
+        QString source;
+        ~source_restore_guard() { set_card_sheet_source_path(source); }
+    } guard { card_sheet_source_path() };
+    const QList<int> retained = { 0, 4, 9, 11, 23, 28, 40, 42 };
+    for (int number = 0; number < 47; ++number) {
+        if (retained.contains(number)) {
+            continue;
+        }
+        const QString relative
+            = QStringLiteral("sets/cards/cards_%1.svg").arg(number);
+        QVERIFY(bundled_asset_path(relative).isEmpty());
+        set_card_sheet_source_path(QStringLiteral(":/kcuckoounter/%1").arg(relative));
+        QCOMPARE(card_sheet_source_path(), default_card_sheet_source_path());
+        set_card_sheet_source_path(QStringLiteral("assets/%1").arg(relative));
+        QCOMPARE(card_sheet_source_path(), default_card_sheet_source_path());
+    }
+
+    // A stale installed/staged file must not resurrect a retired bundled ID.
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    QVERIFY(QDir(directory.path()).mkpath(QStringLiteral("sets/cards")));
+    const QString stale
+        = directory.filePath(QStringLiteral("sets/cards/cards_1.svg"));
+    QVERIFY(write_alternate_id_card_svg(stale));
+    set_card_sheet_source_path(stale);
+    QCOMPARE(card_sheet_source_path(), default_card_sheet_source_path());
+    set_card_sheet_source_path(QStringLiteral("assets/cards_2.svg"));
+    QCOMPARE(card_sheet_source_path(), default_card_sheet_source_path());
+    set_card_sheet_source_path(QString());
+    QCOMPARE(card_sheet_source_path(), default_card_sheet_source_path());
+    QVERIFY(preload_card_sheet());
+
+    // Stored surviving paths rebind to today's resource/installation location.
+    set_card_sheet_source_path(QStringLiteral("/retired/install/sets/cards/cards_11.svg"));
+    QCOMPARE(card_sheet_source_path(), bundled_asset_path(QStringLiteral("sets/cards/cards_11.svg")));
 }
 
 void card_sheet_tests::alternate_svg_id_conventions_are_resolved() {
