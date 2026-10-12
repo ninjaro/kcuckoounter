@@ -137,7 +137,7 @@ void table_slot::show_quiz_prompt() {
     if (card_widget_internal != nullptr) {
         card_widget_internal->set_hide_cards(true);
         card_widget_internal->set_table_marking_source(
-            bundled_asset_path(QStringLiteral("mad.svg"))
+            bundled_asset_path(QStringLiteral("brand/mad.svg"))
         );
     }
     if (!is_training_enabled()) {
@@ -165,7 +165,7 @@ void table_slot::clear_quiz_prompt() {
     if (card_widget_internal != nullptr) {
         card_widget_internal->set_hide_cards(false);
         card_widget_internal->set_table_marking_source(
-            bundled_asset_path(QStringLiteral("cuckoo.svg"))
+            bundled_asset_path(QStringLiteral("brand/cuckoo.svg"))
         );
     }
     set_paused(current_phase == slot_phase::paused);

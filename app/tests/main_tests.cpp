@@ -10,21 +10,31 @@
 #include "include/preview_carousel_tests.hpp"
 #include "include/raster_cache_tests.hpp"
 #include "include/rasterization_runner_tests.hpp"
+#include "include/settings/gameplay_checkpoint_tests.hpp"
+#include "include/settings/gameplay_progress_tests.hpp"
+#include "include/settings/gameplay_recovery_tests.hpp"
 #include "include/settings/preferences_tests.hpp"
 #include "include/strategy_data_tests.hpp"
 #include "include/table/card_widget_tests.hpp"
+#include "include/table/gameplay_completion_tests.hpp"
+#include "include/table/gameplay_host_tests.hpp"
+#include "include/table/gameplay_mobile_tests.hpp"
+#include "include/table/gameplay_restore_tests.hpp"
 #include "include/table/gameplay_session_tests.hpp"
+#include "include/table/gameplay_start_tests.hpp"
 #include "include/table/table_tests.hpp"
 
 int main(int argc, char** argv) {
-    QApplication app(argc, argv);
     // Application-facing settings tests must never write the user's trainer
-    // preferences. Explicit INI fixtures in individual tests remain
-    // independent.
+    // preferences or KDE config/command history. Isolate Frameworks paths
+    // before QApplication can initialize a native style or shared config.
     QTemporaryDir settings_directory;
     if (!settings_directory.isValid()) {
         qFatal("Could not create isolated test settings directory");
     }
+    qputenv("XDG_CONFIG_HOME", settings_directory.filePath("config").toUtf8());
+    qputenv("XDG_STATE_HOME", settings_directory.filePath("state").toUtf8());
+    QApplication app(argc, argv);
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(
         QSettings::IniFormat, QSettings::UserScope, settings_directory.path()
@@ -39,6 +49,18 @@ int main(int argc, char** argv) {
 
     {
         gameplay_session_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        gameplay_checkpoint_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        gameplay_progress_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        gameplay_recovery_tests t;
         status |= QTest::qExec(&t, argc, argv);
     }
 
@@ -84,6 +106,26 @@ int main(int argc, char** argv) {
     }
     {
         table_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        gameplay_start_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        gameplay_restore_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        gameplay_completion_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        gameplay_host_tests t;
+        status |= QTest::qExec(&t, argc, argv);
+    }
+    {
+        gameplay_mobile_tests t;
         status |= QTest::qExec(&t, argc, argv);
     }
 

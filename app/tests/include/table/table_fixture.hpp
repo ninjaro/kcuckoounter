@@ -6,6 +6,7 @@
 
 #include <QMessageBox>
 #include <QRect>
+#include <QVariant>
 
 class QAction;
 class QLineEdit;
@@ -31,6 +32,8 @@ void enter_owned_count(QLineEdit* input, const QString& text);
 struct launcher_preferences_guard {
     desktop_ui_preferences ui;
     trainer_preferences trainer;
+    QVariant gameplay_defaults;
+    QVariantMap gameplay_storage;
 
     launcher_preferences_guard();
     ~launcher_preferences_guard();

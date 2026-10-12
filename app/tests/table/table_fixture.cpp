@@ -19,6 +19,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QProxyStyle>
+#include <QSettings>
 #include <QTimer>
 #include <QtTest/QtTest>
 
@@ -120,6 +121,20 @@ void enter_owned_count(QLineEdit* input, const QString& text) {
 launcher_preferences_guard::launcher_preferences_guard()
     : ui(load_desktop_ui_preferences())
     , trainer(load_trainer_preferences()) {
+    QSettings storage(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    gameplay_defaults
+        = storage.value(QStringLiteral("gameplay_preferences/document"));
+    for (const auto* name :
+         { "gameplay_checkpoint/document", "gameplay_recovery/document",
+           "gameplay_progress/document" }) {
+        const auto key = QString::fromLatin1(name);
+        gameplay_storage.insert(key, storage.value(key));
+        storage.remove(key);
+    }
+    storage.remove(QStringLiteral("gameplay_preferences/document"));
+    storage.sync();
     desktop_ui_preferences defaults;
     defaults.settings_override = slot_settings_style::card;
     (void)save_desktop_ui_preferences(defaults);
@@ -129,6 +144,23 @@ launcher_preferences_guard::launcher_preferences_guard()
 }
 
 launcher_preferences_guard::~launcher_preferences_guard() {
+    QSettings storage(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    for (auto value = gameplay_storage.cbegin();
+         value != gameplay_storage.cend(); ++value) {
+        if (value->isValid())
+            storage.setValue(value.key(), *value);
+        else
+            storage.remove(value.key());
+    }
+    if (gameplay_defaults.isValid())
+        storage.setValue(
+            QStringLiteral("gameplay_preferences/document"), gameplay_defaults
+        );
+    else
+        storage.remove(QStringLiteral("gameplay_preferences/document"));
+    storage.sync();
     (void)save_desktop_ui_preferences(ui);
     (void)save_trainer_preferences(trainer);
 }

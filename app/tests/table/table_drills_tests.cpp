@@ -167,7 +167,10 @@ void table_tests::saved_drill_picker_preserves_and_launches_sessions() {
             QVERIFY(dialog);
             struct reject_on_exit {
                 QDialog* dialog;
-                ~reject_on_exit() { dialog->reject(); }
+                ~reject_on_exit() {
+                    if (dialog->isVisible())
+                        dialog->reject();
+                }
             } closer { dialog };
             visited = true;
             inspect(dialog);

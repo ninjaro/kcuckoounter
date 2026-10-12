@@ -2,6 +2,7 @@
 
 #include "table/gameplay_cadence.hpp"
 #include "table/gameplay_generation.hpp"
+#include "table/gameplay_session_checks.hpp"
 
 #include <algorithm>
 #include <utility>
@@ -13,38 +14,6 @@ namespace session_setup {
         return limits.recommended > 0
             && limits.technical_cap >= limits.recommended && count > 0
             && count <= limits.technical_cap;
-    }
-
-    bool valid(
-        const session_configuration& settings, std::size_t count,
-        slot_limits limits
-    ) {
-        if (!valid_slot_limits(limits, count)
-            || (!settings.allow_extra_slots && count > limits.recommended)) {
-            return false;
-        }
-        if (settings.failure != failure_policy::lives
-            && settings.failure != failure_policy::block) {
-            return false;
-        }
-        if (settings.source != quiz_source::physical_joker
-            && settings.source != quiz_source::virtual_interrupt) {
-            return false;
-        }
-        if (settings.scope != quiz_scope::single
-            && settings.scope != quiz_scope::multi) {
-            return false;
-        }
-        if (settings.dealing != dealing_mode::sequential
-            && settings.dealing != dealing_mode::random
-            && settings.dealing != dealing_mode::simultaneous) {
-            return false;
-        }
-        return settings.initial_lives >= 1 && settings.initial_lives <= 12
-            && (settings.failure != failure_policy::lives
-                || settings.global_quiz_pause)
-            && settings.sequential_count >= 1
-            && settings.sequential_count <= count;
     }
 
     bool valid(const deck_configuration& settings) {
@@ -129,11 +98,41 @@ namespace session_setup {
 
 using namespace session_setup;
 
+bool valid_configuration(
+    const session_configuration& settings, std::size_t count, slot_limits limits
+) {
+    if (!valid_slot_limits(limits, count)
+        || (!settings.allow_extra_slots && count > limits.recommended)) {
+        return false;
+    }
+    if (settings.failure != failure_policy::lives
+        && settings.failure != failure_policy::block) {
+        return false;
+    }
+    if (settings.source != quiz_source::physical_joker
+        && settings.source != quiz_source::virtual_interrupt) {
+        return false;
+    }
+    if (settings.scope != quiz_scope::single
+        && settings.scope != quiz_scope::multi) {
+        return false;
+    }
+    if (settings.dealing != dealing_mode::sequential
+        && settings.dealing != dealing_mode::random
+        && settings.dealing != dealing_mode::simultaneous) {
+        return false;
+    }
+    return settings.initial_lives >= 1 && settings.initial_lives <= 12
+        && (settings.failure != failure_policy::lives
+            || settings.global_quiz_pause)
+        && settings.sequential_count >= 1 && settings.sequential_count <= count;
+}
+
 std::optional<session> session::create(
     const session_configuration& configuration,
     const std::vector<deck_configuration>& decks, slot_limits limits
 ) {
-    if (!valid(configuration, decks.size(), limits)
+    if (!valid_configuration(configuration, decks.size(), limits)
         || !std::all_of(decks.begin(), decks.end(), [](const auto& deck) {
                return valid(deck);
            })) {
@@ -177,7 +176,7 @@ bool session::update_slot_limits(slot_limits bounds) {
 
 bool session::configure(const session_configuration& configuration) {
     if (current_phase != session_phase::setup
-        || !valid(configuration, decks.size(), limits)) {
+        || !valid_configuration(configuration, decks.size(), limits)) {
         return false;
     }
     // Source/scope determine both physical cards and schedule ownership.
@@ -300,15 +299,21 @@ bool session::multi_quiz_target_reached(std::size_t target_index) const {
     );
 }
 
-bool session::start(std::uint64_t dealing_seed) {
-    if (current_phase != session_phase::setup
-        || !valid(settings, decks.size(), limits)
+bool session::can_start() const {
+    return !(
+        current_phase != session_phase::setup
+        || !valid_configuration(settings, decks.size(), limits)
         || physical_order.size() != decks.size()
         || (settings.source == quiz_source::virtual_interrupt
             && settings.scope == quiz_scope::multi && !multi_schedule_prepared)
         || std::any_of(decks.begin(), decks.end(), [](const auto& deck) {
                return deck.stream.cards.empty();
-           })) {
+           })
+    );
+}
+
+bool session::start(std::uint64_t dealing_seed) {
+    if (!can_start()) {
         return false;
     }
     random_dealing_state = { .seed = dealing_seed, .next_step = 0 };

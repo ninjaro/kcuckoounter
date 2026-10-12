@@ -40,25 +40,35 @@ using namespace table_test;
 void table_tests::gameplay_controls_numeric_and_chips_data() {
     QTest::addColumn<bool>("chips");
     QTest::addColumn<bool>("stamp");
+    QTest::addColumn<bool>("thin");
     QTest::addColumn<bool>("compact");
     QTest::addColumn<bool>("horizontal");
-    for (const bool chips : { false, true })
-        for (const bool stamp : { false, true })
-            for (const bool compact : { false, true })
-                for (const bool horizontal : { false, true })
-                    QTest::newRow(
-                        qPrintable(QStringLiteral("%1-%2-%3-%4")
-                                       .arg(chips)
-                                       .arg(stamp)
-                                       .arg(compact)
-                                       .arg(horizontal))
-                    ) << chips
-                      << stamp << compact << horizontal;
+    // Frame and feedback choices must not choose a different answer model.
+    for (const bool chips : { false, true }) {
+        for (const bool stamp : { false, true }) {
+            for (const bool thin : { false, true }) {
+                for (const bool compact : { false, true }) {
+                    for (const bool horizontal : { false, true }) {
+                        QTest::newRow(
+                            qPrintable(QStringLiteral("%1-%2-%3-%4-%5")
+                                           .arg(chips)
+                                           .arg(stamp)
+                                           .arg(thin)
+                                           .arg(compact)
+                                           .arg(horizontal))
+                        ) << chips
+                          << stamp << thin << compact << horizontal;
+                    }
+                }
+            }
+        }
+    }
 }
 
 void table_tests::gameplay_controls_numeric_and_chips() {
     QFETCH(bool, chips);
     QFETCH(bool, stamp);
+    QFETCH(bool, thin);
     QFETCH(bool, compact);
     QFETCH(bool, horizontal);
     table view;
@@ -68,7 +78,7 @@ void table_tests::gameplay_controls_numeric_and_chips() {
                    : card_orientation_mode::vertical
     );
     view.set_frame_style(
-        stamp ? slot_frame_style::thin : slot_frame_style::classic
+        thin ? slot_frame_style::thin : slot_frame_style::classic
     );
     view.set_quiz_presentation(
         chips ? quiz_answer_style::chips : quiz_answer_style::numeric,
@@ -144,6 +154,31 @@ void table_tests::gameplay_controls_numeric_and_chips() {
         QCOMPARE(view.gameplay_owner->deck({ 0 })->latest_input, expected + 1);
         minus->click();
         QCOMPARE(view.gameplay_owner->deck({ 0 })->latest_input, expected);
+    }
+    const auto before = *view.gameplay_owner->deck({ 0 });
+    const auto prompt = view.gameplay_quiz_prompt({ 0 });
+    auto* cache = view.shared_raster_cache_service();
+    const auto generation = view.next_shared_generation_id;
+    const auto text = input->text();
+    input->setSelection(1, 3);
+    const auto cursor = input->cursorPosition();
+    const auto selected = input->selectedText();
+    for (const bool use_chips : { !chips, chips }) {
+        view.set_quiz_presentation(
+            use_chips ? quiz_answer_style::chips : quiz_answer_style::numeric,
+            stamp ? quiz_feedback_style::stamp : quiz_feedback_style::classic
+        );
+        QCOMPARE(owned_input(slot), input);
+        QCOMPARE(input->text(), text);
+        QCOMPARE(input->cursorPosition(), cursor);
+        QCOMPARE(input->selectedText(), selected);
+        QCOMPARE(*view.gameplay_owner->deck({ 0 }), before);
+        QCOMPARE(view.gameplay_quiz_prompt({ 0 }), prompt);
+        QCOMPARE(view.shared_raster_cache_service(), cache);
+        QCOMPARE(view.next_shared_generation_id, generation);
+        auto* plus
+            = slot->findChild<QPushButton*>(QStringLiteral("quiz_chip_1"));
+        QCOMPARE(plus->isVisible(), use_chips);
     }
     QSignalSpy legacy_score(&view, &table::score_adjusted);
     QSignalSpy resolved(&view, &table::gameplay_quiz_resolved);
@@ -383,101 +418,6 @@ void table_tests::controls_follow_packing_focus_and_swap() {
     QCOMPARE(QApplication::focusWidget(), focus_target(changed_order.front()));
     QTest::keyClick(focus_target(changed_order.front()), Qt::Key_Tab);
     QCOMPARE(QApplication::focusWidget(), focus_target(changed_order.back()));
-}
-
-void table_tests::corrections_neither_gate_nor_overwrite_controls() {
-    table view;
-    view.resize(1800, 1200);
-    view.show();
-    QVERIFY(view.install_gameplay_session(owned_clock_fixture(
-        4, false, gameplay::dealing_mode::simultaneous,
-        gameplay::quiz_scope::single, { 1, 2, 4 }
-    )));
-    QVERIFY(view.start_gameplay_runtime(35));
-    view.stop_gameplay_clock();
-    std::vector<gameplay::quiz_answer> answers;
-    QVERIFY(view.advance_gameplay_runtime(300, answers));
-    view.publish_gameplay_runtime(answers);
-    auto* slot = view.slot_widgets[0];
-    enter_owned_count(owned_input(slot), QStringLiteral("9"));
-    slot->findChild<QPushButton*>(QStringLiteral("quiz_skip_button"))->click();
-    const auto expected = -(std::int64_t { 1 } << 40) + 1;
-    auto* feedback
-        = slot->findChild<QLabel*>(QStringLiteral("quiz_feedback_label"));
-    QVERIFY(feedback->isVisible());
-    QVERIFY(feedback->text().contains(QString::number(expected)));
-    QCOMPARE(
-        view.gameplay_owner->deck({ 0 })->latest_input, std::int64_t { 9 }
-    );
-    const auto clock = view.gameplay_owner->timing();
-    QVERIFY(view.advance_gameplay_runtime(300, answers));
-    view.publish_gameplay_runtime(answers);
-    // The repeated Single question belongs to the same still-open batch.
-    QCOMPARE(view.gameplay_owner->deck({ 0 })->next_card, std::size_t { 2 });
-    QVERIFY(view.gameplay_owner->timing().play_time_ms > clock.play_time_ms);
-    QCOMPARE(owned_input(slot)->text(), QStringLiteral("9"));
-    auto* previous = slot->findChild<QLabel*>(
-        QStringLiteral("gameplay_previous_correction")
-    );
-    QVERIFY(previous->isVisible());
-    QVERIFY(previous->text().contains(QString::number(expected)));
-    QVERIFY(!view.gameplay_status_text().contains(str_label("Quiz remaining")));
-    const auto before = *view.gameplay_owner->deck({ 0 });
-    // Dismiss is presentation only, never implicit Check/Skip/Continue dealing.
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            slot, "on_quiz_continue_button_clicked", Qt::DirectConnection
-        )
-    );
-    QCOMPARE(*view.gameplay_owner->deck({ 0 }), before);
-    QVERIFY(previous->isHidden());
-    QSignalSpy legacy(&view, &table::score_adjusted);
-    QTest::keyClick(owned_input(slot), Qt::Key_Return); // wrong Training count
-    QVERIFY(feedback->text().contains(QString::number(expected + 1)));
-    QCOMPARE(
-        view.gameplay_owner->deck({ 0 })->statistics.errors, std::uint64_t { 1 }
-    );
-    QCOMPARE(view.gameplay_owner->statistics().errors, std::uint64_t { 0 });
-    QCOMPARE(legacy.count(), 0);
-}
-
-void table_tests::gameplay_controls_compact_correction_stays_nonblocking() {
-    table view;
-    view.resize(180, 120);
-    view.show();
-    QVERIFY(view.install_gameplay_session(owned_clock_fixture(
-        1, true, gameplay::dealing_mode::simultaneous,
-        gameplay::quiz_scope::single, { 1, 3 }
-    )));
-    QVERIFY(view.start_gameplay_runtime(40));
-    view.stop_gameplay_clock();
-    std::vector<gameplay::quiz_answer> answers;
-    QVERIFY(view.advance_gameplay_runtime(300, answers));
-    view.publish_gameplay_runtime(answers);
-    auto* slot = view.slot_widgets[0];
-    slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls"))
-        ->click();
-    auto* host
-        = slot->findChild<QDialog*>(QStringLiteral("slot_controls_dialog"));
-    enter_owned_count(owned_input(slot), QStringLiteral("9"));
-    slot->findChild<QPushButton*>(QStringLiteral("quiz_skip_button"))->click();
-    QVERIFY(host->isVisible());
-    QVERIFY(slot->findChild<QLabel*>(QStringLiteral("quiz_feedback_label"))
-                ->isVisible());
-    QVERIFY(view.advance_gameplay_runtime(300, answers));
-    QVERIFY(view.advance_gameplay_runtime(300, answers));
-    view.publish_gameplay_runtime(answers);
-    QVERIFY(host->isVisible());
-    QCOMPARE(view.gameplay_owner->deck({ 0 })->next_card, std::size_t { 3 });
-    QCOMPARE(owned_input(slot)->text(), QStringLiteral("9"));
-    QVERIFY(
-        slot->findChild<QLabel*>(QStringLiteral("gameplay_previous_correction"))
-            ->isVisible()
-    );
-    host->reject();
-    QCOMPARE(
-        view.gameplay_owner->deck({ 0 })->latest_input, std::int64_t { 9 }
-    );
 }
 
 void table_tests::gameplay_controls_compact_host_and_replacement() {

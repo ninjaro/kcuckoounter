@@ -6,6 +6,7 @@
 #include "table/table.hpp"
 
 #include <KActionCollection>
+#include <KCommandBar>
 #include <KGameClock>
 #include <KGameHighScoreDialog>
 #include <KGameStandardAction>
@@ -171,15 +172,15 @@ void main_window::finalize_platform_shell() {
     if (saved_drills_action != nullptr) {
         game_menu->addAction(saved_drills_action);
     }
+    if (gameplay_retry_action != nullptr)
+        game_menu->addAction(gameplay_retry_action);
     if (highscores_action != nullptr) {
         game_menu->addAction(highscores_action);
     }
     game_menu->addSeparator();
 
-    auto* quit_action = KStandardAction::quit(
-        QCoreApplication::instance(), &QCoreApplication::quit,
-        actionCollection()
-    );
+    auto* quit_action
+        = KStandardAction::quit(this, [this] { close(); }, actionCollection());
     if (quit_action != nullptr) {
         actionCollection()->addAction(QStringLiteral("file_quit"), quit_action);
         game_menu->addAction(quit_action);
@@ -238,6 +239,23 @@ void main_window::finalize_platform_shell() {
     window_menu_bar->addMenu(help_menu->menu());
 
     setCommandBarEnabled(true);
+    // Our menus/toolbars are built manually, not by an XMLGUI factory. Keep
+    // KDE's launcher/default shortcut, but give its native selector the actual
+    // shared actions instead of an unregistered factory's client collections.
+    if (auto* command
+        = actionCollection()->action(QStringLiteral("open_kcommand_bar"))) {
+        QObject::disconnect(command, &QAction::triggered, this, nullptr);
+        connect(command, &QAction::triggered, this, [this] {
+            if (!isCommandBarEnabled())
+                return;
+            auto* bar = new KCommandBar(this);
+            bar->setActions(
+                { { windowTitle(), actionCollection()->actions() } }
+            );
+            bar->show();
+        });
+        help_menu->menu()->addAction(command);
+    }
     actionCollection()->setConfigGroup(QStringLiteral("Shortcuts"));
     preserve_action_shortcut_defaults(actionCollection());
     actionCollection()->readSettings();

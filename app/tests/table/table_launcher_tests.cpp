@@ -27,6 +27,7 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
+#include <QSettings>
 #include <QTabWidget>
 #include <QTimer>
 #include <QtTest/QtTest>
@@ -159,8 +160,8 @@ void table_tests::gameplay_launcher_native_setup_and_roster() {
     QVERIFY(dialog->isVisible());
     QCOMPARE(view->active_gameplay_session(), owner);
     QCOMPARE(load_trainer_preferences(), legacy);
-    QVERIFY(!window.findChild<QAction*>(QStringLiteral("game_saved_drills"))
-                 ->isEnabled());
+    QVERIFY(window.findChild<QAction*>(QStringLiteral("game_saved_drills"))
+                ->isEnabled());
     QVERIFY(launcher_start_action(window)->isEnabled());
 }
 
@@ -232,6 +233,10 @@ void table_tests::gameplay_launcher_start_rejects_drafts_and_budgets() {
     auto* error
         = dialog->findChild<QLabel*>(QStringLiteral("gameplay_setup_error"));
     QVERIFY(error->text().contains(str_label("Apply or close")));
+    QVERIFY(
+        !QSettings(QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter"))
+             .contains(QStringLiteral("gameplay_preferences/document"))
+    );
     auto* panel
         = slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
     panel->findChild<QDialogButtonBox*>()
@@ -247,6 +252,10 @@ void table_tests::gameplay_launcher_start_rejects_drafts_and_budgets() {
     QCOMPARE(*owner->deck({ 0 }), before);
     QVERIFY(!view->gameplay_timer.isActive());
     QVERIFY(error->text().contains(str_label("Preparation failed")));
+    QVERIFY(
+        !QSettings(QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter"))
+             .contains(QStringLiteral("gameplay_preferences/document"))
+    );
     choice.deck_count = 1;
     QVERIFY(owner->configure_deck({ 0 }, choice));
     start->trigger();
@@ -282,6 +291,10 @@ void table_tests::gameplay_launcher_geometry_requires_explicit_consent() {
     QCOMPARE(owner->phase(), gameplay::session_phase::setup);
     QVERIFY(!view->gameplay_timer.isActive());
     QVERIFY(owner->deck({ 0 })->stream.cards.empty());
+    QVERIFY(
+        !QSettings(QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter"))
+             .contains(QStringLiteral("gameplay_preferences/document"))
+    );
     dialog->findChild<QCheckBox*>(QStringLiteral("gameplay_allow_extra_slots"))
         ->setChecked(true);
     QCOMPARE(owner->configuration().allow_extra_slots, true);

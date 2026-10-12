@@ -66,11 +66,11 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          fetch-depth: ${{ needs.select.outputs.scope == 'cheap' && '0' || '1' }}
+          fetch-depth: ${{ needs.select.outputs.scope != 'reuse' && '0' || '1' }}
 
       # Resolve against this job's checkout; selection artifacts are diagnostic.
       - name: Resolve checked-out changes
-        if: ${{ needs.select.outputs.scope == 'cheap' }}
+        if: ${{ needs.select.outputs.scope != 'reuse' }}
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
         with:
           script: |
@@ -79,7 +79,7 @@ jobs:
       - name: Setup manifesto tool
         if: ${{ needs.select.outputs.scope != 'reuse' }}
         id: manifesto
-        uses: ./.github/actions/setup-integrated-toolchain
+        uses: ./.github/actions/setup-manifesto
         with:
           bootstrap: "repository"
           source-path: "."
@@ -87,6 +87,28 @@ jobs:
           manifesto-ref: "b646833b17ff1e5036a6fd8a6d7e75bdb1eb9914"
           build-parallelism: 2
           install-project-deps: ${{ needs.select.outputs.scope == 'full' }}
+
+      - name: Classify checked-out changes
+        if: ${{ needs.select.outputs.scope == 'full' }}
+        id: classification
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+        env:
+          ENGELS_BINARY: ${{ steps.manifesto.outputs.engels-binary }}
+        with:
+          script: |
+            require('./.github/actions/select-manifesto-ci/changes.cjs').classify({core, binary: process.env.ENGELS_BINARY});
+
+      - name: Upload change classification
+        if: ${{ steps.classification.outcome == 'success' }}
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ci-classification-kcuckoounter-checks
+          path: |
+            .ecosystem/github/changes.json
+            .ecosystem/github/classification.json
+          include-hidden-files: true
+          if-no-files-found: error
 
       - name: Run required local checks
         if: ${{ needs.select.outputs.scope != 'reuse' }}
@@ -188,6 +210,7 @@ jobs:
           EVIDENCE_KIND: checks
           VERIFICATION_SCOPE: ${{ needs.select.outputs.scope }}
           TOOL_SOURCE_ROOT: ${{ steps.manifesto.outputs.manifesto-source-root }}
+          ENGELS_BINARY: ${{ steps.manifesto.outputs.engels-binary }}
           CHECK_OUTCOME: ${{ steps.required.outcome }}
           CHECK_STATUS: ${{ steps.required.outputs.status }}
           CHECK_EXIT_CODE: ${{ steps.required.outputs.exit-code }}

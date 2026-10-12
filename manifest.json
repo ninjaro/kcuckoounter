@@ -4,6 +4,20 @@
   "version": "1.0.0",
   "cpp_standard": 20,
   "android_application_id": "org.ninjaro.kcuckoounter",
+  "android": {
+    "name": "Kcuckoounter",
+    "version_code": 1,
+    "min_sdk": 28,
+    "excluded_permissions": [
+      "android.permission.ACCESS_NETWORK_STATE",
+      "android.permission.INTERNET",
+      "android.permission.WRITE_EXTERNAL_STORAGE"
+    ],
+    "allow_backup": false,
+    "full_backup_only": false,
+    "supports_rtl": true,
+    "icon": "assets/brand/logo.svg"
+  },
   "install_assets": true,
   "facade": "trainer_app:app",
   "artifacts": [
@@ -55,12 +69,18 @@
       "name": "kcuckoounter_core",
       "root": "app",
       "owns": [
-        "arch",
-        "card_helpers",
-        "image",
-        "settings",
-        "shell",
-        "table"
+        "include/arch",
+        "src/arch",
+        "include/card_helpers",
+        "src/card_helpers",
+        "include/image",
+        "src/image",
+        "include/settings",
+        "src/settings",
+        "include/shell",
+        "src/shell",
+        "include/table",
+        "src/table"
       ],
       "dependencies": [
         "watchdog_client:client",
@@ -110,7 +130,31 @@
           "ConfigWidgets",
           "WidgetsAddons",
           "KDEGames6"
+        ],
+        "android": [
+          "qt_android"
         ]
+      }
+    },
+    {
+      "id": "trainer_app:tests",
+      "kind": "qt_app",
+      "name": "kcuckoounter_tests",
+      "root": "app",
+      "owns": [
+        "tests"
+      ],
+      "entry": "tests/main_tests.cpp",
+      "dependencies": [
+        "trainer_app:core"
+      ],
+      "packages": {
+        "qt": [
+          "Test"
+        ]
+      },
+      "tests": {
+        "qttest": true
       }
     }
   ]

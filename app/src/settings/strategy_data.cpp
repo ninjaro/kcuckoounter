@@ -552,7 +552,7 @@ const strategy_catalog& strategy_repository() {
     static const strategy_catalog repository = [] {
         strategy_catalog result;
         const QString source_path
-            = bundled_asset_path(QStringLiteral("strategies.json"));
+            = bundled_asset_path(QStringLiteral("sets/strategies.json"));
         if (source_path.isEmpty()) {
             add_diagnostic(
                 &result, QStringLiteral("document"),

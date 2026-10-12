@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "id": "cards_4",
+  "number": 4,
+  "name": "Symbols cardset — laid-out sheet",
+  "generated_at": "2026-10-04T18:26:33.375209Z",
+  "access_mode": "group_sprite",
+  "source": {
+    "title": "File:Symbols cardset.svg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Symbols_cardset.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "description_url": "https://commons.wikimedia.org/wiki/File:Symbols_cardset.svg",
+    "mime": "image/svg+xml",
+    "width": 3120,
+    "height": 1800,
+    "aspect_ratio": {
+      "width": 3120.0,
+      "height": 1800.0,
+      "value": 1.73333333,
+      "fraction": "26:15"
+    },
+    "author": "Dbojan77",
+    "license": {
+      "name": "CC0",
+      "spdx": "CC0-1.0",
+      "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+    },
+    "source": "Own work"
+  },
+  "aspect_ratio": {
+    "width": 3120.0,
+    "height": 1800.0,
+    "value": 1.73333333,
+    "fraction": "26:15"
+  },
+  "status": "Derived Qt-compatible packaging; artwork geometry retained, canonical card IDs added. See curation repairs.",
+  "output": "cards_4.svg",
+  "output_sha256": "1d9df656e4a3919789606b8997e7efaf423642d03a152d66caeea502d10cb141",
+  "output_size": 206258,
+  "description": "Readable minimalist design with letter courts, four backs and alternate jokers.",
+  "authors": [
+    "Dbojan77"
+  ],
+  "licenses": [
+    {
+      "name": "CC0",
+      "spdx": "CC0-1.0",
+      "url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
+    }
+  ],
+  "card_count": 60,
+  "composition": {
+    "graphic_count": 60,
+    "faces": 52,
+    "jokers": 4,
+    "backs": 4,
+    "extra_graphics": {},
+    "standard_52_complete": true,
+    "ranks": [
+      "A",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K"
+    ],
+    "suits": [
+      "clubs",
+      "diamonds",
+      "hearts",
+      "spades"
+    ],
+    "count_basis": "Authored per-card records and visual/XML inspection; graphic count includes backs and extras, not the game deck size."
+  },
+  "source_selection": {
+    "record_type": "Historical import selection; not a regeneration instruction or verified license",
+    "kind": "commons_file",
+    "title": "File:Symbols cardset.svg"
+  },
+  "license_audit": {
+    "reviewed_at": "2026-10-10",
+    "status": "VERIFIED_UPSTREAM_STATEMENT",
+    "notes": "Upstream author/license statement checked on the source page; this is a provenance check, not a project publication approval.",
+    "evidence_urls": [
+      "https://commons.wikimedia.org/wiki/File:Symbols_cardset.svg"
+    ],
+    "redistribution_approved": false,
+    "attribution_requirements": "Upstream CC0 statement has no mandatory attribution; retain source/creator credits."
+  },
+  "curation": {
+    "reviewed_at": "2026-10-10",
+    "classification": "KEEP",
+    "reason": "Readable minimalist design with letter courts, four backs and alternate jokers; repeated definitions deduplicated and all 55 application IDs render.",
+    "developer_review_required": false,
+    "original_sha256": "20e2dacef4f01f0ed088483b7703684dd1d76ca53f52d4e67672fac62eeaf9b1",
+    "repairs": [
+      "Remove 236 byte-identical repeated pip/spade/diamond/club definitions, retaining one of each.",
+      "Name the 52 faces, four backs and four joker alternatives; default back is the heart pattern. Whole-sheet Qt and librsvg pixels are unchanged."
+    ]
+  },
+  "runtime": {
+    "tested_qt": "6.11.2",
+    "svg_valid": true,
+    "active_ids": 55,
+    "default_ids": 0,
+    "placeholder_ids": 0,
+    "blank_application_images": 0,
+    "native_card_theme": true,
+    "notes": "Bundled theme discovery reads the curated cards.json catalog, preserving noncontiguous numeric IDs. Default and optional fallback graphics remain cards_0.svg. Selection does not approve redistribution.",
+    "optional_graphics": {
+      "back": {
+        "source": "active",
+        "source_svg": "cards_4.svg",
+        "element_id": "back",
+        "selected_original_id": "back",
+        "empty_image": false
+      },
+      "joker_black": {
+        "source": "active",
+        "source_svg": "cards_4.svg",
+        "element_id": "joker_black",
+        "selected_original_id": "joker_black",
+        "empty_image": false
+      },
+      "joker_red": {
+        "source": "active",
+        "source_svg": "cards_4.svg",
+        "element_id": "joker_red",
+        "selected_original_id": "joker_red",
+        "empty_image": false
+      }
+    }
+  }
+}

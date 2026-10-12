@@ -6,6 +6,7 @@
 #include "arch/widget_helpers.hpp"
 #include "image/raster_cache.hpp"
 #include "image/rasterization_runner.hpp"
+#include "settings/gameplay_checkpoint.hpp"
 #include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
 #include "table/gameplay_layout.hpp"
@@ -19,6 +20,7 @@
 #include <QVariantAnimation>
 #include <QVector>
 #include <QtGlobal>
+#include <functional>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -33,6 +35,12 @@ Q_MOC_INCLUDE("table/table_slot.hpp")
 class table : public BaseWidget {
     Q_OBJECT
     friend class table_tests;
+    friend class gameplay_start_tests;
+    friend class gameplay_restore_tests;
+    friend class gameplay_completion_tests;
+    friend class gameplay_host_tests;
+    friend class gameplay_mobile_tests;
+    friend class gameplay_reservation;
 
 public:
     explicit table(BaseWidget* parent = nullptr);
@@ -43,6 +51,26 @@ public:
     // must be explicitly cleared first. No gameplay timer/launcher is started.
     [[nodiscard]] bool
     install_gameplay_session(std::unique_ptr<gameplay::session> owner);
+    /// Settle active time before capture; no automatic Pause or settings I/O.
+    /// A replaced/finished scene cannot produce an active checkpoint.
+    [[nodiscard]] std::optional<gameplay_checkpoint>
+    capture_gameplay_checkpoint(
+        const gameplay::generation_policy& resources = {}
+    );
+    /// Preflight current Packing and install one paused, resumable owner.
+    /// Never Start, restore animation history or spend background wall time.
+    [[nodiscard]] bool restore_gameplay_checkpoint(
+        const gameplay_checkpoint& checkpoint,
+        const gameplay::generation_policy& resources = {}
+    );
+    using scene_binding = std::function<void(std::uint64_t)>;
+    /// Bind host metadata after Paused installation, before any publication.
+    /// The callback must not throw, do I/O, publish or mutate the gameplay
+    /// scene.
+    [[nodiscard]] bool restore_gameplay_checkpoint(
+        const gameplay_checkpoint& checkpoint,
+        const gameplay::generation_policy& resources, const scene_binding& bind
+    );
     [[nodiscard]] gameplay::session* active_gameplay_session();
     [[nodiscard]] const gameplay::session* active_gameplay_session() const;
     // Host calls after accepted domain changes. Never repacks or advances play.
@@ -56,6 +84,17 @@ public:
     // Opt-in target runtime, GUI thread only. Installation is not Start.
     // All actions settle the same monotonic clock before domain mutation.
     [[nodiscard]] bool start_gameplay_runtime(std::uint64_t dealing_seed);
+    using start_gate = std::function<bool(const gameplay_checkpoint&)>;
+    /// Admit the exact initial state before clock/publication; rejection leaves
+    /// Setup intact. A successful durable admission is never implicitly undone.
+    [[nodiscard]] bool start_gameplay_runtime(
+        std::uint64_t dealing_seed, const start_gate& admit,
+        const gameplay::generation_policy& resources = {}
+    );
+    /// Ephemeral ownership token, never a persisted completion sequence.
+    [[nodiscard]] std::uint64_t gameplay_scene() const;
+    /// Attached native runtime, including Paused/Finished, not clock activity.
+    [[nodiscard]] bool has_gameplay_runtime() const;
     [[nodiscard]] bool pause_gameplay_runtime();
     [[nodiscard]] bool resume_gameplay_runtime();
     [[nodiscard]] bool finish_gameplay_runtime();
@@ -244,6 +283,12 @@ private:
     void update_layout();
     [[nodiscard]] std::unique_ptr<table_slot> create_slot_widget();
     void destroy_slot_widgets();
+    [[nodiscard]] bool install_gameplay_scene(
+        std::unique_ptr<gameplay::session> owner,
+        const packing::equal_packing_result& packed,
+        std::optional<std::uint64_t> pickup_elapsed = std::nullopt,
+        const scene_binding& bind = {}
+    );
     [[nodiscard]] std::optional<packing::equal_packing_result>
     pack_gameplay_slots(std::size_t count) const;
     void project_gameplay_layout();
@@ -273,6 +318,10 @@ private:
     void update_copy_button_labels(table_slot* selected_slot = nullptr);
     bool all_slots_exhausted() const;
     void handle_game_over();
+    bool gameplay_start_pending = false;
+    // One explicit shell-owned metadata sink. No settings I/O or Qt
+    // publication.
+    std::function<void(const gameplay::session_result&)> gameplay_completion;
 };
 
 Q_DECLARE_METATYPE(gameplay::quiz_answer)

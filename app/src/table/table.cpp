@@ -150,73 +150,6 @@ void table::destroy_slot_widgets() {
     slot_widgets.clear();
 }
 
-bool table::install_gameplay_session(std::unique_ptr<gameplay::session> owner) {
-    if (!owner || owner->size() == 0
-        || owner->size() > gameplay::desktop_slot_technical_cap
-        || (!gameplay_owner
-            && (quiz_running
-                || std::ranges::any_of(slot_widgets, [](const auto* slot) {
-                       return slot->has_cards();
-                   }))))
-        return false;
-    const auto packed = pack_gameplay_slots(owner->size());
-    if (!packed)
-        return false;
-    auto paths = std::make_unique<gameplay::layout_transition>(*owner);
-    if (!paths->repack(*packed))
-        return false;
-    std::vector<rotation_motion> rotations;
-    rotations.reserve(owner->size());
-    for (std::size_t index = 0; index < owner->size(); ++index) {
-        const double angle
-            = paths->deck_motion({ index })->to.rotated ? 0.0 : 90.0;
-        rotations.push_back({ angle, angle });
-    }
-    std::vector<std::unique_ptr<table_slot>> staged;
-    staged.reserve(owner->size());
-    std::vector<table_slot*> next_slots;
-    next_slots.reserve(owner->size());
-    for (std::size_t index = 0; index < owner->size(); ++index) {
-        auto slot = create_slot_widget();
-        slot->hide();
-        if (!slot->bind_gameplay_deck(*this, *owner, { index }))
-            return false;
-        next_slots.push_back(slot.get());
-        staged.push_back(std::move(slot));
-    }
-
-    stop_gameplay_clock();
-    gameplay_layout_animation.stop();
-    gameplay_runtime_attached = false;
-    gameplay_pick_elapsed_ms = 0;
-    gameplay_runtime_failure.clear();
-    gameplay_presented_batch.reset();
-    emit gameplay_session_about_to_change();
-    destroy_slot_widgets();
-    gameplay_layout.reset();
-    gameplay_owner = std::move(owner);
-    ++gameplay_scene_revision;
-    gameplay_layout = std::move(paths);
-    gameplay_layout_progress = 1.0;
-    gameplay_rotation_paths = std::move(rotations);
-    slot_widgets
-        = std::move(next_slots); // already allocated before replacement
-    for (auto& slot : staged)
-        (void)slot.release(); // QObject/table now owns each view
-    quiz_running = false;
-    quiz_paused = false;
-    pick_elapsed_ms = 0;
-    next_slot_index = 0;
-    project_gameplay_layout();
-    if (displayed_shared_faces_key)
-        apply_shared_faces_entry(*displayed_shared_faces_key);
-    schedule_card_preload();
-    update_shared_card_face_need();
-    emit gameplay_session_changed();
-    emit gameplay_layout_changed();
-    return true;
-}
-
 gameplay::session* table::active_gameplay_session() {
     return gameplay_owner.get();
 }
@@ -261,7 +194,7 @@ bool table::swap_gameplay_decks(
 }
 
 void table::clear_gameplay_session() {
-    if (!gameplay_owner)
+    if (gameplay_start_pending || !gameplay_owner)
         return;
     stop_gameplay_clock();
     gameplay_layout_animation.stop();
@@ -271,6 +204,7 @@ void table::clear_gameplay_session() {
     gameplay_presented_batch.reset();
     emit gameplay_session_about_to_change();
     destroy_slot_widgets();
+    gameplay_completion = {};
     gameplay_layout.reset();
     gameplay_rotation_paths.clear();
     gameplay_layout_progress = 1.0;

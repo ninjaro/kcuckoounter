@@ -92,13 +92,25 @@ void main_window::on_continue_button_clicked() {
 }
 
 void main_window::on_new_game_triggered() {
+    if (gameplay_storage_busy)
+        return;
+    const QPointer<main_window> startup_guard(this);
+    if (!gameplay_recovery_checked)
+        (void)recover_gameplay_from_ui();
+    if (!startup_guard)
+        return;
     if (const auto* owner = table_widget->active_gameplay_session()) {
         if (owner->phase() == gameplay::session_phase::running
             || owner->phase() == gameplay::session_phase::paused) {
             on_finish_triggered();
             return;
         }
+        const QPointer<main_window> guard(this);
+        if (!gameplay_retirement_allowed() || !guard)
+            return;
         table_widget->clear_gameplay_session();
+        if (!guard)
+            return;
         table_widget->set_slot_count(table_slots_count->value());
         reset_game_state(true);
         return;
@@ -107,6 +119,8 @@ void main_window::on_new_game_triggered() {
         on_finish_triggered();
         return;
     }
+    if (!gameplay_retirement_allowed())
+        return;
     if (setup_dialog != nullptr) {
 #if defined(Q_OS_ANDROID)
         setup_dialog->setWindowState(Qt::WindowMaximized);
@@ -118,9 +132,15 @@ void main_window::on_new_game_triggered() {
 }
 
 void main_window::on_start_pause_triggered() {
-    if (table_widget == nullptr) {
+    if (table_widget == nullptr || mobile_background) {
         return;
     }
+
+    const QPointer<main_window> guard(this);
+    if (!gameplay_recovery_checked)
+        (void)recover_gameplay_from_ui();
+    if (!guard || gameplay_storage_busy || mobile_background)
+        return;
 
     if (const auto* owner = table_widget->active_gameplay_session()) {
         switch (owner->phase()) {
@@ -128,10 +148,11 @@ void main_window::on_start_pause_triggered() {
             (void)start_gameplay_from_ui();
             break;
         case gameplay::session_phase::running:
-            (void)table_widget->pause_gameplay_runtime();
+            pause_for_dialog();
             break;
         case gameplay::session_phase::paused:
-            (void)table_widget->resume_gameplay_runtime();
+            if (gameplay_storage_ready())
+                (void)table_widget->resume_gameplay_runtime();
             break;
         case gameplay::session_phase::finished:
             break;
@@ -181,6 +202,9 @@ void main_window::on_start_pause_triggered() {
 }
 
 void main_window::on_finish_triggered() {
+    if (gameplay_storage_busy)
+        return;
+    const auto pause_revision = mobile_pause_revision;
     if (const auto* owner = table_widget->active_gameplay_session()) {
         const auto phase = owner->phase();
         if (phase != gameplay::session_phase::running
@@ -212,7 +236,10 @@ void main_window::on_finish_triggered() {
             return; // a modal event loop must not finish a replacement scene
         if (answer == QMessageBox::Yes)
             (void)table_widget->finish_gameplay_runtime();
-        else if (was_running)
+        else if (
+            was_running && !mobile_background
+            && pause_revision == mobile_pause_revision
+        )
             (void)table_widget->resume_gameplay_runtime();
         return;
     }
@@ -236,7 +263,8 @@ void main_window::on_finish_triggered() {
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No
     );
     if (answer != QMessageBox::Yes) {
-        if (restore_running_quiz) {
+        if (restore_running_quiz && !mobile_background
+            && pause_revision == mobile_pause_revision) {
             table_widget->set_paused(false);
             quiz_paused = false;
             if (start_pause_action != nullptr) {
@@ -255,6 +283,8 @@ void main_window::on_finish_triggered() {
 }
 
 void main_window::start_quiz_from_ui() {
+    if (mobile_background)
+        return;
     if (table_widget && table_widget->active_gameplay_session())
         return;
     if (table_widget == nullptr || quiz_started) {
@@ -449,9 +479,12 @@ void main_window::on_settings_dialog_finished(int result) {
 
 void main_window::pause_for_dialog() {
     if (table_widget && table_widget->active_gameplay_session()) {
+        const QPointer<main_window> guard(this);
         if (table_widget->active_gameplay_session()->phase()
             == gameplay::session_phase::running)
             (void)table_widget->pause_gameplay_runtime();
+        if (guard)
+            (void)save_gameplay_from_ui();
         return;
     }
     if (table_widget == nullptr || !quiz_started || quiz_paused) {

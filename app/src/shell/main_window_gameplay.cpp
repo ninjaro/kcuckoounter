@@ -9,12 +9,15 @@
 #include "arch/android_ui.hpp"
 #include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
+#include "settings/gameplay_drill.hpp"
+#include "settings/gameplay_preferences.hpp"
 #include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
 #include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
+#include "shell/gameplay_reservation.hpp"
 
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -22,6 +25,7 @@
 #include <QPointer>
 #include <QRandomGenerator>
 #include <QScrollArea>
+#include <QSettings>
 #include <QSignalBlocker>
 #include <QTimer>
 
@@ -118,9 +122,13 @@ void main_window::open_gameplay_setup_dialog() {
         gameplay_setup_layout = new QVBoxLayout(content);
         auto* notice = new QLabel(
             str_label(
-                "This new-model session is not saved or recovered yet. "
-                "Existing drills "
-                "and legacy data are unchanged. Configure each deck using "
+                "Start saves global defaults and reserves this session for "
+                "recovery. Pause and normal close save its continuation; "
+                "recovery always opens Paused. "
+                "Saved drills store named configuration, not progress. "
+                "Finish and natural endings save separate verified results. "
+                "Legacy data is unchanged. "
+                "Configure each deck using "
                 "Details on "
                 "the table, then Start. Closing this form keeps accepted "
                 "settings."
@@ -153,6 +161,15 @@ void main_window::open_gameplay_setup_dialog() {
         scroll->setWidget(content);
         layout->addWidget(scroll);
         auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, dialog);
+        auto* drills = buttons->addButton(
+            str_label("Saved drills…"), QDialogButtonBox::ActionRole
+        );
+        drills->setObjectName(QStringLiteral("gameplay_saved_drills"));
+        drills->setAutoDefault(false);
+        connect(
+            drills, &QPushButton::clicked, this,
+            &main_window::on_saved_drills_triggered
+        );
         auto* proceed = buttons->addButton(
             str_label("Continue"), QDialogButtonBox::AcceptRole
         );
@@ -181,24 +198,42 @@ void main_window::open_gameplay_setup_dialog() {
 }
 
 void main_window::report_gameplay_error(const QString& message) {
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     if (table_widget->active_gameplay_session()) {
+        const QPointer<main_window> guard(this);
         open_gameplay_setup_dialog();
-        gameplay_setup_error->setText(message);
-    } else if (status_label) {
+        if (guard && gameplay_setup_error)
+            gameplay_setup_error->setText(message);
+        return;
+    }
+#endif
+    if (status_label) {
         status_label->setText(message);
     }
 }
 
 void main_window::refresh_gameplay_actions() {
     const auto* owner = table_widget->active_gameplay_session();
+    const bool retained = gameplay_binding && gameplay_binding->sequence()
+        && !gameplay_binding->acknowledged();
+    if (gameplay_retry_action) {
+        gameplay_retry_action->setEnabled(
+            !gameplay_storage_busy && !gameplay_storage_error.isEmpty()
+        );
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+        gameplay_retry_action->setVisible(!gameplay_storage_error.isEmpty());
+#endif
+    }
     if (new_gameplay_action)
         new_gameplay_action->setEnabled(
-            owner ? owner->phase() == gameplay::session_phase::setup
-                    || owner->phase() == gameplay::session_phase::finished
-                  : !quiz_started
+            !gameplay_storage_busy && !retained
+            && (!gameplay_recovery_checked || gameplay_recovery_ready)
+            && (owner ? owner->phase() == gameplay::session_phase::setup
+                        || owner->phase() == gameplay::session_phase::finished
+                      : !quiz_started)
         );
     if (saved_drills_action)
-        saved_drills_action->setEnabled(!owner);
+        saved_drills_action->setEnabled(!gameplay_storage_busy);
     if (highscores_action)
         highscores_action->setEnabled(!owner);
     if (!owner)
@@ -215,10 +250,16 @@ void main_window::refresh_gameplay_actions() {
     } else {
         update_start_pause_action(phase == gameplay::session_phase::paused);
     }
-    start_pause_action->setEnabled(phase != gameplay::session_phase::finished);
+    start_pause_action->setEnabled(
+        !gameplay_storage_busy
+        && (!gameplay_recovery_checked || gameplay_recovery_ready)
+        && (phase != gameplay::session_phase::setup || !retained)
+        && phase != gameplay::session_phase::finished
+    );
     finish_action->setEnabled(
-        phase == gameplay::session_phase::running
-        || phase == gameplay::session_phase::paused
+        !gameplay_storage_busy
+        && (phase == gameplay::session_phase::running
+            || phase == gameplay::session_phase::paused)
     );
     if (gameplay_setup_dialog && gameplay_setup_dialog->isVisible())
         refresh_gameplay_setup();
@@ -228,6 +269,10 @@ void main_window::on_new_gameplay_triggered() {
 #if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     return;
 #else
+    const QPointer<main_window> guard(this);
+    if (!gameplay_storage_ready() || !guard || !gameplay_retirement_allowed()
+        || !guard)
+        return;
     auto* current = table_widget->active_gameplay_session();
     if ((!current && quiz_started)
         || (current
@@ -261,16 +306,33 @@ void main_window::on_new_gameplay_triggered() {
                         (void)next->set_show_count({ id }, true);
             }
         } else {
-            const auto count = std::min(
-                std::size_t { 4 }, recommendation->bounds.recommended
+            QSettings storage(
+                QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
             );
+            gameplay_preferences_service defaults_service(
+                storage, recommendation->bounds
+            );
+            QString error;
+            const auto defaults = defaults_service.load(&error);
+            if (!defaults) {
+                report_gameplay_error(error);
+                return;
+            }
+            const auto count = defaults->slot_count;
+            auto bounds = recommendation->bounds;
+            // Keep saved M/N even on a smaller window. Setup immediately
+            // refreshes actual bounds and Start still requires explicit
+            // consent.
+            bounds.recommended = std::max(count, bounds.recommended);
             next = gameplay::create_fresh_session(
-                strategy_repository(), {},
+                strategy_repository(), defaults->configuration,
                 std::vector<gameplay::deck_configuration>(
                     count, { "hi_lo", 1, false, false }
                 ),
-                recommendation->bounds
+                bounds
             );
+            if (next)
+                (void)next->set_pick_interval_ms(defaults->pickup_interval_ms);
         }
         if (!next
             || !table_widget->install_gameplay_session(
@@ -291,7 +353,46 @@ void main_window::on_new_gameplay_triggered() {
 #endif
 }
 
+bool main_window::load_gameplay_drill(const gameplay_drill& drill) {
+    const QPointer<main_window> guard(this);
+    if (!gameplay_storage_ready() || !guard || !gameplay_retirement_allowed()
+        || !guard)
+        return false;
+    const auto* owner = table_widget->active_gameplay_session();
+    if ((!owner && quiz_started)
+        || (owner && owner->phase() != gameplay::session_phase::setup
+            && owner->phase() != gameplay::session_phase::finished))
+        return false;
+    const auto recommendation = gameplay::recommend_slots(
+        { static_cast<double>(table_widget->width()),
+          static_cast<double>(table_widget->height()) },
+        gameplay_card_extent(), gameplay_orientation(*table_widget)
+    );
+    if (!recommendation)
+        return false;
+    auto next = create_drill_session(
+        drill, strategy_repository(), recommendation->bounds
+    );
+    if (!next
+        || !table_widget->install_gameplay_session(
+            std::make_unique<gameplay::session>(std::move(*next))
+        ))
+        return false;
+    if (setup_dialog)
+        setup_dialog->hide();
+    open_gameplay_setup_dialog();
+    if (gameplay_setup_error)
+        gameplay_setup_error->clear();
+    return true;
+}
+
 void main_window::on_gameplay_roster_changed(int count) {
+    const QPointer<main_window> guard(this);
+    if (!gameplay_retirement_allowed()) {
+        if (guard)
+            refresh_gameplay_setup();
+        return;
+    }
     auto* current = table_widget->active_gameplay_session();
     if (!current || current->phase() != gameplay::session_phase::setup
         || count < 1 || static_cast<std::size_t>(count) == current->size()) {
@@ -322,11 +423,17 @@ void main_window::on_gameplay_roster_changed(int count) {
 }
 
 bool main_window::start_gameplay_from_ui() {
+    if (mobile_background)
+        return false;
     const QPointer<main_window> guard(this);
+    if (!gameplay_storage_ready() || !guard || !gameplay_retirement_allowed()
+        || !guard)
+        return false;
     if (gameplay_slot_count)
         gameplay_slot_count->interpretText();
     if (!guard)
         return false;
+    const auto scene = table_widget->gameplay_scene();
     auto* owner = table_widget->active_gameplay_session();
     if (!owner || owner->phase() != gameplay::session_phase::setup)
         return false;
@@ -353,6 +460,17 @@ bool main_window::start_gameplay_from_ui() {
         );
         return false;
     }
+    QSettings storage(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    gameplay_preferences_service defaults_service(
+        storage, owner->slot_constraints()
+    );
+    QString error;
+    if (!defaults_service.load(&error)) {
+        report_gameplay_error(error);
+        return false;
+    }
     if (!gameplay::prepare_generated_session(
             *owner, strategy_repository(),
             QRandomGenerator::global()->generate64()
@@ -363,22 +481,28 @@ bool main_window::start_gameplay_from_ui() {
         ));
         return false;
     }
+    if (!defaults_service.save(
+            { owner->size(), owner->configuration(),
+              owner->pick_interval_ms() },
+            &error
+        )) {
+        report_gameplay_error(error);
+        return false; // Do not start or overwrite unreadable/future defaults.
+    }
     table_widget->refresh_gameplay_session();
-    const bool started = table_widget->start_gameplay_runtime(
-        QRandomGenerator::global()->generate64()
-    );
+    if (!guard || table_widget->gameplay_scene() != scene)
+        return false;
+    const bool started
+        = reserve_gameplay_from_ui(QRandomGenerator::global()->generate64());
     if (!guard)
         return false;
     if (!started) {
-        report_gameplay_error(str_label(
-            "The prepared session could not start. Check its setup and slot "
-            "consent."
-        ));
         return false;
     }
     refresh_gameplay_setup();
-    gameplay_setup_error->clear();
-    if (gameplay_setup_dialog)
+    if (gameplay_setup_error && gameplay_storage_error.isEmpty())
+        gameplay_setup_error->clear();
+    if (gameplay_setup_dialog && gameplay_storage_error.isEmpty())
         gameplay_setup_dialog->hide();
     return true;
 }

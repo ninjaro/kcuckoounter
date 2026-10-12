@@ -63,6 +63,7 @@ load_desktop_ui_preferences(QSettings& settings);
 save_desktop_ui_preferences(const desktop_ui_preferences& preferences);
 
 struct trainer_preferences {
+    // Legacy launcher/v1 data bounds, not the new gameplay slot policy.
     static constexpr int minimum_slot_count = 1;
     static constexpr int maximum_slot_count = 16;
     static constexpr int minimum_pickup_interval_ms = 100;
@@ -108,6 +109,7 @@ struct training_drill {
 
 // Storage validation does not resolve strategy identity: an unavailable drill
 // remains visible/renameable/removable, but must pass this preflight to launch.
+[[nodiscard]] bool valid_legacy_drill(const training_drill& drill);
 [[nodiscard]] bool is_drill_configuration_supported(
     const training_drill& drill, const strategy_catalog& catalog
 );

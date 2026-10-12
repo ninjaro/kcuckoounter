@@ -89,6 +89,16 @@ private slots:
     void non_global_quizzes_overlap_without_double_counting();
     void timeout_clips_elapsed_and_excludes_stopped_decks();
     void timing_overflow_rejects_the_whole_slice_atomically();
+    void checkpoint_active_phases_restore_paused();
+    void checkpoint_zero_lives_keeps_pending_answers();
+    void checkpoint_repacking_preserves_slots_and_anchor();
+    void checkpoint_finite_policies_continue_identically();
+    void checkpoint_mixed_streams_continue_across_pages();
+    void checkpoint_preserves_custom_preparation();
+    void checkpoint_rejects_invalid_identity_and_streams();
+    void checkpoint_rejects_invalid_accounting_and_quizzes();
+    void checkpoint_budgets_include_all_buffers();
+    void checkpoint_preserves_arithmetic_limit_behavior();
 };
 
 #endif // KCUCKOOUNTER_TESTS_GAMEPLAY_SESSION_TESTS_HPP

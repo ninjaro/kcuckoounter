@@ -1,0 +1,163 @@
+{
+  "schema": 1,
+  "generated_at": "2026-10-06T20:48:00.417700Z",
+  "reserved": "cards_0.svg",
+  "sets": [
+    {
+      "id": "cards_0",
+      "name": "David Bellot SVG Cards 2.0 (reserved existing set)",
+      "json": "cards_0.json",
+      "status": "ok",
+      "svg": "cards_0.svg",
+      "access_mode": "existing",
+      "card_count": 55,
+      "classification": "REVIEW",
+      "license_status": "CONFLICT"
+    },
+    {
+      "id": "cards_4",
+      "name": "Symbols cardset — laid-out sheet",
+      "json": "cards_4.json",
+      "status": "ok",
+      "svg": "cards_4.svg",
+      "access_mode": "group_sprite",
+      "aspect_ratio": {
+        "width": 3120.0,
+        "height": 1800.0,
+        "value": 1.73333333,
+        "fraction": "26:15"
+      },
+      "card_count": 60,
+      "classification": "KEEP",
+      "license_status": "VERIFIED_UPSTREAM_STATEMENT"
+    },
+    {
+      "id": "cards_9",
+      "name": "Block52 playing cards",
+      "json": "cards_9.json",
+      "status": "ok",
+      "svg": "cards_9.svg",
+      "access_mode": "group_sprite",
+      "card_count": 55,
+      "aspect_ratio": {
+        "width": 1000.0,
+        "height": 1464.0,
+        "value": 0.68306011,
+        "fraction": "125:183",
+        "view_box": "0 0 1000 1464",
+        "outline": true,
+        "outline_color": "#111111",
+        "outline_width": 2.0
+      },
+      "classification": "REVIEW",
+      "license_status": "UNKNOWN"
+    },
+    {
+      "id": "cards_11",
+      "name": "Noto Sans Symbols2 playing cards",
+      "json": "cards_11.json",
+      "status": "ok",
+      "svg": "cards_11.svg",
+      "access_mode": "group_sprite",
+      "card_count": 82,
+      "aspect_ratio": {
+        "width": 1000.0,
+        "height": 1334.0,
+        "value": 0.74962519,
+        "fraction": "500:667",
+        "view_box": "0 0 1000 1334",
+        "outline": true,
+        "outline_color": "#111111",
+        "outline_width": 2.0
+      },
+      "classification": "REVIEW",
+      "license_status": "PARTIAL_NOT_VERIFIED"
+    },
+    {
+      "id": "cards_23",
+      "name": "Atlasnye — keyed sprite",
+      "json": "cards_23.json",
+      "status": "ok",
+      "svg": "cards_23.svg",
+      "access_mode": "group_sprite",
+      "card_count": 56,
+      "aspect_ratio": {
+        "width": 1000.0,
+        "height": 1500.0,
+        "value": 0.66666667,
+        "fraction": "2:3",
+        "view_box": "0 0 1000 1500",
+        "outline": true,
+        "outline_color": "#111111",
+        "outline_width": 2.0
+      },
+      "classification": "REVIEW",
+      "license_status": "PARTIAL_NOT_VERIFIED"
+    },
+    {
+      "id": "cards_28",
+      "name": "OpenClipart white playing cards",
+      "json": "cards_28.json",
+      "status": "ok",
+      "svg": "cards_28.svg",
+      "access_mode": "group_sprite",
+      "card_count": 54,
+      "aspect_ratio": {
+        "width": 1000.0,
+        "height": 1357.0,
+        "value": 0.73691968,
+        "fraction": "507:688",
+        "view_box": "0 0 1000 1357",
+        "outline": true,
+        "outline_color": "#111111",
+        "outline_width": 2.0
+      },
+      "classification": "REVIEW",
+      "license_status": "PARTIAL_NOT_VERIFIED"
+    },
+    {
+      "id": "cards_40",
+      "name": "OpenGameArt classic 4-color poker deck",
+      "json": "cards_40.json",
+      "status": "ok",
+      "svg": "cards_40.svg",
+      "access_mode": "group_sprite",
+      "card_count": 52,
+      "aspect_ratio": {
+        "width": 1000.0,
+        "height": 1392.0,
+        "value": 0.7183908,
+        "fraction": "125:174",
+        "view_box": "0 0 1000 1392",
+        "outline": true,
+        "outline_color": "#111111",
+        "outline_width": 2.0
+      },
+      "classification": "KEEP",
+      "license_status": "VERIFIED_UPSTREAM_STATEMENT"
+    },
+    {
+      "id": "cards_42",
+      "name": "GreyWyvern animal playing cards",
+      "json": "cards_42.json",
+      "status": "ok",
+      "svg": "cards_42.svg",
+      "access_mode": "group_sprite",
+      "card_count": 67,
+      "aspect_ratio": {
+        "width": 1000.0,
+        "height": 1500.0,
+        "value": 0.66666667,
+        "fraction": "2:3",
+        "view_box": "0 0 1000 1500",
+        "outline": true,
+        "outline_color": "#111111",
+        "outline_width": 2.0
+      },
+      "classification": "REVIEW",
+      "license_status": "PARTIAL_NOT_VERIFIED"
+    }
+  ],
+  "curated_at": "2026-10-10",
+  "description": "Curated bundled runtime theme catalog. Status ok means files exist, not public redistribution approval. Consult per-set curation and license_audit."
+}

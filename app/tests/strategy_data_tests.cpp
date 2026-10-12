@@ -11,8 +11,10 @@
 #include <QJsonObject>
 #include <QtTest/QtTest>
 
+#include <array>
 #include <limits>
 #include <numeric>
+#include <utility>
 
 namespace {
 
@@ -239,6 +241,8 @@ void strategy_data_tests::parser_rejects_unsupported_initial_count_formulas() {
              "4 / decks",
              "4 - 4 * decks",
              "-2 * decks (note)",
+             "-2 * decks (common presentation for shoe games)",
+             "-4 * decks (project policy)",
              "1e3",
              "NaN",
              "decks; run()",
@@ -298,9 +302,28 @@ void strategy_data_tests::
         QCOMPARE(strategy.ace_neutral, strategy.weights[0] == 0);
         if (strategy.initial_count) {
             ++defined_formulas;
+            QCOMPARE(strategy.id, 12);
             QCOMPARE(strategy.slug, QStringLiteral("uston_ss"));
+            QCOMPARE(
+                strategy.unique_fields.value(
+                    QStringLiteral("initial_running_count_formula")
+                ),
+                QStringLiteral("-4 * decks")
+            );
             QCOMPARE(strategy.initial_count->value, -4);
             QVERIFY(strategy.initial_count->per_deck);
+            int full_deck_tag_sum = 0;
+            for (int face = 0; face < 52; ++face) {
+                full_deck_tag_sum += strategy.weights[face % 13];
+            }
+            QCOMPARE(full_deck_tag_sum, 4);
+            for (const auto& [decks, expected] :
+                 std::array<std::pair<std::size_t, std::int64_t>, 4> {
+                     { { 1, -4 }, { 2, -8 }, { 6, -24 }, { 8, -32 } } }) {
+                const auto starting = strategy.initial_running_count_for(decks);
+                QVERIFY(starting);
+                QCOMPARE(*starting, expected);
+            }
             for (const std::size_t decks : { 1U, 2U, 4U, 6U, 8U, 16U }) {
                 const auto starting = strategy.initial_running_count_for(decks);
                 QVERIFY(starting == -4 * static_cast<std::int64_t>(decks));

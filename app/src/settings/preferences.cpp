@@ -379,6 +379,10 @@ read_current_preferences(QSettings& settings, const strategy_catalog& catalog) {
 
 } // namespace
 
+bool valid_legacy_drill(const training_drill& drill) {
+    return valid_drill(drill);
+}
+
 bool is_drill_configuration_supported(
     const training_drill& drill, const strategy_catalog& catalog
 ) {

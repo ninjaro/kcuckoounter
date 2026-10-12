@@ -13,6 +13,15 @@
 // Target gameplay domain, independent of widgets and legacy persistence.
 namespace gameplay {
 
+struct session_checkpoint;
+struct generation_policy;
+
+// Shared setup/storage validation; geometry policy supplies the slot bounds.
+[[nodiscard]] bool valid_configuration(
+    const session_configuration& configuration, std::size_t count,
+    slot_limits limits
+);
+
 class session {
 public:
     // IDs are zero-based, session-local creation identities, NOT widget IDs.
@@ -125,8 +134,20 @@ public:
     [[nodiscard]] bool set_pick_interval_ms(int interval);
 
 private:
+    friend std::optional<session_checkpoint>
+    capture_checkpoint(const session&, const generation_policy&);
+    friend std::optional<session_checkpoint>
+    capture_start(const session&, std::uint64_t, const generation_policy&);
+    friend std::optional<session> restore_checkpoint(
+        const session_checkpoint&, slot_limits, std::span<const std::size_t>,
+        const generation_policy&
+    );
+
     struct quiz_transition;
     struct progress_transition;
+    [[nodiscard]] bool can_start() const;
+    [[nodiscard]] std::optional<session_checkpoint>
+    snapshot_checkpoint(const generation_policy&) const;
     // Consume the one checked numeric projection, never duplicate penalty or
     // terminal-status logic in scheduling and never copy shoes here.
     [[nodiscard]] std::optional<quiz_transition> plan_quizzes(

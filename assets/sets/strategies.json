@@ -675,7 +675,7 @@
         }
       ],
       "unique_fields": {
-        "initial_running_count_formula": "-2 * decks (common presentation for shoe games)"
+        "initial_running_count_formula": "-4 * decks"
       }
     },
     {

@@ -28,7 +28,7 @@ private:
 
 void asset_locator_tests::bundled_assets_resolve_from_unrelated_directory() {
     const QString expected
-        = bundled_asset_path(QStringLiteral("strategies.json"));
+        = bundled_asset_path(QStringLiteral("sets/strategies.json"));
     QVERIFY2(!expected.isEmpty(), "bundled strategy data was not staged");
 
     QTemporaryDir unrelated_directory;
@@ -37,7 +37,7 @@ void asset_locator_tests::bundled_assets_resolve_from_unrelated_directory() {
     QVERIFY(QDir::setCurrent(unrelated_directory.path()));
 
     const QString actual
-        = bundled_asset_path(QStringLiteral("strategies.json"));
+        = bundled_asset_path(QStringLiteral("sets/strategies.json"));
     QCOMPARE(actual, expected);
     const QFileInfo asset_info(actual);
     QVERIFY(actual.startsWith(QStringLiteral(":/")) || asset_info.isAbsolute());

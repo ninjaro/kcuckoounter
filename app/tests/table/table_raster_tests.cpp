@@ -2,6 +2,7 @@
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
 
+#include "arch/asset_locator.hpp"
 #include "table/table_tests.hpp"
 
 #include "card_helpers/card_sheet.hpp"
@@ -86,7 +87,7 @@ void table_tests::shared_cache_generation_cutover_stays_bounded() {
         ~source_restore_guard() { set_card_sheet_source_path(source); }
     } guard { card_sheet_source_path() };
 
-    set_card_sheet_source_path(str_label("assets/cards_0.svg"));
+    set_card_sheet_source_path(bundled_asset_path(QStringLiteral("sets/cards/cards_0.svg")));
 
     table table_widget;
     table_widget.resize(900, 700);
@@ -101,11 +102,11 @@ void table_tests::shared_cache_generation_cutover_stays_bounded() {
     QVERIFY(invoked);
     QTRY_VERIFY_WITH_TIMEOUT(table_widget.is_rasterization_busy(), 4000);
 
-    set_card_sheet_source_path(str_label("assets/cards_1.svg"));
+    set_card_sheet_source_path(bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg")));
     table_widget.apply_theme();
-    set_card_sheet_source_path(str_label("assets/cards_2.svg"));
+    set_card_sheet_source_path(bundled_asset_path(QStringLiteral("sets/cards/cards_40.svg")));
     table_widget.apply_theme();
-    set_card_sheet_source_path(str_label("assets/cards_0.svg"));
+    set_card_sheet_source_path(bundled_asset_path(QStringLiteral("sets/cards/cards_0.svg")));
     table_widget.apply_theme();
 
     QTRY_VERIFY_WITH_TIMEOUT(!table_widget.is_rasterization_busy(), 15000);
@@ -123,7 +124,7 @@ void table_tests::shared_generation_cutover_keeps_single_visible_generation() {
         ~source_restore_guard() { set_card_sheet_source_path(source); }
     } guard { card_sheet_source_path() };
 
-    set_card_sheet_source_path(str_label("assets/cards_0.svg"));
+    set_card_sheet_source_path(bundled_asset_path(QStringLiteral("sets/cards/cards_0.svg")));
 
     table table_widget;
     table_widget.resize(900, 700);
@@ -139,7 +140,7 @@ void table_tests::shared_generation_cutover_keeps_single_visible_generation() {
     QTRY_VERIFY_WITH_TIMEOUT(table_widget.is_rasterization_busy(), 4000);
     QTRY_VERIFY_WITH_TIMEOUT(!table_widget.is_rasterization_busy(), 10000);
 
-    set_card_sheet_source_path(str_label("assets/cards_1.svg"));
+    set_card_sheet_source_path(bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg")));
     table_widget.apply_theme();
     QTRY_VERIFY_WITH_TIMEOUT(table_widget.is_rasterization_busy(), 4000);
     QTRY_VERIFY_WITH_TIMEOUT(!table_widget.is_rasterization_busy(), 10000);
@@ -169,7 +170,7 @@ void table_tests::theme_apply_clears_stale_worker_state() {
         ~source_restore_guard() { set_card_sheet_source_path(source); }
     } guard { card_sheet_source_path() };
 
-    set_card_sheet_source_path(str_label("assets/cards_0.svg"));
+    set_card_sheet_source_path(bundled_asset_path(QStringLiteral("sets/cards/cards_0.svg")));
 
     table table_widget;
     table_widget.resize(900, 700);
@@ -184,7 +185,7 @@ void table_tests::theme_apply_clears_stale_worker_state() {
     QVERIFY(invoked);
     QTRY_VERIFY_WITH_TIMEOUT(table_widget.is_rasterization_busy(), 4000);
 
-    set_card_sheet_source_path(str_label("assets/cards_1.svg"));
+    set_card_sheet_source_path(bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg")));
     table_widget.apply_theme();
 
     QTest::qWait(50);
@@ -200,7 +201,7 @@ void table_tests::theme_and_resize_transitions_are_non_blocking() {
         ~source_restore_guard() { set_card_sheet_source_path(source); }
     } guard { card_sheet_source_path() };
 
-    set_card_sheet_source_path(str_label("assets/cards_0.svg"));
+    set_card_sheet_source_path(bundled_asset_path(QStringLiteral("sets/cards/cards_0.svg")));
 
     table table_widget;
     table_widget.resize(920, 720);
@@ -215,7 +216,7 @@ void table_tests::theme_and_resize_transitions_are_non_blocking() {
     QVERIFY(invoked);
     QTRY_VERIFY_WITH_TIMEOUT(table_widget.is_rasterization_busy(), 4000);
 
-    set_card_sheet_source_path(str_label("assets/cards_2.svg"));
+    set_card_sheet_source_path(bundled_asset_path(QStringLiteral("sets/cards/cards_40.svg")));
     QElapsedTimer theme_timer;
     theme_timer.start();
     table_widget.apply_theme();

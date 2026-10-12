@@ -1,0 +1,1822 @@
+{
+  "schema": 1,
+  "id": "cards_42",
+  "number": 42,
+  "name": "GreyWyvern animal playing cards",
+  "generated_at": "2026-10-05T11:41:55.472692Z",
+  "access_mode": "group_sprite",
+  "source": {
+    "repository": "AntumDeluge/GreyWyvern-Cardset",
+    "url": "https://github.com/AntumDeluge/GreyWyvern-Cardset",
+    "branch": "master",
+    "commit_sha": "3f47c86916c81b66652c897f1ed6f0678ff1d2bb",
+    "archive_sha256": "8dad87f44a43dae8cd27e7068926451a598bc5542ca3889b5c3353af1cd4d0cc"
+  },
+  "authors": [
+    "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge"
+  ],
+  "licenses": [
+    {
+      "name": "CC0-1.0",
+      "spdx": "CC0-1.0",
+      "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  ],
+  "status": "Derived Qt-compatible packaging; artwork geometry retained, canonical card IDs added. See curation repairs.",
+  "output": "cards_42.svg",
+  "output_sha256": "a2e2643aeef165af31020b4ad24f49c9ce427d3c2d4e3eea47cf4b538ced7655",
+  "output_size": 22750578,
+  "card_count": 67,
+  "frame": {
+    "width": 1000.0,
+    "height": 1500.0,
+    "value": 0.66666667,
+    "fraction": "2:3",
+    "view_box": "0 0 1000 1500",
+    "outline": true,
+    "outline_color": "#111111",
+    "outline_width": 2.0
+  },
+  "preview": {
+    "columns": 13,
+    "rows": 6,
+    "gap": 25,
+    "view_box": "0 0 13300 9125"
+  },
+  "cards": [
+    {
+      "key": "back_1",
+      "source_file": "source/SVG/back1.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back1.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back1.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "1b08badca3bf4ff257bd6c7f85dc8ba979f291b677097da75729be6356ca48f8",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_2",
+      "source_file": "source/SVG/back2.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back2.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back2.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "85083ba04dd7363927b9d9885e05e1fa129b2e923c78671ea31dd66c6fffa32b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_3",
+      "source_file": "source/SVG/back3.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back3.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back3.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "2e50bfe6e4712475f4d5f03492bedf6681934d864d9116900a9cffedb0a8c0da",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_4",
+      "source_file": "source/SVG/back4.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back4.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back4.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "f41baa65161e64440805f1fafdd2ef07a59e344d5be2d2d0a9c7a209d41591b0",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_5",
+      "source_file": "source/SVG/back5.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back5.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back5.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "bdba52946ce4d2fab7e90b3f59c414828929c050af1042ba1ef61252f32fdb52",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_6",
+      "source_file": "source/SVG/back6.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back6.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back6.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "6748f2a852bcbbaa522e8ff3c9ab1dc4455e33fd276a675a45df49f0d79a2873",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_7",
+      "source_file": "source/SVG/back7.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back7.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back7.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "014622b2f7ed3f3f5b9deecaa750771df6422e776aa81cd00d99de5520040477",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_8",
+      "source_file": "source/SVG/back8.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back8.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back8.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "3ad129bfe4cb57ea2d496109a68424555cd30a956158615178f62f972c205a3b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_9",
+      "source_file": "source/SVG/back9.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back9.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/back9.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "51e34e9fac824aaabed504637d3928273fd7cdbebae17977e9a8539c64c21917",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_a",
+      "source_file": "source/SVG/backa.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/backa.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/backa.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "b60e050be3bc3ec8f76b1d5420089f722408593fac81471590a008cb4bee391e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_b",
+      "source_file": "source/SVG/backb.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/backb.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/backb.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "b2dde64304ea4fa5c1b055755d3329b4cd85b24675bd1b5cb82a7b60dadea1d3",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_c",
+      "source_file": "source/SVG/backc.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/backc.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/backc.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "de8c1daf2e50098a8e06da299d7ecd0fb654d6aa82e91f9e700e2178f2519c40",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "back_d",
+      "source_file": "source/SVG/backd.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/backd.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/backd.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "d1627c7275a5f3d4e20df311511d2947974313e26e12257e51e8152be82dd1a9",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_a",
+      "source_file": "source/SVG/C01.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C01.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C01.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "6e0748453089a1f968e77b82d0de330eae0c229eb2ae91a9905bc3c3f51f925f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_2",
+      "source_file": "source/SVG/C02.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C02.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C02.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "0d830237bb749f66dc319707525a06a181824f5fcb666b01337f3d9b906f816d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_3",
+      "source_file": "source/SVG/C03.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C03.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C03.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "1751d05385210d5b166dd6c8af89bd1467acceeb871ef766ac40a455d99df44d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_4",
+      "source_file": "source/SVG/C04.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C04.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C04.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "8182d9022b1deda82d4acf29eb110631595544ee94cb96d6568e40df6047559c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_5",
+      "source_file": "source/SVG/C05.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C05.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C05.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "fba7e4427082614156d9c3f3c1e276dd32e498027cc6e5118bcfadafcdf310b9",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_6",
+      "source_file": "source/SVG/C06.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C06.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C06.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "d9dbb2b84d79dfa48f1a3f1d0f818d7ce3ef2adb1c62feddebac954ad96f90af",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_7",
+      "source_file": "source/SVG/C07.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C07.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C07.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "f5c2c9832b32d65f338d099c8f1775a4bc6a55724b70e81bdeac175cf82e7c4d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_8",
+      "source_file": "source/SVG/C08.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C08.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C08.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "ebba240fea3ebaf4ab1447d6a2f3140e975fe7b2c1d0025644344d4c00f54fd0",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_9",
+      "source_file": "source/SVG/C09.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C09.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C09.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "91d01673dd540d0eb9115a253d63762925499c74a633763faeff8907dd3f5049",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_10",
+      "source_file": "source/SVG/C10.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C10.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C10.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "e116f0c38aed8d281f7ec28e612ef6e77c8ea608c132b9b730bf8f7e30955f39",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_j",
+      "source_file": "source/SVG/C11.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C11.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C11.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "ea6caf84141d732779fb2f0ee1c2389cec408d904ee8f2d8d54c855dc562f297",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_q",
+      "source_file": "source/SVG/C12.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C12.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C12.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "033ac320fdee1c9a0d4992a6572e9111b53d97a43bf7ecb05ae5a478f1a15098",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "c_k",
+      "source_file": "source/SVG/C13.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C13.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/C13.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "9fc989ede048c98a5a278f7d3aaafd2cac629d0c678011bfdd5da182a63b84d3",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_a",
+      "source_file": "source/SVG/D01.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D01.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D01.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "fe62c1eeb459fab6bdfd873b21d60bc46053b0e730c6c0efd5e5b6b4d6d04b7d",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_2",
+      "source_file": "source/SVG/D02.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D02.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D02.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "cfd2007617c3667efeee718305254012024e9573a73475d30d01edfe548fb27f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_3",
+      "source_file": "source/SVG/D03.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D03.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D03.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "c968c538e48d28b367218289ca9139e3bd31242c5e2e26c5803468a6c6eacf0c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_4",
+      "source_file": "source/SVG/D04.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D04.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D04.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "7b9c7da0e170f83a8420a44b25ef9141e4004f5ca9c11ad402bae6eacbc1de99",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_5",
+      "source_file": "source/SVG/D05.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D05.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D05.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "ff9474766d564e91ecdf2cc9cf2d835209cdeafcd6c7bdb03186a92a1f2fd597",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_6",
+      "source_file": "source/SVG/D06.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D06.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D06.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "910ac80487d28dcf543a43f0e6f6e7f69e6e98ab2c2a773cad8271457a4a12cd",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_7",
+      "source_file": "source/SVG/D07.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D07.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D07.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "1f9c35b82ce5daaeae3fa450879c929c431fc2410b5bf0b86ab913b183c23118",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_8",
+      "source_file": "source/SVG/D08.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D08.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D08.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "b756c9d3a6b5035866eb683e932bcf20463fd754047dae1431ded2314d21ca23",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_9",
+      "source_file": "source/SVG/D09.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D09.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D09.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "6fcd03577cba83183f5e9bfe04e33fb2b3e615364e9b637818b49b0a9637e8f2",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_10",
+      "source_file": "source/SVG/D10.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D10.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D10.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "3fe9b95310d9a5c0a35508f24c1e469de39a2ba6a9e1879b90f01248f82e0f5e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_j",
+      "source_file": "source/SVG/D11.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D11.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D11.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "abbb4360d4fc618eb2ed9395e1edda0f95e9c4872c4b1081133fb29e935d1e3c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_q",
+      "source_file": "source/SVG/D12.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D12.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D12.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "4c670b9b02a559d03f946cc24a61af7e1e945ce4cc3d8e62cad4b37fafb607b7",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "d_k",
+      "source_file": "source/SVG/D13.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D13.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/D13.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "aa8a6a6c52a4758a0d8d7e9a0df893ba6d6cdd8217d57d808e73ceb7ae6c1e3b",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_a",
+      "source_file": "source/SVG/H01.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H01.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H01.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "992e7115af20882088c09474bb02d4adc42ddcdd5c89fe31de8d5156fd94b328",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_2",
+      "source_file": "source/SVG/H02.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H02.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H02.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "bb9bea5e524ed4cf1f408f2bf1b0e756a29f51535d1c4428f8dd5011e42150bb",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_3",
+      "source_file": "source/SVG/H03.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H03.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H03.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "efd0981c2c049dc702153a0d3425d5c26b78695741f581db889973a4f36fd13a",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_4",
+      "source_file": "source/SVG/H04.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H04.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H04.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "26e192428386f6451b20ee864a547577a4523c0f29adac13aae940d473a86215",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_5",
+      "source_file": "source/SVG/H05.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H05.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H05.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "aedd4a11ef2bf083ab66081a4672989c72807b49ce6cb7a656f209583c5ff972",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_6",
+      "source_file": "source/SVG/H06.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H06.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H06.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "1321c136d5119be129cadbdc9d1f8cbc2ba64088f37b9b499076f2413c258a39",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_7",
+      "source_file": "source/SVG/H07.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H07.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H07.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "cebf0871b9196bc01a77c7db4719a4f9e33b85ffb85711003ae83548e6bdb795",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_8",
+      "source_file": "source/SVG/H08.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H08.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H08.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "79c41291f318c6aad128f173966c077e79aa0ec495fdb9793c061e294963003c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_9",
+      "source_file": "source/SVG/H09.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H09.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H09.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "5c7afffc4cdea5f4d68efcab8c886816fc4fedf8f0d429355c0e3154f69ee055",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_10",
+      "source_file": "source/SVG/H10.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H10.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H10.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "15d9d6931522e173524c62ff5f01d9eb8251a6ff6de9d01ae09beb0a0fc0ddda",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_j",
+      "source_file": "source/SVG/H11.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H11.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H11.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "9f2937874c564417117107e7c325855e20fedfb11137599ab0435e24e6ce999e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_q",
+      "source_file": "source/SVG/H12.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H12.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H12.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "9b9205144adc4c6ed2665517d5595ac046d6701795d7b5c719d84f07cd786b14",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "h_k",
+      "source_file": "source/SVG/H13.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H13.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/H13.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "433db7a278fc2dc069267b5f263808e74db5ddd67d99ca2a9fc657439c655450",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "joker_1",
+      "source_file": "source/SVG/joker1.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/joker1.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/joker1.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "11036dea378681f074078ace903a572982e3e38af31b5631fc29d08f830a864e",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "joker_2",
+      "source_file": "source/SVG/joker2.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/joker2.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/joker2.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "f6a1f61b13ad4c28eb947ee564f08cf57d228e7a68e725af523f3ec8f49e7d65",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_a",
+      "source_file": "source/SVG/S01.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S01.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S01.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "93973c088d936b4b5ea33ab42ca654ec6ce15442aeb89a704a11c108baee39ca",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_2",
+      "source_file": "source/SVG/S02.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S02.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S02.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "a0379b7dde1f6ae6c9453d8aea4064b188f8361ad45cea6cf8ca12eb849c895f",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_3",
+      "source_file": "source/SVG/S03.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S03.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S03.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "ee40468ddef018751ef16c3245452c6a96c41689d0aec385746ad345d7ff0ac1",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_4",
+      "source_file": "source/SVG/S04.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S04.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S04.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "6000ac363265fa0623b266c075236ff8355272d391ca11cc4551ede7133262f5",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_5",
+      "source_file": "source/SVG/S05.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S05.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S05.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "aa43bd9b7b73d40752704a84d2565865704b024b25fff8dfefda8d68451c78df",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_6",
+      "source_file": "source/SVG/S06.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S06.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S06.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "7a3e50cccac94a9d58bafcbf5a9b4404614a74622a281f6494408f7a28a6fc8c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_7",
+      "source_file": "source/SVG/S07.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S07.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S07.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "3550f3331f8e736588669a7a2a5fa57707b9ea0e016e0c7e3fe3c5e07ea542ed",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_8",
+      "source_file": "source/SVG/S08.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S08.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S08.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "0c2347049f2c5d1811d2cca3c81994ee254dd858218720d121b0bc4c81a18450",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_9",
+      "source_file": "source/SVG/S09.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S09.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S09.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "445a78ea38a5d7c1e2e89c5adad49799d57ed131c612b54b2548dd6b6590bfec",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_10",
+      "source_file": "source/SVG/S10.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S10.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S10.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "d7dd01664631b7879b71d5df249fbe31bbe09e1c979ee39bcc0bfc0a40f29f7c",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_j",
+      "source_file": "source/SVG/S11.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S11.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S11.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "8eeeebe57a4f818e1845e7d95139b84cb0ba4af88821866278a6c3974c2585f4",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_q",
+      "source_file": "source/SVG/S12.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S12.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S12.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "6c2f606e0ced6ab59530d76535a062f39b8d04b3657b1ee4c00fba21d06cb0ce",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    },
+    {
+      "key": "s_k",
+      "source_file": "source/SVG/S13.svg",
+      "source_url": "https://raw.githubusercontent.com/AntumDeluge/GreyWyvern-Cardset/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S13.svg",
+      "source_page": "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/3f47c86916c81b66652c897f1ed6f0678ff1d2bb/source/SVG/S13.svg",
+      "author": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+      "license": {
+        "name": "CC0-1.0",
+        "spdx": "CC0-1.0",
+        "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+      },
+      "sha256": "d5f984052bc359df4b4c4d396732d11945df3f5ca592859395d04da8b39a5862",
+      "source_view_box": [
+        0.0,
+        0.0,
+        90.0,
+        135.0
+      ],
+      "source_aspect_ratio": {
+        "width": 90.0,
+        "height": 135.0,
+        "value": 0.66666667,
+        "fraction": "2:3"
+      }
+    }
+  ],
+  "description": "Repaired whimsical animal deck with many backs.",
+  "composition": {
+    "graphic_count": 67,
+    "faces": 52,
+    "jokers": 2,
+    "backs": 13,
+    "extra_graphics": {},
+    "standard_52_complete": true,
+    "ranks": [
+      "A",
+      "2",
+      "3",
+      "4",
+      "5",
+      "6",
+      "7",
+      "8",
+      "9",
+      "10",
+      "J",
+      "Q",
+      "K"
+    ],
+    "suits": [
+      "clubs",
+      "diamonds",
+      "hearts",
+      "spades"
+    ],
+    "count_basis": "Authored per-card records and visual/XML inspection; graphic count includes backs and extras, not the game deck size."
+  },
+  "source_selection": {
+    "record_type": "Historical import selection; not a regeneration instruction or verified license",
+    "kind": "github_repo",
+    "repo": "AntumDeluge/GreyWyvern-Cardset",
+    "include": "^source/SVG/(?:[CDHS]\\d{2}|back[1-9a-d]|joker[12])\\.svg$",
+    "author_override": "Brian Huisman / GreyWyvern; SVG/PySol packaging by AntumDeluge",
+    "license_override": {
+      "name": "CC0-1.0",
+      "spdx": "CC0-1.0",
+      "url": "https://creativecommons.org/publicdomain/zero/1.0/"
+    }
+  },
+  "license_audit": {
+    "reviewed_at": "2026-10-10",
+    "status": "PARTIAL_NOT_VERIFIED",
+    "notes": "AntumDeluge port has a CC0 license file; original Brian Huisman/GreyWyvern source license not independently verified.",
+    "evidence_urls": [
+      "https://github.com/AntumDeluge/GreyWyvern-Cardset",
+      "https://github.com/AntumDeluge/GreyWyvern-Cardset/blob/master/LICENSE.txt"
+    ],
+    "redistribution_approved": false,
+    "attribution_requirements": "NOT VERIFIED for the complete set: resolve the original license version/notice and per-graphic attribution requirements before publication; preserve existing source credits."
+  },
+  "curation": {
+    "reviewed_at": "2026-10-10",
+    "classification": "REVIEW",
+    "reason": "Repaired whimsical animal deck with many backs; pixel-derived vector rectangles are an intentional retro style, not grounds for deletion. Original GreyWyvern rights chain not verified.",
+    "developer_review_required": true,
+    "original_sha256": "1622917175d605df6617d6300fde3b96b8174d42ab121ba47cb9aed2a83b1644",
+    "repairs": [
+      "Replace unsupported symbol/nested SVG wrappers with explicit viewBox transforms and addressable groups.",
+      "Add the existing application card IDs while retaining original artwork/source IDs; optional missing graphics use the unchanged default deck.",
+      "Map the monochrome numbered joker to joker_black and the colored joker to joker_red, retaining original numbered IDs."
+    ]
+  },
+  "runtime": {
+    "tested_qt": "6.11.2",
+    "svg_valid": true,
+    "active_ids": 55,
+    "default_ids": 0,
+    "placeholder_ids": 0,
+    "blank_application_images": 0,
+    "native_card_theme": true,
+    "notes": "Bundled theme discovery reads the curated cards.json catalog, preserving noncontiguous numeric IDs. Default and optional fallback graphics remain cards_0.svg. Selection does not approve redistribution.",
+    "optional_graphics": {
+      "back": {
+        "source": "active",
+        "source_svg": "cards_42.svg",
+        "element_id": "back",
+        "selected_original_id": "back_1",
+        "empty_image": false
+      },
+      "joker_black": {
+        "source": "active",
+        "source_svg": "cards_42.svg",
+        "element_id": "joker_black",
+        "selected_original_id": "joker_2",
+        "empty_image": false
+      },
+      "joker_red": {
+        "source": "active",
+        "source_svg": "cards_42.svg",
+        "element_id": "joker_red",
+        "selected_original_id": "joker_1",
+        "empty_image": false
+      }
+    }
+  }
+}

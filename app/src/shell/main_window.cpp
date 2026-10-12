@@ -16,6 +16,7 @@
 #include "settings/theme_palette.hpp"
 #include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
+#include "shell/gameplay_reservation.hpp"
 
 #include <QDialog>
 #include <QEvent>
@@ -238,8 +239,8 @@ void main_window::setup_game_actions() {
         = new BaseAction(str_label("New gameplay session…"), this);
     new_gameplay_action->setObjectName(QStringLiteral("game_new_gameplay"));
     new_gameplay_action->setToolTip(str_label(
-        "New gameplay model; not saved/recovered yet. Finish the current game "
-        "first."
+        "New gameplay model with identified recovery. Finish and save the "
+        "current game first."
     ));
     register_shell_action(
         new_gameplay_action, QStringLiteral("game_new_gameplay")
@@ -278,6 +279,20 @@ void main_window::setup_game_actions() {
         saved_drills_action, &QAction::triggered, this,
         &main_window::on_saved_drills_triggered
     );
+#endif
+
+    gameplay_retry_action
+        = new BaseAction(str_label("Retry gameplay storage"), this);
+    gameplay_retry_action->setObjectName(QStringLiteral("game_retry_storage"));
+    gameplay_retry_action->setEnabled(false);
+    register_shell_action(
+        gameplay_retry_action, QStringLiteral("game_retry_storage")
+    );
+    connect(gameplay_retry_action, &QAction::triggered, this, [this] {
+        retry_gameplay_from_ui();
+    });
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    gameplay_retry_action->setVisible(false);
 #endif
 
 #if defined(Q_OS_ANDROID)
@@ -442,6 +457,29 @@ void main_window::setup_ui() {
         );
     }
     if (table_widget != nullptr) {
+        connect(table_widget, &table::gameplay_runtime_updated, this, [this] {
+            if (!gameplay_storage_busy && gameplay_binding
+                && gameplay_binding->completion()
+                && !gameplay_completion_attempted)
+                (void)complete_gameplay_from_ui();
+        });
+        connect(table_widget, &table::gameplay_session_changed, this, [this] {
+            if (gameplay_storage_busy || !gameplay_binding)
+                return;
+            if (gameplay_binding->completion()) {
+                if (!gameplay_completion_attempted)
+                    (void)complete_gameplay_from_ui();
+            } else if (
+                gameplay_binding->sequence()
+                && !gameplay_binding->acknowledged()
+                && !gameplay_binding->owns(*table_widget)
+            ) {
+                report_gameplay_storage(str_label(
+                    "The identified scene was retired. Its checkpoint is "
+                    "preserved for recovery."
+                ));
+            }
+        });
         const auto refresh_target_hud = [this] {
             if (const auto* owner = table_widget->active_gameplay_session()) {
                 if (speed_slider) {
@@ -602,7 +640,12 @@ void main_window::setup_ui() {
     apply_desktop_presentation();
 
     if (setup_dialog != nullptr) {
-        time_interface::single_shot(0, setup_dialog, [this]() {
+        time_interface::single_shot(0, this, [this]() {
+            const QPointer<main_window> guard(this);
+            if (!gameplay_recovery_checked)
+                (void)recover_gameplay_from_ui();
+            if (!guard)
+                return;
             if (!mobile_checkpoint_restored) {
                 open_setup_dialog();
             }
@@ -613,12 +656,11 @@ void main_window::setup_ui() {
         );
     }
 
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     QObject::connect(
         qApp, &QGuiApplication::applicationStateChanged, this,
         &main_window::on_application_state_changed
     );
-    restore_mobile_session_checkpoint();
 #endif
 }
 
@@ -705,7 +747,7 @@ void main_window::on_clock_ticked(qint64 elapsed_ms, qint64 delta_ms) {
     refresh_clock_label();
     update_status_text();
 
-#if defined(Q_OS_ANDROID)
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     if (quiz_started && clock_timer != nullptr
         && clock_timer->elapsed_time_ms() - last_mobile_checkpoint_elapsed_ms
             >= 10000) {
@@ -809,6 +851,10 @@ void main_window::on_table_slot_count_changed(int value) {
 
 void main_window::update_status_text() {
     if (status_label == nullptr) {
+        return;
+    }
+    if (!gameplay_storage_error.isEmpty()) {
+        status_label->setText(gameplay_storage_error);
         return;
     }
     if (table_widget && table_widget->active_gameplay_session()) {
