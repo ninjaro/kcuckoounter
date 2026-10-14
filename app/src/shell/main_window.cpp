@@ -155,33 +155,27 @@ void main_window::update_start_pause_action(bool paused) const {
 
     if (paused) {
         start_pause_action->setText(str_label("Resume"));
-        start_pause_action->setIcon(
-            icon_loader::themed(
-                { "media-playback-start", "media-playback-play", "play" },
-                QStyle::SP_MediaPlay
-            )
-        );
+        start_pause_action->setIcon(icon_loader::themed(
+            { "media-playback-start", "media-playback-play", "play" },
+            QStyle::SP_MediaPlay
+        ));
         return;
     }
 
     start_pause_action->setText(str_label("Pause"));
-    start_pause_action->setIcon(
-        icon_loader::themed(
-            { "media-playback-pause", "media-playback-stop", "pause" },
-            QStyle::SP_MediaPause
-        )
-    );
+    start_pause_action->setIcon(icon_loader::themed(
+        { "media-playback-pause", "media-playback-stop", "pause" },
+        QStyle::SP_MediaPause
+    ));
 }
 
 void main_window::setup_game_actions() {
     new_game_action = new BaseAction(str_label("New game"), this);
     new_game_action->setShortcut(QKeySequence::New);
     register_shell_action(new_game_action, QStringLiteral("game_new"));
-    new_game_action->setIcon(
-        icon_loader::themed(
-            { "document-new", "list-add", "folder-new" }, QStyle::SP_FileIcon
-        )
-    );
+    new_game_action->setIcon(icon_loader::themed(
+        { "document-new", "list-add", "folder-new" }, QStyle::SP_FileIcon
+    ));
     QObject::connect(
         new_game_action, &BaseAction::triggered, this,
         &main_window::on_new_game_triggered
@@ -191,12 +185,10 @@ void main_window::setup_game_actions() {
     register_shell_action(
         start_pause_action, QStringLiteral("game_start_pause")
     );
-    start_pause_action->setIcon(
-        icon_loader::themed(
-            { "media-playback-start", "media-playback-play", "play" },
-            QStyle::SP_MediaPlay
-        )
-    );
+    start_pause_action->setIcon(icon_loader::themed(
+        { "media-playback-start", "media-playback-play", "play" },
+        QStyle::SP_MediaPlay
+    ));
     start_pause_action->setEnabled(false);
     start_pause_action->setShortcut(QKeySequence(Qt::Key_P));
     QObject::connect(
@@ -206,13 +198,11 @@ void main_window::setup_game_actions() {
 
     finish_action = new BaseAction(str_label("Finish"), this);
     register_shell_action(finish_action, QStringLiteral("game_finish"));
-    finish_action->setIcon(
-        icon_loader::themed(
-            { "process-stop-symbolic", "process-stop", "dialog-close-symbolic",
-              "dialog-close", "window-close" },
-            QStyle::SP_DialogCloseButton
-        )
-    );
+    finish_action->setIcon(icon_loader::themed(
+        { "process-stop-symbolic", "process-stop", "dialog-close-symbolic",
+          "dialog-close", "window-close" },
+        QStyle::SP_DialogCloseButton
+    ));
     finish_action->setEnabled(false);
     QObject::connect(
         finish_action, &BaseAction::triggered, this,
@@ -222,13 +212,11 @@ void main_window::setup_game_actions() {
     settings_action = new BaseAction(str_label("Settings"), this);
     settings_action->setShortcut(QKeySequence::Preferences);
     register_shell_action(settings_action, QStringLiteral("game_settings"));
-    settings_action->setIcon(
-        icon_loader::themed(
-            { "preferences-system-symbolic", "settings-symbolic",
-              "preferences-system", "configure", "settings" },
-            QStyle::SP_FileDialogDetailedView
-        )
-    );
+    settings_action->setIcon(icon_loader::themed(
+        { "preferences-system-symbolic", "settings-symbolic",
+          "preferences-system", "configure", "settings" },
+        QStyle::SP_FileDialogDetailedView
+    ));
     QObject::connect(
         settings_action, &BaseAction::triggered, this,
         &main_window::on_settings_triggered
@@ -301,12 +289,10 @@ void main_window::setup_game_actions() {
     progress_action->setToolTip(
         str_label("Show completed games and training accuracy")
     );
-    progress_action->setIcon(
-        icon_loader::themed(
-            { "view-statistics", "office-chart-line", "games-highscores" },
-            QStyle::SP_FileDialogInfoView
-        )
-    );
+    progress_action->setIcon(icon_loader::themed(
+        { "view-statistics", "office-chart-line", "games-highscores" },
+        QStyle::SP_FileDialogInfoView
+    ));
     QObject::connect(
         progress_action, &BaseAction::triggered, this,
         &main_window::on_progress_triggered
@@ -360,9 +346,8 @@ void main_window::setup_ui() {
     allow_skipping
         = new BaseCheckBox(str_label("Allow skipping questions"), setup_widget);
     allow_skipping->setChecked(preferences.allow_skipping);
-    allow_skipping->setToolTip(
-        str_label("Enable the skip button during quizzes")
-    );
+    allow_skipping->setToolTip(str_label("Enable the skip button during quizzes"
+    ));
     android_ui::apply_check_box_style(allow_skipping);
 
     dealing_mode = new BaseComboBox(setup_widget);
@@ -469,11 +454,9 @@ void main_window::setup_ui() {
             if (gameplay_binding->completion()) {
                 if (!gameplay_completion_attempted)
                     (void)complete_gameplay_from_ui();
-            } else if (
-                gameplay_binding->sequence()
-                && !gameplay_binding->acknowledged()
-                && !gameplay_binding->owns(*table_widget)
-            ) {
+            } else if (gameplay_binding->sequence()
+                       && !gameplay_binding->acknowledged()
+                       && !gameplay_binding->owns(*table_widget)) {
                 report_gameplay_storage(str_label(
                     "The identified scene was retired. Its checkpoint is "
                     "preserved for recovery."
@@ -631,9 +614,8 @@ void main_window::setup_ui() {
     }
 
     if (pickup_interval_label != nullptr && speed_slider != nullptr) {
-        pickup_interval_label->setText(
-            pickup_interval_text(speed_slider->value())
-        );
+        pickup_interval_label->setText(pickup_interval_text(speed_slider->value(
+        )));
     }
     refresh_clock_label();
 
@@ -699,9 +681,9 @@ void main_window::update_toolbar_buttons() {
     if (primary_toolbar == nullptr)
         return;
     for (auto* action : primary_toolbar->actions()) {
-        auto* button = qobject_cast<QToolButton*>(
-            primary_toolbar->widgetForAction(action)
-        );
+        auto* button
+            = qobject_cast<QToolButton*>(primary_toolbar->widgetForAction(action
+            ));
         if (button == nullptr)
             continue;
         const bool icon_only = compact_toolbar && action != start_pause_action

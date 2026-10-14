@@ -153,12 +153,10 @@ private:
                     const int item_width = i == expanding
                         ? std::max(0, width - fixed_width)
                         : preferred_width(i);
-                    itemAt(i)->setGeometry(
-                        QStyle::visualRect(
-                            parentWidget()->layoutDirection(), rect,
-                            QRect(x, y, item_width, row_height)
-                        )
-                    );
+                    itemAt(i)->setGeometry(QStyle::visualRect(
+                        parentWidget()->layoutDirection(), rect,
+                        QRect(x, y, item_width, row_height)
+                    ));
                     x += item_width + spacing();
                 }
             }

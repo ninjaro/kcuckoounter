@@ -2,8 +2,8 @@
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
 
-#include "arch/asset_locator.hpp"
 #include "include/image_cacher_tests.hpp"
+#include "arch/asset_locator.hpp"
 
 #include "image/image_cacher.hpp"
 
@@ -34,7 +34,9 @@ void image_cacher_tests::namespace_switch_keeps_image_ready() {
 
 void image_cacher_tests::reuses_raster_inside_size_window() {
     raster_cache service;
-    image_cacher cacher(bundled_asset_path(QStringLiteral("brand/logo.svg")), &service);
+    image_cacher cacher(
+        bundled_asset_path(QStringLiteral("brand/logo.svg")), &service
+    );
     cacher.set_target_size(QSize(100, 100));
     QVERIFY(cacher.is_ready());
     QCOMPARE(service.ready_entry_count(), 1);
@@ -50,7 +52,9 @@ void image_cacher_tests::reuses_raster_inside_size_window() {
 
 void image_cacher_tests::replaces_oversized_and_undersized_rasters() {
     raster_cache service;
-    image_cacher cacher(bundled_asset_path(QStringLiteral("brand/logo.svg")), &service);
+    image_cacher cacher(
+        bundled_asset_path(QStringLiteral("brand/logo.svg")), &service
+    );
     cacher.set_target_size(QSize(100, 100));
     QVERIFY(cacher.is_ready());
     const QSize initial_raster_size = cacher.pixmap().size();
@@ -64,12 +68,13 @@ void image_cacher_tests::replaces_oversized_and_undersized_rasters() {
     const QSize larger_raster_size = cacher.pixmap().size();
     QVERIFY(larger_raster_size.width() > smaller_raster_size.width());
     QCOMPARE(service.ready_entry_count(), 1);
-
 }
 
 void image_cacher_tests::empty_display_size_retires_cached_raster() {
     raster_cache service;
-    image_cacher cacher(bundled_asset_path(QStringLiteral("brand/logo.svg")), &service);
+    image_cacher cacher(
+        bundled_asset_path(QStringLiteral("brand/logo.svg")), &service
+    );
     cacher.set_target_size(QSize(100, 100));
     QVERIFY(cacher.is_ready());
     QCOMPARE(service.ready_entry_count(), 1);

@@ -106,7 +106,8 @@ void table_tests::checkpoint_restore_replaces_paused_views() {
     bool old_alive = false;
     bool attached_when_changed = false;
     QObject::connect(
-        &view, &table::gameplay_session_about_to_change, &view, [&] {
+        &view, &table::gameplay_session_about_to_change, &view,
+        [&] {
             old_alive = view.active_gameplay_session() == old_owner;
             fields.reset();
         }

@@ -53,8 +53,7 @@ void preferences_tests::deck_setup_preserves_choices_shows_advisory_guidance() {
             QCOMPARE(strategy->currentData().toString(), entry.slug);
             QCOMPARE(decks->minimum(), 1);
             QCOMPARE(decks->value(), static_cast<int>(count));
-            QVERIFY(
-                guidance->text().contains(QString::number(entry.min_decks))
+            QVERIFY(guidance->text().contains(QString::number(entry.min_decks))
             );
             QVERIFY(!guidance->text().contains(QStringLiteral("%1")));
             for (const auto* name :
@@ -95,17 +94,17 @@ void preferences_tests::deck_setup_edits_only_the_selected_deck() {
     QSignalSpy changed(
         &widget, &gameplay::deck_setup_widget::configuration_changed
     );
-    auto* strategy = widget.findChild<QComboBox*>(
-        QStringLiteral("gameplay_deck_strategy")
-    );
+    auto* strategy
+        = widget.findChild<QComboBox*>(QStringLiteral("gameplay_deck_strategy")
+        );
     auto* decks
         = widget.findChild<QSpinBox*>(QStringLiteral("gameplay_deck_count"));
-    auto* infinite = widget.findChild<QCheckBox*>(
-        QStringLiteral("gameplay_deck_infinite")
-    );
-    auto* training = widget.findChild<QCheckBox*>(
-        QStringLiteral("gameplay_deck_training")
-    );
+    auto* infinite
+        = widget.findChild<QCheckBox*>(QStringLiteral("gameplay_deck_infinite")
+        );
+    auto* training
+        = widget.findChild<QCheckBox*>(QStringLiteral("gameplay_deck_training")
+        );
     QVERIFY(strategy && decks && infinite && training);
     widget.refresh();
     decks->setValue(1);
@@ -203,9 +202,9 @@ void preferences_tests::deck_setup_rejects_unavailable_and_invalid_choices() {
     QSignalSpy changed(
         &widget, &gameplay::deck_setup_widget::configuration_changed
     );
-    auto* strategy = widget.findChild<QComboBox*>(
-        QStringLiteral("gameplay_deck_strategy")
-    );
+    auto* strategy
+        = widget.findChild<QComboBox*>(QStringLiteral("gameplay_deck_strategy")
+        );
     strategy->addItem(QStringLiteral("Unknown"), QStringLiteral("missing"));
     strategy->setCurrentIndex(strategy->count() - 1);
     QCOMPARE(*owner->deck({ 0 }), before);
@@ -295,8 +294,7 @@ void preferences_tests::gameplay_deck_setup_preserves_unrepresentable_counts() {
     QCOMPARE(owner->deck({ 0 })->configuration.deck_count, large);
     QVERIFY(owner->deck({ 0 })->configuration.training);
     QVERIFY(owner->deck({ 0 })->configuration.infinite);
-    decks->setValue(
-        1
+    decks->setValue(1
     ); // even programmatic changes cannot rewrite a clipped value
     widget.refresh();
     QCOMPARE(owner->deck({ 0 })->configuration.deck_count, large);
@@ -315,20 +313,20 @@ void preferences_tests::
         &widget, &gameplay::deck_setup_widget::configuration_changed
     );
     QSignalSpy shown(&widget, &gameplay::deck_setup_widget::show_count_changed);
-    auto* strategy = widget.findChild<QComboBox*>(
-        QStringLiteral("gameplay_deck_strategy")
-    );
+    auto* strategy
+        = widget.findChild<QComboBox*>(QStringLiteral("gameplay_deck_strategy")
+        );
     auto* decks
         = widget.findChild<QSpinBox*>(QStringLiteral("gameplay_deck_count"));
-    auto* infinite = widget.findChild<QCheckBox*>(
-        QStringLiteral("gameplay_deck_infinite")
-    );
-    auto* training = widget.findChild<QCheckBox*>(
-        QStringLiteral("gameplay_deck_training")
-    );
-    auto* show = widget.findChild<QCheckBox*>(
-        QStringLiteral("gameplay_deck_show_count")
-    );
+    auto* infinite
+        = widget.findChild<QCheckBox*>(QStringLiteral("gameplay_deck_infinite")
+        );
+    auto* training
+        = widget.findChild<QCheckBox*>(QStringLiteral("gameplay_deck_training")
+        );
+    auto* show
+        = widget.findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
+        ));
     QVERIFY(show->isEnabled());
     const auto prepared = *owner->deck({ 0 });
     QTest::keyClick(show, Qt::Key_Space);
@@ -393,9 +391,9 @@ void preferences_tests::deck_setup_follows_identity_through_swap() {
     QVERIFY(owner->set_traversal(std::array<std::size_t, 2> { 0, 1 }));
     gameplay::deck_setup_widget widget(*owner, { 0 }, catalog);
     QSignalSpy shown(&widget, &gameplay::deck_setup_widget::show_count_changed);
-    auto* show = widget.findChild<QCheckBox*>(
-        QStringLiteral("gameplay_deck_show_count")
-    );
+    auto* show
+        = widget.findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
+        ));
     show->setChecked(true);
     const auto first = *owner->deck({ 0 });
     const auto second = *owner->deck({ 1 });
@@ -580,8 +578,7 @@ void preferences_tests::deck_draft_rejects_stale_and_phase_changes() {
     paused.findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"))
         ->setChecked(true);
     QVERIFY(owner->set_show_count({ 0 }, true));
-    QVERIFY(
-        !paused.apply_pending_changes()
+    QVERIFY(!paused.apply_pending_changes()
     ); // external Show Count invalidates too
     QVERIFY(owner->resume());
     QVERIFY(owner->finish());

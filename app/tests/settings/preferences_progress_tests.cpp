@@ -29,14 +29,12 @@ void preferences_tests::training_progress_is_bounded() {
     training_progress_service service(settings);
 
     for (int index = 0; index < 25; ++index) {
-        QVERIFY(service.record(
-            {
-                .correct = index % 10,
-                .answered = 10,
-                .elapsed_ms = 1000 + index,
-                .completed_at_utc_ms = 1700000000000LL + index,
-            }
-        ));
+        QVERIFY(service.record({
+            .correct = index % 10,
+            .answered = 10,
+            .elapsed_ms = 1000 + index,
+            .completed_at_utc_ms = 1700000000000LL + index,
+        }));
     }
     const training_progress progress = service.load();
     QCOMPARE(progress.completed_sessions, 25);
@@ -57,14 +55,12 @@ void preferences_tests::training_progress_rejects_huge_history_values() {
     QVERIFY(directory.isValid());
     QSettings settings = temporary_settings(directory);
     training_progress_service service(settings);
-    QVERIFY(service.record(
-        {
-            .correct = 1,
-            .answered = 2,
-            .elapsed_ms = 100,
-            .completed_at_utc_ms = 1700000000000LL,
-        }
-    ));
+    QVERIFY(service.record({
+        .correct = 1,
+        .answered = 2,
+        .elapsed_ms = 100,
+        .completed_at_utc_ms = 1700000000000LL,
+    }));
 
     settings.setValue(
         QStringLiteral("training_progress/recent_results"),

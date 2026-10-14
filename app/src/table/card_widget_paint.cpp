@@ -37,8 +37,8 @@ card_widget::blend_color(const QColor& from, const QColor& to, qreal strength) {
     return blended;
 }
 
-QPointF
-card_widget::paint_geometry::bounded_offset(const QPointF& offset) const {
+QPointF card_widget::paint_geometry::bounded_offset(const QPointF& offset
+) const {
     return { std::clamp(offset.x(), -jitter_limit, jitter_limit),
              std::clamp(offset.y(), -jitter_limit, jitter_limit) };
 }
@@ -47,8 +47,8 @@ card_widget::paint_geometry card_widget::layout_geometry() const {
     return layout_geometry(QSizeF(size()));
 }
 
-card_widget::paint_geometry
-card_widget::layout_geometry(const QSizeF& size) const {
+card_widget::paint_geometry card_widget::layout_geometry(const QSizeF& size
+) const {
     paint_geometry result;
     const qreal outer_margin
         = std::min(3.0, std::min(size.width(), size.height()) / 8.0);
@@ -546,11 +546,9 @@ void card_widget::draw_card_extra_lines(
 ) const {
     QFont extra_font = painter.font();
     extra_font.setBold(false);
-    extra_font.setPointSizeF(
-        std::clamp(
-            compute_font_point_size(oriented_card_rect) * 0.75, 7.0, 14.0
-        )
-    );
+    extra_font.setPointSizeF(std::clamp(
+        compute_font_point_size(oriented_card_rect) * 0.75, 7.0, 14.0
+    ));
     painter.setFont(extra_font);
     painter.setPen(QColor(30, 70, 40));
 

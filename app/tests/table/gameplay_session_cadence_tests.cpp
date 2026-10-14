@@ -74,9 +74,8 @@ void gameplay_session_tests::random_cadence_uses_average_and_lower_guard() {
 
 void gameplay_session_tests::
     cadence_includes_training_and_excludes_stopped_decks() {
-    auto decks = exposure_decks(
-        { 15, 45, 0, std::numeric_limits<std::uint64_t>::max() }
-    );
+    auto decks = exposure_decks({ 15, 45, 0,
+                                  std::numeric_limits<std::uint64_t>::max() });
     decks[0].configuration.training = true;
     decks[2].status = deck_status::completed;
     decks[3].status = deck_status::failed;
@@ -109,8 +108,7 @@ void gameplay_session_tests::
     const auto target = targets.front(); // Prepared table target 39.
     auto decks = exposure_decks({ 10, 80 });
     QVERIFY(!multi_quiz_target_reached(decks, dealing_mode::random, target));
-    QVERIFY(
-        !multi_quiz_target_reached(decks, dealing_mode::sequential, target)
+    QVERIFY(!multi_quiz_target_reached(decks, dealing_mode::sequential, target)
     );
     // Removing the lagging deck changes readiness without moving the target.
     decks[0].status = deck_status::completed;
@@ -127,8 +125,7 @@ void gameplay_session_tests::
     decks[0].status = deck_status::active;
     decks[1].status = deck_status::failed;
     QVERIFY(!multi_quiz_target_reached(decks, dealing_mode::random, target));
-    QVERIFY(
-        !multi_quiz_target_reached(decks, dealing_mode::sequential, target)
+    QVERIFY(!multi_quiz_target_reached(decks, dealing_mode::sequential, target)
     );
     decks[1].status = deck_status::active;
     decks[0].status = deck_status::failed;
@@ -149,17 +146,14 @@ void gameplay_session_tests::
     QVERIFY(multi_quiz_target_reached(decks, dealing_mode::random, maximum));
     decks[1].dealt_physical_cards = maximum - 1;
     QVERIFY(!multi_quiz_target_reached(decks, dealing_mode::random, maximum));
-    QVERIFY(
-        multi_quiz_target_reached(decks, dealing_mode::random, maximum - 1)
+    QVERIFY(multi_quiz_target_reached(decks, dealing_mode::random, maximum - 1)
     );
     decks = exposure_decks({ maximum, maximum, maximum - 2 });
     QVERIFY(!multi_quiz_target_reached(decks, dealing_mode::random, maximum));
-    QVERIFY(
-        multi_quiz_target_reached(decks, dealing_mode::random, maximum - 1)
+    QVERIFY(multi_quiz_target_reached(decks, dealing_mode::random, maximum - 1)
     );
     QVERIFY(!multi_quiz_target_reached(decks, dealing_mode::random, 0));
-    QVERIFY(
-        !multi_quiz_target_reached(decks, static_cast<dealing_mode>(99), 1)
+    QVERIFY(!multi_quiz_target_reached(decks, static_cast<dealing_mode>(99), 1)
     );
     // Exhaustive small reference: ordinary sum is safe here and independent
     // from the production quotient/remainder accumulation.
@@ -200,8 +194,8 @@ void gameplay_session_tests::
 // NOLINTEND(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
 
-void gameplay_session_tests::
-    cadence_query_preserves_preparation_and_lifecycle() {
+void gameplay_session_tests::cadence_query_preserves_preparation_and_lifecycle(
+) {
     const auto& catalog = strategy_repository();
     session_configuration settings;
     settings.scope = quiz_scope::multi;
@@ -238,8 +232,7 @@ void gameplay_session_tests::
     QVERIFY(model.resume());
     QVERIFY(model.fail_deck(deck_id { 0 }));
     QVERIFY(model.complete_deck(deck_id { 1 }));
-    QVERIFY(
-        !model.multi_quiz_target_reached(0)
+    QVERIFY(!model.multi_quiz_target_reached(0)
     ); // No live decks, no final quiz.
     QVERIFY(std::ranges::equal(model.table_quiz_targets(), targets));
     QCOMPARE(model.phase(), session_phase::finished);

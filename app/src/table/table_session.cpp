@@ -121,8 +121,8 @@ bool table::install_gameplay_scene(
     return guard && gameplay_scene_revision == revision;
 }
 
-std::optional<gameplay_checkpoint> table::capture_gameplay_checkpoint(
-    const gameplay::generation_policy& resources
+std::optional<gameplay_checkpoint>
+table::capture_gameplay_checkpoint(const gameplay::generation_policy& resources
 ) {
     if (!gameplay_runtime_attached || !gameplay_owner || !resources.valid()
         || (gameplay_owner->phase() != gameplay::session_phase::running
@@ -137,10 +137,8 @@ std::optional<gameplay_checkpoint> table::capture_gameplay_checkpoint(
         || !gameplay_runtime_attached || !gameplay_owner)
         return std::nullopt;
     auto state = gameplay::capture_checkpoint(*gameplay_owner, resources);
-    return state ? std::make_optional(
-                       gameplay_checkpoint { std::move(*state),
-                                             gameplay_pick_elapsed_ms }
-                   )
+    return state ? std::make_optional(gameplay_checkpoint {
+                       std::move(*state), gameplay_pick_elapsed_ms })
                  : std::nullopt;
 }
 

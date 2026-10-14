@@ -268,10 +268,8 @@ QString table::gameplay_status_text() const {
         phase, verified, errors, skips, questions, gameplay_clock_text()
     );
 #else
-    QString text = str_label(
-                       "Status: %1  Verified: %2  Errors: %3  Skips: %4  "
-                       "Questions: %5  Time: %6"
-    )
+    QString text = str_label("Status: %1  Verified: %2  Errors: %3  Skips: %4  "
+                             "Questions: %5  Time: %6")
                        .arg(phase)
                        .arg(verified)
                        .arg(errors)

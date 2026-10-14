@@ -142,9 +142,8 @@ void table_tests::desktop_toolbar_preserves_table_and_commands() {
     QCOMPARE(start->text(), str_label("Resume"));
     settings_template_widget* editor = nullptr;
     for (auto* candidate : window.findChildren<settings_template_widget*>()) {
-        if (candidate->findChild<QComboBox*>(
-                QStringLiteral("desktop_ui_toolbar")
-            ))
+        if (candidate->findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar"
+            )))
             editor = candidate;
     }
     QVERIFY(editor);
@@ -253,8 +252,7 @@ void table_tests::desktop_toolbar_preserves_table_and_commands() {
     toolbar->hide();
     combo->setCurrentIndex(2);
     QVERIFY(editor->apply_theme_settings());
-    QVERIFY(
-        toolbar->isHidden()
+    QVERIFY(toolbar->isHidden()
     ); // Appearance must not override native visibility.
     QCOMPARE(toolbar->actions(), actions);
     if (count == 1) {
@@ -287,8 +285,7 @@ void table_tests::desktop_toolbar_preserves_table_and_commands() {
         setup->reject();
         save_desktop_shell_state(
             { window.saveGeometry(),
-              window.saveState(
-                  desktop_shell_state::qt_main_window_state_version
+              window.saveState(desktop_shell_state::qt_main_window_state_version
               ) }
         );
         main_window restored;
@@ -346,53 +343,41 @@ void table_tests::desktop_status_reports_existing_values() {
     QVERIFY(!status->text().contains(QStringLiteral("I18N_ARGUMENT_MISSING")));
     QVERIFY(readout->text().contains(QStringLiteral("300")));
     QVERIFY(!readout->text().contains(QStringLiteral("I18N_ARGUMENT_MISSING")));
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_start_pause_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_start_pause_triggered", Qt::DirectConnection
+    ));
     QVERIFY(status->text().contains(str_label("Running")));
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_start_pause_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_start_pause_triggered", Qt::DirectConnection
+    ));
     QVERIFY(status->text().contains(str_label("Paused")));
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_table_score_adjusted", Qt::DirectConnection,
-            Q_ARG(int, 2), Q_ARG(int, 3)
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_table_score_adjusted", Qt::DirectConnection, Q_ARG(int, 2),
+        Q_ARG(int, 3)
+    ));
     clock->set_elapsed_time_ms(65000);
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_clock_ticked", Qt::DirectConnection,
-            Q_ARG(qint64, 65000), Q_ARG(qint64, 0)
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_clock_ticked", Qt::DirectConnection, Q_ARG(qint64, 65000),
+        Q_ARG(qint64, 0)
+    ));
     QVERIFY(status->text().contains(QStringLiteral("2/3")));
     QVERIFY(status->text().contains(QStringLiteral("01:05")));
     QVERIFY(!status->text().contains(QStringLiteral("I18N_ARGUMENT_MISSING")));
     QVERIFY(!status->text().contains(QStringLiteral("%1")));
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_table_rasterization_busy_changed",
-            Qt::DirectConnection, Q_ARG(bool, true)
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_table_rasterization_busy_changed", Qt::DirectConnection,
+        Q_ARG(bool, true)
+    ));
     QVERIFY(status->text().contains(str_label("Processing")));
     QVERIFY(progress->isVisible());
     slider->setValue(735);
     QVERIFY(readout->text().contains(QStringLiteral("735")));
     QVERIFY(!readout->text().contains(QStringLiteral("I18N_ARGUMENT_MISSING")));
     QVERIFY(!readout->text().contains(QStringLiteral("%1")));
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_table_rasterization_busy_changed",
-            Qt::DirectConnection, Q_ARG(bool, false)
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_table_rasterization_busy_changed", Qt::DirectConnection,
+        Q_ARG(bool, false)
+    ));
     QVERIFY(!status->text().contains(str_label("Processing")));
     QVERIFY(progress->isHidden());
 }
@@ -448,16 +433,12 @@ void table_tests::desktop_hud_fits_without_changing_policy() {
     auto* setup = window.findChild<QDialog*>();
     QVERIFY(setup);
     setup->reject();
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_start_pause_triggered", Qt::DirectConnection
-        )
-    );
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_settings_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_start_pause_triggered", Qt::DirectConnection
+    ));
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_settings_triggered", Qt::DirectConnection
+    ));
     auto* surface
         = window.findChild<QFrame*>(QStringLiteral("desktop_status_surface"));
     auto* status = window.findChild<QLabel*>(QStringLiteral("session_status"));
@@ -511,12 +492,10 @@ void table_tests::desktop_hud_fits_without_changing_policy() {
             QCOMPARE(readout->isHidden(), !show_speed);
             QCOMPARE(slider->value(), 300);
             QCOMPARE(view->capture_session_state(), state);
-            QVERIFY(
-                QMetaObject::invokeMethod(
-                    &window, "on_table_rasterization_busy_changed",
-                    Qt::DirectConnection, Q_ARG(bool, true)
-                )
-            );
+            QVERIFY(QMetaObject::invokeMethod(
+                &window, "on_table_rasterization_busy_changed",
+                Qt::DirectConnection, Q_ARG(bool, true)
+            ));
             for (const QSize viewport :
                  { QSize(1100, 700), QSize(640, 480), QSize(480, 320),
                    QSize(320, 480), QSize(1100, 700) }) {

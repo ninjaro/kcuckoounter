@@ -84,8 +84,8 @@ public:
 
     explicit raster_cache(QObject* parent = nullptr);
 
-    [[nodiscard]] std::optional<result>
-    get_if_ready(const entry_key& key) const;
+    [[nodiscard]] std::optional<result> get_if_ready(const entry_key& key
+    ) const;
     [[nodiscard]] std::optional<result>
     get_ready_with_namespace_fallback(const entry_key& key) const;
     void insert_or_update_result(const result& new_result);

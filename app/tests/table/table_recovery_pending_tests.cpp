@@ -60,8 +60,7 @@ void gameplay_restore_tests::pending_retries_without_scene() {
             storage_key, *encode_gameplay_recovery(record, { 1, 64 })
         );
         if (admitted) {
-            QVERIFY(
-                gameplay_progress_service(storage, { 1, 64 }).record(record)
+            QVERIFY(gameplay_progress_service(storage, { 1, 64 }).record(record)
             );
             progress_bytes = storage.value(progress_key);
         }

@@ -75,10 +75,9 @@ void gameplay_mobile_tests::background_freezes_quiz_data() {
     for (const bool frozen : { false, true })
         for (const auto scope :
              { gameplay::quiz_scope::single, gameplay::quiz_scope::multi })
-            QTest::newRow(
-                qPrintable(QString("%1-%2")
-                               .arg(frozen ? "frozen" : "unfrozen")
-                               .arg(static_cast<int>(scope)))
+            QTest::newRow(qPrintable(QString("%1-%2")
+                                         .arg(frozen ? "frozen" : "unfrozen")
+                                         .arg(static_cast<int>(scope)))
             ) << frozen
               << static_cast<int>(scope);
 }

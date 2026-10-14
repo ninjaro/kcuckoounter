@@ -116,9 +116,8 @@ void preview_carousel_tests::visible_cards_expose_domain_accessible_names() {
     int semantic_label_count = 0;
     for (const QLabel* label : labels) {
         if (label != nullptr
-            && label->accessibleName().startsWith(
-                QStringLiteral("Semantic card")
-            )) {
+            && label->accessibleName().startsWith(QStringLiteral("Semantic card"
+            ))) {
             ++semantic_label_count;
             QVERIFY(label->accessibleName().contains(
                 QStringLiteral("count value -1")

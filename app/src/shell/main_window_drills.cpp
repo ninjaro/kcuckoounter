@@ -48,8 +48,7 @@ bool main_window::launch_training_drill(const training_drill& drill) {
         const QSignalBlocker wait_blocker(wait_for_answers);
         const QSignalBlocker skip_blocker(allow_skipping);
         const QSignalBlocker dealing_blocker(dealing_mode);
-        table_slots_count->setValue(
-            static_cast<int>(drill.slot_settings.size())
+        table_slots_count->setValue(static_cast<int>(drill.slot_settings.size())
         );
         quiz_type->setCurrentIndex(drill.quiz_type);
         wait_for_answers->setChecked(drill.wait_for_answers);
@@ -91,7 +90,8 @@ void main_window::on_saved_drills_triggered() {
     bool replaced = false;
     QPointer<drill_picker> picker;
     const auto replacement = connect(
-        table_widget, &table::gameplay_session_about_to_change, this, [&] {
+        table_widget, &table::gameplay_session_about_to_change, this,
+        [&] {
             replaced = true;
             if (picker)
                 picker->invalidate();

@@ -104,8 +104,7 @@ void card_widget_tests::count_visibility_uses_training_choice_and_int64() {
     card_widget challenge;
     supply_renderer_faces(challenge);
     QVERIFY(challenge.bind_gameplay_deck(owner, { 1 }));
-    challenge.set_training_mode(
-        true
+    challenge.set_training_mode(true
     ); // legacy setter cannot expose target count
     QVERIFY(challenge.gameplay_extra_lines().isEmpty());
     QVERIFY(!owner.set_show_count({ 1 }, true));
@@ -147,12 +146,10 @@ void card_widget_tests::quiz_and_pause_keep_faces_hidden() {
     QCOMPARE(*owner.deck({ 0 }), payload);
     QVERIFY(owner.set_show_count({ 0 }, true));
     widget.refresh_gameplay_deck();
-    QVERIFY(
-        widget.accessibleDescription().startsWith(str_label("Card hidden"))
+    QVERIFY(widget.accessibleDescription().startsWith(str_label("Card hidden"))
     );
-    QVERIFY(
-        !widget.accessibleDescription().contains(card_label_from_index(face))
-    );
+    QVERIFY(!widget.accessibleDescription().contains(card_label_from_index(face)
+    ));
     QVERIFY(widget.accessibleDescription().contains(
         QString::number(payload.running_count)
     ));
@@ -161,8 +158,7 @@ void card_widget_tests::quiz_and_pause_keep_faces_hidden() {
     QVERIFY(owner.check_quiz({ 0 }));
     widget.refresh_gameplay_deck();
     QVERIFY(!widget.display_hidden());
-    QVERIFY(
-        widget.accessibleDescription().contains(card_label_from_index(face))
+    QVERIFY(widget.accessibleDescription().contains(card_label_from_index(face))
     );
     QVERIFY(owner.pause());
     widget.refresh_gameplay_deck();

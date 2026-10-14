@@ -54,10 +54,8 @@ read_schedule(const QJsonValue& value, std::size_t& capacity) {
 QJsonObject deck(const gameplay::deck_result& value) {
     const auto& config = value.configuration;
     const auto& stats = value.statistics;
-    auto counters = statistics(
-        { stats.dealt_normal_cards, stats.verified_cards, stats.errors,
-          stats.skips }
-    );
+    auto counters = statistics({ stats.dealt_normal_cards, stats.verified_cards,
+                                 stats.errors, stats.skips });
     counters.insert(
         QStringLiteral("dealing_time_ms"), number(stats.dealing_time_ms)
     );
@@ -97,16 +95,14 @@ QJsonObject deck(const gameplay::deck_result& value) {
         { QStringLiteral("schedule"), schedule(value.schedule) },
         { QStringLiteral("infinite_position"),
           value.infinite_position
-              ? QJsonValue(
-                    QJsonObject {
-                        { QStringLiteral("seed"),
-                          number(value.infinite_position->seed) },
-                        { QStringLiteral("chunk"),
-                          number(value.infinite_position->chunk) },
-                        { QStringLiteral("decks_per_chunk"),
-                          number(value.infinite_position->decks_per_chunk) },
-                    }
-                )
+              ? QJsonValue(QJsonObject {
+                    { QStringLiteral("seed"),
+                      number(value.infinite_position->seed) },
+                    { QStringLiteral("chunk"),
+                      number(value.infinite_position->chunk) },
+                    { QStringLiteral("decks_per_chunk"),
+                      number(value.infinite_position->decks_per_chunk) },
+                })
               : QJsonValue::Null },
     };
 }
@@ -139,9 +135,9 @@ read_deck(const QJsonValue& value, std::size_t& capacity) {
     const auto final = read_signed(object.value(QStringLiteral("final_count")));
     const auto physical
         = read_unsigned(object.value(QStringLiteral("dealt_physical_cards")));
-    const auto unverified = read_unsigned(
-        object.value(QStringLiteral("unverified_normal_cards"))
-    );
+    const auto unverified
+        = read_unsigned(object.value(QStringLiteral("unverified_normal_cards"))
+        );
     auto stats = stats_value.toObject();
     const auto dealing
         = read_unsigned(stats.take(QStringLiteral("dealing_time_ms")));

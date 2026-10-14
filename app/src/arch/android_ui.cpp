@@ -22,14 +22,12 @@ QString button_style_sheet(
     int minimum_height, int vertical_padding, int horizontal_padding,
     int border_radius, int font_weight
 ) {
-    return QString(
-               "QPushButton {"
-               " min-height: %1px;"
-               " padding: %2px %3px;"
-               " border-radius: %4px;"
-               " font-weight: %5;"
-               "}"
-    )
+    return QString("QPushButton {"
+                   " min-height: %1px;"
+                   " padding: %2px %3px;"
+                   " border-radius: %4px;"
+                   " font-weight: %5;"
+                   "}")
         .arg(minimum_height)
         .arg(vertical_padding)
         .arg(horizontal_padding)
@@ -85,10 +83,10 @@ void apply_android_combo_box_style(BaseComboBox* combo_box) {
     }
 
     combo_box->setMinimumHeight(48);
-    combo_box->setStyleSheet(QStringLiteral(
-        "QComboBox { padding: 8px 12px; }"
-        "QComboBox::drop-down { width: 40px; }"
-    ));
+    combo_box->setStyleSheet(
+        QStringLiteral("QComboBox { padding: 8px 12px; }"
+                       "QComboBox::drop-down { width: 40px; }")
+    );
 }
 
 void apply_android_check_box_style(BaseCheckBox* check_box) {
@@ -96,10 +94,10 @@ void apply_android_check_box_style(BaseCheckBox* check_box) {
         return;
     }
 
-    check_box->setStyleSheet(QStringLiteral(
-        "QCheckBox { spacing: 12px; padding: 8px 0px; }"
-        "QCheckBox::indicator { width: 28px; height: 28px; }"
-    ));
+    check_box->setStyleSheet(
+        QStringLiteral("QCheckBox { spacing: 12px; padding: 8px 0px; }"
+                       "QCheckBox::indicator { width: 28px; height: 28px; }")
+    );
 }
 
 void apply_android_slider_style(QSlider* slider) {

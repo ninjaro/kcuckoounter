@@ -155,13 +155,11 @@ session ready_session(failure_policy failure) {
 }
 
 packing::equal_packing_result layout(double width, double height) {
-    return packing::pack_equal_rectangles(
-        {
-            .container = { width, height },
-            .item = { 88.0, 63.0 },
-            .count = 4,
-        }
-    );
+    return packing::pack_equal_rectangles({
+        .container = { width, height },
+        .item = { 88.0, 63.0 },
+        .count = 4,
+    });
 }
 
 bool same_geometry(

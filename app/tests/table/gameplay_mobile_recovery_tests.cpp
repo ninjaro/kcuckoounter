@@ -26,10 +26,9 @@ void gameplay_mobile_tests::restore_keeps_future_data() {
            gameplay::dealing_mode::sequential, gameplay::dealing_mode::random })
         for (const auto scope :
              { gameplay::quiz_scope::single, gameplay::quiz_scope::multi })
-            QTest::newRow(
-                qPrintable(QString("%1-%2")
-                               .arg(static_cast<int>(mode))
-                               .arg(static_cast<int>(scope)))
+            QTest::newRow(qPrintable(QString("%1-%2")
+                                         .arg(static_cast<int>(mode))
+                                         .arg(static_cast<int>(scope)))
             ) << static_cast<int>(mode)
               << static_cast<int>(scope);
 }
@@ -113,12 +112,10 @@ void gameplay_mobile_tests::mobile_callback_is_connected() {
     main_window window;
     start_owned(window);
     QVERIFY(tick(*window.table_widget, 137));
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            qApp, "applicationStateChanged", Qt::DirectConnection,
-            Q_ARG(Qt::ApplicationState, Qt::ApplicationHidden)
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        qApp, "applicationStateChanged", Qt::DirectConnection,
+        Q_ARG(Qt::ApplicationState, Qt::ApplicationHidden)
+    ));
     QVERIFY(window.mobile_background);
     QCOMPARE(
         window.table_widget->gameplay_owner->phase(),

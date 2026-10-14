@@ -41,12 +41,10 @@ bool raster_cache::result::is_ready() const {
 
 raster_cache::raster_cache(QObject* parent)
     : QObject(parent)
-    , namespace_entry_limits(
-          {
-              { cache_namespace::main, -1 },
-              { cache_namespace::settings, 3 },
-          }
-      ) { }
+    , namespace_entry_limits({
+          { cache_namespace::main, -1 },
+          { cache_namespace::settings, 3 },
+      }) { }
 
 std::optional<raster_cache::result>
 raster_cache::get_if_ready(const entry_key& key) const {

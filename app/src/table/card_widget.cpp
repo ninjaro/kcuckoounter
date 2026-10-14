@@ -186,10 +186,8 @@ QStringList card_widget::gameplay_extra_lines() const {
         lines.append(str_label("Expected final count: %1")
                          .arg(static_cast<qlonglong>(deck->running_count)));
 #endif
-    } else if (
-        deck->status == gameplay::deck_status::active
-        && deck->configuration.training && deck->show_count
-    ) {
+    } else if (deck->status == gameplay::deck_status::active
+               && deck->configuration.training && deck->show_count) {
         lines.append(weight_text_for_value(deck->running_count));
     }
     return lines;
@@ -471,10 +469,8 @@ void card_widget::update_accessible_description() {
     // A quiz prompt must not expose the hidden face to assistive technology.
     if (!has_cards()) {
         setAccessibleDescription(str_label("Empty card slot"));
-    } else if (
-        const auto* deck = gameplay_deck();
-        deck && deck->status == gameplay::deck_status::failed
-    ) {
+    } else if (const auto* deck = gameplay_deck();
+               deck && deck->status == gameplay::deck_status::failed) {
         setAccessibleDescription(str_label("Failed deck. Card back."));
     } else if (display_hidden()) {
         setAccessibleDescription(str_label("Card hidden"));

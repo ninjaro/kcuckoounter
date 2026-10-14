@@ -45,10 +45,8 @@ namespace {
 QJsonObject deck(const gameplay::deck_state& value) {
     const auto& config = value.configuration;
     const auto& stats = value.statistics;
-    auto counts = statistics(
-        { stats.dealt_normal_cards, stats.verified_cards, stats.errors,
-          stats.skips }
-    );
+    auto counts = statistics({ stats.dealt_normal_cards, stats.verified_cards,
+                               stats.errors, stats.skips });
     counts.insert(
         QStringLiteral("dealing_time_ms"), number(stats.dealing_time_ms)
     );
@@ -119,9 +117,9 @@ read_deck(const QJsonValue& value, budget& capacity) {
         = read_signed(object.value(QStringLiteral("running_count")));
     const auto input
         = read_signed(object.value(QStringLiteral("latest_input")));
-    const auto unverified = read_unsigned(
-        object.value(QStringLiteral("unverified_normal_cards"))
-    );
+    const auto unverified
+        = read_unsigned(object.value(QStringLiteral("unverified_normal_cards"))
+        );
     const auto target
         = read_size(object.value(QStringLiteral("next_quiz_target")));
     auto stats = stats_value.toObject();

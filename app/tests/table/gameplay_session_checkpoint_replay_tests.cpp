@@ -128,8 +128,7 @@ void gameplay_session_tests::checkpoint_finite_policies_continue_identically() {
                             QVERIFY(model->edit_quiz_input(id, -9));
                         }
                         QVERIFY(model->pause());
-                        QVERIFY(
-                            model->swap_decks(deck_id { 0 }, deck_id { 3 })
+                        QVERIFY(model->swap_decks(deck_id { 0 }, deck_id { 3 })
                         );
                         const auto saved = capture_checkpoint(*model);
                         QVERIFY(saved);

@@ -66,9 +66,9 @@ void table_tests::action_styles_preserve_owned_quiz() {
     auto* details = setup_slot->findChild<QPushButton*>(
         QStringLiteral("slot_details_button")
     );
-    auto* setup_swap = setup_slot->findChild<QPushButton*>(
-        QStringLiteral("slot_swap_button")
-    );
+    auto* setup_swap
+        = setup_slot->findChild<QPushButton*>(QStringLiteral("slot_swap_button")
+        );
     auto* setup_opener = setup_slot->findChild<QToolButton*>(
         QStringLiteral("compact_slot_controls")
     );
@@ -83,9 +83,9 @@ void table_tests::action_styles_preserve_owned_quiz() {
         setup_opener->click();
     }
     QTest::keyClick(details, Qt::Key_Space);
-    auto* panel = setup_slot->findChild<QFrame*>(
-        QStringLiteral("slot_settings_editor")
-    );
+    auto* panel
+        = setup_slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor")
+        );
     QVERIFY(panel && panel->isVisible());
     auto* buttons = panel->findChild<QDialogButtonBox*>();
     QVERIFY(buttons);
@@ -106,25 +106,21 @@ void table_tests::action_styles_preserve_owned_quiz() {
     // A frozen quiz is still Running, not permission to show paused actions.
     QSignalSpy denied_swaps(setup_slot, &table_slot::swap_clicked);
     QVERIFY(!details->isEnabled() && !setup_swap->isEnabled());
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            setup_slot, "on_swap_button_clicked", Qt::DirectConnection
-        )
-    );
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            setup_slot, "on_settings_button_clicked", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        setup_slot, "on_swap_button_clicked", Qt::DirectConnection
+    ));
+    QVERIFY(QMetaObject::invokeMethod(
+        setup_slot, "on_settings_button_clicked", Qt::DirectConnection
+    ));
     QCOMPARE(denied_swaps.count(), 0);
     QVERIFY(
         !setup_slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"))
     );
 
     auto* failed = widgets[3];
-    auto* failed_opener = failed->findChild<QToolButton*>(
-        QStringLiteral("compact_slot_controls")
-    );
+    auto* failed_opener
+        = failed->findChild<QToolButton*>(QStringLiteral("compact_slot_controls"
+        ));
     QVERIFY(failed_opener);
     if (failed_opener->isVisible()) {
         failed_opener->click();
@@ -135,9 +131,9 @@ void table_tests::action_styles_preserve_owned_quiz() {
     QCOMPARE(owner.deck({ 3 })->status, gameplay::deck_status::failed);
     auto* source = widgets[2];
     auto* input = owned_input(source);
-    auto* source_opener = source->findChild<QToolButton*>(
-        QStringLiteral("compact_slot_controls")
-    );
+    auto* source_opener
+        = source->findChild<QToolButton*>(QStringLiteral("compact_slot_controls"
+        ));
     QVERIFY(source_opener && input);
     if (source_opener->isVisible()) {
         source_opener->click();
@@ -193,9 +189,8 @@ void table_tests::action_styles_preserve_owned_quiz() {
                 host
             );
             QCOMPARE(
-                host->findChild<QLineEdit*>(
-                    QStringLiteral("gameplay_quiz_input")
-                ),
+                host->findChild<QLineEdit*>(QStringLiteral("gameplay_quiz_input"
+                )),
                 input
             );
             QVERIFY(host->isVisible());
@@ -225,16 +220,12 @@ void table_tests::action_styles_preserve_owned_quiz() {
                     = slot->findChild<QPushButton*>(QString::fromLatin1(name));
                 QVERIFY(copy && copy->isHidden() && !copy->isEnabled());
             }
-            QVERIFY(
-                QMetaObject::invokeMethod(
-                    slot, "on_copy_button_clicked", Qt::DirectConnection
-                )
-            );
-            QVERIFY(
-                QMetaObject::invokeMethod(
-                    slot, "on_copy_all_button_clicked", Qt::DirectConnection
-                )
-            );
+            QVERIFY(QMetaObject::invokeMethod(
+                slot, "on_copy_button_clicked", Qt::DirectConnection
+            ));
+            QVERIFY(QMetaObject::invokeMethod(
+                slot, "on_copy_all_button_clicked", Qt::DirectConnection
+            ));
             QCOMPARE(*owner.deck({ id }), records[id]);
             QCOMPARE(slot->geometry(), bounds[id]);
             QCOMPARE(slot->card_face_need_short_px(), demand[id]);
@@ -299,16 +290,12 @@ void table_tests::action_styles_preserve_owned_quiz() {
     for (const auto next_style :
          { slot_action_style::rail, slot_action_style::pills, style }) {
         view.set_action_style(next_style);
-        QVERIFY(
-            QMetaObject::invokeMethod(
-                setup_slot, "on_swap_button_clicked", Qt::DirectConnection
-            )
-        );
-        QVERIFY(
-            QMetaObject::invokeMethod(
-                setup_slot, "on_settings_button_clicked", Qt::DirectConnection
-            )
-        );
+        QVERIFY(QMetaObject::invokeMethod(
+            setup_slot, "on_swap_button_clicked", Qt::DirectConnection
+        ));
+        QVERIFY(QMetaObject::invokeMethod(
+            setup_slot, "on_settings_button_clicked", Qt::DirectConnection
+        ));
         QVERIFY(!setup_slot->findChild<QFrame*>(
             QStringLiteral("slot_settings_editor")
         ));
@@ -329,10 +316,9 @@ void table_tests::action_styles_preserve_terminal_swaps_data() {
          { slot_action_style::classic, slot_action_style::rail,
            slot_action_style::pills }) {
         for (const bool compact : { false, true }) {
-            QTest::newRow(
-                qPrintable(QStringLiteral("style=%1/compact=%2")
-                               .arg(static_cast<int>(style))
-                               .arg(compact))
+            QTest::newRow(qPrintable(QStringLiteral("style=%1/compact=%2")
+                                         .arg(static_cast<int>(style))
+                                         .arg(compact))
             ) << static_cast<int>(style)
               << compact;
         }
@@ -360,9 +346,9 @@ void table_tests::action_styles_preserve_terminal_swaps() {
     QVERIFY(view.advance_gameplay_runtime(300, answers));
     view.publish_gameplay_runtime(answers);
     auto* failed = widgets[3];
-    auto* failed_opener = failed->findChild<QToolButton*>(
-        QStringLiteral("compact_slot_controls")
-    );
+    auto* failed_opener
+        = failed->findChild<QToolButton*>(QStringLiteral("compact_slot_controls"
+        ));
     QVERIFY(failed_opener);
     if (failed_opener->isVisible()) {
         failed_opener->click();
@@ -386,9 +372,9 @@ void table_tests::action_styles_preserve_terminal_swaps() {
     auto* source_opener = completed->findChild<QToolButton*>(
         QStringLiteral("compact_slot_controls")
     );
-    auto* swap = completed->findChild<QPushButton*>(
-        QStringLiteral("slot_swap_button")
-    );
+    auto* swap
+        = completed->findChild<QPushButton*>(QStringLiteral("slot_swap_button")
+        );
     auto* target_swap
         = failed->findChild<QPushButton*>(QStringLiteral("slot_swap_button"));
     QVERIFY(source_opener && swap && target_swap);
@@ -439,9 +425,9 @@ void table_tests::action_styles_preserve_terminal_swaps() {
     QVERIFY(completed->swap_selected());
     QPointer<table_slot> old_slot = completed;
     QPointer<QPushButton> old_swap = swap;
-    QPointer<QDialog> old_host = completed->findChild<QDialog*>(
-        QStringLiteral("slot_controls_dialog")
-    );
+    QPointer<QDialog> old_host
+        = completed->findChild<QDialog*>(QStringLiteral("slot_controls_dialog")
+        );
     QVERIFY(view.install_gameplay_session(owned_clock_fixture(2)));
     QVERIFY(old_slot.isNull() && old_swap.isNull() && old_host.isNull());
     QVERIFY(!view.swap_source_slot && !view.copy_source_slot);

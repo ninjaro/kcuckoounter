@@ -132,8 +132,8 @@ void gameplay_host_tests::startup_retries_pending() {
         storage.setValue(
             storage_key, *encode_gameplay_recovery(exact, { 64, 64 })
         );
-        storage
-            .sync(); // simulate a successful stage before interrupted admission
+        storage.sync(
+        ); // simulate a successful stage before interrupted admission
     }
     main_window window;
     window.show();
@@ -209,8 +209,7 @@ void gameplay_host_tests::startup_protects_records() {
     QVERIFY(
         window.quiz_started && !window.table_widget->active_gameplay_session()
     );
-    QVERIFY(
-        window.close()
+    QVERIFY(window.close()
     ); // protected records are still durable, not discarded
 }
 

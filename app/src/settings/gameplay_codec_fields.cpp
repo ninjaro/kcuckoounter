@@ -56,8 +56,8 @@ bool valid_slug(const std::string& slug) {
     return true;
 }
 
-QJsonValue recipe(
-    const std::optional<gameplay::quiz_schedule_continuation>& continuation
+QJsonValue
+recipe(const std::optional<gameplay::quiz_schedule_continuation>& continuation
 ) {
     if (!continuation)
         return QJsonValue::Null;

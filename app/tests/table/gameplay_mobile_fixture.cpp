@@ -40,12 +40,10 @@ void gameplay_mobile_tests::start_owned(main_window& window, bool frozen) {
     prepare_window(window);
     auto* view = window.table_widget;
     table_test::set_gameplay_motion_style(*view, 0);
-    QVERIFY(view->install_gameplay_session(
-        table_test::owned_clock_fixture(
-            2, frozen, gameplay::dealing_mode::simultaneous,
-            gameplay::quiz_scope::single, { 1, 4 }
-        )
-    ));
+    QVERIFY(view->install_gameplay_session(table_test::owned_clock_fixture(
+        2, frozen, gameplay::dealing_mode::simultaneous,
+        gameplay::quiz_scope::single, { 1, 4 }
+    )));
     QVERIFY(window.reserve_gameplay_from_ui(73));
     view->stop_gameplay_clock();
 }

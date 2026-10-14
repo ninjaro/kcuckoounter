@@ -60,8 +60,7 @@ void gameplay_checkpoint_tests::finite_round_trip() {
     (void)model.deal_step();
     (void)model.deal_step();
     for (const auto id : model.unresolved_quizzes())
-        QVERIFY(
-            model.edit_quiz_input(id, id.value == 2 ? INT64_MAX : INT64_MIN)
+        QVERIFY(model.edit_quiz_input(id, id.value == 2 ? INT64_MAX : INT64_MIN)
         );
     QVERIFY(model.pause());
     QVERIFY(model.swap_decks(deck_id { 0 }, deck_id { 2 }));
@@ -93,11 +92,10 @@ void gameplay_checkpoint_tests::mixed_round_trip_data() {
     for (const int source : { 0, 1 })
         for (const int scope : { 0, 1 })
             for (const int dealing : { 0, 1, 2 })
-                QTest::newRow(
-                    qPrintable(QStringLiteral("%1/%2/%3")
-                                   .arg(source)
-                                   .arg(scope)
-                                   .arg(dealing))
+                QTest::newRow(qPrintable(QStringLiteral("%1/%2/%3")
+                                             .arg(source)
+                                             .arg(scope)
+                                             .arg(dealing))
                 ) << source
                   << scope << dealing;
 }

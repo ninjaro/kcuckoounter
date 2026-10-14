@@ -59,8 +59,7 @@ void settings_template_widget::setup_appearance_ui() {
     }
 
     orientation_combo_box = new BaseComboBox(theme_widget);
-    orientation_combo_box->setObjectName(
-        QStringLiteral("orientation_combo_box")
+    orientation_combo_box->setObjectName(QStringLiteral("orientation_combo_box")
     );
     orientation_combo_box->addItems(
         QStringList() << str_label("Automatic") << str_label("Vertical")
@@ -222,17 +221,15 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
     ui_frame_combo = new BaseComboBox(this);
     ui_frame_combo->setObjectName(QStringLiteral("desktop_ui_frame"));
     ui_frame_combo->setAccessibleName(str_label("Slot frame"));
-    ui_frame_combo->addItems(
-        { str_label("Preset default"), str_label("Classic"),
-          str_label("Thin outline") }
+    ui_frame_combo->addItems({ str_label("Preset default"),
+                               str_label("Classic"), str_label("Thin outline") }
     );
     layout->addRow(str_label("Slot frame"), ui_frame_combo);
     ui_speed_combo = new BaseComboBox(this);
     ui_speed_combo->setObjectName(QStringLiteral("desktop_ui_speed_readout"));
     ui_speed_combo->setAccessibleName(str_label("Pickup interval text"));
-    ui_speed_combo->addItems(
-        { str_label("Preset default"), str_label("Shown"), str_label("Hidden") }
-    );
+    ui_speed_combo->addItems({ str_label("Preset default"), str_label("Shown"),
+                               str_label("Hidden") });
     ui_speed_combo->setToolTip(str_label(
         "Only changes the numeric readout. The speed slider and gameplay speed "
         "policy are unchanged."
@@ -241,10 +238,9 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
     ui_answer_combo = new BaseComboBox(this);
     ui_answer_combo->setObjectName(QStringLiteral("desktop_ui_answer_entry"));
     ui_answer_combo->setAccessibleName(str_label("Answer entry"));
-    ui_answer_combo->addItems(
-        { str_label("Preset default"), str_label("Numeric"),
-          str_label("Chip stepper") }
-    );
+    ui_answer_combo->addItems({ str_label("Preset default"),
+                                str_label("Numeric"),
+                                str_label("Chip stepper") });
     ui_answer_combo->setToolTip(str_label(
         "Chips adjust the same accumulated count; Check submits it. Typed "
         "entry remains available."
@@ -253,18 +249,16 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
     ui_feedback_combo = new BaseComboBox(this);
     ui_feedback_combo->setObjectName(QStringLiteral("desktop_ui_feedback"));
     ui_feedback_combo->setAccessibleName(str_label("Answer feedback"));
-    ui_feedback_combo->addItems(
-        { str_label("Preset default"), str_label("Classic text"),
-          str_label("Count stamp") }
-    );
+    ui_feedback_combo->addItems({ str_label("Preset default"),
+                                  str_label("Classic text"),
+                                  str_label("Count stamp") });
     layout->addRow(str_label("Answer feedback"), ui_feedback_combo);
     ui_actions_combo = new BaseComboBox(this);
     ui_actions_combo->setObjectName(QStringLiteral("desktop_ui_slot_actions"));
     ui_actions_combo->setAccessibleName(str_label("Slot actions"));
-    ui_actions_combo->addItems(
-        { str_label("Preset default"), str_label("Classic"),
-          str_label("Icon rail"), str_label("Labelled pills") }
-    );
+    ui_actions_combo->addItems({ str_label("Preset default"),
+                                 str_label("Classic"), str_label("Icon rail"),
+                                 str_label("Labelled pills") });
     ui_actions_combo->setToolTip(str_label(
         "Same Details, Swap, Copy and Copy all actions. Small slots use the "
         "Card controls window."
@@ -288,10 +282,8 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
     ui_toolbar_combo = new BaseComboBox(this);
     ui_toolbar_combo->setObjectName(QStringLiteral("desktop_ui_toolbar"));
     ui_toolbar_combo->setAccessibleName(str_label("Main toolbar"));
-    ui_toolbar_combo->addItems(
-        { str_label("Preset default"), str_label("Classic"),
-          str_label("Compact") }
-    );
+    ui_toolbar_combo->addItems({ str_label("Preset default"),
+                                 str_label("Classic"), str_label("Compact") });
     ui_toolbar_combo->setToolTip(str_label(
         "Compact keeps Start/Pause/Resume labelled and uses icons for other "
         "actions. Native menus, shortcuts and toolbar placement are unchanged."
@@ -300,10 +292,8 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
     ui_hud_combo = new BaseComboBox(this);
     ui_hud_combo->setObjectName(QStringLiteral("desktop_ui_hud"));
     ui_hud_combo->setAccessibleName(str_label("Session HUD"));
-    ui_hud_combo->addItems(
-        { str_label("Preset default"), str_label("Classic"),
-          str_label("Instrument strip") }
-    );
+    ui_hud_combo->addItems({ str_label("Preset default"), str_label("Classic"),
+                             str_label("Instrument strip") });
     ui_hud_combo->setToolTip(str_label(
         "Same status, score, time and pickup controls. Instrument strip adds "
         "emphasis and slider ticks, not new scoring or speed rules."

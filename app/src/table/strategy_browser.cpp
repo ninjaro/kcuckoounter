@@ -79,10 +79,8 @@ QString strategy_detail_html(const strategy_data& strategy) {
     const auto absent = str_label("Not provided");
     QString html = QStringLiteral("<h2>%1</h2><p>%2</p>")
                        .arg(text(strategy.name), text(strategy.description));
-    html += QStringLiteral(
-                "<h3>%1</h3><table border='1' cellspacing='0' "
-                "cellpadding='4'><tr>"
-    )
+    html += QStringLiteral("<h3>%1</h3><table border='1' cellspacing='0' "
+                           "cellpadding='4'><tr>")
                 .arg(text(str_label("Count value by rank")));
     const QStringList ranks { QStringLiteral("A"), QStringLiteral("2"),
                               QStringLiteral("3"), QStringLiteral("4"),
@@ -102,10 +100,8 @@ QString strategy_detail_html(const strategy_data& strategy) {
             ? (strategy.weights[i] > 0 ? QStringLiteral("+") : QString())
                 + QString::number(strategy.weights[i])
             : absent;
-        html += QStringLiteral(
-                    "<td align='center'><p style='white-space:pre; "
-                    "margin:0'>%1</p></td>"
-        )
+        html += QStringLiteral("<td align='center'><p style='white-space:pre; "
+                               "margin:0'>%1</p></td>")
                     .arg(text(value));
     }
     html += QStringLiteral("</tr></table><h3>%1</h3><table cellpadding='3'>")
@@ -146,14 +142,12 @@ QString strategy_detail_html(const strategy_data& strategy) {
         html += QStringLiteral("<p>%1</p>").arg(text(absent));
     for (auto it = strategy.unique_fields.cbegin();
          it != strategy.unique_fields.cend(); ++it)
-        html
-            += QStringLiteral("<p><b>%1:</b> %2</p>")
-                   .arg(
-                       text(
-                           settings_template_support::format_key_label(it.key())
-                       ),
-                       text(it.value())
-                   );
+        html += QStringLiteral("<p><b>%1:</b> %2</p>")
+                    .arg(
+                        text(settings_template_support::format_key_label(it.key(
+                        ))),
+                        text(it.value())
+                    );
     html += QStringLiteral("<h3>%1</h3>").arg(text(str_label("References")));
     if (strategy.references.isEmpty())
         html += QStringLiteral("<p>%1</p>").arg(text(absent));
@@ -257,10 +251,9 @@ QWidget* create_strategy_browser(
     layout->addWidget(note);
 
     auto* model = new QStandardItemModel(browser);
-    model->setHorizontalHeaderLabels(
-        { str_label("Strategy"), str_label("BC"), str_label("PE"),
-          str_label("IC"), str_label("Ease") }
-    );
+    model->setHorizontalHeaderLabels({ str_label("Strategy"), str_label("BC"),
+                                       str_label("PE"), str_label("IC"),
+                                       str_label("Ease") });
     for (int column = 1; column <= comparison_metric_keys().size(); ++column) {
         const QString label = settings_template_support::format_key_label(
             comparison_metric_keys().at(column - 1)
@@ -325,7 +318,8 @@ QWidget* create_strategy_browser(
     );
     QObject::connect(
         comparison->horizontalHeader(), &QHeaderView::sortIndicatorChanged,
-        browser, [=](int column, Qt::SortOrder order) {
+        browser,
+        [=](int column, Qt::SortOrder order) {
             const QSignalBlocker field_blocker(sort_field);
             const QSignalBlocker order_blocker(sort_order);
             sort_field->setCurrentIndex(column);
@@ -378,7 +372,8 @@ QWidget* create_strategy_browser(
         );
     };
     QObject::connect(
-        search, &QLineEdit::textChanged, browser, [=](const QString& query) {
+        search, &QLineEdit::textChanged, browser,
+        [=](const QString& query) {
             const QString slug = list->currentIndex()
                                      .siblingAtColumn(0)
                                      .data(slug_role)

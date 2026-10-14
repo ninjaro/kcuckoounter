@@ -194,8 +194,7 @@ void table::begin_warming_generation(
     const qint64 superseded_generation_id = warming_shared_generation_id;
     retire_warming_generation();
     if (active_shared_faces_key.has_value()
-        && generation_id_from_render_scope(
-               active_shared_faces_key->render_scope
+        && generation_id_from_render_scope(active_shared_faces_key->render_scope
            ) == superseded_generation_id) {
         shared_faces_refresh_queued = true;
     }
@@ -244,11 +243,9 @@ bool table::start_shared_raster_for_key(const raster_cache::entry_key& key) {
         active_shared_faces_key = outcome.key;
         const QString source_id = outcome.key.source_id;
         const int target_bucket_px = outcome.key.target_bucket_px;
-        shared_faces_watcher.setFuture(
-            QtConcurrent::run(
-                rasterize_all_card_faces, source_id, target_bucket_px
-            )
-        );
+        shared_faces_watcher.setFuture(QtConcurrent::run(
+            rasterize_all_card_faces, source_id, target_bucket_px
+        ));
         refresh_rasterization_busy_state();
     }
 

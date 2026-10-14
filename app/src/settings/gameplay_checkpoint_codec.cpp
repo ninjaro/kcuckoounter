@@ -20,12 +20,9 @@ bool valid(
         && gameplay::valid_checkpoint(value.state, limits, resources)
         && value.pickup_elapsed_ms
         < static_cast<std::uint64_t>(value.state.pickup_interval_ms)
-        && std::ranges::all_of(
-               value.state.decks,
-               [](const auto& state) {
-                   return valid_slug(state.configuration.strategy_slug);
-               }
-        );
+        && std::ranges::all_of(value.state.decks, [](const auto& state) {
+               return valid_slug(state.configuration.strategy_slug);
+           });
 }
 
 QJsonValue batch(const std::optional<gameplay::quiz_batch>& value) {

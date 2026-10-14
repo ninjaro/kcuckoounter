@@ -81,26 +81,18 @@ void table_tests::gameplay_table_owns_roster_without_legacy_state() {
         slot->clear_quiz();
         QVERIFY(!slot->restore_session_state({}));
         slot->apply_drill_settings({ 3, true, QStringLiteral("hi_lo"), false });
-        QVERIFY(
-            QMetaObject::invokeMethod(
-                slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
-            )
-        );
-        QVERIFY(
-            QMetaObject::invokeMethod(
-                slot, "on_quiz_skip_button_clicked", Qt::DirectConnection
-            )
-        );
-        QVERIFY(
-            QMetaObject::invokeMethod(
-                slot, "on_settings_button_clicked", Qt::DirectConnection
-            )
-        );
-        QVERIFY(
-            QMetaObject::invokeMethod(
-                slot, "on_copy_all_button_clicked", Qt::DirectConnection
-            )
-        );
+        QVERIFY(QMetaObject::invokeMethod(
+            slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
+        ));
+        QVERIFY(QMetaObject::invokeMethod(
+            slot, "on_quiz_skip_button_clicked", Qt::DirectConnection
+        ));
+        QVERIFY(QMetaObject::invokeMethod(
+            slot, "on_settings_button_clicked", Qt::DirectConnection
+        ));
+        QVERIFY(QMetaObject::invokeMethod(
+            slot, "on_copy_all_button_clicked", Qt::DirectConnection
+        ));
         slot->resize(45, 65);
         auto* compact = slot->findChild<QToolButton*>(
             QStringLiteral("compact_slot_controls")
@@ -119,8 +111,8 @@ void table_tests::gameplay_table_owns_roster_without_legacy_state() {
     QVERIFY(view.findChildren<QDialog*>().isEmpty());
 }
 
-void table_tests::
-    gameplay_table_installation_preflight_preserves_current_scene() {
+void table_tests::gameplay_table_installation_preflight_preserves_current_scene(
+) {
     table view;
     view.resize(900, 700);
     view.set_slot_count(2);
@@ -166,7 +158,8 @@ void table_tests::gameplay_table_replacement_destroys_views_before_owner() {
     );
     bool owner_alive_when_closed = false;
     QObject::connect(
-        &view, &table::gameplay_session_about_to_change, &view, [&] {
+        &view, &table::gameplay_session_about_to_change, &view,
+        [&] {
             owner_alive_when_closed
                 = view.active_gameplay_session() == first_owner;
             settings.reset();
@@ -200,8 +193,7 @@ void table_tests::owned_table_projects_mixed_decks_and_swap() {
     QVERIFY(game.start());
     QCOMPARE(game.deal_step().status, gameplay::dealing_step_status::advanced);
     QVERIFY(game.edit_quiz_input({ 2 }, 9));
-    QVERIFY(
-        game.check_quiz({ 3 })
+    QVERIFY(game.check_quiz({ 3 })
     ); // wrong challenge -> failed, real answer path
     QCOMPARE(game.deal_step().status, gameplay::dealing_step_status::advanced);
     view.refresh_gameplay_session();
@@ -235,20 +227,16 @@ void table_tests::owned_table_projects_mixed_decks_and_swap() {
     QVERIFY(!view.swap_gameplay_decks({ 0 }, { 2 }));
     QVERIFY(game.pause());
     view.refresh_gameplay_session();
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &view, "on_slot_swap", Qt::DirectConnection,
-            Q_ARG(table_slot*, deck_views[0])
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &view, "on_slot_swap", Qt::DirectConnection,
+        Q_ARG(table_slot*, deck_views[0])
+    ));
     view.refresh_gameplay_session(); // same-state refresh preserves selection
     QVERIFY(deck_views[0]->swap_selected());
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &view, "on_slot_swap", Qt::DirectConnection,
-            Q_ARG(table_slot*, deck_views[2])
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &view, "on_slot_swap", Qt::DirectConnection,
+        Q_ARG(table_slot*, deck_views[2])
+    ));
     QCOMPARE(
         view.slot_widgets, deck_views
     ); // deck storage is never widget-swap order
@@ -277,12 +265,10 @@ void table_tests::owned_table_projects_mixed_decks_and_swap() {
                   ? packing::orientation_constraint::vertical_only
                   : packing::orientation_constraint::horizontal_only }
         );
-        QVERIFY(
-            std::ranges::equal(
-                game.traversal(), expected.traversal, {},
-                [](auto id) { return id.value; }
-            )
-        );
+        QVERIFY(std::ranges::equal(
+            game.traversal(), expected.traversal, {},
+            [](auto id) { return id.value; }
+        ));
         for (std::size_t index = 0; index < game.size(); ++index) {
             QCOMPARE(
                 deck_views[index]->geometry(),
@@ -297,8 +283,7 @@ void table_tests::owned_table_projects_mixed_decks_and_swap() {
         }
     }
     QCOMPARE(*game.deck({ 2 }), pending);
-    QVERIFY(
-        view.swap_gameplay_decks({ 1 }, { 3 })
+    QVERIFY(view.swap_gameplay_decks({ 1 }, { 3 })
     ); // stopped owners also remain mapped
     QCOMPARE(*game.deck({ 1 }), completed);
     QCOMPARE(*game.deck({ 3 }), failed);
@@ -363,8 +348,7 @@ void table_tests::gameplay_table_refreshes_owned_check_and_timeout() {
     auto* timed_out = view.slot_widgets[3];
     QVERIFY(correct->is_quiz_prompt_active());
     QVERIFY(timed_out->is_quiz_prompt_active());
-    QVERIFY(
-        game.edit_quiz_input({ 2 }, game.deck({ 2 })->quiz->expected_count)
+    QVERIFY(game.edit_quiz_input({ 2 }, game.deck({ 2 })->quiz->expected_count)
     );
     QVERIFY(game.check_quiz({ 2 }));
     view.refresh_gameplay_session();

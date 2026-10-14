@@ -43,28 +43,24 @@ QByteArray encode(const QVector<gameplay_drill>& drills) {
         QJsonArray decks;
         for (const auto& deck : drill.decks) {
             const auto& config = deck.configuration;
-            decks.append(
-                QJsonObject {
-                    { QStringLiteral("strategy"),
-                      QString::fromStdString(config.strategy_slug) },
-                    { QStringLiteral("count"),
-                      static_cast<int>(config.deck_count) },
-                    { QStringLiteral("infinite"), config.infinite },
-                    { QStringLiteral("training"), config.training },
-                    { QStringLiteral("show_count"), deck.show_count },
-                }
-            );
+            decks.append(QJsonObject {
+                { QStringLiteral("strategy"),
+                  QString::fromStdString(config.strategy_slug) },
+                { QStringLiteral("count"),
+                  static_cast<int>(config.deck_count) },
+                { QStringLiteral("infinite"), config.infinite },
+                { QStringLiteral("training"), config.training },
+                { QStringLiteral("show_count"), deck.show_count },
+            });
         }
         object.insert(QStringLiteral("decks"), decks);
         entries.append(object);
     }
-    return QJsonDocument(
-               QJsonObject {
-                   { QStringLiteral("version"),
-                     gameplay_drill_service::schema_version },
-                   { QStringLiteral("drills"), entries },
-               }
-    )
+    return QJsonDocument(QJsonObject {
+                             { QStringLiteral("version"),
+                               gameplay_drill_service::schema_version },
+                             { QStringLiteral("drills"), entries },
+                         })
         .toJson(QJsonDocument::Compact);
 }
 
@@ -104,17 +100,13 @@ decode_entry(const QJsonObject& object, gameplay::slot_limits limits) {
             || !deck.value(QStringLiteral("training")).isBool()
             || !deck.value(QStringLiteral("show_count")).isBool())
             return std::nullopt;
-        result.decks.push_back(
-            {
-                { deck.value(QStringLiteral("strategy"))
-                      .toString()
-                      .toStdString(),
-                  static_cast<std::size_t>(*number),
-                  deck.value(QStringLiteral("infinite")).toBool(),
-                  deck.value(QStringLiteral("training")).toBool() },
-                deck.value(QStringLiteral("show_count")).toBool(),
-            }
-        );
+        result.decks.push_back({
+            { deck.value(QStringLiteral("strategy")).toString().toStdString(),
+              static_cast<std::size_t>(*number),
+              deck.value(QStringLiteral("infinite")).toBool(),
+              deck.value(QStringLiteral("training")).toBool() },
+            deck.value(QStringLiteral("show_count")).toBool(),
+        });
     }
     return valid_gameplay_drill(result, limits) ? std::make_optional(result)
                                                 : std::nullopt;

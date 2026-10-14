@@ -95,12 +95,10 @@ void card_widget_tests::shared_faces_disable_local_rasterization() {
     widget.start_quiz(0, 1, false);
 
     QVector<QImage> shared_faces;
-    shared_faces.push_back(
-        QImage(128, 196, QImage::Format_ARGB32_Premultiplied)
+    shared_faces.push_back(QImage(128, 196, QImage::Format_ARGB32_Premultiplied)
     );
     shared_faces[0].fill(Qt::red);
-    shared_faces.push_back(
-        QImage(128, 196, QImage::Format_ARGB32_Premultiplied)
+    shared_faces.push_back(QImage(128, 196, QImage::Format_ARGB32_Premultiplied)
     );
     shared_faces[1].fill(Qt::blue);
 
@@ -183,11 +181,13 @@ void card_widget_tests::theme_source_change_invalidates_stale_raster_result() {
     card_widget widget;
     widget.start_quiz(0, 1, false);
 
-    widget.card_sheet_source = bundled_asset_path(QStringLiteral("sets/cards/cards_0.svg"));
+    widget.card_sheet_source
+        = bundled_asset_path(QStringLiteral("sets/cards/cards_0.svg"));
     widget.card_sheet_renderer.load(widget.card_sheet_source);
     widget.start_rasterization(QSize(120, 180));
 
-    widget.card_sheet_source = bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg"));
+    widget.card_sheet_source
+        = bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg"));
     widget.card_sheet_renderer.load(widget.card_sheet_source);
     widget.pending_raster_size = QSize(120, 180);
 

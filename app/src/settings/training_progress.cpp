@@ -72,15 +72,13 @@ QByteArray
 serialize_recent_results(const QVector<completed_training_result>& results) {
     QJsonArray array;
     for (const completed_training_result& result : results) {
-        array.append(
-            QJsonObject {
-                { QStringLiteral("correct"), result.correct },
-                { QStringLiteral("answered"), result.answered },
-                { QStringLiteral("elapsed_ms"), result.elapsed_ms },
-                { QStringLiteral("completed_at_utc_ms"),
-                  result.completed_at_utc_ms },
-            }
-        );
+        array.append(QJsonObject {
+            { QStringLiteral("correct"), result.correct },
+            { QStringLiteral("answered"), result.answered },
+            { QStringLiteral("elapsed_ms"), result.elapsed_ms },
+            { QStringLiteral("completed_at_utc_ms"),
+              result.completed_at_utc_ms },
+        });
     }
     return QJsonDocument(array).toJson(QJsonDocument::Compact);
 }
@@ -236,8 +234,7 @@ bool training_progress_service::save(const training_progress& progress) {
     return settings.status() == QSettings::NoError;
 }
 
-bool training_progress_service::record(
-    const completed_training_result& result
+bool training_progress_service::record(const completed_training_result& result
 ) {
     if (!valid_result(result)) {
         return false;
@@ -259,12 +256,10 @@ bool training_progress_service::record(
         progress.best_elapsed_ms = result.elapsed_ms;
     }
     progress.recent_results.prepend(result);
-    progress.recent_results.resize(
-        std::min(
-            progress.recent_results.size(),
-            training_progress::maximum_recent_results
-        )
-    );
+    progress.recent_results.resize(std::min(
+        progress.recent_results.size(),
+        training_progress::maximum_recent_results
+    ));
     return save(progress);
 }
 

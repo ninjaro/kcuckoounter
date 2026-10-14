@@ -40,10 +40,9 @@ void table_tests::gameplay_hud_projects_owned_session_data() {
     QTest::addColumn<bool>("global_pause");
     for (const bool instruments : { false, true })
         for (const bool global_pause : { false, true })
-            QTest::newRow(
-                qPrintable(QStringLiteral("hud-%1-global-%2")
-                               .arg(instruments)
-                               .arg(global_pause))
+            QTest::newRow(qPrintable(QStringLiteral("hud-%1-global-%2")
+                                         .arg(instruments)
+                                         .arg(global_pause))
             ) << instruments
               << global_pause;
 }
@@ -101,12 +100,10 @@ void table_tests::gameplay_hud_projects_owned_session() {
     auto* legacy_clock
         = window.findChild<BaseClock*>(QString(), Qt::FindDirectChildrenOnly);
     legacy_clock->set_elapsed_time_ms(900000);
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_table_score_adjusted", Qt::DirectConnection,
-            Q_ARG(int, 50), Q_ARG(int, 60)
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_table_score_adjusted", Qt::DirectConnection,
+        Q_ARG(int, 50), Q_ARG(int, 60)
+    ));
     QCOMPARE(status->text(), label_before);
     QVERIFY(view->pause_gameplay_runtime());
     QVERIFY(status->text().contains(str_label("Paused")));
@@ -181,11 +178,9 @@ void table_tests::gameplay_lives_hud() {
     auto* status = window.findChild<QLabel*>(QStringLiteral("session_status"));
     QVERIFY(view && status);
     QVERIFY(!status->text().contains(str_label("Remaining lives")));
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_settings_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_settings_triggered", Qt::DirectConnection
+    ));
     auto* shared = window.findChild<settings_shared_state*>();
     QVERIFY(shared);
     auto fixture = owned_clock_fixture(

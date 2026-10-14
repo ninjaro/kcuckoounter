@@ -172,24 +172,20 @@ void table_tests::presentation_preserves_packed_slots() {
         if (style != slot_settings_style::classic) {
             auto* slot = slot_widgets[0];
             const auto state = slot->capture_session_state();
-            QVERIFY(
-                QMetaObject::invokeMethod(
-                    slot, "on_settings_button_clicked", Qt::DirectConnection
-                )
-            );
-            auto* panel = slot->findChild<QFrame*>(
-                QStringLiteral("slot_settings_editor")
-            );
+            QVERIFY(QMetaObject::invokeMethod(
+                slot, "on_settings_button_clicked", Qt::DirectConnection
+            ));
+            auto* panel
+                = slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"
+                ));
             QVERIFY(panel && panel->isVisible());
             QCOMPARE(slot->geometry(), bounds[0]);
             QCOMPARE(slot->findChild<card_widget*>()->geometry(), slot->rect());
             QCOMPARE(slot->card_face_need_short_px(), raster_demands[0]);
             QCOMPARE(slot->capture_session_state(), state);
-            QVERIFY(
-                QMetaObject::invokeMethod(
-                    slot, "on_settings_button_clicked", Qt::DirectConnection
-                )
-            );
+            QVERIFY(QMetaObject::invokeMethod(
+                slot, "on_settings_button_clicked", Qt::DirectConnection
+            ));
             QVERIFY(!panel->isVisible());
             QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         }

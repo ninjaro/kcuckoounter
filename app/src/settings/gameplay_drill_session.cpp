@@ -76,14 +76,12 @@ std::optional<gameplay_drill> draft_legacy_drill(
     result.configuration.sequential_count = 1;
     result.decks.reserve(static_cast<std::size_t>(legacy.slot_settings.size()));
     for (const auto& slot : legacy.slot_settings)
-        result.decks.push_back(
-            {
-                { slot.strategy_slug.toStdString(),
-                  static_cast<std::size_t>(slot.deck_count),
-                  slot.infinity_enabled, slot.training_mode },
-                slot.training_mode,
-            }
-        );
+        result.decks.push_back({
+            { slot.strategy_slug.toStdString(),
+              static_cast<std::size_t>(slot.deck_count), slot.infinity_enabled,
+              slot.training_mode },
+            slot.training_mode,
+        });
     return valid_gameplay_drill(result, limits) ? std::make_optional(result)
                                                 : std::nullopt;
 }

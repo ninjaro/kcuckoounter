@@ -57,10 +57,8 @@ gameplay_reservation::recovery_outcome gameplay_reservation::recover(
         return recovery_outcome::paused;
     if (error)
         *error = identity
-            ? str_label(
-                  "Recovery publication was interrupted. The identified "
-                  "checkpoint is preserved."
-              )
+            ? str_label("Recovery publication was interrupted. The identified "
+                        "checkpoint is preserved.")
             : str_label(
                   "The identified checkpoint could not be installed on this "
                   "table. Stored data is unchanged."

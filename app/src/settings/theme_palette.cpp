@@ -76,8 +76,8 @@ const QVector<theme_palette_option>& theme_palette_registry::options() {
     return options;
 }
 
-const theme_palette_option&
-theme_palette_registry::option(theme_palette_id id) {
+const theme_palette_option& theme_palette_registry::option(theme_palette_id id
+) {
     return options().at(index(id));
 }
 

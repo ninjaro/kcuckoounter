@@ -130,9 +130,8 @@ void gameplay_progress_tests::lifetime_sequence_bounds() {
     progress.timing.play_time_ms = std::numeric_limits<std::uint64_t>::max();
     for (std::uint64_t i = 0; i < gameplay_progress::maximum_recent_results;
          ++i)
-        progress.recent_results.push_back(
-            { progress.completed_sessions - i, 1, result }
-        );
+        progress.recent_results.push_back({ progress.completed_sessions - i, 1,
+                                            result });
     const auto bytes = encode_gameplay_progress(progress, { 3, 64 });
     QVERIFY(bytes && decode_gameplay_progress(*bytes, { 3, 64 }) == progress);
     settings.setValue(storage_key, *bytes);

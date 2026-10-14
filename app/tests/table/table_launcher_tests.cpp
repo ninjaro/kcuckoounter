@@ -360,11 +360,9 @@ void table_tests::gameplay_launcher_routes_runtime_and_finish() {
     QCOMPARE(*owner->current_quiz_batch(), batch);
     start->trigger();
     QCOMPARE(owner->phase(), gameplay::session_phase::running);
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_settings_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_settings_triggered", Qt::DirectConnection
+    ));
     QCOMPARE(owner->phase(), gameplay::session_phase::paused);
     QCOMPARE(*owner->current_quiz_batch(), batch);
     // Opening ordinary appearance settings pauses only the owned runtime.
@@ -376,11 +374,9 @@ void table_tests::gameplay_launcher_routes_runtime_and_finish() {
     answer_launcher_finish(
         window, confirm ? QMessageBox::Yes : QMessageBox::No
     );
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_finish_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_finish_triggered", Qt::DirectConnection
+    ));
     QCOMPARE(
         owner->phase(),
         confirm ? gameplay::session_phase::finished
@@ -396,11 +392,9 @@ void table_tests::gameplay_launcher_routes_runtime_and_finish() {
     );
     if (confirm) {
         const auto result = *owner->result();
-        QVERIFY(
-            QMetaObject::invokeMethod(
-                &window, "on_finish_triggered", Qt::DirectConnection
-            )
-        );
+        QVERIFY(QMetaObject::invokeMethod(
+            &window, "on_finish_triggered", Qt::DirectConnection
+        ));
         QCOMPARE(*owner->result(), result);
         // Explicit fresh replacement reuses choices, never progress or shoes.
         window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))
@@ -435,11 +429,9 @@ void table_tests::gameplay_launcher_finish_replacement_is_not_finished() {
         if (auto* question = window.findChild<QMessageBox*>())
             question->button(QMessageBox::Yes)->click();
     });
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_finish_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_finish_triggered", Qt::DirectConnection
+    ));
     QVERIFY(replaced);
     QCOMPARE(
         view->active_gameplay_session()->phase(), gameplay::session_phase::setup
@@ -502,15 +494,13 @@ void table_tests::launcher_natural_end_and_legacy_return() {
     const auto* deck = owner->deck({ 0 });
     QCOMPARE(deck->status, gameplay::deck_status::completed);
     QCOMPARE(deck->dealt_physical_cards, physical_jokers ? 54U : 52U);
-    QVERIFY(
-        !owner->current_quiz_batch()
+    QVERIFY(!owner->current_quiz_batch()
     ); // informational end, not another quiz
     QVERIFY(!view->gameplay_quiz_prompt({ 0 }));
     QCOMPARE(owner->statistics().verified_cards, std::uint64_t { 0 });
     QCOMPARE(owner->statistics().errors, std::uint64_t { 0 });
     const auto* card = owned_card(view->slot_widgets.front());
-    QVERIFY(
-        card->accessibleDescription().contains(str_label("Completed deck."))
+    QVERIFY(card->accessibleDescription().contains(str_label("Completed deck."))
     );
     QVERIFY(card->accessibleDescription().contains(
         QString::number(deck->running_count)
@@ -521,23 +511,18 @@ void table_tests::launcher_natural_end_and_legacy_return() {
     QVERIFY(!launcher_start_action(window)->isEnabled());
     QPointer<gameplay::setup_widget> fields
         = dialog->findChild<gameplay::setup_widget*>();
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_new_game_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_new_game_triggered", Qt::DirectConnection
+    ));
     QVERIFY(fields.isNull());
     QVERIFY(!view->active_gameplay_session());
-    QVERIFY(
-        !window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
+    QVERIFY(!window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
     );
     QVERIFY(window.findChild<QAction*>(QStringLiteral("game_saved_drills"))
                 ->isEnabled());
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_continue_button_clicked", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_continue_button_clicked", Qt::DirectConnection
+    ));
     auto* start = launcher_start_action(window);
     QVERIFY(start->isEnabled());
     start->trigger();

@@ -430,12 +430,10 @@ void settings_template_widget::render_next_preview() {
     const QString source_id = key.source_id;
     const QString element_id = parsed.element_id;
     const int target_bucket_px = key.target_bucket_px;
-    preview_watcher.setFuture(
-        QtConcurrent::run(
-            &settings_template_widget::render_preview_face, source_id,
-            element_id, target_bucket_px
-        )
-    );
+    preview_watcher.setFuture(QtConcurrent::run(
+        &settings_template_widget::render_preview_face, source_id, element_id,
+        target_bucket_px
+    ));
 }
 
 void settings_template_widget::preview_render_finished() {

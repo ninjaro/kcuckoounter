@@ -67,13 +67,10 @@ bool gameplay_reservation::start(
     detach_result();
     owner.clear(); // A later raw Start cannot claim an aborted reservation.
     if (error && error->isEmpty())
-        *error = identity ? str_label(
-                                "Gameplay activation was interrupted. Its "
-                                "reservation is preserved for recovery."
-                            )
-                          : str_label(
-                                "The prepared gameplay scene could not be "
-                                "reserved or started."
-                            );
+        *error = identity
+            ? str_label("Gameplay activation was interrupted. Its "
+                        "reservation is preserved for recovery.")
+            : str_label("The prepared gameplay scene could not be "
+                        "reserved or started.");
     return false;
 }

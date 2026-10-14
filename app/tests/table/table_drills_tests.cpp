@@ -154,8 +154,7 @@ void table_tests::saved_drill_picker_preserves_and_launches_sessions() {
     for (auto* menu : window.findChildren<QMenu*>())
         in_menu = in_menu || menu->actions().contains(route);
     QVERIFY(in_menu);
-    QVERIFY(
-        window.findChild<QPushButton*>(QStringLiteral("setup_saved_drills"))
+    QVERIFY(window.findChild<QPushButton*>(QStringLiteral("setup_saved_drills"))
     );
     training_drill_service service(settings);
     const auto visit = [&](auto inspect) {
@@ -180,9 +179,9 @@ void table_tests::saved_drill_picker_preserves_and_launches_sessions() {
     };
     const auto before = view->capture_session_state();
     visit([&](QDialog* dialog) {
-        auto* list = dialog->findChild<QListWidget*>(
-            QStringLiteral("saved_drills_list")
-        );
+        auto* list
+            = dialog->findChild<QListWidget*>(QStringLiteral("saved_drills_list"
+            ));
         auto* name
             = dialog->findChild<QLineEdit*>(QStringLiteral("saved_drill_name"));
         auto* save = dialog->findChild<QPushButton*>(
@@ -251,11 +250,9 @@ void table_tests::saved_drill_picker_preserves_and_launches_sessions() {
         = { { 1, false, strategy_repository().strategies.first().slug,
               false } };
     QVERIFY(service.save({ drill }));
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_start_pause_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_start_pause_triggered", Qt::DirectConnection
+    ));
     // Opening/closing preserves the running session, rather than finishing it.
     const auto running = view->capture_session_state();
     QVERIFY(running.quiz_running && !running.quiz_paused);
@@ -304,13 +301,12 @@ void table_tests::saved_drill_picker_preserves_and_launches_sessions() {
     visit([&](QDialog* dialog) {
         QVERIFY(!dialog->findChild<QPushButton*>(QStringLiteral("launch_drill"))
                      ->isEnabled());
-        QVERIFY(
-            dialog
-                ->findChild<QPlainTextEdit*>(
-                    QStringLiteral("saved_drill_details")
-                )
-                ->toPlainText()
-                .contains(str_label("Cannot launch:"), Qt::CaseInsensitive)
+        QVERIFY(dialog
+                    ->findChild<QPlainTextEdit*>(
+                        QStringLiteral("saved_drill_details")
+                    )
+                    ->toPlainText()
+                    .contains(str_label("Cannot launch:"), Qt::CaseInsensitive)
         );
         QTimer::singleShot(0, dialog, [] {
             auto* question

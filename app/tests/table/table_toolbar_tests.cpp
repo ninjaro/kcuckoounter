@@ -348,10 +348,9 @@ void table_tests::toolbar_styles_preserve_terminal_routes_data() {
     QTest::addColumn<bool>("physical_jokers");
     for (const bool compact : { false, true })
         for (const bool physical : { false, true })
-            QTest::newRow(
-                qPrintable(QStringLiteral("compact=%1/physical=%2")
-                               .arg(compact)
-                               .arg(physical))
+            QTest::newRow(qPrintable(QStringLiteral("compact=%1/physical=%2")
+                                         .arg(compact)
+                                         .arg(physical))
             ) << compact
               << physical;
 }
@@ -493,8 +492,7 @@ void table_tests::toolbar_styles_preserve_terminal_routes() {
     QTest::keyClick(new_button, Qt::Key_Space);
     QVERIFY(!view->active_gameplay_session());
     QVERIFY(!view->gameplay_timer.isActive());
-    QVERIFY(
-        !window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
+    QVERIFY(!window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
     );
     QCOMPARE(toolbar->actions(), actions);
     QCOMPARE(start->text(), str_label("Start"));

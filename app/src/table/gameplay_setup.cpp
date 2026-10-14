@@ -129,9 +129,8 @@ setup_widget::setup_widget(session& owner_value, BaseWidget* parent)
         "wait. Lives always requires global quiz pause."
     ));
     form->addRow(global_pause);
-    pause_explanation->setObjectName(
-        QStringLiteral("gameplay_pause_explanation")
-    );
+    pause_explanation->setObjectName(QStringLiteral("gameplay_pause_explanation"
+    ));
     pause_explanation->setWordWrap(true);
     form->addRow(pause_explanation);
 
@@ -490,11 +489,9 @@ void deck_setup_widget::refresh() {
                 "Strategy recommends %1 card decks. Fewer are allowed for "
                 "practice."
             )
-                .arg(
-                    QString::number(
-                        static_cast<qulonglong>(parameters->recommended_decks)
-                    )
-                )
+                .arg(QString::number(
+                    static_cast<qulonglong>(parameters->recommended_decks)
+                ))
         );
 #endif
     } else if (!catalog.is_valid()) {
@@ -534,11 +531,9 @@ void deck_setup_widget::refresh() {
                 "Current choice: %1 card decks. This control cannot edit that "
                 "large a value; unrelated edits keep it unchanged."
             )
-                .arg(
-                    QString::number(
-                        static_cast<qulonglong>(configuration.deck_count)
-                    )
-                )
+                .arg(QString::number(
+                    static_cast<qulonglong>(configuration.deck_count)
+                ))
         );
 #endif
     }

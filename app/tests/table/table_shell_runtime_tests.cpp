@@ -207,9 +207,8 @@ void table_tests::shell_menus_preserve_owned_routes() {
     QCOMPARE(owner.phase(), gameplay::session_phase::paused);
     settings_template_widget* editor = nullptr;
     for (auto* candidate : window.findChildren<settings_template_widget*>())
-        if (candidate->findChild<QComboBox*>(
-                QStringLiteral("desktop_ui_toolbar")
-            ))
+        if (candidate->findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar"
+            )))
             editor = candidate;
     QVERIFY(editor);
     editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar"))
@@ -329,9 +328,9 @@ void table_tests::shell_state_keeps_gameplay_ephemeral() {
         set_gameplay_motion_style(*old_view, 0);
         window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))
             ->trigger();
-        auto* dialog = window.findChild<QDialog*>(
-            QStringLiteral("gameplay_setup_dialog")
-        );
+        auto* dialog
+            = window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog")
+            );
         QVERIFY(dialog);
         dialog->hide();
         QVERIFY(old_view->install_gameplay_session(owned_clock_fixture(
@@ -365,9 +364,9 @@ void table_tests::shell_state_keeps_gameplay_ephemeral() {
         for (int pass = 0; pass < 12; ++pass)
             QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
         saved_size = window.size();
-        saved_state = window.saveState(
-            desktop_shell_state::qt_main_window_state_version
-        );
+        saved_state
+            = window.saveState(desktop_shell_state::qt_main_window_state_version
+            );
         QCOMPARE(non_shell_settings(storage.settings), documents);
     }
     QVERIFY(old_view.isNull() && old_fields.isNull() && old_input.isNull());
@@ -395,9 +394,8 @@ void table_tests::shell_state_keeps_gameplay_ephemeral() {
     QVERIFY(restored.menuBar()->isVisible());
     QVERIFY(restored.findChild<QAction*>(QStringLiteral("game_saved_drills"))
                 ->isEnabled());
-    QVERIFY(
-        !restored.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
-    );
+    QVERIFY(!restored.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"
+    )));
     QCOMPARE(load_trainer_preferences(), trainer);
     QCOMPARE(load_desktop_ui_preferences(), ui);
     QCOMPARE(non_shell_settings(storage.settings), documents);

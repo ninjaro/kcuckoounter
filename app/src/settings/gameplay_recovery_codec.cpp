@@ -80,9 +80,9 @@ std::optional<gameplay_recovery> decode_gameplay_recovery(
     if (!document.isObject())
         return std::nullopt;
     const auto root = document.object();
-    const auto sequence = gameplay_storage::read_unsigned(
-        root.value(QStringLiteral("sequence"))
-    );
+    const auto sequence
+        = gameplay_storage::read_unsigned(root.value(QStringLiteral("sequence"))
+        );
     const auto phase = root.value(QStringLiteral("phase"));
     const auto payload = root.value(QStringLiteral("payload"));
     if (root.size() != 4 || !sequence || *sequence == 0 || !phase.isString()
@@ -98,11 +98,10 @@ std::optional<gameplay_recovery> decode_gameplay_recovery(
             QJsonDocument(payload.toObject()).toJson(QJsonDocument::Compact),
             limits, resources
         );
-        return checkpoint ? std::make_optional(
-                                gameplay_recovery { gameplay_active_record {
-                                    *sequence, std::move(*checkpoint) } }
-                            )
-                          : std::nullopt;
+        return checkpoint
+            ? std::make_optional(gameplay_recovery { gameplay_active_record {
+                  *sequence, std::move(*checkpoint) } })
+            : std::nullopt;
     }
     if (phase.toString() != QStringLiteral("pending"))
         return std::nullopt;

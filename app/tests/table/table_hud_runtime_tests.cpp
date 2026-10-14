@@ -183,17 +183,13 @@ void table_tests::hud_styles_preserve_owned_quiz() {
     auto* cache = view->shared_raster_cache_service();
     const auto original_status = status->text();
     legacy_clock->set_elapsed_time_ms(900'000);
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_clock_ticked", Q_ARG(qlonglong, 900'000),
-            Q_ARG(qlonglong, 1'000)
-        )
-    );
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_table_score_adjusted", Q_ARG(int, 50), Q_ARG(int, 60)
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_clock_ticked", Q_ARG(qlonglong, 900'000),
+        Q_ARG(qlonglong, 1'000)
+    ));
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_table_score_adjusted", Q_ARG(int, 50), Q_ARG(int, 60)
+    ));
     QCOMPARE(status->text(), original_status);
     for (const bool instruments : { !initial_instruments, initial_instruments })
         for (const bool show_readout : { false, true }) {
@@ -235,8 +231,8 @@ void table_tests::hud_styles_preserve_owned_quiz() {
                 );
                 QCOMPARE(window.size(), size);
                 QList<QWidget*> fields { status, readout, speed, progress };
-                if (auto* clock = window.findChild<QLabel*>(
-                        QStringLiteral("session_clock")
+                if (auto* clock
+                    = window.findChild<QLabel*>(QStringLiteral("session_clock")
                     )) {
                     fields.append(clock);
                     QCOMPARE(clock->text(), view->gameplay_clock_text());
@@ -336,10 +332,9 @@ void table_tests::hud_styles_preserve_finished_result_data() {
     QTest::addColumn<bool>("lives");
     for (const bool instruments : { false, true })
         for (const bool lives : { false, true })
-            QTest::newRow(
-                qPrintable(QStringLiteral("instruments=%1/lives=%2")
-                               .arg(instruments)
-                               .arg(lives))
+            QTest::newRow(qPrintable(QStringLiteral("instruments=%1/lives=%2")
+                                         .arg(instruments)
+                                         .arg(lives))
             ) << instruments
               << lives;
 }
@@ -456,9 +451,8 @@ void table_tests::hud_styles_preserve_finished_result() {
         QCOMPARE(view->shared_raster_cache_service(), cache);
         QVERIFY(!view->gameplay_timer.isActive());
         QVERIFY(!status->text().contains(QStringLiteral("%1")));
-        QVERIFY(
-            !status->text().contains(QStringLiteral("I18N_ARGUMENT_MISSING"))
-        );
+        QVERIFY(!status->text().contains(QStringLiteral("I18N_ARGUMENT_MISSING")
+        ));
     }
     // HUD widgets outlive scenes; no previous result/life/speed leaks to setup.
     QVERIFY(view->install_gameplay_session(owned_clock_fixture(1)));

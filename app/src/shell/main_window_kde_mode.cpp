@@ -249,8 +249,7 @@ void main_window::finalize_platform_shell() {
             if (!isCommandBarEnabled())
                 return;
             auto* bar = new KCommandBar(this);
-            bar->setActions(
-                { { windowTitle(), actionCollection()->actions() } }
+            bar->setActions({ { windowTitle(), actionCollection()->actions() } }
             );
             bar->show();
         });

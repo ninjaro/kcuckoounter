@@ -147,7 +147,8 @@ bool table_slot::is_session_state_valid(const table_slot_session_state& state) {
         return state.strategy_slug.isEmpty() && state.strategy_id == 0;
     }
     return std::ranges::any_of(
-        repository.strategies, [&state](const strategy_data& strategy) {
+        repository.strategies,
+        [&state](const strategy_data& strategy) {
             return (!state.strategy_slug.isEmpty()
                     && strategy.slug == state.strategy_slug)
                 || (state.strategy_id > 0 && strategy.id == state.strategy_id);

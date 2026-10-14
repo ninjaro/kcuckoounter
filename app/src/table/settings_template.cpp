@@ -15,11 +15,9 @@
 settings_shared_state::settings_shared_state(QObject* parent)
     : QObject(parent)
     , default_suit_value(load_default_suit_preference())
-    , table_color_index_value(
-          settings_template_support::theme_index_from_color(
-              theme_settings::base_color()
-          )
-      ) { }
+    , table_color_index_value(settings_template_support::theme_index_from_color(
+          theme_settings::base_color()
+      )) { }
 
 void settings_shared_state::set_default_suit(int index) {
     if (index < 0 || index > 3 || index == default_suit_value) {

@@ -72,8 +72,7 @@ void card_widget_tests::gameplay_layout_rotation_fits_every_frame() {
     }
     widget.unbind_gameplay_deck();
     widget.set_gameplay_layout_rotation(45.0);
-    QVERIFY(
-        !widget.gameplay_layout_rotation_deg
+    QVERIFY(!widget.gameplay_layout_rotation_deg
     ); // legacy remains endpoint-only
 }
 
@@ -85,8 +84,7 @@ void card_widget_tests::layout_frames_preserve_jitter_and_shared_faces() {
     supply_renderer_faces(widget);
     QVERIFY(widget.bind_gameplay_deck(owner, { 0 }));
     widget.show();
-    (void)render_card(
-        widget
+    (void)render_card(widget
     ); // Initial resize/jitter/marking before the snapshot.
     const auto before = *owner.deck({ 0 });
     const auto jitter = widget.card_rotation_deg;

@@ -100,7 +100,7 @@ static bool card_theme_option_label_less(
 
 static QVector<card_theme_option> build_available_card_themes() {
     QVector<card_theme_option> themes;
-    const QString default_source = default_card_sheet_source_value();
+    const QString& default_source = default_card_sheet_source_value();
     if (card_theme_source_is_reachable(default_source)) {
         themes.push_back(card_theme_option {
             .label = str_label("Bundled: Base card theme"),
@@ -113,9 +113,11 @@ static QVector<card_theme_option> build_available_card_themes() {
     QJsonArray bundled_sets;
     if (catalog.open(QIODevice::ReadOnly)) {
         bundled_sets = QJsonDocument::fromJson(catalog.readAll())
-                           .object().value(QStringLiteral("sets")).toArray();
+                           .object()
+                           .value(QStringLiteral("sets"))
+                           .toArray();
     }
-    for (const QJsonValue& value : bundled_sets) {
+    for (const QJsonValue value : bundled_sets) {
         const QJsonObject entry = value.toObject();
         const QString id = entry.value(QStringLiteral("id")).toString();
         const QString svg = entry.value(QStringLiteral("svg")).toString();
@@ -129,20 +131,20 @@ static QVector<card_theme_option> build_available_card_themes() {
         const QString source_path
             = bundled_asset_path(QStringLiteral("sets/cards/%1").arg(svg));
         if (!card_theme_source_is_reachable(source_path)
-            || std::any_of(themes.cbegin(), themes.cend(),
-                           [&source_path](const card_theme_option& theme) {
-                               return theme.source_path == source_path;
-                           })) {
+            || std::any_of(
+                themes.cbegin(), themes.cend(),
+                [&source_path](const card_theme_option& theme) {
+                    return theme.source_path == source_path;
+                }
+            )) {
             continue;
         }
         const QString name = entry.value(QStringLiteral("name")).toString();
-        themes.push_back(
-            card_theme_option {
-                .label = str_label("Bundled: %1").arg(name.isEmpty() ? id : name),
-                .source_path = source_path,
-                .installed = false,
-            }
-        );
+        themes.push_back(card_theme_option {
+            .label = str_label("Bundled: %1").arg(name.isEmpty() ? id : name),
+            .source_path = source_path,
+            .installed = false,
+        });
     }
 
     QVector<card_theme_option> installed_themes;
@@ -177,13 +179,11 @@ static QVector<card_theme_option> build_available_card_themes() {
             const QString label = installed_card_theme_label(
                 index_path, installed_card_theme_root_name(deck_dir)
             );
-            installed_themes.push_back(
-                card_theme_option {
-                    .label = str_label("KDE Games: %1").arg(label),
-                    .source_path = source_path,
-                    .installed = true,
-                }
-            );
+            installed_themes.push_back(card_theme_option {
+                .label = str_label("KDE Games: %1").arg(label),
+                .source_path = source_path,
+                .installed = true,
+            });
             seen_sources.push_back(source_path);
         }
     }
@@ -334,8 +334,8 @@ static parsed_card_element_id parse_card_element_id(const QString& element_id) {
     return {};
 }
 
-static QStringList
-candidate_card_element_ids(const QString& logical_element_id) {
+static QStringList candidate_card_element_ids(const QString& logical_element_id
+) {
     QStringList candidates;
     append_unique(candidates, logical_element_id);
 
@@ -497,8 +497,8 @@ struct cached_sheet_state {
     bool has_value = false;
 };
 
-static card_sheet_cache
-build_sheet_cache_for_source(const QString& source_path) {
+static card_sheet_cache build_sheet_cache_for_source(const QString& source_path
+) {
     const std::pair<int, int> fallback_ratio { 88, 63 };
     QSvgRenderer renderer(source_path);
     if (!renderer.isValid()) {
@@ -529,8 +529,8 @@ build_sheet_cache_for_source(const QString& source_path) {
     return { true, fallback_ratio };
 }
 
-static card_sheet_cache
-cached_card_sheet_for_source(const QString& source_path) {
+static card_sheet_cache cached_card_sheet_for_source(const QString& source_path
+) {
     static cached_sheet_state state;
     if (state.has_value && state.source == source_path) {
         return state.cache;
@@ -621,9 +621,8 @@ public:
         if (resolved.source_kind == resolved_source_kind::active_theme) {
             renderer = &active_renderer;
             base = active_base_bounds;
-        } else if (
-            resolved.source_kind == resolved_source_kind::default_theme
-        ) {
+        } else if (resolved.source_kind
+                   == resolved_source_kind::default_theme) {
             renderer = fallback_renderer.get();
             base = fallback_base_bounds;
         }
@@ -656,11 +655,9 @@ public:
 card_sheet_render_context::card_sheet_render_context(
     const QString& preferred_source_path, const QString& fallback_source_path
 )
-    : implementation_(
-          std::make_unique<implementation>(
-              preferred_source_path, fallback_source_path
-          )
-      ) { }
+    : implementation_(std::make_unique<implementation>(
+          preferred_source_path, fallback_source_path
+      )) { }
 
 card_sheet_render_context::~card_sheet_render_context() = default;
 

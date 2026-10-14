@@ -152,10 +152,8 @@ void drill_picker::choose_selected() {
         const QPointer<drill_picker> guard(this);
         const auto answer = QMessageBox::question(
             this, str_label("Load drill"),
-            str_label(
-                "Discard the current session and load this drill? No "
-                "result will be recorded."
-            ),
+            str_label("Discard the current session and load this drill? No "
+                      "result will be recorded."),
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No
         );
         if (!guard || invalidated || answer != QMessageBox::Yes

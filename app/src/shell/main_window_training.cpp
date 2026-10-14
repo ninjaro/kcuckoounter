@@ -78,12 +78,10 @@ void main_window::on_continue_button_clicked() {
 
     if (start_pause_action != nullptr) {
         start_pause_action->setText(str_label("Start"));
-        start_pause_action->setIcon(
-            icon_loader::themed(
-                { "media-playback-start", "media-playback-play", "play" },
-                QStyle::SP_MediaPlay
-            )
-        );
+        start_pause_action->setIcon(icon_loader::themed(
+            { "media-playback-start", "media-playback-play", "play" },
+            QStyle::SP_MediaPlay
+        ));
         start_pause_action->setEnabled(true);
     }
     if (finish_action != nullptr) {
@@ -236,10 +234,8 @@ void main_window::on_finish_triggered() {
             return; // a modal event loop must not finish a replacement scene
         if (answer == QMessageBox::Yes)
             (void)table_widget->finish_gameplay_runtime();
-        else if (
-            was_running && !mobile_background
-            && pause_revision == mobile_pause_revision
-        )
+        else if (was_running && !mobile_background
+                 && pause_revision == mobile_pause_revision)
             (void)table_widget->resume_gameplay_runtime();
         return;
     }
@@ -446,10 +442,8 @@ void main_window::on_progress_triggered() {
         : 0;
     QMessageBox::information(
         this, str_label("Training progress"),
-        str_label(
-            "Completed games: %1\nQuestions: %2\nCorrect: %3 (%4%)\n"
-            "Best game: %5/%6 (%7%)"
-        )
+        str_label("Completed games: %1\nQuestions: %2\nCorrect: %3 (%4%)\n"
+                  "Best game: %5/%6 (%7%)")
             .arg(progress.completed_sessions)
             .arg(progress.answered_questions)
             .arg(progress.correct_answers)
@@ -539,12 +533,10 @@ void main_window::reset_game_state(bool show_setup_dialog, bool mark_finished) {
 
     if (start_pause_action != nullptr) {
         start_pause_action->setText(str_label("Start"));
-        start_pause_action->setIcon(
-            icon_loader::themed(
-                { "media-playback-start", "media-playback-play", "play" },
-                QStyle::SP_MediaPlay
-            )
-        );
+        start_pause_action->setIcon(icon_loader::themed(
+            { "media-playback-start", "media-playback-play", "play" },
+            QStyle::SP_MediaPlay
+        ));
         start_pause_action->setEnabled(!show_setup_dialog);
     }
     if (finish_action != nullptr) {
@@ -563,15 +555,13 @@ void main_window::show_game_over_dialog() {
     const QString score_text
         = str_label("Score: %1/%2").arg(score_correct).arg(score_total);
     if (score_total > 0) {
-        record_training_result(
-            {
-                .correct = score_correct,
-                .answered = score_total,
-                .elapsed_ms
-                = clock_timer != nullptr ? clock_timer->elapsed_time_ms() : 0,
-                .completed_at_utc_ms = QDateTime::currentMSecsSinceEpoch(),
-            }
-        );
+        record_training_result({
+            .correct = score_correct,
+            .answered = score_total,
+            .elapsed_ms
+            = clock_timer != nullptr ? clock_timer->elapsed_time_ms() : 0,
+            .completed_at_utc_ms = QDateTime::currentMSecsSinceEpoch(),
+        });
     }
     QMessageBox::information(
         this, str_label("Game over"), str_label("Game over\n%1").arg(score_text)

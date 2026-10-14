@@ -34,14 +34,12 @@ std::optional<slot_recommendation> recommend_slots(
     slot_recommendation recommendation { { 1, desktop_slot_technical_cap },
                                          false };
     for (std::size_t count = 1; count <= desktop_slot_technical_cap; ++count) {
-        const auto packed = packing::pack_equal_rectangles(
-            {
-                .container = usable_table,
-                .item = item,
-                .count = count,
-                .orientation = orientation,
-            }
-        );
+        const auto packed = packing::pack_equal_rectangles({
+            .container = usable_table,
+            .item = item,
+            .count = count,
+            .orientation = orientation,
+        });
         if (!packed.complete(count)) {
             if (count == 1)
                 return std::nullopt;
@@ -65,8 +63,8 @@ std::optional<slot_recommendation> recommend_slots(
     return recommendation;
 }
 
-std::optional<packing::rectangle>
-rectangle_motion::sample(double progress) const {
+std::optional<packing::rectangle> rectangle_motion::sample(double progress
+) const {
     if (!valid_progress(progress)) {
         return std::nullopt;
     }
@@ -100,20 +98,16 @@ bool layout_transition::repack(
         const auto& slot_target = result.rectangles[i];
         const auto& deck_target
             = result.rectangles[game.slot_for(deck_id { i })->value];
-        next_slots.push_back(
-            {
-                slot_paths.empty() ? slot_target
-                                   : *slot_paths[i].sample(current_progress),
-                slot_target,
-            }
-        );
-        next_decks.push_back(
-            {
-                deck_paths.empty() ? deck_target
-                                   : *deck_paths[i].sample(current_progress),
-                deck_target,
-            }
-        );
+        next_slots.push_back({
+            slot_paths.empty() ? slot_target
+                               : *slot_paths[i].sample(current_progress),
+            slot_target,
+        });
+        next_decks.push_back({
+            deck_paths.empty() ? deck_target
+                               : *deck_paths[i].sample(current_progress),
+            deck_target,
+        });
     }
     // All history allocation/validation precedes the session mutation. Its
     // permutation replacement is atomic; committing paths cannot allocate.
@@ -167,8 +161,8 @@ bool layout_transition::swap_decks(
     return true;
 }
 
-const rectangle_motion*
-layout_transition::slot_motion(physical_slot_id id) const {
+const rectangle_motion* layout_transition::slot_motion(physical_slot_id id
+) const {
     return id.value < slot_paths.size() ? &slot_paths[id.value] : nullptr;
 }
 

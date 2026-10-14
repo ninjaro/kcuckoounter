@@ -108,8 +108,7 @@ void table_tests::gameplay_controls_numeric_and_chips() {
             = slot->findChild<QDialog*>(QStringLiteral("slot_controls_dialog"));
         QVERIFY(dialog && dialog->isVisible());
         QCOMPARE(
-            dialog->findChild<QLineEdit*>(
-                QStringLiteral("gameplay_quiz_input")
+            dialog->findChild<QLineEdit*>(QStringLiteral("gameplay_quiz_input")
             ),
             input
         );
@@ -118,9 +117,9 @@ void table_tests::gameplay_controls_numeric_and_chips() {
     QVERIFY(input->isEnabled());
     QVERIFY(view.pause_gameplay_runtime());
     QVERIFY(!input->isEnabled());
-    auto* opener = slot->findChild<QToolButton*>(
-        QStringLiteral("compact_slot_controls")
-    );
+    auto* opener
+        = slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls")
+        );
     if (opener->isVisible())
         opener->click();
     auto* details
@@ -434,9 +433,9 @@ void table_tests::gameplay_controls_compact_host_and_replacement() {
     QVERIFY(view.advance_gameplay_runtime(300, answers));
     view.publish_gameplay_runtime(answers);
     auto* slot = view.slot_widgets[0];
-    auto* opener = slot->findChild<QToolButton*>(
-        QStringLiteral("compact_slot_controls")
-    );
+    auto* opener
+        = slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls")
+        );
     QVERIFY(opener->isVisible());
     opener->click();
     QPointer<QDialog> host
@@ -461,11 +460,9 @@ void table_tests::gameplay_controls_compact_host_and_replacement() {
         replaced = view.install_gameplay_session(owned_clock_fixture(1));
     });
     QPointer<table_slot> old_slot = slot;
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
+    ));
     QVERIFY(replaced);
     QVERIFY(old_slot.isNull());
     QVERIFY(input.isNull());

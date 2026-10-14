@@ -230,11 +230,9 @@ void card_widget::start_rasterization(const QSize& target_size) {
     const QString source = raster_task_source;
     const QSize raster_size = target_size;
 
-    rasterize_watcher.setFuture(
-        QtConcurrent::run(
-            &card_widget::rasterize_card_faces, source, raster_size
-        )
-    );
+    rasterize_watcher.setFuture(QtConcurrent::run(
+        &card_widget::rasterize_card_faces, source, raster_size
+    ));
 }
 
 void card_widget::apply_rasterized_images(

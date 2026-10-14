@@ -137,8 +137,7 @@ void preferences_tests::gameplay_drills_validate_configuration() {
     }
     drill.decks.front().configuration.deck_count
         = static_cast<std::size_t>(std::numeric_limits<int>::max());
-    QVERIFY(
-        service.save({ drill })
+    QVERIFY(service.save({ drill })
     ); // Representation bound, not a shoe allocation.
     const auto before = settings.value(gameplay_drills_key);
     QString error;
@@ -242,8 +241,7 @@ void preferences_tests::gameplay_drills_validate_configuration() {
             = QString(128, QChar(0x4e00)).toStdString();
         entry.decks.assign(64, deck);
     }
-    QVERIFY(
-        !service.save(many, &error)
+    QVERIFY(!service.save(many, &error)
     ); // Valid values, but UTF-8 exceeds 1MiB.
     QVERIFY(error.contains(QStringLiteral("storage limit")));
     QCOMPARE(settings.value(gameplay_drills_key), catalogue_bytes);

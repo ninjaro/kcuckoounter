@@ -74,11 +74,9 @@ void main_window::on_gameplay_review_triggered() {
               str_label("Result"), str_label("Entered count"),
               str_label("Expected count"), str_label("Quiz batch") }
         );
-        gameplay_review_rows->setEditTriggers(
-            QAbstractItemView::NoEditTriggers
+        gameplay_review_rows->setEditTriggers(QAbstractItemView::NoEditTriggers
         );
-        gameplay_review_rows->setSelectionBehavior(
-            QAbstractItemView::SelectRows
+        gameplay_review_rows->setSelectionBehavior(QAbstractItemView::SelectRows
         );
         gameplay_review_rows->setSelectionMode(
             QAbstractItemView::SingleSelection

@@ -19,8 +19,8 @@ gameplay_progress_service::gameplay_progress_service(
     : settings(settings_value)
     , limits(bounds) { }
 
-std::optional<gameplay_progress>
-gameplay_progress_service::load(QString* error) const {
+std::optional<gameplay_progress> gameplay_progress_service::load(QString* error
+) const {
     if (error)
         error->clear();
     settings.sync();
@@ -93,8 +93,7 @@ bool gameplay_progress_service::record(
     progress.recent_results.insert(progress.recent_results.begin(), record);
     if (progress.recent_results.size()
         > gameplay_progress::maximum_recent_results)
-        progress.recent_results.resize(
-            gameplay_progress::maximum_recent_results
+        progress.recent_results.resize(gameplay_progress::maximum_recent_results
         );
     const auto bytes = encode_gameplay_progress(progress, limits);
     if (!bytes) {

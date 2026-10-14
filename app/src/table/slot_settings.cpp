@@ -85,15 +85,13 @@ void slot_settings::setup_ui(bool include_info_button) {
     strategy_label->setToolTip(strategy_tooltip);
     strategy_combo_box_internal = new BaseComboBox(this);
     strategy_combo_box_internal->setToolTip(strategy_tooltip);
-    strategy_combo_box_internal->setAccessibleName(
-        str_label("Weight strategy")
+    strategy_combo_box_internal->setAccessibleName(str_label("Weight strategy")
     );
     strategy_label->setBuddy(strategy_combo_box_internal);
     android_ui::apply_combo_box_style(strategy_combo_box_internal);
     const strategy_catalog& repository = strategy_repository();
     if (!repository.is_valid()) {
-        strategy_combo_box_internal->addItem(
-            str_label("Strategies unavailable")
+        strategy_combo_box_internal->addItem(str_label("Strategies unavailable")
         );
         strategy_combo_box_internal->setEnabled(false);
         strategy_combo_box_internal->setToolTip(
@@ -126,16 +124,13 @@ void slot_settings::setup_ui(bool include_info_button) {
     if (include_info_button) {
         info_button_internal = android_ui::create_button(this);
         info_button_internal->setText(str_label("Info"));
-        info_button_internal->setAccessibleName(
-            str_label("Strategy information")
-        );
-        info_button_internal->setIcon(
-            icon_loader::themed(
-                { "info-symbolic", "dialog-information-symbolic",
-                  "dialog-information", "help-about", "info" },
-                QStyle::SP_MessageBoxInformation
-            )
-        );
+        info_button_internal->setAccessibleName(str_label("Strategy information"
+        ));
+        info_button_internal->setIcon(icon_loader::themed(
+            { "info-symbolic", "dialog-information-symbolic",
+              "dialog-information", "help-about", "info" },
+            QStyle::SP_MessageBoxInformation
+        ));
         android_ui::apply_button_style(
             info_button_internal, android_button_profile::inline_info
         );

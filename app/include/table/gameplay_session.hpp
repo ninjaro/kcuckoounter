@@ -109,8 +109,8 @@ public:
     table_quiz_continuation() const;
     // Readiness only, independent of the session's consumption cursor. Invalid
     // indices, inactive phases and non-virtual-Multi sessions return false.
-    [[nodiscard]] bool
-    multi_quiz_target_reached(std::size_t target_index) const;
+    [[nodiscard]] bool multi_quiz_target_reached(std::size_t target_index
+    ) const;
 
     // Manual pause is not global quiz pause.
     [[nodiscard]] bool start(std::uint64_t dealing_seed = 0);
@@ -138,10 +138,8 @@ private:
     capture_checkpoint(const session&, const generation_policy&);
     friend std::optional<session_checkpoint>
     capture_start(const session&, std::uint64_t, const generation_policy&);
-    friend std::optional<session> restore_checkpoint(
-        const session_checkpoint&, slot_limits, std::span<const std::size_t>,
-        const generation_policy&
-    );
+    friend std::optional<session>
+    restore_checkpoint(const session_checkpoint&, slot_limits, std::span<const std::size_t>, const generation_policy&);
 
     struct quiz_transition;
     struct progress_transition;

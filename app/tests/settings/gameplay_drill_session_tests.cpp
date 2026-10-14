@@ -188,8 +188,7 @@ void preferences_tests::legacy_drill_conversion_requires_target_policy() {
                 draft->decks.back(),
                 (drill_deck { { "renamed_strategy", 16, true, true }, true })
             );
-            QVERIFY(
-                gameplay_drill_service(settings, { 1, 64 }).save({ *draft })
+            QVERIFY(gameplay_drill_service(settings, { 1, 64 }).save({ *draft })
             );
             QCOMPARE(other_drill_settings(settings), before);
             QCOMPARE(*old_service.load(), QVector<training_drill> { legacy });

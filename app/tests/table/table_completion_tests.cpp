@@ -76,8 +76,7 @@ void gameplay_completion_tests::manual_retains_result() {
     QVERIFY(exact.result == *view.active_gameplay_session()->result());
     QCOMPARE(exact.result.timing.play_time_ms, std::uint64_t { 600 });
     const auto active = storage.value(storage_key);
-    QVERIFY(
-        !storage.contains(progress_key)
+    QVERIFY(!storage.contains(progress_key)
     ); // Capture performs no settings I/O.
     view.publish_gameplay_runtime({});
     QVERIFY(!view.finish_gameplay_runtime());
@@ -105,10 +104,9 @@ void gameplay_completion_tests::natural_retains_result_data() {
     QTest::addColumn<int>("scope");
     for (int mode = 0; mode < 3; ++mode)
         for (int scope = 0; scope < 2; ++scope)
-            QTest::newRow(
-                qPrintable(QStringLiteral("%1-%2").arg(mode).arg(scope))
-            ) << mode
-              << scope;
+            QTest::newRow(qPrintable(QStringLiteral("%1-%2").arg(mode).arg(scope
+            ))) << mode
+                << scope;
 }
 
 void gameplay_completion_tests::natural_retains_result() {
@@ -202,8 +200,7 @@ void gameplay_completion_tests::lives_waits_for_all_answers() {
                 *view.gameplay_quiz_prompt(pending[index])
             ));
             if (index + 1 < pending.size())
-                QVERIFY(
-                    !binding.completion()
+                QVERIFY(!binding.completion()
                 ); // Zero lives is not a partial-batch finish.
         }
     }

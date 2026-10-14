@@ -24,8 +24,8 @@ read_result(const QJsonValue& value, gameplay::slot_limits limits);
 [[nodiscard]] QJsonObject deck(const gameplay::deck_result& value);
 [[nodiscard]] std::optional<gameplay::deck_result>
 read_deck(const QJsonValue& value, std::size_t& targets);
-[[nodiscard]] QJsonObject
-schedule(const gameplay::quiz_schedule_snapshot& value);
+[[nodiscard]] QJsonObject schedule(const gameplay::quiz_schedule_snapshot& value
+);
 [[nodiscard]] std::optional<gameplay::quiz_schedule_snapshot>
 read_schedule(const QJsonValue& value, std::size_t& targets);
 

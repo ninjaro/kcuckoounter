@@ -85,12 +85,10 @@ void table_tests::checkpoint_restore_continues_runtime() {
     recovered.on_gameplay_clock_tick();
     QVERIFY(recovered.capture_gameplay_checkpoint() == saved);
     const auto packed = recovered.pack_gameplay_slots(4).value();
-    QVERIFY(
-        std::ranges::equal(
-            recovered.gameplay_owner->traversal(), packed.traversal, {},
-            &gameplay::physical_slot_id::value
-        )
-    );
+    QVERIFY(std::ranges::equal(
+        recovered.gameplay_owner->traversal(), packed.traversal, {},
+        &gameplay::physical_slot_id::value
+    ));
     for (std::size_t index = 0; index < 4; ++index) {
         QCOMPARE(
             recovered.slot_widgets[index]->geometry(),

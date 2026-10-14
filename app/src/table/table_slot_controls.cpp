@@ -184,12 +184,11 @@ void table_slot::update_quiz_presentation() {
     quiz_feedback_heading->setVisible(stamp);
     quiz_feedback_heading->setStyleSheet(QStringLiteral("font-weight: 700;"));
     quiz_feedback_label->setStyleSheet(
-        stamp ? QStringLiteral(
-                    "QLabel { font-weight: 600; border: 2px solid %1; "
-                    "border-radius: 4px; padding: 8px; }"
-                )
-                    .arg(theme_settings::slot_border_color().name())
-              : QString()
+        stamp
+            ? QStringLiteral("QLabel { font-weight: 600; border: 2px solid %1; "
+                             "border-radius: 4px; padding: 8px; }")
+                  .arg(theme_settings::slot_border_color().name())
+            : QString()
     );
     // Only presentation hints change. Invalidate them before checking whether
     // the controls still fit inline; neither table packing nor card demand
@@ -241,12 +240,10 @@ void table_slot::update_compact_controls() {
         QSize quiz_size = quiz_bar_widget->sizeHint().expandedTo(
             quiz_bar_widget->minimumSizeHint()
         );
-        quiz_size.setHeight(
-            std::max(
-                quiz_size.height(),
-                quiz_bar_widget->heightForWidth(quiz_size.width())
-            )
-        );
+        quiz_size.setHeight(std::max(
+            quiz_size.height(),
+            quiz_bar_widget->heightForWidth(quiz_size.width())
+        ));
         quiz_bar_widget->setMinimumSize(quiz_size);
     }
     // Read the active surfaces, not the outer layout's QWidgetItem cache:

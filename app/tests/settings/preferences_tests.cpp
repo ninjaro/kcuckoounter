@@ -62,8 +62,8 @@ void preferences_tests::default_suit_is_independent_persistent_appearance() {
         QCOMPARE(settings.value(it.key()), it.value());
 }
 
-void preferences_tests::
-    default_suit_rejects_invalid_storage_without_rewriting() {
+void preferences_tests::default_suit_rejects_invalid_storage_without_rewriting(
+) {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     auto settings = temporary_settings(directory);
@@ -287,8 +287,7 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     QVERIFY(
         !settings.contains(QStringLiteral("desktop_ui/overrides/answer_entry"))
     );
-    QVERIFY(
-        !settings.contains(QStringLiteral("desktop_ui/overrides/feedback"))
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/feedback"))
     );
     QVERIFY(
         !settings.contains(QStringLiteral("desktop_ui/overrides/speed_readout"))

@@ -49,15 +49,15 @@ void table_tests::strategy_browser_preserves_identity_and_reference_values() {
     std::unique_ptr<QWidget> browser(
         create_strategy_browser(catalog, strategy.slug)
     );
-    auto* list = browser->findChild<QListView*>(
-        QStringLiteral("strategy_browser_list")
-    );
+    auto* list
+        = browser->findChild<QListView*>(QStringLiteral("strategy_browser_list")
+        );
     auto* details = browser->findChild<QTextBrowser*>(
         QStringLiteral("strategy_browser_details")
     );
-    auto* comparison = browser->findChild<QTableView*>(
-        QStringLiteral("strategy_comparison")
-    );
+    auto* comparison
+        = browser->findChild<QTableView*>(QStringLiteral("strategy_comparison")
+        );
     auto* search
         = browser->findChild<QLineEdit*>(QStringLiteral("strategy_search"));
     auto* tabs = browser->findChild<QTabWidget*>(
@@ -175,9 +175,9 @@ void table_tests::strategy_browser_handles_missing_and_filtered_metadata() {
     std::unique_ptr<QWidget> browser(
         create_strategy_browser(catalog, QStringLiteral("1"))
     );
-    auto* comparison = browser->findChild<QTableView*>(
-        QStringLiteral("strategy_comparison")
-    );
+    auto* comparison
+        = browser->findChild<QTableView*>(QStringLiteral("strategy_comparison")
+        );
     auto* details = browser->findChild<QTextBrowser*>(
         QStringLiteral("strategy_browser_details")
     );
@@ -202,12 +202,12 @@ void table_tests::strategy_browser_handles_missing_and_filtered_metadata() {
         str_label("Not provided")
     );
     QVERIFY(details->toPlainText().contains(description));
-    auto* field = browser->findChild<BaseComboBox*>(
-        QStringLiteral("strategy_sort_field")
-    );
-    auto* order = browser->findChild<BaseComboBox*>(
-        QStringLiteral("strategy_sort_order")
-    );
+    auto* field
+        = browser->findChild<BaseComboBox*>(QStringLiteral("strategy_sort_field"
+        ));
+    auto* order
+        = browser->findChild<BaseComboBox*>(QStringLiteral("strategy_sort_order"
+        ));
     QVERIFY(field && order);
     QCOMPARE(field->currentIndex(), 1);
     QCOMPARE(order->currentIndex(), 1);
@@ -240,8 +240,7 @@ void table_tests::strategy_browser_handles_missing_and_filtered_metadata() {
                 QStringLiteral("Invalid catalogue fixture")
             );
         }
-        std::unique_ptr<QWidget> empty(
-            create_strategy_browser(unavailable, {})
+        std::unique_ptr<QWidget> empty(create_strategy_browser(unavailable, {})
         );
         QCOMPARE(
             empty->findChild<QTableView*>(QStringLiteral("strategy_comparison"))
@@ -334,11 +333,9 @@ void table_tests::strategy_browser_routes_do_not_change_gameplay() {
         visit(editor);
         info->reject();
     });
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            slot, "on_info_button_clicked", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        slot, "on_info_button_clicked", Qt::DirectConnection
+    ));
     QVERIFY(info_visited);
     QCOMPARE(view.capture_session_state(), session);
     QCOMPARE(load_trainer_preferences(), preferences);

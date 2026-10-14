@@ -88,18 +88,18 @@ void table_tests::drill_setup_loads_exact_choices() {
     auto* setup
         = window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"));
     QVERIFY(setup && setup->isVisible());
-    auto* saved_button = setup->findChild<QPushButton*>(
-        QStringLiteral("gameplay_saved_drills")
-    );
+    auto* saved_button
+        = setup->findChild<QPushButton*>(QStringLiteral("gameplay_saved_drills")
+        );
     QVERIFY(saved_button);
     auto* slot = view->slot_widgets.front();
     slot->findChild<QPushButton*>(QStringLiteral("slot_details_button"))
         ->click();
     QVERIFY(view->has_open_gameplay_settings());
     visit_drill_picker(window, [&](QDialog& picker) {
-        auto* save = picker.findChild<QPushButton*>(
-            QStringLiteral("save_current_drill")
-        );
+        auto* save
+            = picker.findChild<QPushButton*>(QStringLiteral("save_current_drill"
+            ));
         QVERIFY(!save->isEnabled());
         picker.findChild<QLineEdit*>(QStringLiteral("saved_drill_name"))
             ->setText(QStringLiteral("Pending draft"));
@@ -124,8 +124,7 @@ void table_tests::drill_setup_loads_exact_choices() {
         QCOMPARE(owner->configuration().sequential_count, std::size_t { 23 });
         QVERIFY(!owner->configuration().allow_extra_slots);
         setup
-            ->findChild<QCheckBox*>(
-                QStringLiteral("gameplay_allow_extra_slots")
+            ->findChild<QCheckBox*>(QStringLiteral("gameplay_allow_extra_slots")
             )
             ->setChecked(true);
     }
@@ -164,8 +163,7 @@ void table_tests::drill_picker_preserves_live_quiz() {
 #endif
     launcher_preferences_guard preferences;
     drill_storage_guard catalogues;
-    QVERIFY(
-        training_drill_service(catalogues.storage).save({ legacy_drill() })
+    QVERIFY(training_drill_service(catalogues.storage).save({ legacy_drill() })
     );
     main_window window;
     window.resize(1000, 700);
@@ -236,7 +234,7 @@ void table_tests::drill_picker_preserves_live_quiz() {
         legacy_bytes
     );
     QVERIFY(view->pause_gameplay_runtime());
-    visit_drill_picker(window, [&](QDialog&) { });
+    visit_drill_picker(window, [&](QDialog&) {});
     QCOMPARE(owner.phase(), gameplay::session_phase::paused);
     QVERIFY(owner.finish());
     view->refresh_gameplay_session();
@@ -257,8 +255,7 @@ void table_tests::drill_picker_scene_replacement() {
 #endif
     launcher_preferences_guard preferences;
     drill_storage_guard catalogues;
-    QVERIFY(
-        training_drill_service(catalogues.storage).save({ legacy_drill() })
+    QVERIFY(training_drill_service(catalogues.storage).save({ legacy_drill() })
     );
     main_window window;
     window.resize(1000, 700);

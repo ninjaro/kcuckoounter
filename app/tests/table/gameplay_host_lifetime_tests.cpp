@@ -149,7 +149,8 @@ void gameplay_host_tests::recovery_finish_is_admitted() {
     window.resize(1200, 800);
     bool finished = false;
     connect(
-        window.table_widget, &table::gameplay_session_changed, &window, [&] {
+        window.table_widget, &table::gameplay_session_changed, &window,
+        [&] {
             if (!finished && window.table_widget->has_gameplay_runtime()) {
                 finished = true;
                 QVERIFY(window.table_widget->finish_gameplay_runtime());

@@ -128,9 +128,9 @@ void table_tests::drill_catalogues_isolate_errors() {
         drill_picker picker(storage, target, { drill_limits });
         picker.findChild<QLineEdit*>(QStringLiteral("saved_drill_name"))
             ->setText(QStringLiteral("Valid target copy"));
-        auto* save = picker.findChild<QPushButton*>(
-            QStringLiteral("save_current_drill")
-        );
+        auto* save
+            = picker.findChild<QPushButton*>(QStringLiteral("save_current_drill"
+            ));
         QVERIFY(save->isEnabled());
         save->click();
         QCOMPARE(service.load()->size(), 2);
@@ -168,12 +168,11 @@ void table_tests::drill_catalogues_isolate_errors() {
         ->setCurrentRow(1);
     QVERIFY(!picker.findChild<QPushButton*>(QStringLiteral("launch_drill"))
                  ->isEnabled());
-    QVERIFY(
-        picker
-            .findChild<QPlainTextEdit*>(QStringLiteral("saved_drill_details"))
-            ->toPlainText()
-            .contains(QStringLiteral("Cannot launch:"))
-    );
+    QVERIFY(picker
+                .findChild<QPlainTextEdit*>(QStringLiteral("saved_drill_details"
+                ))
+                ->toPlainText()
+                .contains(QStringLiteral("Cannot launch:")));
     picker.findChild<QLineEdit*>(QStringLiteral("saved_drill_name"))
         ->setText(QStringLiteral("Kept missing strategy"));
     picker.findChild<QPushButton*>(QStringLiteral("rename_drill"))->click();

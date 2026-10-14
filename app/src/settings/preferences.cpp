@@ -70,29 +70,24 @@ QByteArray encode_drills(const QVector<training_drill>& drills) {
     for (const auto& drill : drills) {
         QJsonArray slot_entries;
         for (const auto& slot : drill.slot_settings)
-            slot_entries.append(
-                QJsonObject {
-                    { QStringLiteral("decks"), slot.deck_count },
-                    { QStringLiteral("infinite"), slot.infinity_enabled },
-                    { QStringLiteral("strategy"), slot.strategy_slug },
-                    { QStringLiteral("training"), slot.training_mode },
-                }
-            );
-        entries.append(
-            QJsonObject {
-                { QStringLiteral("name"), drill.name },
-                { QStringLiteral("quiz"), drill.quiz_type },
-                { QStringLiteral("wait"), drill.wait_for_answers },
-                { QStringLiteral("skip"), drill.allow_skipping },
-                { QStringLiteral("dealing"), drill.dealing_mode },
-                { QStringLiteral("interval_ms"), drill.pickup_interval_ms },
-                { QStringLiteral("slots"), slot_entries },
-            }
-        );
+            slot_entries.append(QJsonObject {
+                { QStringLiteral("decks"), slot.deck_count },
+                { QStringLiteral("infinite"), slot.infinity_enabled },
+                { QStringLiteral("strategy"), slot.strategy_slug },
+                { QStringLiteral("training"), slot.training_mode },
+            });
+        entries.append(QJsonObject {
+            { QStringLiteral("name"), drill.name },
+            { QStringLiteral("quiz"), drill.quiz_type },
+            { QStringLiteral("wait"), drill.wait_for_answers },
+            { QStringLiteral("skip"), drill.allow_skipping },
+            { QStringLiteral("dealing"), drill.dealing_mode },
+            { QStringLiteral("interval_ms"), drill.pickup_interval_ms },
+            { QStringLiteral("slots"), slot_entries },
+        });
     }
-    return QJsonDocument(
-               QJsonObject { { QStringLiteral("version"), 1 },
-                             { QStringLiteral("drills"), entries } }
+    return QJsonDocument(QJsonObject { { QStringLiteral("version"), 1 },
+                                       { QStringLiteral("drills"), entries } }
     ).toJson(QJsonDocument::Compact);
 }
 
@@ -144,14 +139,12 @@ std::optional<QVector<training_drill>> decode_drills(const QByteArray& bytes) {
                 || !slot.value(QStringLiteral("training")).isBool()
                 || !slot.value(QStringLiteral("strategy")).isString())
                 return std::nullopt;
-            drill.slot_settings.append(
-                {
-                    drill_integer(slot.value(QStringLiteral("decks")), 1, 16),
-                    slot.value(QStringLiteral("infinite")).toBool(),
-                    slot.value(QStringLiteral("strategy")).toString(),
-                    slot.value(QStringLiteral("training")).toBool(),
-                }
-            );
+            drill.slot_settings.append({
+                drill_integer(slot.value(QStringLiteral("decks")), 1, 16),
+                slot.value(QStringLiteral("infinite")).toBool(),
+                slot.value(QStringLiteral("strategy")).toString(),
+                slot.value(QStringLiteral("training")).toBool(),
+            });
         }
         drills.append(drill);
     }
@@ -389,7 +382,8 @@ bool is_drill_configuration_supported(
     return valid_drill(drill) && catalog.is_valid()
         && std::ranges::all_of(drill.slot_settings, [&](const auto& slot) {
                return std::ranges::any_of(
-                   catalog.strategies, [&](const auto& strategy) {
+                   catalog.strategies,
+                   [&](const auto& strategy) {
                        return strategy.slug == slot.strategy_slug;
                    }
                );
@@ -535,9 +529,9 @@ desktop_shell_state desktop_shell_state_service::load() const {
     desktop_shell_state result;
     result.geometry
         = bounded_byte_array(settings.value(QStringLiteral("window/geometry")));
-    result.main_window_state = bounded_byte_array(
-        settings.value(QStringLiteral("window/main_state"))
-    );
+    result.main_window_state
+        = bounded_byte_array(settings.value(QStringLiteral("window/main_state"))
+        );
     settings.endGroup();
     return result;
 }

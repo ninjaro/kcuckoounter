@@ -247,16 +247,15 @@ void table::update_layout() {
     }
 
     const auto [card_long_side, card_short_side] = card_sheet_ratio();
-    const packing::equal_packing_result result = packing::pack_equal_rectangles(
-        {
+    const packing::equal_packing_result result
+        = packing::pack_equal_rectangles({
             .container = { static_cast<double>(field_width),
                            static_cast<double>(field_height) },
             .item = { static_cast<double>(card_long_side),
                       static_cast<double>(card_short_side) },
             .count = slot_count,
             .orientation = table_layout::packing_orientation(card_orientation),
-        }
-    );
+        });
 
     const size_t mapped_count = std::min(slot_count, result.rectangles.size());
 

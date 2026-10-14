@@ -134,11 +134,9 @@ void table_slot::open_settings_editor() {
         if (gameplay_owner->phase() != gameplay::session_phase::setup
             && gameplay_owner->phase() != gameplay::session_phase::paused)
             return;
-    } else if (
-        quiz_prompt_active
-        || (current_phase == slot_phase::running
-            && card_widget_internal->has_cards())
-    ) {
+    } else if (quiz_prompt_active
+               || (current_phase == slot_phase::running
+                   && card_widget_internal->has_cards())) {
         return;
     }
     if (controls_dialog)
@@ -195,7 +193,8 @@ void table_slot::open_settings_editor() {
         layout->addWidget(settings_editor_fields);
         connect(
             settings_editor_fields->info_button(), &BasePushButton::clicked,
-            this, [this] {
+            this,
+            [this] {
                 if (settings_editor_fields)
                     show_template_dialog(
                         str_label("Strategy details"),
@@ -245,8 +244,7 @@ void table_slot::open_settings_editor() {
          { static_cast<QWidget*>(settings_editor_fields->infinity_check_box()),
            static_cast<QWidget*>(settings_editor_fields->deck_count_spin_box()),
            static_cast<QWidget*>(settings_editor_fields->strategy_combo_box()),
-           static_cast<QWidget*>(
-               settings_editor_fields->show_card_indexing()
+           static_cast<QWidget*>(settings_editor_fields->show_card_indexing()
            ) }) {
         if (field->isEnabled()) {
             field->setFocus(Qt::OtherFocusReason);
@@ -525,8 +523,7 @@ void table_slot::sync_card_display_settings() {
         return;
     }
     if (training_check_box != nullptr) {
-        card_widget_internal->set_training_mode(
-            training_check_box->isChecked()
+        card_widget_internal->set_training_mode(training_check_box->isChecked()
         );
     }
     if (strategy_combo_box != nullptr) {

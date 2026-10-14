@@ -194,8 +194,8 @@ void gameplay_session_tests::
     }
 }
 
-void gameplay_session_tests::
-    quiz_multi_reevaluates_after_terminal_transitions() {
+void gameplay_session_tests::quiz_multi_reevaluates_after_terminal_transitions(
+) {
     for (const bool fail : { false, true }) {
         session_configuration settings;
         settings.failure = failure_policy::block;
@@ -230,8 +230,8 @@ void gameplay_session_tests::
     }
 }
 
-void gameplay_session_tests::
-    infinite_single_pages_cross_chunks_without_reset() {
+void gameplay_session_tests::infinite_single_pages_cross_chunks_without_reset(
+) {
     session_configuration settings;
     auto configured = configurations(1);
     configured[0].infinite = true;
@@ -469,8 +469,8 @@ void gameplay_session_tests::
     }
 }
 
-void gameplay_session_tests::
-    quiz_manual_pause_preserves_inputs_and_countdown() {
+void gameplay_session_tests::quiz_manual_pause_preserves_inputs_and_countdown(
+) {
     session_configuration settings;
     settings.scope = quiz_scope::multi;
     settings.dealing = dealing_mode::simultaneous;
@@ -554,8 +554,8 @@ void gameplay_session_tests::
     QCOMPARE(*model.current_quiz_batch()->remaining_ms, 60'000U);
 }
 
-void gameplay_session_tests::
-    quiz_memory_and_correction_preserve_latest_edits() {
+void gameplay_session_tests::quiz_memory_and_correction_preserve_latest_edits(
+) {
     session_configuration settings;
     auto prepared = quiz_cards({ 1, 2, 3, 4 });
     prepared.initial_running_count = 100;

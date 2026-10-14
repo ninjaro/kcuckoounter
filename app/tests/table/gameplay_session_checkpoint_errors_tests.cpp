@@ -118,8 +118,8 @@ void gameplay_session_tests::checkpoint_rejects_invalid_identity_and_streams() {
     QVERIFY(restore_checkpoint(*saved, { 4, 4 }, order));
 }
 
-void gameplay_session_tests::
-    checkpoint_rejects_invalid_accounting_and_quizzes() {
+void gameplay_session_tests::checkpoint_rejects_invalid_accounting_and_quizzes(
+) {
     session_configuration settings;
     settings.failure = failure_policy::block;
     settings.scope = quiz_scope::multi;

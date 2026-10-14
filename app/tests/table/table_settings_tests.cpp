@@ -86,9 +86,9 @@ void table_tests::settings_surfaces_stage_changes() {
     QVERIFY(live && live->isHidden());
     auto* trigger
         = slot.findChild<QToolButton*>(QStringLiteral("compact_slot_controls"));
-    auto* details = slot.findChild<BasePushButton*>(
-        QStringLiteral("slot_details_button")
-    );
+    auto* details
+        = slot.findChild<BasePushButton*>(QStringLiteral("slot_details_button")
+        );
     QVERIFY(trigger && details);
     QSignalSpy paused(&slot, &table_slot::dialog_opened);
     if (trigger->isVisible())
@@ -285,11 +285,9 @@ void table_tests::classic_settings_dialog_preserves_transaction() {
                 editor->show_card_indexing()->toggle();
             dialog->done(accept ? QDialog::Accepted : QDialog::Rejected);
         });
-        QVERIFY(
-            QMetaObject::invokeMethod(
-                &slot, "on_settings_button_clicked", Qt::DirectConnection
-            )
-        );
+        QVERIFY(QMetaObject::invokeMethod(
+            &slot, "on_settings_button_clicked", Qt::DirectConnection
+        ));
         QVERIFY(inspected);
         auto expected = original;
         if (accept)
@@ -344,12 +342,12 @@ void table_tests::gameplay_settings_surfaces_stage_changes() {
     auto& game = *view.active_gameplay_session();
     auto* slot = view.slot_widgets.front();
     slot->set_rotated(rotated);
-    auto* trigger = slot->findChild<QToolButton*>(
-        QStringLiteral("compact_slot_controls")
-    );
-    auto* details = slot->findChild<BasePushButton*>(
-        QStringLiteral("slot_details_button")
-    );
+    auto* trigger
+        = slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls")
+        );
+    auto* details
+        = slot->findChild<BasePushButton*>(QStringLiteral("slot_details_button")
+        );
     QVERIFY(trigger && details);
     QSignalSpy legacy_pause(&view, &table::dialog_opened);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
@@ -469,16 +467,16 @@ void table_tests::count_visibility_keeps_preparation_and_cache() {
     for (const auto& key : preferences.allKeys())
         stored.insert(key, preferences.value(key));
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
-    auto* details = slot->findChild<BasePushButton*>(
-        QStringLiteral("slot_details_button")
-    );
+    auto* details
+        = slot->findChild<BasePushButton*>(QStringLiteral("slot_details_button")
+        );
     QTest::mouseClick(details, Qt::LeftButton);
     auto* panel
         = slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
     QVERIFY(panel && panel->isVisible());
-    auto* show = panel->findChild<QCheckBox*>(
-        QStringLiteral("gameplay_deck_show_count")
-    );
+    auto* show
+        = panel->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
+        ));
     QVERIFY(show && show->isChecked());
     QTest::keyClick(show, Qt::Key_Space);
     QCOMPARE(*game.deck({ 0 }), original);
@@ -546,9 +544,9 @@ void table_tests::gameplay_settings_follow_deck_swap_and_repack() {
         = slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
     QVERIFY(panel && panel->isVisible());
     auto* draft = panel->findChild<gameplay::deck_setup_widget*>();
-    auto* show = draft->findChild<QCheckBox*>(
-        QStringLiteral("gameplay_deck_show_count")
-    );
+    auto* show
+        = draft->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
+        ));
     QVERIFY(show && show->isEnabled());
     show->setChecked(false);
     const auto original = *game.deck({ 0 });
@@ -625,8 +623,8 @@ void table_tests::gameplay_settings_discard_stale_and_replaced_views() {
     QVERIFY(draft.isNull());
 }
 
-void table_tests::
-    gameplay_settings_pause_locks_and_preparation_notifications() {
+void table_tests::gameplay_settings_pause_locks_and_preparation_notifications(
+) {
     table view;
     view.resize(1200, 900);
     view.set_settings_style(slot_settings_style::card);
@@ -661,9 +659,9 @@ void table_tests::
     QVERIFY(panel && panel->isVisible());
     auto* count
         = panel->findChild<QSpinBox*>(QStringLiteral("gameplay_deck_count"));
-    auto* show = panel->findChild<QCheckBox*>(
-        QStringLiteral("gameplay_deck_show_count")
-    );
+    auto* show
+        = panel->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
+        ));
     QVERIFY(count && !count->isEnabled() && show && show->isEnabled());
     count->setValue(17);
     QCOMPARE(count->value(), 1);
@@ -683,9 +681,9 @@ void table_tests::
     QMetaObject::invokeMethod(
         pending_slot, "on_settings_button_clicked", Qt::DirectConnection
     );
-    panel = pending_slot->findChild<QFrame*>(
-        QStringLiteral("slot_settings_editor")
-    );
+    panel
+        = pending_slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"
+        ));
     QVERIFY(panel && panel->isVisible());
     QVERIFY(
         panel->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"))
@@ -756,11 +754,9 @@ void table_tests::gameplay_lives_suit_settings_preserve_domain() {
     QVERIFY(view->install_gameplay_session(std::move(fixture)));
     QVERIFY(view->start_gameplay_runtime(107));
     view->stop_gameplay_clock();
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_settings_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_settings_triggered", Qt::DirectConnection
+    ));
     QCOMPARE(view->gameplay_owner->phase(), gameplay::session_phase::paused);
     const auto configuration = view->gameplay_owner->configuration();
     const auto timing = view->gameplay_owner->timing();
@@ -819,11 +815,9 @@ void table_tests::gameplay_lives_suit_settings_preserve_domain() {
     dialog->close();
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     QVERIFY(previous.isNull());
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_settings_triggered", Qt::DirectConnection
-        )
-    );
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_settings_triggered", Qt::DirectConnection
+    ));
     auto* reopened_shared = window.findChild<settings_shared_state*>();
     QVERIFY(reopened_shared);
     QCOMPARE(reopened_shared->default_suit(), 3);

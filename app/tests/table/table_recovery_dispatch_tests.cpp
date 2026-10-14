@@ -24,11 +24,10 @@ void gameplay_restore_tests::active_restores_identity_data() {
     for (int mode = 0; mode < 3; ++mode)
         for (bool multi : { false, true })
             for (bool infinite : { false, true })
-                QTest::newRow(
-                    qPrintable(QStringLiteral("%1-%2-%3")
-                                   .arg(mode)
-                                   .arg(multi)
-                                   .arg(infinite))
+                QTest::newRow(qPrintable(QStringLiteral("%1-%2-%3")
+                                             .arg(mode)
+                                             .arg(multi)
+                                             .arg(infinite))
                 ) << mode
                   << multi << infinite;
 }
@@ -243,9 +242,8 @@ void gameplay_restore_tests::active_preflight_keeps_scene() {
         view.start_quiz(0, false);
         view.set_paused(true);
     } else {
-        QVERIFY(
-            view.install_gameplay_session(table_test::owned_clock_fixture(1))
-        );
+        QVERIFY(view.install_gameplay_session(table_test::owned_clock_fixture(1)
+        ));
         if (fault == 3) {
             QVERIFY(view.start_gameplay_runtime(7));
             QVERIFY(view.pause_gameplay_runtime());
@@ -310,7 +308,8 @@ void gameplay_restore_tests::active_commit_blocks_reentry() {
     gameplay_reservation binding;
     bool protected_scene = false;
     const auto connection = QObject::connect(
-        &view, &table::gameplay_session_about_to_change, &view, [&] {
+        &view, &table::gameplay_session_about_to_change, &view,
+        [&] {
             QString error;
             const bool restored = view.restore_gameplay_checkpoint(saved);
             const bool installed = view.install_gameplay_session(

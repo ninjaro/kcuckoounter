@@ -27,8 +27,8 @@ gameplay_recovery_service::read_progress(QString* error) const {
     return progress ? std::move(*progress) : gameplay_progress {};
 }
 
-std::optional<gameplay_recovery>
-gameplay_recovery_service::load(QString* error) const {
+std::optional<gameplay_recovery> gameplay_recovery_service::load(QString* error
+) const {
     if (error)
         error->clear();
     settings.sync();

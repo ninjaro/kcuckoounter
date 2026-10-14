@@ -6,8 +6,7 @@
 #include <QDateTime>
 #include <QScopedValueRollback>
 
-void gameplay_reservation::capture_result(
-    const gameplay::session_result& result
+void gameplay_reservation::capture_result(const gameplay::session_result& result
 ) {
     if (!terminal && owner && owns(*owner))
         terminal = gameplay_result_record { *identity,

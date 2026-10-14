@@ -158,31 +158,23 @@ void table_slot::setup_overlay() {
     quiz_continue_button->setToolTip(str_label("Continue to the next card"));
     quiz_continue_button->setVisible(false);
 
-    settings_button->setIcon(
-        icon_loader::themed(
-            { "document-properties", "view-list-details", "document-preview",
-              "dialog-information" },
-            QStyle::SP_FileDialogContentsView
-        )
-    );
-    swap_button->setIcon(
-        icon_loader::themed(
-            { "view-refresh", "reload", "object-rotate-right" },
-            QStyle::SP_BrowserReload
-        )
-    );
-    copy_button->setIcon(
-        icon_loader::themed(
-            { "edit-copy", "copy", "document-duplicate" },
-            QStyle::SP_FileDialogNewFolder
-        )
-    );
-    copy_all_button->setIcon(
-        icon_loader::themed(
-            { "edit-copy", "copy", "document-duplicate" },
-            QStyle::SP_FileDialogNewFolder
-        )
-    );
+    settings_button->setIcon(icon_loader::themed(
+        { "document-properties", "view-list-details", "document-preview",
+          "dialog-information" },
+        QStyle::SP_FileDialogContentsView
+    ));
+    swap_button->setIcon(icon_loader::themed(
+        { "view-refresh", "reload", "object-rotate-right" },
+        QStyle::SP_BrowserReload
+    ));
+    copy_button->setIcon(icon_loader::themed(
+        { "edit-copy", "copy", "document-duplicate" },
+        QStyle::SP_FileDialogNewFolder
+    ));
+    copy_all_button->setIcon(icon_loader::themed(
+        { "edit-copy", "copy", "document-duplicate" },
+        QStyle::SP_FileDialogNewFolder
+    ));
     settings_button->setToolTip(str_label("Show card details and settings"));
     swap_button->setToolTip(str_label("Swap this slot with another"));
     copy_button->setToolTip(str_label("Copy settings from this slot"));
@@ -446,10 +438,8 @@ bool table_slot::eventFilter(QObject* watched, QEvent* event) {
                     button->mapToGlobal(QPoint(button->width(), 0)),
                     button->toolTip(), button
                 );
-            } else if (
-                event->type() == QEvent::FocusOut
-                || event->type() == QEvent::Hide
-            ) {
+            } else if (event->type() == QEvent::FocusOut
+                       || event->type() == QEvent::Hide) {
                 QToolTip::hideText();
             }
         }

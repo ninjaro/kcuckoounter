@@ -306,8 +306,8 @@ private:
     );
     void
     publish_gameplay_runtime(const std::vector<gameplay::quiz_answer>& answers);
-    [[nodiscard]] bool
-    current_gameplay_prompt(const gameplay_prompt_key& prompt) const;
+    [[nodiscard]] bool current_gameplay_prompt(const gameplay_prompt_key& prompt
+    ) const;
     [[nodiscard]] bool
     answer_gameplay_quiz(const gameplay_prompt_key& prompt, bool skip);
     void on_pick_timeout();

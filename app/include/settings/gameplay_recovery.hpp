@@ -47,8 +47,8 @@ public:
     complete(const gameplay_result_record& record, QString* error = nullptr);
 
 private:
-    [[nodiscard]] std::optional<gameplay_progress>
-    read_progress(QString* error) const;
+    [[nodiscard]] std::optional<gameplay_progress> read_progress(QString* error
+    ) const;
     [[nodiscard]] bool write(const QVariant& value, QString* error);
     QSettings& settings;
     gameplay::slot_limits limits;

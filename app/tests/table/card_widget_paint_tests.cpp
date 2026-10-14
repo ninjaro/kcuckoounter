@@ -187,14 +187,14 @@ void card_widget_tests::rotated_stack_stays_inside_slot() {
                             QVERIFY2(
                                 rendered.pixelColor(x, y)
                                     != QColor(Qt::magenta),
-                                qPrintable(QStringLiteral(
-                                               "card reaches slot edge at "
-                                               "%1,%2 in %3x%4"
+                                qPrintable(
+                                    QStringLiteral("card reaches slot edge at "
+                                                   "%1,%2 in %3x%4")
+                                        .arg(x)
+                                        .arg(y)
+                                        .arg(size.width())
+                                        .arg(size.height())
                                 )
-                                               .arg(x)
-                                               .arg(y)
-                                               .arg(size.width())
-                                               .arg(size.height()))
                             );
                         }
                     }

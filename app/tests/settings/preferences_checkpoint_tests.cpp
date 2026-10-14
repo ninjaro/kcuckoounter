@@ -21,8 +21,8 @@
 
 using namespace preferences_test;
 
-void preferences_tests::
-    session_checkpoint_round_trip_preserves_exact_progress() {
+void preferences_tests::session_checkpoint_round_trip_preserves_exact_progress(
+) {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     QSettings settings = temporary_settings(directory);
@@ -35,8 +35,8 @@ void preferences_tests::
     QCOMPARE(*actual, expected);
 }
 
-void preferences_tests::
-    session_checkpoint_rejects_duplicate_or_missing_cards() {
+void preferences_tests::session_checkpoint_rejects_duplicate_or_missing_cards(
+) {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     QSettings settings = temporary_settings(directory);

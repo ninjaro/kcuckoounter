@@ -51,9 +51,8 @@ read_root(const QJsonObject& root, gameplay::slot_limits limits) {
         );
         if (object.size() != 3 || !sequence || !timestamp || !result)
             return std::nullopt;
-        parsed.recent_results.push_back(
-            { *sequence, *timestamp, std::move(*result) }
-        );
+        parsed.recent_results.push_back({ *sequence, *timestamp,
+                                          std::move(*result) });
     }
     return progress_storage::valid(parsed, limits)
         ? std::make_optional(std::move(parsed))
@@ -69,15 +68,13 @@ std::optional<QByteArray> encode_gameplay_progress(
         return std::nullopt;
     QJsonArray history;
     for (const auto& entry : progress.recent_results)
-        history.append(
-            QJsonObject {
-                { QStringLiteral("sequence"), number(entry.sequence) },
-                { QStringLiteral("completed_at_utc_ms"),
-                  signed_number(entry.completed_at_utc_ms) },
-                { QStringLiteral("result"),
-                  progress_storage::result(entry.result) },
-            }
-        );
+        history.append(QJsonObject {
+            { QStringLiteral("sequence"), number(entry.sequence) },
+            { QStringLiteral("completed_at_utc_ms"),
+              signed_number(entry.completed_at_utc_ms) },
+            { QStringLiteral("result"),
+              progress_storage::result(entry.result) },
+        });
     const QJsonObject root {
         { QStringLiteral("version"),
           gameplay_progress_service::schema_version },

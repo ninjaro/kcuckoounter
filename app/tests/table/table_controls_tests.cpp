@@ -203,9 +203,9 @@ void table_tests::compact_slot_controls_remain_reachable() {
         = slot.findChild<BasePushButton*>(QStringLiteral("quiz_skip_button"));
     auto* feedback
         = slot.findChild<QLabel*>(QStringLiteral("quiz_feedback_label"));
-    auto* resume = slot.findChild<BasePushButton*>(
-        QStringLiteral("quiz_continue_button")
-    );
+    auto* resume
+        = slot.findChild<BasePushButton*>(QStringLiteral("quiz_continue_button")
+        );
     QVERIFY(skip != nullptr && feedback != nullptr && resume != nullptr);
     QTest::mouseClick(skip, Qt::LeftButton);
     QVERIFY(feedback->isVisible());
@@ -228,21 +228,20 @@ void table_tests::compact_slot_controls_remain_reachable() {
     auto* quiz_bar = slot.findChild<QFrame*>(QStringLiteral("quiz_bar_frame"));
     QVERIFY2(
         trigger->isVisible(),
-        qPrintable(
-            QStringLiteral(
-                "slot=%1x%2 visible=%3 triggerHidden=%4 quizHidden=%5 "
-                "hint=%6x%7 overlayHint=%8x%9"
-            )
-                .arg(slot.width())
-                .arg(slot.height())
-                .arg(slot.isVisible())
-                .arg(trigger->isHidden())
-                .arg(quiz_bar->isHidden())
-                .arg(quiz_bar->minimumSizeHint().width())
-                .arg(quiz_bar->minimumSizeHint().height())
-                .arg(quiz_bar->parentWidget()->minimumSizeHint().width())
-                .arg(quiz_bar->parentWidget()->minimumSizeHint().height())
+        qPrintable(QStringLiteral(
+                       "slot=%1x%2 visible=%3 triggerHidden=%4 quizHidden=%5 "
+                       "hint=%6x%7 overlayHint=%8x%9"
         )
+                       .arg(slot.width())
+                       .arg(slot.height())
+                       .arg(slot.isVisible())
+                       .arg(trigger->isHidden())
+                       .arg(quiz_bar->isHidden())
+                       .arg(quiz_bar->minimumSizeHint().width())
+                       .arg(quiz_bar->minimumSizeHint().height())
+                       .arg(quiz_bar->parentWidget()->minimumSizeHint().width())
+                       .arg(quiz_bar->parentWidget()->minimumSizeHint().height()
+                       ))
     );
     QTest::mouseClick(trigger, Qt::LeftButton);
     QVERIFY(input->isVisible());
@@ -273,9 +272,9 @@ void table_tests::compact_controls_follow_slot_lifetime() {
     auto* slot = table_widget.findChild<table_slot*>();
     QVERIFY(slot != nullptr);
     slot->set_paused(true);
-    auto* trigger = slot->findChild<QToolButton*>(
-        QStringLiteral("compact_slot_controls")
-    );
+    auto* trigger
+        = slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls")
+        );
     QVERIFY(trigger != nullptr && trigger->isVisible());
     QTest::mouseClick(trigger, Qt::LeftButton);
     QPointer<QDialog> dialog
@@ -330,16 +329,16 @@ void table_tests::action_variants_reuse_controls() {
     auto* bar = slot.findChild<QFrame*>(QStringLiteral("swap_bar_frame"));
     auto* settings
         = slot.findChild<QFrame*>(QStringLiteral("settings_bar_frame"));
-    auto* details = slot.findChild<BasePushButton*>(
-        QStringLiteral("slot_details_button")
-    );
+    auto* details
+        = slot.findChild<BasePushButton*>(QStringLiteral("slot_details_button")
+        );
     auto* swap
         = slot.findChild<BasePushButton*>(QStringLiteral("slot_swap_button"));
     auto* copy
         = slot.findChild<BasePushButton*>(QStringLiteral("slot_copy_button"));
-    auto* copy_all = slot.findChild<BasePushButton*>(
-        QStringLiteral("slot_copy_all_button")
-    );
+    auto* copy_all
+        = slot.findChild<BasePushButton*>(QStringLiteral("slot_copy_all_button")
+        );
     auto* trigger
         = slot.findChild<QToolButton*>(QStringLiteral("compact_slot_controls"));
     QVERIFY(

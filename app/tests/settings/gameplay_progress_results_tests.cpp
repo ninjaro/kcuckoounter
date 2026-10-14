@@ -69,8 +69,7 @@ void gameplay_progress_tests::result_round_trip() {
         for (const auto id : model.unresolved_quizzes()) {
             QVERIFY(model.advance_time(9).accepted);
             if (id.value == 2) {
-                QVERIFY(
-                    model.edit_quiz_input(id, model.deck(id)->running_count)
+                QVERIFY(model.edit_quiz_input(id, model.deck(id)->running_count)
                 );
                 QVERIFY(model.check_quiz(id));
             } else if (i % 2 == 0) {

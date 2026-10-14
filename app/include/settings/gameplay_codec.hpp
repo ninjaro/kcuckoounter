@@ -11,8 +11,8 @@ namespace gameplay_storage {
 
 [[nodiscard]] QString number(std::uint64_t value);
 [[nodiscard]] QString signed_number(std::int64_t value);
-[[nodiscard]] std::optional<std::uint64_t>
-read_unsigned(const QJsonValue& value);
+[[nodiscard]] std::optional<std::uint64_t> read_unsigned(const QJsonValue& value
+);
 [[nodiscard]] std::optional<std::int64_t> read_signed(const QJsonValue& value);
 [[nodiscard]] std::optional<std::size_t> read_size(const QJsonValue& value);
 [[nodiscard]] bool valid_slug(const std::string& slug);

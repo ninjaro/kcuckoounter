@@ -157,8 +157,7 @@ void gameplay_recovery_tests::write_failures() {
         QVERIFY(
             current && std::get<gameplay_result_record>(*current) == record
         );
-        record = std::get<gameplay_result_record>(
-            *current
+        record = std::get<gameplay_result_record>(*current
         ); // Reopen uses the exact timestamp.
     }
     attempts.clear();
@@ -173,9 +172,8 @@ void gameplay_recovery_tests::write_failures() {
         || target == failure_point::update)
         QCOMPARE(
             attempts,
-            QStringList(
-                { "pending+empty", "pending+progress", "absent+progress" }
-            )
+            QStringList({ "pending+empty", "pending+progress",
+                          "absent+progress" })
         );
     else if (target == failure_point::progress)
         QCOMPARE(

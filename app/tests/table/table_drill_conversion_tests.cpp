@@ -52,12 +52,11 @@ void table_tests::drill_conversion_requires_review() {
     gameplay_drill_service service(storage, drill_limits);
     drill_picker picker(storage, legacy, { drill_limits });
     review_conversion(picker, [&](QDialog& review) {
-        QVERIFY(
-            review
-                .findChild<QLabel*>(QStringLiteral("drill_conversion_notice"))
-                ->text()
-                .contains(QStringLiteral("not a lossless conversion"))
-        );
+        QVERIFY(review
+                    .findChild<QLabel*>(QStringLiteral("drill_conversion_notice"
+                    ))
+                    ->text()
+                    .contains(QStringLiteral("not a lossless conversion")));
         QTest::keyClick(&review, Qt::Key_Escape);
     });
     QVERIFY(!storage.contains(QStringLiteral("gameplay_drills/document")));
@@ -71,19 +70,18 @@ void table_tests::drill_conversion_requires_review() {
     review_conversion(picker, [&](QDialog& review) {
         auto* fields = review.findChild<gameplay::setup_widget*>();
         QVERIFY(fields);
-        auto* title = review.findChild<QLineEdit*>(
-            QStringLiteral("converted_drill_name")
-        );
+        auto* title
+            = review.findChild<QLineEdit*>(QStringLiteral("converted_drill_name"
+            ));
         title->clear();
         review.findChild<QPushButton*>(QStringLiteral("save_converted_drill"))
             ->click();
         QVERIFY(review.isVisible());
-        QVERIFY(
-            !review
-                 .findChild<QLabel*>(QStringLiteral("drill_conversion_error"))
-                 ->text()
-                 .isEmpty()
-        );
+        QVERIFY(!review
+                     .findChild<QLabel*>(QStringLiteral("drill_conversion_error"
+                     ))
+                     ->text()
+                     .isEmpty());
         const auto select = [&](const char* key, int value) {
             auto* combo
                 = fields->findChild<QComboBox*>(QString::fromLatin1(key));
@@ -136,8 +134,7 @@ void table_tests::drill_conversion_requires_review() {
     QCOMPARE(
         storage.value(QStringLiteral("training_drills/document")), original
     );
-    QVERIFY(
-        !picker.chosen()
+    QVERIFY(!picker.chosen()
     ); // Saving conversion neither selects a launch nor starts.
     picker.findChild<QListWidget*>(QStringLiteral("saved_drills_list"))
         ->setCurrentRow(0);

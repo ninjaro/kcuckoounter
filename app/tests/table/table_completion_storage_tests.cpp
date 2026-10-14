@@ -129,9 +129,8 @@ void gameplay_completion_tests::write_failures_keep_record() {
         QVERIFY(binding.complete(again, &error) && error.isEmpty());
         QCOMPARE(
             attempts,
-            QStringList(
-                { "pending+empty", "pending+progress", "absent+progress" }
-            )
+            QStringList({ "pending+empty", "pending+progress",
+                          "absent+progress" })
         );
     } else {
         // A fresh process-like binding retries the actual durable pending
