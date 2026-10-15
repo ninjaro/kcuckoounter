@@ -78,8 +78,9 @@ void gameplay_checkpoint_tests::finite_round_trip() {
     QCOMPARE(restored->phase(), session_phase::finished);
     QVERIFY(restored->result() == model.result());
     const auto root = QJsonDocument::fromJson(*bytes).object();
-    QCOMPARE(root.size(), 15);
-    QCOMPARE(root.value(QStringLiteral("version")).toInt(), 2);
+    QCOMPARE(root.size(), 13);
+    QVERIFY(!root.contains(QStringLiteral("version")));
+    QVERIFY(!root.contains(QStringLiteral("continuation_revision")));
     QVERIFY(!root.contains(QStringLiteral("geometry")));
     QVERIFY(!root.contains(QStringLiteral("was_running")));
     QVERIFY(!root.contains(QStringLiteral("score_correct")));

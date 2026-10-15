@@ -19,14 +19,13 @@ using gameplay_recovery
 
 class gameplay_recovery_service {
 public:
-    static constexpr int schema_version = 1;
     static constexpr qsizetype maximum_document_bytes = 8 * 1024 * 1024;
     gameplay_recovery_service(
-        QSettings& settings, gameplay::slot_limits limits,
-        const gameplay::generation_policy& resources = {}
+        QSettings& settings_value, gameplay::slot_limits bounds,
+        const gameplay::generation_policy& capacity = {}
     );
-    /// Absent/no error is distinct from unreadable/conflicting data. Old v2
-    /// standalone checkpoints stay untouched and block automatic identity use.
+    /// Absent/no error is distinct from unreadable/conflicting data. Only the
+    /// current identified recovery record is read.
     [[nodiscard]] std::optional<gameplay_recovery>
     load(QString* error = nullptr) const;
     /// Reserve completed-count + 1 only when recovery is absent. The active

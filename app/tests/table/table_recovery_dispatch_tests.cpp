@@ -154,8 +154,6 @@ void gameplay_restore_tests::absent_keeps_scene() {
 
 void gameplay_restore_tests::protected_records_keep_scene_data() {
     QTest::addColumn<int>("fault");
-    QTest::newRow("standalone-v2") << 0;
-    QTest::newRow("standalone-damaged") << 1;
     QTest::newRow("future-recovery") << 2;
     QTest::newRow("wrong-value-type") << 3;
     QTest::newRow("future-progress") << 4;
@@ -176,13 +174,7 @@ void gameplay_restore_tests::protected_records_keep_scene() {
             gameplay_active_record { 1, saved }, { 1, 64 }
         )
     );
-    if (fault == 0)
-        storage.setValue(
-            checkpoint_key, *encode_gameplay_checkpoint(saved, { 1, 64 })
-        );
-    else if (fault == 1)
-        storage.setValue(checkpoint_key, QByteArray("broken"));
-    else if (fault == 2)
+    if (fault == 2)
         storage.setValue(storage_key, QByteArray("{\"version\":900}"));
     else if (fault == 3)
         storage.setValue(storage_key, QStringLiteral("wrong type"));
@@ -198,7 +190,6 @@ void gameplay_restore_tests::protected_records_keep_scene() {
         );
     storage.sync();
     const auto before = storage.value(storage_key);
-    const auto other = storage.value(checkpoint_key);
     const auto progress = storage.value(progress_key);
     gameplay_recovery_service recovery(
         storage, fault == 7 ? slot_limits { 1, 2 } : slot_limits { 1, 64 }
@@ -215,7 +206,6 @@ void gameplay_restore_tests::protected_records_keep_scene() {
     QCOMPARE(view.gameplay_owner.get(), owner);
     QCOMPARE(changed.count(), 0);
     QCOMPARE(storage.value(storage_key), before);
-    QCOMPARE(storage.value(checkpoint_key), other);
     QCOMPARE(storage.value(progress_key), progress);
 }
 

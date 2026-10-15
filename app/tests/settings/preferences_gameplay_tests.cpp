@@ -35,7 +35,7 @@ QVariantMap other_settings(QSettings& settings) {
 
 } // namespace
 
-void preferences_tests::gameplay_defaults_absence_preserves_legacy() {
+void preferences_tests::gameplay_defaults_absence_preserves_other_settings() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     auto settings = temporary_settings(directory);
@@ -45,9 +45,6 @@ void preferences_tests::gameplay_defaults_absence_preserves_legacy() {
     trainer.wait_for_answers = true;
     trainer.palette = theme_palette_id::blue;
     preferences_service(settings).save(trainer, test_catalog());
-    settings.setValue(
-        QStringLiteral("training_drills/document"), QByteArray("legacy drills")
-    );
     settings.setValue(
         QStringLiteral("trainer_session/payload"),
         QByteArray("legacy checkpoint")
@@ -69,7 +66,7 @@ void preferences_tests::gameplay_defaults_absence_preserves_legacy() {
         QVERIFY(!settings.contains(defaults_key));
         QCOMPARE(other_settings(settings), before);
     }
-    // Generic legacy saves remain unversioned and do not migrate target data.
+    // Current classic trainer settings are independent of gameplay defaults.
     QCOMPARE(preferences_service(settings).load(test_catalog()), trainer);
     QVERIFY(
         !settings.contains(QStringLiteral("trainer_preferences/schema_version"))
@@ -152,10 +149,9 @@ void preferences_tests::gameplay_defaults_round_trip() {
     const auto root
         = QJsonDocument::fromJson(settings.value(defaults_key).toByteArray())
               .object();
-    QCOMPARE(root.value(QStringLiteral("version")).toInt(), 2);
+    QVERIFY(!root.contains(QStringLiteral("version")));
     QCOMPARE(root.value(QStringLiteral("slots")).toInt(), 24);
-    QStringList fields { QStringLiteral("version"),
-                         QStringLiteral("slots"),
+    QStringList fields { QStringLiteral("slots"),
                          QStringLiteral("failure"),
                          QStringLiteral("lives"),
                          QStringLiteral("source"),

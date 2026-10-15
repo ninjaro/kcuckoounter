@@ -43,7 +43,6 @@ QJsonObject slot_to_json(const table_slot_session_state& state) {
         { QStringLiteral("infinity"), state.infinity_enabled },
         { QStringLiteral("deck_count"), state.deck_count },
         { QStringLiteral("strategy_slug"), state.strategy_slug },
-        { QStringLiteral("strategy_id"), state.strategy_id },
         { QStringLiteral("show_card_indexing"), state.show_card_indexing },
         { QStringLiteral("show_strategy_name"), state.show_strategy_name },
         { QStringLiteral("training_mode"), state.training_mode },
@@ -121,7 +120,7 @@ bool bool_value(const QJsonObject& object, const QString& key, bool* output) {
 }
 
 bool parse_card(const QJsonObject& object, card_session_state* output) {
-    if (output == nullptr) {
+    if (object.size() != 5 || output == nullptr) {
         return false;
     }
     qint64 cards_per_deck = 0;
@@ -183,7 +182,8 @@ bool parse_card(const QJsonObject& object, card_session_state* output) {
 }
 
 bool parse_slot(const QJsonObject& object, table_slot_session_state* output) {
-    if (output == nullptr || !object.value(QStringLiteral("card")).isObject()
+    if (output == nullptr || object.size() != 13
+        || !object.value(QStringLiteral("card")).isObject()
         || !parse_card(
             object.value(QStringLiteral("card")).toObject(), &output->card
         )) {
@@ -191,7 +191,6 @@ bool parse_slot(const QJsonObject& object, table_slot_session_state* output) {
     }
 
     qint64 deck_count = 0;
-    qint64 strategy_id = 0;
     qint64 quiz_input = 0;
     if (!integer_in_range(
             object.value(QStringLiteral("deck_count")), 1, maximum_decks,
@@ -200,10 +199,6 @@ bool parse_slot(const QJsonObject& object, table_slot_session_state* output) {
         || !integer_in_range(
             object.value(QStringLiteral("quiz_input_value")), -9999, 9999,
             &quiz_input
-        )
-        || !integer_in_range(
-            object.value(QStringLiteral("strategy_id")), 0, 1000000,
-            &strategy_id
         )
         || !bool_value(object, QStringLiteral("paused"), &output->paused)
         || !bool_value(
@@ -248,7 +243,6 @@ bool parse_slot(const QJsonObject& object, table_slot_session_state* output) {
 
     output->deck_count = static_cast<int>(deck_count);
     output->quiz_input_value = static_cast<int>(quiz_input);
-    output->strategy_id = static_cast<int>(strategy_id);
     output->strategy_slug = strategy_slug;
     output->quiz_feedback_text = feedback;
     if (output->infinity_enabled != output->card.infinity_enabled
@@ -269,11 +263,15 @@ checkpoint_from_json(const QByteArray& payload) {
         return std::nullopt;
     }
     const QJsonObject root = document.object();
+    if (root.size() != 6)
+        return std::nullopt;
     const QJsonValue table_value = root.value(QStringLiteral("table"));
     if (!table_value.isObject()) {
         return std::nullopt;
     }
     const QJsonObject table_object = table_value.toObject();
+    if (table_object.size() != 7)
+        return std::nullopt;
     const QJsonValue slots_value = table_object.value(QStringLiteral("slots"));
     if (!slots_value.isArray()) {
         return std::nullopt;

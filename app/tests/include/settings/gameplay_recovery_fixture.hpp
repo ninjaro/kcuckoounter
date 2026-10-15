@@ -11,8 +11,6 @@ namespace recovery_test {
 inline const QString storage_key = QStringLiteral("gameplay_recovery/document");
 inline const QString progress_key
     = QStringLiteral("gameplay_progress/document");
-inline const QString checkpoint_key
-    = QStringLiteral("gameplay_checkpoint/document");
 gameplay_checkpoint
 snapshot(const gameplay::session& model, std::uint64_t elapsed = 73);
 gameplay::session restored(const gameplay_checkpoint& checkpoint);

@@ -37,19 +37,6 @@ gameplay_drill target_drill(std::size_t count) {
     return result;
 }
 
-training_drill legacy_drill() {
-    training_drill result;
-    result.name = QStringLiteral("Legacy drill");
-    result.quiz_type = 1;
-    result.wait_for_answers = true;
-    result.allow_skipping = false;
-    result.dealing_mode = 2;
-    result.pickup_interval_ms = 570;
-    result.slot_settings
-        = { { 2, true, strategy_repository().strategies.first().slug, true } };
-    return result;
-}
-
 void visit_drill_picker(
     main_window& window, const std::function<void(QDialog&)>& inspect
 ) {
@@ -75,9 +62,7 @@ void answer_drill_question(
 }
 
 drill_storage_guard::drill_storage_guard()
-    : legacy(storage.value(QStringLiteral("training_drills/document")))
-    , target(storage.value(QStringLiteral("gameplay_drills/document"))) {
-    storage.remove(QStringLiteral("training_drills/document"));
+    : target(storage.value(QStringLiteral("gameplay_drills/document"))) {
     storage.remove(QStringLiteral("gameplay_drills/document"));
 }
 
@@ -88,7 +73,6 @@ drill_storage_guard::~drill_storage_guard() {
         else
             storage.remove(key);
     };
-    restore(QStringLiteral("training_drills/document"), legacy);
     restore(QStringLiteral("gameplay_drills/document"), target);
 }
 

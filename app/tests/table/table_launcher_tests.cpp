@@ -409,7 +409,6 @@ void table_tests::gameplay_launcher_routes_runtime_and_finish() {
     QCOMPARE(load_training_progress(), progress);
     QCOMPARE(legacy_score.count(), 0);
     QCOMPARE(view->capture_session_state(), table_session_state {});
-    QVERIFY(view->capture_drill_settings().isEmpty());
 }
 
 void table_tests::gameplay_launcher_finish_replacement_is_not_finished() {

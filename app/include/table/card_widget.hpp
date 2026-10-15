@@ -44,9 +44,10 @@ public:
     ~card_widget() override;
 
     // Target-mode projection only. The GUI-thread session must outlive this
-    // widget at a stable address. Bind an empty legacy widget once; its deck
+    // widget at a stable address. Bind an empty classic widget once; its deck
     // identity stays fixed through Swap. Host refreshes after accepted domain
-    // changes; no shoe/count copy, autonomous dealing or v1 recovery is used.
+    // changes; no shoe/count copy, autonomous dealing or classic recovery is
+    // used.
     [[nodiscard]] bool
     bind_gameplay_deck(const gameplay::session& owner, gameplay::deck_id id);
     void refresh_gameplay_deck();
@@ -79,8 +80,8 @@ public:
     bool has_current_card() const;
     bool is_deck_exhausted() const;
     void mark_deck_exhausted();
-    // Legacy picker/checkpoint accessors only. A bound target has no picker
-    // payload; its host reads typed counters from the session and uses G8.
+    // Trainer checkpoint accessors. A session-bound card has no separate shoe;
+    // its host reads typed counters and recovery state from the session.
     int current_position() const;
     int current_total_weight() const;
     [[nodiscard]] card_session_state capture_session_state() const;

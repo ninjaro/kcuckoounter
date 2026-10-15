@@ -919,7 +919,6 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/image_cacher.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/raster_cache.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/rasterization_runner.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_codec.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_decks.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_fields.cpp
@@ -947,7 +946,6 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/training_progress.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/desktop_status_strip.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_conversion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_storage.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_summary.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/gameplay_reservation.cpp
@@ -1012,7 +1010,6 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/image_cacher.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/raster_cache.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/rasterization_runner.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_codec.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_decks.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_fields.cpp
@@ -1040,7 +1037,6 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/training_progress.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/desktop_status_strip.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_conversion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_storage.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_summary.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/gameplay_reservation.cpp

@@ -15,26 +15,21 @@
 #include <utility>
 
 drill_picker::drill_picker(
-    QSettings& storage_value, saved_drill snapshot, drill_picker_policy rules,
-    QWidget* parent
+    QSettings& storage_value, std::optional<gameplay_drill> snapshot,
+    drill_picker_policy rules, QWidget* parent
 )
     : QDialog(parent)
     , storage(storage_value)
     , current(std::move(snapshot))
     , policy(rules) {
-    legacy = training_drill_service(storage).load(&legacy_error);
     target = gameplay_drill_service(storage, policy.limits).load(&target_error);
     setObjectName(QStringLiteral("saved_drills_dialog"));
     setWindowTitle(str_label("Pick a drill"));
     auto* layout = new QVBoxLayout(this);
     auto* explanation = new QLabel(
         str_label(
-            "Save current configuration in its own format. Legacy drills "
-            "launch "
-            "the legacy trainer; Gameplay drills load editable setup before "
-            "Start. "
-            "Appearance and progress are not saved. Close to keep the current "
-            "session."
+            "Save a named gameplay setup or load it before Start. Appearance "
+            "and progress are not saved. Close to keep the current session."
         ),
         this
     );
@@ -64,18 +59,12 @@ drill_picker::drill_picker(
         = edits->addButton(str_label("Rename"), QDialogButtonBox::ActionRole);
     remove
         = edits->addButton(str_label("Delete"), QDialogButtonBox::ActionRole);
-    auto* conversion = new QDialogButtonBox(this);
-    convert = conversion->addButton(
-        str_label("Convert to gameplay…"), QDialogButtonBox::ActionRole
-    );
     save->setObjectName(QStringLiteral("save_current_drill"));
     rename->setObjectName(QStringLiteral("rename_drill"));
     remove->setObjectName(QStringLiteral("delete_drill"));
-    convert->setObjectName(QStringLiteral("convert_drill"));
-    for (auto* button : { save, rename, remove, convert })
+    for (auto* button : { save, rename, remove })
         button->setAutoDefault(false);
     layout->addWidget(edits);
-    layout->addWidget(conversion);
     message = new QLabel(this);
     message->setObjectName(QStringLiteral("saved_drill_message"));
     message->setTextFormat(Qt::PlainText);
@@ -102,21 +91,14 @@ drill_picker::drill_picker(
         remove, &QPushButton::clicked, this, &drill_picker::delete_selected
     );
     connect(
-        convert, &QPushButton::clicked, this, &drill_picker::convert_selected
-    );
-    connect(
         launch, &QPushButton::clicked, this, &drill_picker::choose_selected
     );
     show_message();
-    refresh(
-        legacy && !legacy->isEmpty()       ? row_key { false, 0 }
-            : target && !target->isEmpty() ? row_key { true, 0 }
-                                           : row_key {}
-    );
+    refresh(target && !target->isEmpty() ? 0 : -1);
     resize(460, 570);
 }
 
-const std::optional<saved_drill>& drill_picker::chosen() const {
+const std::optional<gameplay_drill>& drill_picker::chosen() const {
     return selection;
 }
 
@@ -129,45 +111,25 @@ void drill_picker::invalidate() {
     reject();
 }
 
-std::optional<drill_picker::row_key> drill_picker::selected_row() const {
+std::optional<int> drill_picker::selected_row() const {
     const auto* item = list->currentItem();
-    if (invalidated || !item)
+    if (invalidated || !item || !target)
         return std::nullopt;
-    const row_key result { item->data(Qt::UserRole).toBool(),
-                           item->data(Qt::UserRole + 1).toInt() };
-    const auto size = result.gameplay ? (target ? target->size() : 0)
-                                      : (legacy ? legacy->size() : 0);
-    return result.index >= 0 && result.index < size ? std::make_optional(result)
-                                                    : std::nullopt;
+    const int index = item->data(Qt::UserRole).toInt();
+    return index >= 0 && index < target->size() ? std::make_optional(index)
+                                                : std::nullopt;
 }
 
-void drill_picker::refresh(row_key selected) {
+void drill_picker::refresh(int selected) {
     list->clear();
-    const auto append = [&](const QString& text, bool gameplay, int index) {
-        auto* item = new QListWidgetItem(text, list);
-        item->setData(Qt::UserRole, gameplay);
-        item->setData(Qt::UserRole + 1, index);
-        item->setToolTip(
-            gameplay ? str_label("Gameplay drill (v2)")
-                     : str_label("Legacy drill (v1)")
-        );
-        if (selected.gameplay == gameplay && selected.index == index)
-            list->setCurrentItem(item);
-    };
-    if (legacy)
-        for (int index = 0; index < legacy->size(); ++index)
-            append(legacy->at(index).name, false, index);
     if (target)
-        for (int index = 0; index < target->size(); ++index)
-            append(
-                target->at(index).name + str_label(" [Gameplay]"), true, index
-            );
-    save->setEnabled(
-        policy.save_allowed && !invalidated
-        && (std::holds_alternative<gameplay_drill>(current)
-                ? target.has_value()
-                : legacy.has_value())
-    );
+        for (int index = 0; index < target->size(); ++index) {
+            auto* item = new QListWidgetItem(target->at(index).name, list);
+            item->setData(Qt::UserRole, index);
+            if (selected == index)
+                list->setCurrentItem(item);
+        }
+    save->setEnabled(policy.save_allowed && !invalidated && current && target);
     selection_changed();
 }
 
@@ -175,11 +137,12 @@ void drill_picker::selection_changed() {
     const auto row = selected_row();
     rename->setEnabled(row.has_value());
     remove->setEnabled(row.has_value());
-    convert->setEnabled(false);
     launch->setEnabled(false);
     if (!row) {
         details->setPlainText(
-            !policy.save_allowed
+            !current
+                ? str_label("Create a gameplay setup before saving a drill.")
+                : !policy.save_allowed
                 ? str_label(
                       "Apply or close open deck Details before saving current "
                       "configuration."
@@ -191,36 +154,14 @@ void drill_picker::selection_changed() {
         );
         return;
     }
-    const bool supported = row->gameplay
-        ? supports_drill(
-              target->at(row->index), strategy_repository(), policy.limits
-          )
-        : is_drill_configuration_supported(
-              legacy->at(row->index), strategy_repository()
-          );
-    const bool allowed
-        = row->gameplay ? policy.load_gameplay : policy.launch_legacy;
-    launch->setText(
-        row->gameplay ? str_label("Load gameplay setup")
-                      : str_label("Launch drill")
+    const bool supported = supports_drill(
+        target->at(*row), strategy_repository(), policy.limits
     );
+    const bool allowed = policy.load_gameplay;
+    launch->setText(str_label("Load gameplay setup"));
     launch->setEnabled(supported && allowed);
-    if (!row->gameplay) {
-        const auto draft
-            = draft_legacy_drill(legacy->at(row->index), {}, policy.limits);
-        convert->setEnabled(
-            target.has_value() && draft
-            && supports_drill(*draft, strategy_repository(), policy.limits)
-        );
-    }
-    QString text;
-    if (row->gameplay) {
-        name->setText(target->at(row->index).name);
-        text = summarize(target->at(row->index));
-    } else {
-        name->setText(legacy->at(row->index).name);
-        text = summarize(legacy->at(row->index));
-    }
+    name->setText(target->at(*row).name);
+    QString text = summarize(target->at(*row));
     if (!supported)
         text.prepend(
             str_label("Cannot launch: a saved strategy is unavailable or "
@@ -233,7 +174,7 @@ void drill_picker::selection_changed() {
             )
             + QLatin1Char('\n')
         );
-    if (!policy.save_allowed)
+    if (!policy.save_allowed || !current)
         text.prepend(
             str_label("Apply or close open deck Details before saving current "
                       "configuration.")
@@ -244,9 +185,6 @@ void drill_picker::selection_changed() {
 
 void drill_picker::show_message(const QString& extra) {
     QStringList lines;
-    if (!legacy_error.isEmpty())
-        lines << str_label("Legacy drills") + QStringLiteral(": ")
-                + legacy_error;
     if (!target_error.isEmpty())
         lines << str_label("Gameplay drills") + QStringLiteral(": ")
                 + target_error;

@@ -47,7 +47,6 @@ trainer_session_checkpoint test_checkpoint() {
     slot.card.deck_position = 5;
     slot.deck_count = 2;
     slot.strategy_slug = QStringLiteral("first_strategy");
-    slot.strategy_id = 11;
     slot.show_card_indexing = true;
     slot.quiz_prompt_active = true;
     slot.quiz_feedback_active = true;

@@ -65,7 +65,6 @@ void table_tests::gameplay_table_owns_roster_without_legacy_state() {
     QCOMPARE(identity->phase(), gameplay::session_phase::running);
     QCOMPARE(*identity->deck({ 0 }), before);
     QCOMPARE(view.capture_session_state(), table_session_state {});
-    QVERIFY(view.capture_drill_settings().isEmpty());
     for (std::size_t index = 0; index < view.slot_widgets.size(); ++index) {
         auto* slot = view.slot_widgets[index];
         QCOMPARE(
@@ -80,7 +79,6 @@ void table_tests::gameplay_table_owns_roster_without_legacy_state() {
         slot->advance_card();
         slot->clear_quiz();
         QVERIFY(!slot->restore_session_state({}));
-        slot->apply_drill_settings({ 3, true, QStringLiteral("hi_lo"), false });
         QVERIFY(QMetaObject::invokeMethod(
             slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
         ));
@@ -133,10 +131,6 @@ void table_tests::gameplay_table_installation_preflight_preserves_current_scene(
     QCOMPARE(view.slot_widgets.front(), first.data());
     QCOMPARE(first->geometry(), bounds);
     QVERIFY(!view.restore_session_state(before));
-    training_drill drill;
-    drill.name = QStringLiteral("Legacy fixture");
-    drill.slot_settings = { { 1, false, QStringLiteral("hi_lo"), false } };
-    QVERIFY(!view.configure_drill(drill));
     QCOMPARE(changed.size(), 0);
     view.resize(
         1, 88

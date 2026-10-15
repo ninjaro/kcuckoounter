@@ -42,7 +42,7 @@ bool valid_result(
     const auto& config = result.configuration;
     if (!session_setup::valid_slot_limits(limits, count)
         || !valid_configuration(config, count, { count, limits.technical_cap })
-        || maximum_targets == 0 || result.cadence_revision != 1
+        || maximum_targets == 0
         || result.timing.quiz_time_ms > result.timing.play_time_ms)
         return false;
     std::vector<bool> occupied(count, false);

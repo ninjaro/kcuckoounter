@@ -276,9 +276,7 @@ void gameplay_checkpoint_tests::budgets_caps_and_text() {
     root.insert(QStringLiteral("pickup_elapsed_ms"), QStringLiteral("300"));
     QVERIFY(!decode_gameplay_checkpoint(document(root), { 3, 64 }));
     auto oversized = bytes;
-    oversized.append(
-        QByteArray(gameplay_checkpoint_service::maximum_document_bytes, ' ')
-    );
+    oversized.append(QByteArray(maximum_gameplay_checkpoint_bytes, ' '));
     QVERIFY(!decode_gameplay_checkpoint(oversized, { 3, 64 }));
 }
 

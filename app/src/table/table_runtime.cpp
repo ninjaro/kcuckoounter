@@ -227,7 +227,7 @@ QString table::gameplay_clock_text() const {
     if (!gameplay_owner)
         return {};
     const auto seconds = gameplay_owner->timing().play_time_ms / 1000;
-    // QTime wraps at 24 hours and legacy KGameClock accepts only uint seconds.
+    // QTime wraps at 24 hours and KGameClock accepts only uint seconds.
     return QStringLiteral("%1:%2:%3")
         .arg(static_cast<qulonglong>(seconds / 3600), 2, 10, QLatin1Char('0'))
         .arg(

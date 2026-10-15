@@ -19,8 +19,6 @@ std::optional<QByteArray> encode_active(
     if (!payload)
         return std::nullopt;
     const QJsonObject root {
-        { QStringLiteral("version"),
-          gameplay_recovery_service::schema_version },
         { QStringLiteral("phase"), QStringLiteral("active") },
         { QStringLiteral("sequence"), gameplay_storage::number(sequence) },
         { QStringLiteral("payload"),
@@ -49,8 +47,6 @@ std::optional<QByteArray> encode_gameplay_recovery(
     if (!progress_storage::valid_record(pending, limits))
         return std::nullopt;
     const QJsonObject root {
-        { QStringLiteral("version"),
-          gameplay_recovery_service::schema_version },
         { QStringLiteral("phase"), QStringLiteral("pending") },
         { QStringLiteral("sequence"),
           gameplay_storage::number(pending.sequence) },
@@ -85,13 +81,8 @@ std::optional<gameplay_recovery> decode_gameplay_recovery(
         );
     const auto phase = root.value(QStringLiteral("phase"));
     const auto payload = root.value(QStringLiteral("payload"));
-    if (root.size() != 4 || !sequence || *sequence == 0 || !phase.isString()
-        || !payload.isObject()
-        || !gameplay_storage::read_integer(
-            root.value(QStringLiteral("version")),
-            gameplay_recovery_service::schema_version,
-            gameplay_recovery_service::schema_version
-        ))
+    if (root.size() != 3 || !sequence || *sequence == 0 || !phase.isString()
+        || !payload.isObject())
         return std::nullopt;
     if (phase.toString() == QStringLiteral("active")) {
         auto checkpoint = decode_gameplay_checkpoint(

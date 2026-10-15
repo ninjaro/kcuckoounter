@@ -47,8 +47,9 @@ public:
     ~table() override;
 
     // Explicit target scene installation; takes ownership even on rejection.
-    // Preflight leaves the displayed scene unchanged. A populated legacy game
-    // must be explicitly cleared first. No gameplay timer/launcher is started.
+    // Preflight leaves the displayed scene unchanged. A populated classic
+    // trainer game must be explicitly cleared first. No gameplay timer/launcher
+    // is started.
     [[nodiscard]] bool
     install_gameplay_session(std::unique_ptr<gameplay::session> owner);
     /// Settle active time before capture; no automatic Pause or settings I/O.
@@ -78,7 +79,7 @@ public:
     [[nodiscard]] bool
     swap_gameplay_decks(gameplay::deck_id first, gameplay::deck_id second);
     // Destroys deck views before their owner; explicitly returns to empty
-    // legacy mode.
+    // classic trainer mode.
     void clear_gameplay_session();
 
     // Opt-in target runtime, GUI thread only. Installation is not Start.
@@ -156,11 +157,8 @@ public:
     raster_cache* shared_raster_cache_service();
     const raster_cache* shared_raster_cache_service() const;
     [[nodiscard]] table_session_state capture_session_state() const;
-    [[nodiscard]] QVector<drill_slot_preferences>
-    capture_drill_settings() const;
     // Invalid/unsupported input leaves the entire table unchanged. This
     // prepares a fresh session; normal start_quiz still creates the new shoes.
-    bool configure_drill(const training_drill& drill);
     bool restore_session_state(const table_session_state& state);
 
 public slots:
@@ -174,7 +172,7 @@ signals:
     // Accepted setup edit invalidated preparation. The launcher owns seed,
     // budgets and generation; typing and Show Count never emit this.
     void gameplay_preparation_required();
-    // Target-only notifications; no legacy score/game-over or v1 callbacks.
+    // Target-only notifications; no classic trainer score/game-over callbacks.
     void gameplay_runtime_updated();
     void gameplay_quiz_resolved(const gameplay::quiz_answer& answer);
     // One notification per published answer batch, or explicit dismissal;

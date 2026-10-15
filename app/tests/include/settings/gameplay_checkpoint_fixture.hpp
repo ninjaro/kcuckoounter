@@ -7,8 +7,6 @@
 
 namespace checkpoint_test {
 
-inline const QString storage_key
-    = QStringLiteral("gameplay_checkpoint/document");
 gameplay::session finite_session(gameplay::session_configuration settings = {});
 gameplay::session mixed_session(gameplay::session_configuration settings);
 gameplay_checkpoint sample_checkpoint();

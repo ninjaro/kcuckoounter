@@ -127,8 +127,7 @@ launcher_preferences_guard::launcher_preferences_guard()
     gameplay_defaults
         = storage.value(QStringLiteral("gameplay_preferences/document"));
     for (const auto* name :
-         { "gameplay_checkpoint/document", "gameplay_recovery/document",
-           "gameplay_progress/document" }) {
+         { "gameplay_recovery/document", "gameplay_progress/document" }) {
         const auto key = QString::fromLatin1(name);
         gameplay_storage.insert(key, storage.value(key));
         storage.remove(key);

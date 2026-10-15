@@ -53,7 +53,7 @@ void preferences_tests::gameplay_drills_round_trip() {
     QCOMPARE(*actual, QVector<gameplay_drill> { expected });
     const auto bytes = settings.value(gameplay_drills_key).toByteArray();
     const auto root = QJsonDocument::fromJson(bytes).object();
-    QCOMPARE(root.value(QStringLiteral("version")).toInt(), 2);
+    QVERIFY(!root.contains(QStringLiteral("version")));
     const auto entry
         = root.value(QStringLiteral("drills")).toArray().first().toObject();
     QCOMPARE(
@@ -67,61 +67,6 @@ void preferences_tests::gameplay_drills_round_trip() {
            "seed", "targets", "palette", "orientation", "preset", "phase",
            "remaining_lives" })
         QVERIFY2(!bytes.contains(excluded), excluded);
-}
-
-void preferences_tests::gameplay_drills_keep_legacy_storage() {
-    QTemporaryDir directory;
-    auto settings = temporary_settings(directory);
-    training_drill legacy;
-    legacy.name = QStringLiteral("Daily");
-    legacy.slot_settings
-        = { { 1, false, QStringLiteral("first_strategy"), true } };
-    training_drill_service old_service(settings);
-    QVERIFY(old_service.save({ legacy }));
-    QVERIFY(gameplay_preferences_service(settings, { 4, 64 }).save({}));
-    for (const auto* key :
-         { "trainer_preferences/sentinel", "desktop_ui/sentinel",
-           "trainer_session/payload", "training_progress/sentinel",
-           "desktop_shell/sentinel", "appearance/default_suit" })
-        settings.setValue(QString::fromLatin1(key), QByteArray("untouched"));
-    const auto before = other_drill_settings(settings);
-    gameplay_drill_service service(settings, { 1, 64 });
-    QString error = QStringLiteral("old error");
-    const auto absent = service.load(&error);
-    QVERIFY(absent && absent->isEmpty() && error.isEmpty());
-    QVERIFY(!settings.contains(gameplay_drills_key));
-    auto drill = sample_drill();
-    drill.name
-        = legacy.name; // Separate catalogue namespace, not v1 replacement.
-    QVERIFY(service.save({ drill }));
-    QCOMPARE(other_drill_settings(settings), before);
-    QCOMPARE(*old_service.load(), QVector<training_drill> { legacy });
-    const auto target_bytes = settings.value(gameplay_drills_key);
-    legacy.name = QStringLiteral("Renamed old drill");
-    QVERIFY(old_service.save({ legacy }));
-    QCOMPARE(settings.value(gameplay_drills_key), target_bytes);
-    const auto after_rename = other_drill_settings(settings);
-    drill.decks.back().configuration.strategy_slug = "removed_strategy";
-    QVERIFY(service.save({ drill }));
-    QVERIFY(!supports_drill(drill, drill_catalog(), { 1, 64 }));
-    QCOMPARE(service.load()->front(), drill);
-    drill.name = QStringLiteral("Retained unavailable drill");
-    QVERIFY(service.save({ drill }));
-    QVERIFY(service.save({}));
-    QVERIFY(service.load()->isEmpty());
-    QCOMPARE(other_drill_settings(settings), after_rename);
-    // An unrelated corrupt/future v1 document does not block target storage.
-    settings.setValue(
-        QStringLiteral("training_drills/document"), QByteArray("future v1 data")
-    );
-    QVERIFY(service.save({ sample_drill() }));
-    QVERIFY(!old_service.load());
-    QVERIFY(!old_service.save({ legacy }));
-    QCOMPARE(
-        settings.value(QStringLiteral("training_drills/document"))
-            .toByteArray(),
-        QByteArray("future v1 data")
-    );
 }
 
 void preferences_tests::gameplay_drills_validate_configuration() {

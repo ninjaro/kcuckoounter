@@ -490,7 +490,7 @@ void preferences_tests::slot_geometry_rejects_invalid_and_live_updates() {
     QCOMPARE(large->slot_constraints(), (gameplay::slot_limits { 65, 65 }));
 }
 
-void preferences_tests::gameplay_setup_does_not_write_legacy_storage() {
+void preferences_tests::gameplay_setup_does_not_write_storage() {
     QSettings settings(
         QStringLiteral("kcuckoounter"), QStringLiteral("kcuckoounter")
     );
@@ -498,9 +498,6 @@ void preferences_tests::gameplay_setup_does_not_write_legacy_storage() {
     settings.setValue(
         QStringLiteral("trainer_session/payload"),
         QByteArray("legacy checkpoint")
-    );
-    settings.setValue(
-        QStringLiteral("training_drills/document"), QByteArray("legacy drills")
     );
     settings.setValue(QStringLiteral("trainer_preferences/quiz_type"), 1);
     settings.sync();

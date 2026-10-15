@@ -14,11 +14,11 @@ private slots:
     void result_invariants();
     void required_fields_and_shapes();
     void canonical_integer_validation();
-    void bounds_and_revisions();
+    void bounds_and_unsupported_fields();
     void history_accounting();
     void lifetime_sequence_bounds();
     void history_reopen_and_retries();
-    void legacy_history_remains_readable();
+    void progress_records_are_mode_local();
     void storage_protects_unreadable_records();
     void storage_overflow_is_atomic();
     void storage_reports_failed_writes();

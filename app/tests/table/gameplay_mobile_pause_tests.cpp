@@ -143,7 +143,7 @@ void gameplay_mobile_tests::background_save_can_retry() {
     QSettings storage("ninjaro", "kcuckoounter");
     const auto before = storage.value(storage_key);
     const auto protected_bytes = QByteArrayLiteral("{\"version\":999}");
-    storage.setValue(checkpoint_key, protected_bytes);
+    storage.setValue(progress_key, protected_bytes);
     storage.sync();
     window.apply_mobile_state(Qt::ApplicationHidden);
     QCOMPARE(
@@ -158,9 +158,9 @@ void gameplay_mobile_tests::background_save_can_retry() {
 #endif
     QCOMPARE(window.status_label->text(), window.gameplay_storage_error);
     QCOMPARE(storage.value(storage_key), before);
-    QCOMPARE(storage.value(checkpoint_key).toByteArray(), protected_bytes);
+    QCOMPARE(storage.value(progress_key).toByteArray(), protected_bytes);
     const auto exact = window.table_widget->capture_gameplay_checkpoint();
-    storage.remove(checkpoint_key); // deliberate external resolution
+    storage.remove(progress_key); // deliberate external resolution
     storage.sync();
     window.gameplay_retry_action->trigger();
     QVERIFY(window.gameplay_storage_error.isEmpty());
@@ -180,7 +180,7 @@ void gameplay_mobile_tests::background_retries_exact_result() {
     main_window window;
     start_owned(window);
     QSettings storage("ninjaro", "kcuckoounter");
-    storage.setValue(checkpoint_key, QByteArrayLiteral("protected"));
+    storage.setValue(progress_key, QByteArrayLiteral("protected"));
     storage.sync();
     QVERIFY(window.table_widget->finish_gameplay_runtime());
     const auto binding = window.gameplay_binding;
@@ -190,7 +190,7 @@ void gameplay_mobile_tests::background_retries_exact_result() {
     window.apply_mobile_state(Qt::ApplicationHidden);
     QCOMPARE(*binding->completion(), exact);
     QVERIFY(!binding->acknowledged());
-    storage.remove(checkpoint_key);
+    storage.remove(progress_key);
     storage.sync();
     window.apply_mobile_state(Qt::ApplicationSuspended);
     QVERIFY(binding->acknowledged());

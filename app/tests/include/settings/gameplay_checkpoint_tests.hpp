@@ -15,10 +15,6 @@ private slots:
     void required_fields_and_shapes();
     void canonical_integer_validation();
     void budgets_caps_and_text();
-    void storage_absence_and_legacy_isolation();
-    void storage_reopen_and_clear();
-    void storage_protects_unreadable_records();
-    void storage_reports_failed_writes();
 };
 
 #endif // KCUCKOOUNTER_TESTS_GAMEPLAY_CHECKPOINT_TESTS_HPP

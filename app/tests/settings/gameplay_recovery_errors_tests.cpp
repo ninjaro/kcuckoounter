@@ -187,35 +187,6 @@ void gameplay_recovery_tests::codec_identity_bounds() {
     QVERIFY(!decode_gameplay_recovery(document(bad), { 3, 64 }));
 }
 
-void gameplay_recovery_tests::legacy_checkpoint_policy() {
-    auto model = progress_test::ready_session();
-    const auto checkpoint = snapshot(model);
-    QTemporaryDir directory;
-    QVERIFY(directory.isValid());
-    QSettings settings(
-        directory.filePath("settings.ini"), QSettings::IniFormat
-    );
-    gameplay_checkpoint_service legacy(settings, { 3, 64 });
-    QVERIFY(legacy.save(checkpoint));
-    const auto before = settings.value(checkpoint_key);
-    gameplay_recovery_service service(settings, { 3, 64 });
-    QString error;
-    QVERIFY(!service.load(&error) && !error.isEmpty());
-    QVERIFY(!service.begin(checkpoint, &error) && !error.isEmpty());
-    QVERIFY(!service.save(1, checkpoint, &error) && !error.isEmpty());
-    QVERIFY(!service.complete(finish(model), &error) && !error.isEmpty());
-    QCOMPARE(settings.value(checkpoint_key), before);
-    QVERIFY(!settings.contains(storage_key));
-    QVERIFY(legacy.load() == checkpoint);
-    // Damaged/future standalone records also remain protected, not adopted.
-    settings.setValue(checkpoint_key, QByteArray("future checkpoint"));
-    QVERIFY(!service.begin(checkpoint, &error) && !error.isEmpty());
-    QCOMPARE(
-        settings.value(checkpoint_key).toByteArray(),
-        QByteArray("future checkpoint")
-    );
-}
-
 void gameplay_recovery_tests::storage_conflicts() {
     auto model = progress_test::ready_session();
     const auto checkpoint = snapshot(model);

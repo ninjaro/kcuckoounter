@@ -27,14 +27,14 @@ struct gameplay_progress {
 
 class gameplay_progress_service {
 public:
-    static constexpr int schema_version = 1;
     static constexpr qsizetype maximum_document_bytes = 8 * 1024 * 1024;
     static constexpr std::size_t maximum_result_targets = 65'536;
     gameplay_progress_service(
-        QSettings& settings, gameplay::slot_limits limits
+        QSettings& settings_value, gameplay::slot_limits bounds
     );
     /// Absent returns null without error; unreadable/future data returns an
-    /// error and blocks writes. Does not read, migrate or rank legacy history.
+    /// error and blocks writes. Only the current raw gameplay result
+    /// representation is read.
     [[nodiscard]] std::optional<gameplay_progress>
     load(QString* error = nullptr) const;
     /// Owner-serialized admission of exactly the next sequence. Identical

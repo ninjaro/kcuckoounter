@@ -12,8 +12,7 @@ bool valid_checkpoint(
     const generation_policy& resources
 ) {
     const auto count = saved.decks.size();
-    return saved.continuation_revision == session_checkpoint::current_revision
-        && session_setup::valid_slot_limits(bounds, count)
+    return session_setup::valid_slot_limits(bounds, count)
         && valid_configuration(
                saved.configuration, count, { count, bounds.technical_cap }
         )

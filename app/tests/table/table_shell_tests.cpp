@@ -153,8 +153,7 @@ void table_tests::desktop_toolbar_preserves_table_and_commands() {
     QVERIFY(state.quiz_running && state.quiz_paused);
     const auto interval = slider->value();
     const auto editable = slider->isEnabled();
-    const auto window_state
-        = window.saveState(desktop_shell_state::qt_main_window_state_version);
+    const auto window_state = window.saveState();
     const auto slot_widgets = view->findChildren<table_slot*>();
     QCOMPARE(slot_widgets.size(), count);
     QList<QRect> bounds;
@@ -174,10 +173,7 @@ void table_tests::desktop_toolbar_preserves_table_and_commands() {
         QCOMPARE(view->capture_session_state(), state);
         QCOMPARE(slider->value(), interval);
         QCOMPARE(slider->isEnabled(), editable);
-        QCOMPARE(
-            window.saveState(desktop_shell_state::qt_main_window_state_version),
-            window_state
-        );
+        QCOMPARE(window.saveState(), window_state);
         for (qsizetype i = 0; i < slot_widgets.size(); ++i) {
             QCOMPARE(slot_widgets[i]->geometry(), bounds[i]);
             QCOMPARE(slot_widgets[i]->card_face_need_short_px(), raster[i]);
@@ -283,11 +279,7 @@ void table_tests::desktop_toolbar_preserves_table_and_commands() {
         QVERIFY(!view->capture_session_state().quiz_running);
         QVERIFY(setup->isVisible());
         setup->reject();
-        save_desktop_shell_state(
-            { window.saveGeometry(),
-              window.saveState(desktop_shell_state::qt_main_window_state_version
-              ) }
-        );
+        save_desktop_shell_state({ window.saveGeometry(), window.saveState() });
         main_window restored;
         restored.show();
         auto* restored_toolbar

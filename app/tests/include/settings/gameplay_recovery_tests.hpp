@@ -17,7 +17,6 @@ private slots:
     void save_rejects_rewind();
     void codec_shapes();
     void codec_identity_bounds();
-    void legacy_checkpoint_policy();
     void storage_conflicts();
     void completion_conflicts();
     void duplicate_preserves_new_session();

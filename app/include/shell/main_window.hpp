@@ -29,7 +29,6 @@ class gameplay_reservation;
 namespace gameplay {
 class setup_widget;
 }
-struct training_drill;
 struct gameplay_drill;
 
 class main_window : public BaseMainWindow {
@@ -168,8 +167,6 @@ private:
     bool complete_gameplay_from_ui();
     bool save_gameplay_from_ui();
     void report_gameplay_storage(const QString& error);
-    [[nodiscard]] training_drill capture_training_drill() const;
-    bool launch_training_drill(const training_drill& drill);
     bool load_gameplay_drill(const gameplay_drill& drill);
     void pause_for_dialog();
     void persist_setup_preferences() const;

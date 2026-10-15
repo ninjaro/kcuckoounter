@@ -402,37 +402,10 @@ void table::set_card_orientation(card_orientation_mode orientation) {
     update_shared_card_face_need();
 }
 
-QVector<drill_slot_preferences> table::capture_drill_settings() const {
-    if (gameplay_owner)
-        return {};
-    QVector<drill_slot_preferences> result;
-    result.reserve(static_cast<qsizetype>(slot_widgets.size()));
-    for (const auto* slot : slot_widgets)
-        result.append(slot->capture_drill_settings());
-    return result;
-}
-
-bool table::configure_drill(const training_drill& drill) {
-    if (gameplay_owner
-        || !is_drill_configuration_supported(drill, strategy_repository()))
-        return false;
-    clear_quiz();
-    clear_swap_selection();
-    clear_copy_selection();
-    set_slot_count(static_cast<int>(drill.slot_settings.size()));
-    for (qsizetype index = 0; index < drill.slot_settings.size(); ++index)
-        slot_widgets[static_cast<std::size_t>(index)]->apply_drill_settings(
-            drill.slot_settings[index]
-        );
-    set_pick_interval(drill.pickup_interval_ms);
-    set_dealing_mode(drill.dealing_mode);
-    set_allow_skipping(drill.allow_skipping);
-    return true;
-}
-
 table_session_state table::capture_session_state() const {
     if (gameplay_owner)
-        return {}; // no target data through legacy v1 codecs
+        return {}; // domain sessions have a distinct current checkpoint
+                   // representation
     table_session_state state;
     state.slot_states.reserve(static_cast<qsizetype>(slot_widgets.size()));
     for (const table_slot* slot_widget : slot_widgets) {

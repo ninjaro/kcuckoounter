@@ -22,7 +22,6 @@ void gameplay_session_tests::checkpoint_rejects_invalid_identity_and_streams() {
     const auto saved = capture_checkpoint(model);
     QVERIFY(saved);
     const std::function<void(session_checkpoint&)> changes[] {
-        [](auto& state) { ++state.continuation_revision; },
         [](auto& state) { state.decks.clear(); },
         [](auto& state) { state.decks[1].id.value = 0; },
         [](auto& state) { state.deck_to_slot.pop_back(); },

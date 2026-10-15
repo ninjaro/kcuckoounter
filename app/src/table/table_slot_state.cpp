@@ -31,8 +31,6 @@ table_slot_session_state table_slot::capture_session_state() const {
         = deck_count_spin_box != nullptr ? deck_count_spin_box->value() : 1;
     if (strategy_combo_box != nullptr) {
         state.strategy_slug = strategy_combo_box->currentData().toString();
-        state.strategy_id
-            = strategy_combo_box->currentData(Qt::UserRole + 1).toInt();
     }
     state.show_card_indexing
         = show_card_indexing != nullptr && show_card_indexing->isChecked();
@@ -68,15 +66,6 @@ bool table_slot::restore_session_state(const table_slot_session_state& state) {
             == state.strategy_slug) {
             strategy_index = index;
             break;
-        }
-    }
-    if (strategy_index < 0) {
-        for (int index = 0; index < strategy_combo_box->count(); ++index) {
-            if (strategy_combo_box->itemData(index, Qt::UserRole + 1).toInt()
-                == state.strategy_id) {
-                strategy_index = index;
-                break;
-            }
         }
     }
     if (strategy_index < 0 && strategy_combo_box->isEnabled()) {
@@ -144,14 +133,13 @@ bool table_slot::is_session_state_valid(const table_slot_session_state& state) {
 
     const strategy_catalog& repository = strategy_repository();
     if (!repository.is_valid()) {
-        return state.strategy_slug.isEmpty() && state.strategy_id == 0;
+        return state.strategy_slug.isEmpty();
     }
     return std::ranges::any_of(
         repository.strategies,
         [&state](const strategy_data& strategy) {
-            return (!state.strategy_slug.isEmpty()
-                    && strategy.slug == state.strategy_slug)
-                || (state.strategy_id > 0 && strategy.id == state.strategy_id);
+            return !state.strategy_slug.isEmpty()
+                && strategy.slug == state.strategy_slug;
         }
     );
 }

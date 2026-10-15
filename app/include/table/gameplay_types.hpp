@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-// Target gameplay domain, independent of widgets and legacy persistence.
+// Gameplay domain, independent of widgets and classic trainer state.
 namespace gameplay {
 
 struct deck_id {
@@ -260,9 +260,6 @@ struct session_result {
     std::size_t active_decks = 0;
     std::size_t completed_decks = 0;
     std::size_t failed_decks = 0;
-    // Identifies the documented absolute-target/Random half-guard policy.
-    // Not a file/schema version or a user-selectable frequency control.
-    std::uint32_t cadence_revision = 1;
     quiz_schedule_snapshot table_schedule;
     random_dealing_continuation random_dealing;
     std::vector<deck_result> decks;

@@ -43,7 +43,7 @@ bool main_window::complete_gameplay_from_ui() {
 bool main_window::save_gameplay_from_ui() {
     const auto binding = gameplay_binding;
     if (!binding || !binding->owns(*table_widget))
-        return true; // Explicit raw/legacy hosts do not acquire an identity.
+        return true; // Explicit unreserved hosts do not acquire an identity.
     if (binding->completion())
         return complete_gameplay_from_ui();
     if (gameplay_storage_busy)

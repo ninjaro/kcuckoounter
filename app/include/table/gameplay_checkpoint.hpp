@@ -8,10 +8,6 @@ namespace gameplay {
 /// Exact active-domain continuation, not a drill, result or storage container.
 /// No geometry, animation history, wall clock or host pickup debt is included.
 struct session_checkpoint {
-    // Increment when generator, selection, cadence or scoring continuation
-    // semantics become incompatible. Independently version the durable codec.
-    static constexpr std::uint32_t current_revision = 1;
-    std::uint32_t continuation_revision = current_revision;
     session_configuration configuration;
     std::vector<deck_state> decks;
     std::vector<physical_slot_id> deck_to_slot;

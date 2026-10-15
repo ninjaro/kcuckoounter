@@ -148,8 +148,7 @@ void table_tests::kde_commands_use_shared_actions() {
     // one settled phase, not against the Running phase's central geometry.
     for (int pass = 0; pass < 12; ++pass)
         QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
-    const auto native_state
-        = window.saveState(desktop_shell_state::qt_main_window_state_version);
+    const auto native_state = window.saveState();
     search->trigger();
     bar = window.findChild<KCommandBar*>();
     QVERIFY(bar && bar->isVisible());
@@ -161,10 +160,7 @@ void table_tests::kde_commands_use_shared_actions() {
     QVERIFY(new_row.isValid());
     QVERIFY(!start->isEnabled());
     QCOMPARE(*owner.result(), result);
-    QCOMPARE(
-        window.saveState(desktop_shell_state::qt_main_window_state_version),
-        native_state
-    );
+    QCOMPARE(window.saveState(), native_state);
     tree->setCurrentIndex(new_row);
     QTest::keyClick(query, Qt::Key_Return);
     QVERIFY(!view->active_gameplay_session());

@@ -39,7 +39,7 @@ void gameplay_host_tests::failed_result_blocks_retirement() {
     );
     const auto before = storage.value(storage_key);
     const auto protected_bytes = QByteArrayLiteral("{\"version\":999}");
-    storage.setValue(checkpoint_key, protected_bytes);
+    storage.setValue(progress_key, protected_bytes);
     storage.sync();
     QVERIFY(view->finish_gameplay_runtime());
     QVERIFY(binding->completion() && !binding->acknowledged());
@@ -56,7 +56,6 @@ void gameplay_host_tests::failed_result_blocks_retirement() {
     QVERIFY(QMetaObject::invokeMethod(&window, "on_new_gameplay_triggered"));
     window.new_game_action->trigger();
     QVERIFY(!window.load_gameplay_drill(target_drill(2)));
-    QVERIFY(!window.launch_training_drill(legacy_drill()));
     QAction* quit = nullptr;
     for (auto* action : window.game_menu->actions())
         if (action->shortcut() == QKeySequence(QKeySequence::Quit))
@@ -68,13 +67,13 @@ void gameplay_host_tests::failed_result_blocks_retirement() {
     QCOMPARE(view->active_gameplay_session(), owner);
     QCOMPARE(*binding->completion(), exact);
     QCOMPARE(storage.value(storage_key), before);
-    QCOMPARE(storage.value(checkpoint_key).toByteArray(), protected_bytes);
-    QVERIFY(!storage.contains(progress_key));
+    QCOMPARE(storage.value(progress_key).toByteArray(), protected_bytes);
+    QCOMPARE(storage.value(progress_key).toByteArray(), protected_bytes);
     window.on_table_rasterization_busy_changed(false);
     QCOMPARE(window.status_label->text(), window.gameplay_storage_error);
     // Explicit external resolution, not an application-side automatic
     // migration.
-    storage.remove(checkpoint_key);
+    storage.remove(progress_key);
     storage.sync();
     window.gameplay_retry_action->trigger();
     QVERIFY(binding->acknowledged());

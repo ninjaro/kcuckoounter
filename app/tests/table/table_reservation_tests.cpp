@@ -55,7 +55,6 @@ void gameplay_start_tests::reservation_precedes_publication() {
 
 void gameplay_start_tests::reservation_rejects_protected_storage_data() {
     QTest::addColumn<int>("conflict");
-    QTest::newRow("standalone") << 0;
     QTest::newRow("future-recovery") << 1;
     QTest::newRow("future-progress") << 2;
     QTest::newRow("active-reservation") << 3;
@@ -71,9 +70,7 @@ void gameplay_start_tests::reservation_rejects_protected_storage() {
     QVERIFY(view.install_gameplay_session(owned_clock_fixture(2)));
     QString key;
     const QByteArray bytes("{\"version\":900}");
-    if (conflict == 0)
-        key = QStringLiteral("gameplay_checkpoint/document");
-    else if (conflict == 1)
+    if (conflict == 1)
         key = QStringLiteral("gameplay_recovery/document");
     else if (conflict == 2)
         key = QStringLiteral("gameplay_progress/document");

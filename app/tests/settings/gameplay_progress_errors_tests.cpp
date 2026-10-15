@@ -101,7 +101,7 @@ void gameplay_progress_tests::canonical_integer_validation() {
     }
 }
 
-void gameplay_progress_tests::bounds_and_revisions() {
+void gameplay_progress_tests::bounds_and_unsupported_fields() {
     const auto expected = progress_for(sample_result());
     const auto bytes = encode_gameplay_progress(expected, { 3, 64 }).value();
     QVERIFY(!decode_gameplay_progress(bytes, { 1, 2 }));
@@ -114,9 +114,6 @@ void gameplay_progress_tests::bounds_and_revisions() {
     root.insert(QStringLiteral("version"), 99);
     QVERIFY(!decode_gameplay_progress(document(root), { 3, 64 }));
     auto bad = expected;
-    bad.recent_results[0].result.cadence_revision = 99;
-    QVERIFY(!encode_gameplay_progress(bad, { 3, 64 }));
-    bad = expected;
     bad.recent_results[0].result.decks[0].configuration.strategy_slug = " bad ";
     QVERIFY(!encode_gameplay_progress(bad, { 3, 64 }));
     bad = expected;

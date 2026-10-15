@@ -25,7 +25,6 @@ struct table_slot_session_state {
     bool infinity_enabled = false;
     int deck_count = 1;
     QString strategy_slug;
-    int strategy_id = 0;
     bool show_card_indexing = false;
     bool show_strategy_name = false;
     bool training_mode = false;

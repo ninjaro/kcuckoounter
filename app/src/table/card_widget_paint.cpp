@@ -93,7 +93,7 @@ card_widget::paint_geometry card_widget::layout_geometry(const QSizeF& size
     result.slot_rotation
         = gameplay_layout_rotation_deg.value_or(slot_rotated ? 0.0 : 90.0);
     // Fit the card plus its existing bounded jitter at every intermediate
-    // orientation. At 0/90 this is exactly the legacy endpoint calculation.
+    // orientation. At 0/90 this is exactly the endpoint calculation.
     const qreal fraction = result.slot_rotation / 90.0;
     card_size = QSizeF(
         std::lerp(card_size.width(), card_size.height(), fraction),

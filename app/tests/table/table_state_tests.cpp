@@ -37,7 +37,6 @@ void table_tests::session_restore_preflight_is_transactional() {
     table_session_state invalid = before;
     table_slot_session_state invalid_later_slot = before.slot_states.first();
     invalid_later_slot.strategy_slug = QStringLiteral("missing_strategy");
-    invalid_later_slot.strategy_id = 999999;
     invalid.slot_states.append(invalid_later_slot);
 
     QVERIFY(!table_widget.restore_session_state(invalid));

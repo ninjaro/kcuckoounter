@@ -78,21 +78,17 @@ void gameplay_progress_tests::history_reopen_and_retries() {
     QCOMPARE(reopened.value(storage_key), before);
 }
 
-void gameplay_progress_tests::legacy_history_remains_readable() {
+void gameplay_progress_tests::progress_records_are_mode_local() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     QSettings settings(
         directory.filePath("settings.ini"), QSettings::IniFormat
     );
-    training_progress_service legacy(settings);
-    QVERIFY(legacy.record({ 7, 10, 1000, 1'700'000'000'000 }));
-    const auto old = legacy.load();
+    training_progress_service classic(settings);
+    QVERIFY(classic.record({ 7, 10, 1000, 1'700'000'000'000 }));
+    const auto old = classic.load();
     settings.setValue(
         QStringLiteral("trainer_session/payload"), QByteArray("legacy recovery")
-    );
-    settings.setValue(
-        QStringLiteral("gameplay_checkpoint/document"),
-        QByteArray("future checkpoint")
     );
     settings.setValue(
         QStringLiteral("gameplay_preferences/document"), QByteArray("defaults")
@@ -106,16 +102,16 @@ void gameplay_progress_tests::legacy_history_remains_readable() {
     gameplay_progress_service service(settings, { 3, 64 });
     QVERIFY(!service.load());
     QVERIFY(service.record(progress_for(sample_result()).recent_results[0]));
-    QCOMPARE(legacy.load(), old);
+    QCOMPARE(classic.load(), old);
     QCOMPARE(settings.allKeys().size(), before.size() + 1);
     for (const auto& key : before.keys())
         QCOMPARE(settings.value(key), before.value(key));
     const auto target = service.load();
     const auto target_bytes = settings.value(storage_key);
-    QVERIFY(legacy.record({ 9, 10, 900, 1'700'000'001'000 }));
+    QVERIFY(classic.record({ 9, 10, 900, 1'700'000'001'000 }));
     QVERIFY(service.load() == target);
     QCOMPARE(settings.value(storage_key), target_bytes);
-    QCOMPARE(legacy.load().correct_answers, 16);
+    QCOMPARE(classic.load().correct_answers, 16);
 }
 
 void gameplay_progress_tests::lifetime_sequence_bounds() {

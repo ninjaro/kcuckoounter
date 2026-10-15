@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-// Target gameplay domain, independent of widgets and legacy persistence.
+// Gameplay domain, independent of widgets and classic trainer state.
 namespace gameplay {
 
 struct session_checkpoint;
@@ -43,7 +43,7 @@ public:
     [[nodiscard]] const session_statistics& statistics() const;
     [[nodiscard]] const session_timing& timing() const;
     // Present exactly once after normal manual/automatic finish. Disk storage
-    // and old progress migration remain G8; this is a plain domain snapshot.
+    // belongs to the host; this is a plain current domain snapshot.
     [[nodiscard]] const std::optional<session_result>& result() const;
     [[nodiscard]] const deck_state* deck(deck_id id) const;
     [[nodiscard]] std::optional<physical_slot_id> slot_for(deck_id id) const;

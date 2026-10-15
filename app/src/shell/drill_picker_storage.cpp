@@ -7,22 +7,15 @@
 #include <QMessageBox>
 #include <QPointer>
 
-bool drill_picker::catalogue_current(bool gameplay) {
+bool drill_picker::catalogue_current() {
     if (invalidated)
         return false;
-    bool same = false;
-    if (gameplay) {
-        auto latest = gameplay_drill_service(storage, policy.limits)
-                          .load(&target_error);
-        same = latest && latest == target;
-        target = std::move(latest);
-    } else {
-        auto latest = training_drill_service(storage).load(&legacy_error);
-        same = latest && latest == legacy;
-        legacy = std::move(latest);
-    }
+    auto latest
+        = gameplay_drill_service(storage, policy.limits).load(&target_error);
+    const bool same = latest && latest == target;
+    target = std::move(latest);
     if (!same) {
-        refresh({});
+        refresh(-1);
         show_message(str_label(
             "Saved drills changed. Review the refreshed list and try again."
         ));
@@ -30,25 +23,10 @@ bool drill_picker::catalogue_current(bool gameplay) {
     return same;
 }
 
-bool drill_picker::persist_legacy(
-    const QVector<training_drill>& updated, int selected
-) {
-    if (!catalogue_current(false))
-        return false;
-    if (!training_drill_service(storage).save(updated, &legacy_error)) {
-        show_message();
-        return false;
-    }
-    legacy = updated;
-    refresh({ false, selected });
-    show_message();
-    return true;
-}
-
 bool drill_picker::persist_target(
     const QVector<gameplay_drill>& updated, int selected
 ) {
-    if (!catalogue_current(true))
+    if (!catalogue_current())
         return false;
     if (!gameplay_drill_service(storage, policy.limits)
              .save(updated, &target_error)) {
@@ -56,47 +34,28 @@ bool drill_picker::persist_target(
         return false;
     }
     target = updated;
-    refresh({ true, selected });
+    refresh(selected);
     show_message();
     return true;
 }
 
 void drill_picker::save_current() {
-    if (invalidated || !policy.save_allowed)
+    if (invalidated || !policy.save_allowed || !current || !target)
         return;
-    const auto title = name->text().trimmed();
-    if (const auto* snapshot = std::get_if<gameplay_drill>(&current)) {
-        if (!target)
-            return;
-        auto updated = *target;
-        auto drill = *snapshot;
-        drill.name = title;
-        updated.append(drill);
-        persist_target(updated, static_cast<int>(updated.size()) - 1);
-    } else {
-        if (!legacy)
-            return;
-        auto updated = *legacy;
-        auto drill = std::get<training_drill>(current);
-        drill.name = title;
-        updated.append(drill);
-        persist_legacy(updated, static_cast<int>(updated.size()) - 1);
-    }
+    auto updated = *target;
+    auto drill = *current;
+    drill.name = name->text().trimmed();
+    updated.append(drill);
+    persist_target(updated, static_cast<int>(updated.size()) - 1);
 }
 
 void drill_picker::rename_selected() {
     const auto row = selected_row();
     if (!row)
         return;
-    if (row->gameplay) {
-        auto updated = *target;
-        updated[row->index].name = name->text().trimmed();
-        persist_target(updated, row->index);
-    } else {
-        auto updated = *legacy;
-        updated[row->index].name = name->text().trimmed();
-        persist_legacy(updated, row->index);
-    }
+    auto updated = *target;
+    updated[*row].name = name->text().trimmed();
+    persist_target(updated, *row);
 }
 
 void drill_picker::delete_selected() {
@@ -113,35 +72,20 @@ void drill_picker::delete_selected() {
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No
     );
     if (!guard || invalidated || answer != QMessageBox::Yes
-        || !catalogue_current(row->gameplay))
+        || !catalogue_current())
         return;
-    if (row->gameplay) {
-        auto updated = *target;
-        updated.removeAt(row->index);
-        persist_target(updated, updated.isEmpty() ? -1 : 0);
-    } else {
-        auto updated = *legacy;
-        updated.removeAt(row->index);
-        persist_legacy(updated, updated.isEmpty() ? -1 : 0);
-    }
+    auto updated = *target;
+    updated.removeAt(*row);
+    persist_target(updated, updated.isEmpty() ? -1 : 0);
 }
 
 void drill_picker::choose_selected() {
     const auto row = selected_row();
-    if (!row || !(row->gameplay ? policy.load_gameplay : policy.launch_legacy)
-        || !catalogue_current(row->gameplay))
+    if (!row || !policy.load_gameplay || !catalogue_current())
         return;
-    const saved_drill drill = row->gameplay
-        ? saved_drill(target->at(row->index))
-        : saved_drill(legacy->at(row->index));
-    const bool supported = row->gameplay
-        ? supports_drill(
-              std::get<gameplay_drill>(drill), strategy_repository(),
-              policy.limits
-          )
-        : is_drill_configuration_supported(
-              std::get<training_drill>(drill), strategy_repository()
-          );
+    const auto drill = target->at(*row);
+    const bool supported
+        = supports_drill(drill, strategy_repository(), policy.limits);
     if (!supported) {
         show_message(str_label(
             "This drill cannot be loaded. The current session is unchanged."
@@ -157,7 +101,7 @@ void drill_picker::choose_selected() {
             QMessageBox::Yes | QMessageBox::No, QMessageBox::No
         );
         if (!guard || invalidated || answer != QMessageBox::Yes
-            || !catalogue_current(row->gameplay))
+            || !catalogue_current())
             return;
     }
     selection = drill;

@@ -420,7 +420,6 @@ void gameplay_session_tests::
     );
     QVERIFY(result->decks[2].infinite_position);
     QCOMPARE(result->decks[2].infinite_position->decks_per_chunk, 1U);
-    QCOMPARE(result->cadence_revision, 1U);
     QVERIFY(!model.finish());
     QVERIFY(!model.advance_time(1).accepted);
     QVERIFY(model.result() == result);

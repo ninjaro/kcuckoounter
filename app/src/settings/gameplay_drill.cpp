@@ -57,8 +57,6 @@ QByteArray encode(const QVector<gameplay_drill>& drills) {
         entries.append(object);
     }
     return QJsonDocument(QJsonObject {
-                             { QStringLiteral("version"),
-                               gameplay_drill_service::schema_version },
                              { QStringLiteral("drills"), entries },
                          })
         .toJson(QJsonDocument::Compact);
@@ -66,7 +64,7 @@ QByteArray encode(const QVector<gameplay_drill>& drills) {
 
 std::optional<gameplay_drill>
 decode_entry(const QJsonObject& object, gameplay::slot_limits limits) {
-    if (!object.value(QStringLiteral("name")).isString()
+    if (object.size() != 12 || !object.value(QStringLiteral("name")).isString()
         || !object.value(QStringLiteral("decks")).isArray())
         return std::nullopt;
     const auto entries = object.value(QStringLiteral("decks")).toArray();
@@ -120,12 +118,7 @@ decode(const QByteArray& bytes, gameplay::slot_limits limits) {
     if (!document.isObject())
         return std::nullopt;
     const auto root = document.object();
-    if (!read_integer(
-            root.value(QStringLiteral("version")),
-            gameplay_drill_service::schema_version,
-            gameplay_drill_service::schema_version
-        )
-        || !root.value(QStringLiteral("drills")).isArray())
+    if (root.size() != 1 || !root.value(QStringLiteral("drills")).isArray())
         return std::nullopt;
     const auto entries = root.value(QStringLiteral("drills")).toArray();
     if (entries.size() > gameplay_drill_service::maximum_drills)

@@ -150,7 +150,6 @@ void gameplay_host_tests::startup_retries_pending() {
 
 void gameplay_host_tests::startup_protects_records_data() {
     QTest::addColumn<int>("kind");
-    QTest::newRow("standalone-v2") << 0;
     QTest::newRow("future-recovery") << 1;
     QTest::newRow("future-progress") << 2;
     QTest::newRow("conflicting-pending") << 3;
@@ -173,10 +172,7 @@ void gameplay_host_tests::startup_protects_records() {
             )
         );
     } else {
-        const auto key = kind == 0
-            ? QStringLiteral("gameplay_checkpoint/document")
-            : kind == 1 ? storage_key
-                        : progress_key;
+        const auto key = kind == 1 ? storage_key : progress_key;
         storage.setValue(key, QByteArrayLiteral("{\"version\":999}"));
     }
     storage.sync();
@@ -203,7 +199,7 @@ void gameplay_host_tests::startup_protects_records() {
     QCOMPARE(window.status_label->text(), window.gameplay_storage_error);
     for (auto value = before.cbegin(); value != before.cend(); ++value)
         QCOMPARE(storage.value(value.key()), *value);
-    // Unidentified legacy play is not relabeled or prohibited by target data.
+    // Classic trainer play is not relabeled or prohibited by target data.
     window.on_continue_button_clicked();
     launcher_start_action(window)->trigger();
     QVERIFY(

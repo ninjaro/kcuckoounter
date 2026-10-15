@@ -69,7 +69,6 @@ void table_tests::gameplay_clock_requires_explicit_bound_start() {
     view.on_clock_tick(9000, 9000);
     QCOMPARE(*owner->deck({ 0 }), before);
     QCOMPARE(owner->timing().play_time_ms, std::uint64_t { 0 });
-    QVERIFY(view.capture_drill_settings().isEmpty());
     QCOMPARE(view.capture_session_state(), table_session_state {});
 }
 

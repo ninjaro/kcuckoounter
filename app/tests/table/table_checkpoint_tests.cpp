@@ -4,6 +4,7 @@
 
 #include "table/table_tests.hpp"
 
+#include "settings/gameplay_recovery.hpp"
 #include "table/table_fixture.hpp"
 #include "table/table_slot.hpp"
 
@@ -64,14 +65,18 @@ void table_tests::checkpoint_restore_continues_runtime() {
     QVERIFY(directory.isValid());
     const auto file = directory.filePath("checkpoint.ini");
     QSettings settings(file, QSettings::IniFormat);
-    QVERIFY(gameplay_checkpoint_service(settings, { 1, 64 }).save(*saved));
+    QVERIFY(gameplay_recovery_service(settings, { 1, 64 }).begin(*saved));
     QSettings reopened(file, QSettings::IniFormat);
-    const auto loaded = gameplay_checkpoint_service(reopened, { 1, 64 }).load();
-    QVERIFY(loaded && *loaded == *saved);
+    const auto recovery = gameplay_recovery_service(reopened, { 1, 64 }).load();
+    QVERIFY(
+        recovery && std::holds_alternative<gameplay_active_record>(*recovery)
+    );
+    const auto loaded = std::get<gameplay_active_record>(*recovery).checkpoint;
+    QCOMPARE(loaded, *saved);
     table recovered;
     recovered.resize(340, 880);
     recovered.set_card_orientation(card_orientation_mode::vertical);
-    QVERIFY(recovered.restore_gameplay_checkpoint(*loaded));
+    QVERIFY(recovered.restore_gameplay_checkpoint(loaded));
     QCOMPARE(
         recovered.gameplay_owner->phase(), gameplay::session_phase::paused
     );

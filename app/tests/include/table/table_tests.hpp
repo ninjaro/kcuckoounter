@@ -113,13 +113,9 @@ private slots:
     void strategy_browser_preserves_identity_and_reference_values();
     void strategy_browser_handles_missing_and_filtered_metadata();
     void strategy_browser_routes_do_not_change_gameplay();
-    void drill_configuration_preflight_and_fresh_shoes();
-    void saved_drill_picker_preserves_and_launches_sessions();
-    void drill_catalogues_preserve_separate_formats();
+    void drill_catalogue_uses_current_setups();
     void drill_catalogues_recheck_changes();
     void drill_catalogues_isolate_errors();
-    void drill_conversion_requires_review();
-    void drill_conversion_rejects_stale_sources();
     void drill_setup_loads_exact_choices_data();
     void drill_setup_loads_exact_choices();
     void drill_picker_preserves_live_quiz();

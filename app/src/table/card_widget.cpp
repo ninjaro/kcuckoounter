@@ -390,8 +390,8 @@ int card_widget::current_total_weight() const {
 }
 
 card_session_state card_widget::capture_session_state() const {
-    // Empty/invalid v1 state instead of serializing a target deck through the
-    // legacy picker. The target host must use G8's eventual versioned codec.
+    // An empty classic snapshot cannot serialize a domain deck.
+    // Domain hosts use identified gameplay recovery.
     if (gameplay_owner)
         return {};
     return {

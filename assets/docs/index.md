@@ -4,6 +4,12 @@ Kcuckoounter is a Qt/KDE card-training application. Presentation and data owners
 remain independent: changing desktop appearance does not change a drill, counting
 strategy or active session.
 
+All existing visual choices remain supported and switchable: Classic/Thin card
+frames, Numeric/Chips input, Classic/Count-stamp feedback, Classic/rail/pill
+actions, Classic/card/drawer/sill settings, Classic/compact toolbar and
+Classic/Instrument HUD. These choices project the same gameplay state; selecting
+a presentation does not replace a session, change its rules or rewrite scores.
+
 ## Diagnostic boundary
 
 Kcuckoounter does not publish application telemetry or a JSON metrics catalog.
@@ -26,6 +32,11 @@ interpretation; freshness is not proof of per-job progress.
 
 ## Game and presentation ownership
 
+The default trainer and the session-owned gameplay route are both active.
+Their runtime cutover is not established by the gameplay User Stories; neither
+is retired by the current-format policy. Exact session restoration, paused
+recovery and result history remain product requirements in either route.
+
 `gameplay::session` owns session-local deck IDs, configuration, prepared stream
 state, running counts, quiz batches, active-time accounting and results.
 Physical slots are separate IDs; inverse deck/slot mappings preserve deck state
@@ -40,9 +51,24 @@ a rendering callback is not a storage-service owner.
 
 Drills describe fresh-session inputs; checkpoints describe exact continuation;
 results retain verified counters/context. These categories remain separate.
-Current internal formats alone are supported. Malformed/current-format recovery
-and failed-write protection remain required; historical notes do not authorize
-old-version decoders or silent reinterpretation of missing gameplay state.
+Current internal formats alone are supported. Named drills use one JSON object
+containing `drills`; each entry carries the nine global choices, name, pickup
+interval and deck configurations. No old trainer drill codec, conversion dialog
+or cross-model drill adapter exists.
+
+Identified recovery contains `phase`, `sequence` and `payload`: either an active
+checkpoint or an exact pending result. Checkpoints are nested payloads, not an
+independent persistence service. Progress contains completed-session count, raw
+challenge/timing counters and recent verified results. Sequences and random-stream
+positions describe current session state, not schema or algorithm versions.
+
+These formats contain no numeric schema, continuation or cadence revisions. Exact
+current fields and domain invariants are validated; old version-tagged records,
+missing state and unexpected fields are rejected without conversion. Unsupported
+records require an explicit reset, while current-format failed-write protection,
+reservation identity, retries and admission remain required. Strategy preferences
+use the current slug alone; no stored numeric ID repairs a renamed slug. Qt's own
+opaque layout validation uses its standard API without an application version tag.
 
 ## Strategy catalogue
 

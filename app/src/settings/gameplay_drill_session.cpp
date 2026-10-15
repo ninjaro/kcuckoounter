@@ -1,6 +1,5 @@
 #include "settings/gameplay_drill.hpp"
 
-#include "settings/preferences.hpp"
 #include "table/gameplay_strategy.hpp"
 
 #include <algorithm>
@@ -55,33 +54,6 @@ std::optional<gameplay_drill> capture_gameplay_drill(
         const auto* deck = game.deck({ index });
         result.decks.push_back({ deck->configuration, deck->show_count });
     }
-    return valid_gameplay_drill(result, limits) ? std::make_optional(result)
-                                                : std::nullopt;
-}
-
-std::optional<gameplay_drill> draft_legacy_drill(
-    const training_drill& legacy, const gameplay::session_configuration& target,
-    gameplay::slot_limits limits
-) {
-    if (!valid_legacy_drill(legacy))
-        return std::nullopt;
-    gameplay_drill result {
-        legacy.name, target, legacy.pickup_interval_ms, {}
-    };
-    result.configuration.allow_skip = legacy.allow_skipping;
-    result.configuration.dealing = legacy.dealing_mode == 0
-        ? gameplay::dealing_mode::sequential
-        : legacy.dealing_mode == 1 ? gameplay::dealing_mode::random
-                                   : gameplay::dealing_mode::simultaneous;
-    result.configuration.sequential_count = 1;
-    result.decks.reserve(static_cast<std::size_t>(legacy.slot_settings.size()));
-    for (const auto& slot : legacy.slot_settings)
-        result.decks.push_back({
-            { slot.strategy_slug.toStdString(),
-              static_cast<std::size_t>(slot.deck_count), slot.infinity_enabled,
-              slot.training_mode },
-            slot.training_mode,
-        });
     return valid_gameplay_drill(result, limits) ? std::make_optional(result)
                                                 : std::nullopt;
 }

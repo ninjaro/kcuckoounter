@@ -23,7 +23,8 @@
 
 void main_window::persist_setup_preferences() const {
     if (table_widget && table_widget->active_gameplay_session())
-        return; // G8 owns target preference mapping; never write target to v1
+        return; // domain defaults are persisted separately from the classic
+                // trainer
     if (table_slots_count == nullptr || quiz_type == nullptr
         || wait_for_answers == nullptr || allow_skipping == nullptr
         || dealing_mode == nullptr || speed_slider == nullptr) {
@@ -46,8 +47,7 @@ void main_window::persist_desktop_shell_state() const {
 #else
     desktop_shell_state state;
     state.geometry = saveGeometry();
-    state.main_window_state
-        = saveState(desktop_shell_state::qt_main_window_state_version);
+    state.main_window_state = saveState();
     save_desktop_shell_state(state);
 #endif
 }
@@ -61,10 +61,7 @@ void main_window::restore_desktop_shell_state() {
         restoreGeometry(state.geometry);
     }
     if (!state.main_window_state.isEmpty()) {
-        restoreState(
-            state.main_window_state,
-            desktop_shell_state::qt_main_window_state_version
-        );
+        restoreState(state.main_window_state);
     }
 #endif
 }

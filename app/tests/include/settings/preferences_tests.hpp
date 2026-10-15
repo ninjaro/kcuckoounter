@@ -9,15 +9,12 @@ class preferences_tests : public QObject {
 private slots:
     void gameplay_drills_round_trip_data();
     void gameplay_drills_round_trip();
-    void gameplay_drills_keep_legacy_storage();
     void gameplay_drills_validate_configuration();
     void gameplay_drills_protect_invalid_storage();
     void gameplay_drills_report_failed_write();
     void gameplay_drills_restore_fresh_setup();
     void gameplay_drills_capture_no_live_state();
-    void legacy_drill_conversion_requires_target_policy();
-    void legacy_drill_conversion_rejects_invalid_input();
-    void gameplay_defaults_absence_preserves_legacy();
+    void gameplay_defaults_absence_preserves_other_settings();
     void gameplay_defaults_round_trip_data();
     void gameplay_defaults_round_trip();
     void gameplay_defaults_validate_domain();
@@ -27,7 +24,7 @@ private slots:
     void default_suit_rejects_invalid_storage_without_rewriting();
     void round_trip_preserves_valid_values();
     void invalid_values_fall_back_independently();
-    void strategy_id_repairs_renamed_or_removed_slug();
+    void strategy_identity_is_current_slug_only();
     void shell_round_trip_preserves_qt_state();
     void session_checkpoint_round_trip_preserves_exact_progress();
     void session_checkpoint_rejects_duplicate_or_missing_cards();
@@ -36,8 +33,6 @@ private slots:
     void training_progress_is_bounded();
     void training_progress_rejects_huge_history_values();
     void desktop_components_preserve_domain_settings();
-    void drills_round_trip_without_presentation_or_progress();
-    void drills_reject_invalid_storage_without_overwriting();
     void gameplay_setup_defaults_and_accessible_controls();
     void gameplay_setup_loads_without_normalizing_configuration();
     void gameplay_setup_enforces_lives_pause_and_bounds();
@@ -45,7 +40,7 @@ private slots:
     void gameplay_setup_preserves_sequential_n_across_modes();
     void gameplay_setup_invalidates_only_through_the_domain();
     void gameplay_setup_rejects_live_and_invalid_edits();
-    void gameplay_setup_does_not_write_legacy_storage();
+    void gameplay_setup_does_not_write_storage();
     void slot_recommendation_and_override_are_domain_owned();
     void slot_resize_preserves_preparation_and_choice();
     void slot_geometry_rejects_invalid_and_live_updates();

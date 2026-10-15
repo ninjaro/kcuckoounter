@@ -33,9 +33,6 @@ void preferences_tests::default_suit_is_independent_persistent_appearance() {
         QStringLiteral("trainer_session/payload"), QByteArray("checkpoint")
     );
     settings.setValue(
-        QStringLiteral("training_drills/document"), QByteArray("drills")
-    );
-    settings.setValue(
         QStringLiteral("training_progress/document"), QByteArray("progress")
     );
     settings.sync();
@@ -100,7 +97,6 @@ void preferences_tests::round_trip_preserves_valid_values() {
     expected.palette = theme_palette_id::blue;
     expected.card_orientation = card_orientation_mode::horizontal;
     expected.preferred_strategy_slug = QStringLiteral("renamed_strategy");
-    expected.preferred_strategy_id = 22;
 
     service.save(expected, catalog);
     QCOMPARE(service.load(catalog), expected);
@@ -152,33 +148,30 @@ void preferences_tests::invalid_values_fall_back_independently() {
     QCOMPARE(actual.palette, defaults.palette);
     QCOMPARE(actual.card_orientation, defaults.card_orientation);
     QCOMPARE(actual.preferred_strategy_slug, QStringLiteral("first_strategy"));
-    QCOMPARE(actual.preferred_strategy_id, 11);
 }
 
-void preferences_tests::strategy_id_repairs_renamed_or_removed_slug() {
+void preferences_tests::strategy_identity_is_current_slug_only() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     QSettings settings = temporary_settings(directory);
-    const strategy_catalog catalog = test_catalog();
-
-    settings.beginGroup(QStringLiteral("trainer_preferences"));
     settings.setValue(
-        QStringLiteral("strategy/slug"), QStringLiteral("old_strategy_slug")
+        QStringLiteral("trainer_preferences/strategy/slug"),
+        QStringLiteral("old_strategy_slug")
     );
-    settings.setValue(QStringLiteral("strategy/id"), 22);
-    settings.endGroup();
-
+    settings.setValue(QStringLiteral("trainer_preferences/strategy/id"), 22);
+    const auto before = settings.allKeys();
     preferences_service service(settings);
-    const trainer_preferences migrated = service.load(catalog);
-    QCOMPARE(
-        migrated.preferred_strategy_slug, QStringLiteral("renamed_strategy")
-    );
-    QCOMPARE(migrated.preferred_strategy_id, 22);
+    const auto current = service.load(test_catalog());
+    QCOMPARE(current.preferred_strategy_slug, QStringLiteral("first_strategy"));
+    QCOMPARE(settings.allKeys(), before);
     QCOMPARE(
         settings.value(QStringLiteral("trainer_preferences/strategy/slug"))
             .toString(),
-        QStringLiteral("renamed_strategy")
+        QStringLiteral("old_strategy_slug")
     );
+    service.save(current, test_catalog());
+    QVERIFY(!settings.contains(QStringLiteral("trainer_preferences/strategy/id")
+    ));
 }
 
 void preferences_tests::shell_round_trip_preserves_qt_state() {

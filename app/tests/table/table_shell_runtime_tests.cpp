@@ -43,7 +43,7 @@ struct shell_storage_guard {
         save_desktop_shell_state({});
         for (const auto& key :
              { QStringLiteral("trainer_session/payload"),
-               QStringLiteral("training_drills/document"),
+               QStringLiteral("gameplay_drills/document"),
                QStringLiteral("training_progress/recent_results") })
             documents.insert(key, settings.value(key));
     }
@@ -364,9 +364,7 @@ void table_tests::shell_state_keeps_gameplay_ephemeral() {
         for (int pass = 0; pass < 12; ++pass)
             QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
         saved_size = window.size();
-        saved_state
-            = window.saveState(desktop_shell_state::qt_main_window_state_version
-            );
+        saved_state = window.saveState();
         QCOMPARE(non_shell_settings(storage.settings), documents);
     }
     QVERIFY(old_view.isNull() && old_fields.isNull() && old_input.isNull());

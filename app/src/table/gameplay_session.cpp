@@ -21,8 +21,9 @@ namespace {
     }
 
     // Provisional R-007: uniform over eligible stable deck identities, with
-    // immediate repeats allowed (also the current legacy policy). This is the
-    // sole repeat-policy boundary, independent of slot geometry/traversal.
+    // immediate repeats allowed (also the current classic trainer policy). This
+    // is the sole repeat-policy boundary, independent of slot
+    // geometry/traversal.
     deck_id select_random_deck(
         std::span<const deck_id> eligible,
         const random_dealing_continuation& continuation

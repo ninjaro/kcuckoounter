@@ -60,7 +60,7 @@ bool main_window::recover_gameplay_from_ui() {
     }
 #if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     // First native actions and queued startup share this ordered check. Never
-    // let early legacy Start overwrite a checkpoint not yet offered to Resume.
+    // let early classic Start overwrite a checkpoint not yet offered to Resume.
     if (first_check && gameplay_recovery_ready
         && !table_widget->active_gameplay_session() && !quiz_started)
         (void)restore_mobile_session_checkpoint();

@@ -43,17 +43,6 @@ std::optional<gameplay_recovery> gameplay_recovery_service::load(QString* error
         );
         return std::nullopt;
     }
-    if (settings.contains(QStringLiteral("gameplay_checkpoint/document"))) {
-        (void)recovery_storage::fail(
-            error,
-            QStringLiteral(
-                "An unidentified standalone gameplay checkpoint requires "
-                "explicit handling before identified recovery can be used. Its "
-                "stored data has not been changed."
-            )
-        );
-        return std::nullopt;
-    }
     const auto progress = read_progress(error);
     if (!progress)
         return std::nullopt;

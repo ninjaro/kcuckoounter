@@ -166,8 +166,7 @@ void table_tests::toolbar_styles_preserve_owned_quiz() {
         demand[id] = widgets[id]->card_face_need_short_px();
     }
     auto* cache = view->shared_raster_cache_service();
-    const auto state
-        = window.saveState(desktop_shell_state::qt_main_window_state_version);
+    const auto state = window.saveState();
     auto* speed
         = window.findChild<QSlider*>(QStringLiteral("pickup_interval_slider"));
     QVERIFY(speed && speed->isEnabled());
@@ -240,10 +239,7 @@ void table_tests::toolbar_styles_preserve_owned_quiz() {
         QCOMPARE(view->shared_raster_cache_service(), cache);
         QCOMPARE(speed->value(), interval);
         QVERIFY(speed->isEnabled());
-        QCOMPARE(
-            window.saveState(desktop_shell_state::qt_main_window_state_version),
-            state
-        );
+        QCOMPARE(window.saveState(), state);
     }
     editor->window()->hide();
     auto* secondary
@@ -462,18 +458,14 @@ void table_tests::toolbar_styles_preserve_terminal_routes() {
         QTest::mouseClick(extension, Qt::LeftButton);
     }
     toolbar->hide();
-    const auto state
-        = window.saveState(desktop_shell_state::qt_main_window_state_version);
+    const auto state = window.saveState();
     for (const bool compact : { false, true }) {
         combo->setCurrentIndex(compact ? 2 : 1);
         QVERIFY(editor->apply_theme_settings());
         QCOMPARE(toolbar->actions(), actions);
         QVERIFY(toolbar->isHidden());
         QCOMPARE(window.toolBarArea(toolbar), Qt::BottomToolBarArea);
-        QCOMPARE(
-            window.saveState(desktop_shell_state::qt_main_window_state_version),
-            state
-        );
+        QCOMPARE(window.saveState(), state);
         QCOMPARE(*owner.result(), result);
         QCOMPARE(*owner.deck({ 0 }), record);
         QCOMPARE(owner.timing(), timing);

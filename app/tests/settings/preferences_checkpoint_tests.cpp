@@ -33,6 +33,17 @@ void preferences_tests::session_checkpoint_round_trip_preserves_exact_progress(
     const auto actual = service.load();
     QVERIFY(actual.has_value());
     QCOMPARE(*actual, expected);
+    auto root = stored_checkpoint_root(settings);
+    auto table_object = root.value(QStringLiteral("table")).toObject();
+    auto slot_entries = table_object.value(QStringLiteral("slots")).toArray();
+    auto slot = slot_entries.first().toObject();
+    QVERIFY(!slot.contains(QStringLiteral("strategy_id")));
+    slot.insert(QStringLiteral("strategy_id"), 11);
+    slot_entries[0] = slot;
+    table_object.insert(QStringLiteral("slots"), slot_entries);
+    root.insert(QStringLiteral("table"), table_object);
+    store_checkpoint_root(settings, root);
+    QVERIFY(!service.load());
 }
 
 void preferences_tests::session_checkpoint_rejects_duplicate_or_missing_cards(

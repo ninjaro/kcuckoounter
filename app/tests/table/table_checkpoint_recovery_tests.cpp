@@ -32,7 +32,7 @@ void table_tests::checkpoint_restore_preflight_is_atomic() {
             invalid.state.decks.clear();
             break;
         case 1:
-            ++invalid.state.continuation_revision;
+            invalid.state.remaining_lives = -1;
             break;
         case 2:
             invalid.state.deck_to_slot[1] = invalid.state.deck_to_slot[0];

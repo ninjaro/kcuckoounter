@@ -127,7 +127,6 @@ void main_window::open_gameplay_setup_dialog() {
                 "recovery always opens Paused. "
                 "Saved drills store named configuration, not progress. "
                 "Finish and natural endings save separate verified results. "
-                "Legacy data is unchanged. "
                 "Configure each deck using "
                 "Details on "
                 "the table, then Start. Closing this form keeps accepted "

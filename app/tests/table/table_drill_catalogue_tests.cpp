@@ -17,62 +17,43 @@
 
 using namespace table_test;
 
-void table_tests::drill_catalogues_preserve_separate_formats() {
+void table_tests::drill_catalogue_uses_current_setups() {
     QTemporaryDir directory;
-    QSettings storage(
-        directory.filePath(QStringLiteral("drills.ini")), QSettings::IniFormat
-    );
-    const auto legacy = legacy_drill();
-    const auto target = target_drill();
-    training_drill_service old_service(storage);
+    QSettings storage(directory.filePath("drills.ini"), QSettings::IniFormat);
+    const auto original = target_drill();
     gameplay_drill_service service(storage, drill_limits);
-    QVERIFY(old_service.save({ legacy }));
-    const auto old_bytes
-        = storage.value(QStringLiteral("training_drills/document"));
-    drill_picker picker(storage, target, { drill_limits });
+    QVERIFY(service.save({ original }));
+    drill_picker picker(storage, original, { drill_limits });
     auto* list
         = picker.findChild<QListWidget*>(QStringLiteral("saved_drills_list"));
+    QCOMPARE(list->count(), 1);
+    QCOMPARE(list->item(0)->text(), original.name);
     auto* name
         = picker.findChild<QLineEdit*>(QStringLiteral("saved_drill_name"));
     auto* save
         = picker.findChild<QPushButton*>(QStringLiteral("save_current_drill"));
-    QCOMPARE(list->count(), 1);
-    QCOMPARE(list->item(0)->text(), legacy.name);
-    name->setText(legacy.name); // Separate catalogues allow the same name.
+    name->setText(QStringLiteral("Named setup"));
     save->click();
-    QCOMPARE(list->count(), 2);
-    auto saved = target;
-    saved.name = legacy.name;
-    QCOMPARE(*service.load(), QVector<gameplay_drill> { saved });
-    QCOMPARE(
-        storage.value(QStringLiteral("training_drills/document")), old_bytes
-    );
-    name->setText(QStringLiteral("Renamed target"));
-    picker.findChild<QPushButton*>(QStringLiteral("rename_drill"))->click();
+    auto saved = original;
     saved.name = name->text();
-    QCOMPARE(*service.load(), QVector<gameplay_drill> { saved });
-    save->click(); // Duplicate does not overwrite either record.
-    QCOMPARE(service.load()->size(), 1);
+    QCOMPARE(*service.load(), (QVector<gameplay_drill> { original, saved }));
+    save->click();
+    QCOMPARE(service.load()->size(), 2);
     QVERIFY(!picker.findChild<QLabel*>(QStringLiteral("saved_drill_message"))
                  ->text()
                  .isEmpty());
     answer_drill_question(picker, QMessageBox::No);
     picker.findChild<QPushButton*>(QStringLiteral("delete_drill"))->click();
-    QCOMPARE(service.load()->size(), 1);
+    QCOMPARE(service.load()->size(), 2);
     answer_drill_question(picker, QMessageBox::Yes);
     picker.findChild<QPushButton*>(QStringLiteral("delete_drill"))->click();
-    QVERIFY(service.load()->isEmpty());
-    QCOMPARE(
-        storage.value(QStringLiteral("training_drills/document")), old_bytes
-    );
+    QCOMPARE(*service.load(), QVector<gameplay_drill> { original });
     QVERIFY(!picker.chosen());
 }
 
 void table_tests::drill_catalogues_recheck_changes() {
     QTemporaryDir directory;
-    QSettings storage(
-        directory.filePath(QStringLiteral("drills.ini")), QSettings::IniFormat
-    );
+    QSettings storage(directory.filePath("drills.ini"), QSettings::IniFormat);
     auto target = target_drill();
     gameplay_drill_service service(storage, drill_limits);
     QVERIFY(service.save({ target }));
@@ -86,9 +67,7 @@ void table_tests::drill_catalogues_recheck_changes() {
     QCOMPARE(storage.value(QStringLiteral("gameplay_drills/document")), bytes);
     auto* list
         = picker.findChild<QListWidget*>(QStringLiteral("saved_drills_list"));
-    QCOMPARE(
-        list->item(0)->text(), target.name + QStringLiteral(" [Gameplay]")
-    );
+    QCOMPARE(list->item(0)->text(), target.name);
     list->setCurrentRow(0);
     picker.findChild<QLineEdit*>(QStringLiteral("saved_drill_name"))
         ->setText(QStringLiteral("New copy"));
@@ -115,57 +94,34 @@ void table_tests::drill_catalogues_recheck_changes() {
 
 void table_tests::drill_catalogues_isolate_errors() {
     QTemporaryDir directory;
-    QSettings storage(
-        directory.filePath(QStringLiteral("drills.ini")), QSettings::IniFormat
-    );
+    QSettings storage(directory.filePath("drills.ini"), QSettings::IniFormat);
     auto target = target_drill();
-    const auto legacy = legacy_drill();
-    const auto damaged = QByteArray("{\"version\":99,\"drills\":[]}");
-    storage.setValue(QStringLiteral("training_drills/document"), damaged);
-    gameplay_drill_service service(storage, drill_limits);
-    QVERIFY(service.save({ target }));
-    {
-        drill_picker picker(storage, target, { drill_limits });
-        picker.findChild<QLineEdit*>(QStringLiteral("saved_drill_name"))
-            ->setText(QStringLiteral("Valid target copy"));
-        auto* save
-            = picker.findChild<QPushButton*>(QStringLiteral("save_current_drill"
-            ));
-        QVERIFY(save->isEnabled());
-        save->click();
-        QCOMPARE(service.load()->size(), 2);
-        QCOMPARE(
-            storage.value(QStringLiteral("training_drills/document")),
-            QVariant(damaged)
-        );
-    }
-    storage.remove(QStringLiteral("training_drills/document"));
-    QVERIFY(training_drill_service(storage).save({ legacy }));
+    const auto damaged = QByteArray("{\"version\":2,\"drills\":[]}");
     storage.setValue(QStringLiteral("gameplay_drills/document"), damaged);
     {
-        drill_picker picker(storage, legacy, { drill_limits });
-        auto* load
-            = picker.findChild<QPushButton*>(QStringLiteral("launch_drill"));
-        QVERIFY(load->isEnabled());
-        QVERIFY(!picker
-                     .findChild<QPushButton*>(QStringLiteral("convert_drill"))
-                     ->isEnabled());
-        load->click();
+        drill_picker picker(storage, target, { drill_limits });
         QVERIFY(
-            picker.chosen()
-            && std::holds_alternative<training_drill>(*picker.chosen())
+            !picker
+                 .findChild<QPushButton*>(QStringLiteral("save_current_drill"))
+                 ->isEnabled()
         );
+        QVERIFY(!picker.findChild<QPushButton*>(QStringLiteral("launch_drill"))
+                     ->isEnabled());
+        QVERIFY(!picker
+                     .findChild<QLabel*>(QStringLiteral("saved_drill_message"))
+                     ->text()
+                     .isEmpty());
         QCOMPARE(
-            storage.value(QStringLiteral("gameplay_drills/document")),
-            QVariant(damaged)
+            storage.value(QStringLiteral("gameplay_drills/document"))
+                .toByteArray(),
+            damaged
         );
     }
     storage.remove(QStringLiteral("gameplay_drills/document"));
     target.decks[0].configuration.strategy_slug = "unavailable";
+    gameplay_drill_service service(storage, drill_limits);
     QVERIFY(service.save({ target }));
     drill_picker picker(storage, target, { drill_limits });
-    picker.findChild<QListWidget*>(QStringLiteral("saved_drills_list"))
-        ->setCurrentRow(1);
     QVERIFY(!picker.findChild<QPushButton*>(QStringLiteral("launch_drill"))
                  ->isEnabled());
     QVERIFY(picker

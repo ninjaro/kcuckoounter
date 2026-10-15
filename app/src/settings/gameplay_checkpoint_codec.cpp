@@ -59,17 +59,8 @@ std::optional<gameplay_checkpoint> read_root(
     const QJsonObject& root, gameplay::slot_limits limits,
     const gameplay::generation_policy& resources
 ) {
-    if (root.size() != 15
-        || !gameplay_storage::read_integer(
-            root.value(QStringLiteral("version")),
-            gameplay_checkpoint_service::schema_version,
-            gameplay_checkpoint_service::schema_version
-        )
-        || !gameplay_storage::read_integer(
-            root.value(QStringLiteral("continuation_revision")),
-            static_cast<int>(gameplay::session_checkpoint::current_revision),
-            static_cast<int>(gameplay::session_checkpoint::current_revision)
-        ))
+    if (root.size() != 13 || root.contains(QStringLiteral("version"))
+        || root.contains(QStringLiteral("continuation_revision")))
         return std::nullopt;
     const auto decks_value = root.value(QStringLiteral("decks"));
     const auto map_value = root.value(QStringLiteral("deck_to_slot"));
@@ -182,10 +173,6 @@ std::optional<QByteArray> encode_gameplay_checkpoint(
     for (const auto slot : state.deck_to_slot)
         mapping.append(number(slot.value));
     const QJsonObject root {
-        { QStringLiteral("version"),
-          gameplay_checkpoint_service::schema_version },
-        { QStringLiteral("continuation_revision"),
-          static_cast<int>(state.continuation_revision) },
         { QStringLiteral("configuration"),
           gameplay_storage::encode_configuration(state.configuration) },
         { QStringLiteral("decks"), entries },
@@ -225,7 +212,7 @@ std::optional<QByteArray> encode_gameplay_checkpoint(
           number(checkpoint.pickup_elapsed_ms) },
     };
     auto bytes = QJsonDocument(root).toJson(QJsonDocument::Compact);
-    return bytes.size() <= gameplay_checkpoint_service::maximum_document_bytes
+    return bytes.size() <= maximum_gameplay_checkpoint_bytes
         ? std::make_optional(std::move(bytes))
         : std::nullopt;
 }
@@ -235,8 +222,7 @@ std::optional<gameplay_checkpoint> decode_gameplay_checkpoint(
     const gameplay::generation_policy& resources
 ) {
     if (!gameplay_storage::valid_limits(limits) || !resources.valid()
-        || bytes.isEmpty()
-        || bytes.size() > gameplay_checkpoint_service::maximum_document_bytes)
+        || bytes.isEmpty() || bytes.size() > maximum_gameplay_checkpoint_bytes)
         return std::nullopt;
     const auto document = QJsonDocument::fromJson(bytes);
     return document.isObject() ? read_root(document.object(), limits, resources)

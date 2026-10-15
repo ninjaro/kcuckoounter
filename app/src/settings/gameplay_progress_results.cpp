@@ -35,8 +35,6 @@ QJsonObject result(const gameplay::session_result& value) {
         { QStringLiteral("active_decks"), number(value.active_decks) },
         { QStringLiteral("completed_decks"), number(value.completed_decks) },
         { QStringLiteral("failed_decks"), number(value.failed_decks) },
-        { QStringLiteral("cadence_revision"),
-          static_cast<int>(value.cadence_revision) },
         { QStringLiteral("table_schedule"), schedule(value.table_schedule) },
         { QStringLiteral("random_dealing"),
           QJsonObject {
@@ -58,7 +56,7 @@ read_result(const QJsonValue& value, gameplay::slot_limits limits) {
     const auto timing_value = object.value(QStringLiteral("timing"));
     const auto random_value = object.value(QStringLiteral("random_dealing"));
     const auto reason_value = object.value(QStringLiteral("reason"));
-    if (object.size() != 12 || !entries_value.isArray()
+    if (object.size() != 11 || !entries_value.isArray()
         || !config_value.isObject() || !timing_value.isObject()
         || !random_value.isObject() || !reason_value.isString())
         return std::nullopt;
@@ -71,8 +69,6 @@ read_result(const QJsonValue& value, gameplay::slot_limits limits) {
         = read_configuration(config, count, { count, limits.technical_cap });
     const auto lives
         = read_integer(object.value(QStringLiteral("remaining_lives")), 0, 12);
-    const auto revision
-        = read_integer(object.value(QStringLiteral("cadence_revision")), 1, 1);
     const auto active = read_size(object.value(QStringLiteral("active_decks")));
     const auto completed
         = read_size(object.value(QStringLiteral("completed_decks")));
@@ -92,8 +88,8 @@ read_result(const QJsonValue& value, gameplay::slot_limits limits) {
         object.value(QStringLiteral("table_schedule")), capacity
     );
     if (config.size() != 9 || timing.size() != 2 || random.size() != 2
-        || !configuration || !lives || !revision || !active || !completed
-        || !failed || !counters || !play || !quiz || !seed || !step || !targets)
+        || !configuration || !lives || !active || !completed || !failed
+        || !counters || !play || !quiz || !seed || !step || !targets)
         return std::nullopt;
     gameplay::session_result parsed;
     const auto reason = reason_value.toString();
@@ -112,7 +108,6 @@ read_result(const QJsonValue& value, gameplay::slot_limits limits) {
     parsed.active_decks = *active;
     parsed.completed_decks = *completed;
     parsed.failed_decks = *failed;
-    parsed.cadence_revision = static_cast<std::uint32_t>(*revision);
     parsed.table_schedule = std::move(*targets);
     parsed.random_dealing = { *seed, *step };
     parsed.decks.reserve(count);

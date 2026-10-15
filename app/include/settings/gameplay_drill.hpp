@@ -9,7 +9,6 @@
 
 class QSettings;
 struct strategy_catalog;
-struct training_drill;
 
 struct drill_deck {
     gameplay::deck_configuration configuration;
@@ -33,10 +32,11 @@ valid_gameplay_drill(const gameplay_drill& drill, gameplay::slot_limits limits);
 
 class gameplay_drill_service {
 public:
-    static constexpr int schema_version = 2;
     static constexpr int maximum_drills = 64;
     static constexpr int maximum_name_length = 80;
-    gameplay_drill_service(QSettings& settings, gameplay::slot_limits limits);
+    gameplay_drill_service(
+        QSettings& settings_value, gameplay::slot_limits bounds
+    );
     [[nodiscard]] std::optional<QVector<gameplay_drill>>
     load(QString* error = nullptr) const;
     [[nodiscard]] bool
@@ -60,11 +60,4 @@ private:
     const gameplay::session& game, const QString& name,
     gameplay::slot_limits limits
 );
-/// Explicit, non-equivalent draft; no I/O. Caller must review new policies.
-/// Copy v1 skip/dealing/speed/decks; N=1. Other global fields come from target.
-[[nodiscard]] std::optional<gameplay_drill> draft_legacy_drill(
-    const training_drill& legacy, const gameplay::session_configuration& target,
-    gameplay::slot_limits limits
-);
-
 #endif // KCUCKOOUNTER_SETTINGS_GAMEPLAY_DRILL_HPP

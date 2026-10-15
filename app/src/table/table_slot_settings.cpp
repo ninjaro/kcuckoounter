@@ -38,33 +38,6 @@ static QVector<int> weights_for_strategy_slug(const QString& strategy_slug) {
     return {};
 }
 
-drill_slot_preferences table_slot::capture_drill_settings() const {
-    if (gameplay_owner)
-        return {};
-    return { deck_count_spin_box->value(), is_infinity_enabled(),
-             strategy_combo_box->currentData().toString(),
-             is_training_enabled() };
-}
-
-void table_slot::apply_drill_settings(const drill_slot_preferences& settings) {
-    if (gameplay_owner)
-        return;
-    finish_settings_editor(false);
-    const QSignalBlocker infinity_blocker(infinity_check_box);
-    const QSignalBlocker deck_blocker(deck_count_spin_box);
-    const QSignalBlocker strategy_blocker(strategy_combo_box);
-    const QSignalBlocker training_blocker(training_check_box);
-    infinity_check_box->setChecked(settings.infinity_enabled);
-    deck_count_spin_box->setValue(settings.deck_count);
-    strategy_combo_box->setCurrentIndex(
-        strategy_combo_box->findData(settings.strategy_slug)
-    );
-    training_check_box->setChecked(settings.training_mode);
-    update_infinity_state(infinity_check_box, deck_count_spin_box);
-    sync_card_display_settings();
-    update_lockable_settings();
-}
-
 void table_slot::on_infinity_toggled(bool checked) {
     if (gameplay_owner)
         return;
@@ -141,8 +114,8 @@ void table_slot::open_settings_editor() {
     }
     if (controls_dialog)
         controls_dialog->close();
-    // Only legacy editors notify the old shell's pause handler. Target edits
-    // require setup/manual Pause already; neither path auto-resumes.
+    // Only classic editors notify the classic shell's pause handler. Target
+    // edits require setup/manual Pause already; neither path auto-resumes.
     if (!gameplay_owner)
         emit dialog_opened();
     auto* panel = new QFrame(this);
@@ -431,8 +404,6 @@ void table_slot::on_strategy_name_changed(const QString& text) {
     trainer_preferences preferences = load_trainer_preferences();
     preferences.preferred_strategy_slug
         = strategy_combo_box->itemData(index).toString();
-    preferences.preferred_strategy_id
-        = strategy_combo_box->itemData(index, Qt::UserRole + 1).toInt();
     save_trainer_preferences(preferences);
 }
 

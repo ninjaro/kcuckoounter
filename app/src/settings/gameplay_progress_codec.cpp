@@ -18,13 +18,8 @@ read_root(const QJsonObject& root, gameplay::slot_limits limits) {
         = read_unsigned(root.value(QStringLiteral("completed_sessions")));
     const auto counters
         = read_statistics(root.value(QStringLiteral("challenge")));
-    if (root.size() != 5 || !history.isArray() || !timing_value.isObject()
-        || !completed || !counters
-        || !read_integer(
-            root.value(QStringLiteral("version")),
-            gameplay_progress_service::schema_version,
-            gameplay_progress_service::schema_version
-        ))
+    if (root.size() != 4 || !history.isArray() || !timing_value.isObject()
+        || !completed || !counters)
         return std::nullopt;
     const auto timing = timing_value.toObject();
     const auto play
@@ -76,8 +71,6 @@ std::optional<QByteArray> encode_gameplay_progress(
               progress_storage::result(entry.result) },
         });
     const QJsonObject root {
-        { QStringLiteral("version"),
-          gameplay_progress_service::schema_version },
         { QStringLiteral("completed_sessions"),
           number(progress.completed_sessions) },
         { QStringLiteral("challenge"), statistics(progress.challenge) },

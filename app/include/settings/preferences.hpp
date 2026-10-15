@@ -63,7 +63,7 @@ load_desktop_ui_preferences(QSettings& settings);
 save_desktop_ui_preferences(const desktop_ui_preferences& preferences);
 
 struct trainer_preferences {
-    // Legacy launcher/v1 data bounds, not the new gameplay slot policy.
+    // Current classic trainer bounds; domain gameplay owns its own slot limits.
     static constexpr int minimum_slot_count = 1;
     static constexpr int maximum_slot_count = 16;
     static constexpr int minimum_pickup_interval_ms = 100;
@@ -78,61 +78,11 @@ struct trainer_preferences {
     theme_palette_id palette = theme_palette_id::green;
     card_orientation_mode card_orientation = card_orientation_mode::automatic;
     QString preferred_strategy_slug;
-    int preferred_strategy_id = 0;
 
     bool operator==(const trainer_preferences&) const = default;
 };
 
-// A drill is fresh-session gameplay configuration, not a theme or checkpoint.
-// Presentation (including per-slot labels) and shuffled/progress state stay
-// out.
-struct drill_slot_preferences {
-    int deck_count = 4;
-    bool infinity_enabled = false;
-    QString strategy_slug;
-    bool training_mode = false;
-
-    bool operator==(const drill_slot_preferences&) const = default;
-};
-
-struct training_drill {
-    QString name;
-    int quiz_type = 0;
-    bool wait_for_answers = false;
-    bool allow_skipping = true;
-    int dealing_mode = 0;
-    int pickup_interval_ms = 300;
-    QVector<drill_slot_preferences> slot_settings;
-
-    bool operator==(const training_drill&) const = default;
-};
-
-// Storage validation does not resolve strategy identity: an unavailable drill
-// remains visible/renameable/removable, but must pass this preflight to launch.
-[[nodiscard]] bool valid_legacy_drill(const training_drill& drill);
-[[nodiscard]] bool is_drill_configuration_supported(
-    const training_drill& drill, const strategy_catalog& catalog
-);
-
-class training_drill_service {
-public:
-    static constexpr int maximum_drills = 64;
-    static constexpr int maximum_name_length = 80;
-    explicit training_drill_service(QSettings& settings);
-    [[nodiscard]] std::optional<QVector<training_drill>>
-    load(QString* error = nullptr) const;
-    [[nodiscard]] bool
-    save(const QVector<training_drill>& drills, QString* error = nullptr);
-
-private:
-    QSettings& settings;
-};
-
 struct desktop_shell_state {
-    // Qt validates its opaque saveState()/restoreState() payload with this
-    // value. It is current UI-state identity, not schema negotiation.
-    static constexpr int qt_main_window_state_version = 1;
-
     QByteArray geometry;
     QByteArray main_window_state;
 

@@ -27,40 +27,10 @@ QString dealing_label(int mode) {
 
 } // namespace
 
-QString drill_picker::summarize(const training_drill& drill) const {
-    QStringList lines {
-        str_label("Legacy drill (v1)"),
-        str_label("Pickup interval (ms)") + QStringLiteral(": ")
-            + QString::number(drill.pickup_interval_ms),
-        str_label("Quiz mode") + QStringLiteral(": ")
-            + (drill.quiz_type == 0 ? str_label("Single question")
-                                    : str_label("Multi question")),
-        str_label("Pause for answers") + QStringLiteral(": ")
-            + yes_no(drill.wait_for_answers),
-        str_label("Allow skipping") + QStringLiteral(": ")
-            + yes_no(drill.allow_skipping),
-        str_label("Dealing mode") + QStringLiteral(": ")
-            + dealing_label(drill.dealing_mode),
-    };
-    int number = 0;
-    for (const auto& slot : drill.slot_settings)
-        lines << QString()
-              << str_label("Slot") + QStringLiteral(" ")
-                + QString::number(++number)
-              << strategy_name(slot.strategy_slug)
-              << str_label("Deck count") + QStringLiteral(": ")
-                + QString::number(slot.deck_count)
-              << (slot.infinity_enabled ? str_label("Infinite shoe")
-                                        : str_label("Finite shoe"))
-              << (slot.training_mode ? str_label("Training mode")
-                                     : str_label("Scored mode"));
-    return lines.join(QLatin1Char('\n'));
-}
-
-QString drill_picker::summarize(const gameplay_drill& drill) const {
+QString drill_picker::summarize(const gameplay_drill& drill) {
     const auto& config = drill.configuration;
     QStringList lines {
-        str_label("Gameplay drill (v2) — fresh Setup, not a checkpoint"),
+        str_label("Gameplay drill — fresh Setup, not a checkpoint"),
         str_label("Slots") + QStringLiteral(": ")
             + QString::number(drill.decks.size()),
         str_label("Pickup interval (ms)") + QStringLiteral(": ")

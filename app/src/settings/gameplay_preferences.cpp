@@ -32,9 +32,6 @@ bool valid_preferences(const gameplay_preferences& value, slot_limits limits) {
 
 QByteArray encode(const gameplay_preferences& value) {
     auto object = encode_configuration(value.configuration);
-    object.insert(
-        QStringLiteral("version"), gameplay_preferences::schema_version
-    );
     object.insert(QStringLiteral("slots"), static_cast<int>(value.slot_count));
     object.insert(QStringLiteral("interval_ms"), value.pickup_interval_ms);
     return QJsonDocument(object).toJson(QJsonDocument::Compact);
@@ -48,11 +45,7 @@ decode(const QByteArray& bytes, slot_limits limits) {
     if (!document.isObject())
         return std::nullopt;
     const auto root = document.object();
-    if (!read_integer(
-            root.value(QStringLiteral("version")),
-            gameplay_preferences::schema_version,
-            gameplay_preferences::schema_version
-        ))
+    if (root.size() != 11 || root.contains(QStringLiteral("version")))
         return std::nullopt;
     const auto count = read_integer(
         root.value(QStringLiteral("slots")), 1,
