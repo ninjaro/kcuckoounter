@@ -10,7 +10,14 @@ private slots:
     void stretches_between_raster_intervals();
     void memory_cache_tracks_resize();
     void shared_faces_disable_local_rasterization();
+    void shared_faces_outlive_source_file();
+    void source_validation_follows_raster_ownership();
+    void standalone_source_validation_rejects_invalid_data();
+    void shared_faces_reject_late_local_completion_data();
+    void shared_faces_reject_late_local_completion();
     void selected_presentation_reuses_and_invalidates();
+    void completed_local_result_releases_future_data();
+    void completed_local_result_releases_future();
     void theme_source_change_invalidates_stale_raster_result();
     void accumulated_count_survives_presentation_changes();
     void recent_stack_retains_five_transforms();

@@ -43,6 +43,7 @@ void card_widget::set_shared_card_faces(
 
     apply_rasterized_images(face_images, raster_size);
     shared_card_faces_active = true;
+    card_sheet_renderer.reset();
 
     if (rasterizing) {
         pending_raster_size = QSize();
@@ -69,6 +70,9 @@ void card_widget::set_shared_card_faces_mode(bool enabled) {
     }
 
     shared_card_faces_mode = enabled;
+    if (shared_card_faces_mode) {
+        card_sheet_renderer.reset();
+    }
     if (shared_card_faces_mode && rasterizing) {
         pending_raster_size = QSize();
         set_rasterizing(false);
@@ -85,7 +89,7 @@ void card_widget::sync_card_sheet_source() {
     }
 
     card_sheet_source = next_source;
-    card_sheet_renderer.load(card_sheet_source);
+    card_sheet_renderer.reset();
     invalidate_selected_card_face();
     card_faces_rasterized.clear();
     card_face_raster_size = QSize();
@@ -147,18 +151,25 @@ void card_widget::update_card_faces(const QSize& target_size) {
         return;
     }
 
-    if (!card_sheet_renderer.isValid()) {
-        card_sheet_renderer.load(card_sheet_source);
-    }
-
-    if (!card_sheet_renderer.isValid()) {
-        invalidate_selected_card_face();
-        card_face_size = QSize();
-        card_faces_rasterized.clear();
-        card_face_raster_size = QSize();
-        picks_since_rasterize = 0;
-        pending_raster_size = QSize();
-        return;
+    const bool allow_local_rasterization
+        = !shared_card_faces_mode && !shared_card_faces_active;
+    if (allow_local_rasterization) {
+        // Prepared shared pixels have no dependency on a widget-local SVG.
+        if (!card_sheet_renderer) {
+            card_sheet_renderer = std::make_unique<QSvgRenderer>();
+        }
+        if (!card_sheet_renderer->isValid()) {
+            card_sheet_renderer->load(card_sheet_source);
+        }
+        if (!card_sheet_renderer->isValid()) {
+            invalidate_selected_card_face();
+            card_face_size = QSize();
+            card_faces_rasterized.clear();
+            card_face_raster_size = QSize();
+            picks_since_rasterize = 0;
+            pending_raster_size = QSize();
+            return;
+        }
     }
 
     const bool size_changed = card_face_size != target_size;
@@ -167,8 +178,6 @@ void card_widget::update_card_faces(const QSize& target_size) {
         = card_face_raster_size != raster_target_size;
     const bool raster_cache_ready
         = !card_faces_rasterized.isEmpty() && !card_face_raster_size.isEmpty();
-    const bool allow_local_rasterization
-        = !shared_card_faces_mode && !shared_card_faces_active;
     const bool should_rasterize = !raster_cache_ready
         || (allow_local_rasterization && raster_size_changed
             && picks_since_rasterize >= 3);
@@ -254,8 +263,21 @@ void card_widget::set_rasterizing(bool active) {
 }
 
 void card_widget::on_rasterization_finished() {
+    if (!rasterize_watcher.future().isValid()) {
+        return;
+    }
+    // Shared ownership can change before a local job's notification arrives.
+    if (shared_card_faces_mode || shared_card_faces_active) {
+        rasterize_watcher.setFuture(QFuture<QVector<QImage>>());
+        pending_raster_size = QSize();
+        set_rasterizing(false);
+        return;
+    }
+
     const QString finished_source = raster_task_source;
     const QVector<QImage> images = rasterize_watcher.result();
+    // The widget owns accepted rasters; an idle observer need not retain them.
+    rasterize_watcher.setFuture(QFuture<QVector<QImage>>());
     const bool source_still_current = finished_source == card_sheet_source;
 
     if (source_still_current) {

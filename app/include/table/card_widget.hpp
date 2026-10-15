@@ -147,7 +147,7 @@ private:
     bool hide_cards_flag;
     image_cacher table_marking;
     QString card_sheet_source;
-    QSvgRenderer card_sheet_renderer;
+    std::unique_ptr<QSvgRenderer> card_sheet_renderer;
     QPixmap selected_card_face;
     int selected_card_face_index;
     QSize card_face_size;

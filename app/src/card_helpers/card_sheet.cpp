@@ -98,7 +98,7 @@ static bool card_theme_option_label_less(
     return lhs.label < rhs.label;
 }
 
-static QVector<card_theme_option> build_available_card_themes() {
+static QVector<card_theme_option> build_bundled_card_themes() {
     QVector<card_theme_option> themes;
     const QString& default_source = default_card_sheet_source_value();
     if (card_theme_source_is_reachable(default_source)) {
@@ -147,6 +147,17 @@ static QVector<card_theme_option> build_available_card_themes() {
         });
     }
 
+    return themes;
+}
+
+static const QVector<card_theme_option>& bundled_card_themes() {
+    static const QVector<card_theme_option> themes
+        = build_bundled_card_themes();
+    return themes;
+}
+
+static QVector<card_theme_option> build_available_card_themes() {
+    QVector<card_theme_option> themes = bundled_card_themes();
     QVector<card_theme_option> installed_themes;
     const QStringList search_roots = {
         QStringLiteral("/usr/share/carddecks"),
@@ -765,9 +776,8 @@ void set_card_sheet_source_path(const QString& source_path) {
             || normalized.startsWith(QStringLiteral("sets/cards/"))
             || normalized.startsWith(QStringLiteral(":/kcuckoounter/"))
             || normalized.startsWith(QStringLiteral("assets/cards_")))) {
-        for (const card_theme_option& theme : available_card_themes()) {
-            if (!theme.installed
-                && QFileInfo(theme.source_path).fileName() == info.fileName()) {
+        for (const card_theme_option& theme : bundled_card_themes()) {
+            if (QFileInfo(theme.source_path).fileName() == info.fileName()) {
                 active_card_sheet_source() = theme.source_path;
                 return;
             }

@@ -379,6 +379,9 @@ void table::on_shared_rasterization_finished() {
             || completed_generation_id == warming_shared_generation_id);
 
     const QVector<QImage> face_images = shared_faces_watcher.result();
+    // Cache/display owners keep accepted images; discard the observer's handle
+    // so rejected or evicted generations can release their buffers immediately.
+    shared_faces_watcher.setFuture(QFuture<QVector<QImage>>());
     if (generation_is_still_expected && !face_images.isEmpty()) {
         const raster_cache::result ready {
             .key = key,

@@ -10,6 +10,7 @@
 #include <QFutureWatcher>
 #include <QImage>
 #include <QObject>
+#include <QPromise>
 #include <QQueue>
 #include <QSet>
 #include <QString>
@@ -50,6 +51,7 @@ enum class settings_tab_kind { appearance, strategies };
 
 class settings_template_widget : public BaseWidget {
     Q_OBJECT
+    friend class preview_carousel_tests;
 
 public:
     explicit settings_template_widget(
@@ -94,6 +96,8 @@ private:
     void enqueue_preview(const raster_cache::entry_key& key);
     void render_next_preview();
     void preview_render_finished();
+    void preview_result_ready(int result_index);
+    void finish_preview_request(const raster_cache::entry_key& key);
     bool preview_key_relevant(const raster_cache::entry_key& key) const;
     void prune_preview_queue();
     void preview_cache_updated(const raster_cache::entry_key& key);
@@ -122,9 +126,9 @@ private:
     void retire_preview_generation(
         const QString& source_id, int target_bucket_px, qint64 generation_id
     );
-    static QImage render_preview_face(
-        const QString& source_id, const QString& element_id,
-        int target_bucket_px
+    static void render_preview_faces(
+        QPromise<QImage>& promise, const QString& source_id,
+        const QStringList& element_ids, int target_bucket_px
     );
 
     settings_tab_kind tab_kind;
@@ -169,7 +173,8 @@ private:
     QSet<QString> warming_preview_element_ids;
     qint64 next_preview_generation;
     QFutureWatcher<QImage> preview_watcher;
-    std::optional<raster_cache::entry_key> active_render_key;
+    QVector<raster_cache::entry_key> active_render_keys;
+    QSet<int> published_preview_results;
     QQueue<raster_cache::entry_key> pending_preview_queue;
     QSet<raster_cache::entry_key> pending_preview_keys;
     bool preview_render_scheduled;

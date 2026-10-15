@@ -10,7 +10,7 @@
 #include "table/table.hpp"
 
 #include <QImage>
-#include <QtConcurrent/QtConcurrent>
+#include <utility>
 
 settings_shared_state::settings_shared_state(QObject* parent)
     : QObject(parent)
@@ -84,7 +84,8 @@ settings_template_widget::settings_template_widget(
     , warming_preview_element_ids()
     , next_preview_generation(1)
     , preview_watcher(this)
-    , active_render_key(std::nullopt)
+    , active_render_keys()
+    , published_preview_results()
     , pending_preview_queue()
     , pending_preview_keys()
     , preview_render_scheduled(false)
@@ -103,6 +104,10 @@ settings_template_widget::settings_template_widget(
         &preview_watcher, &QFutureWatcher<QImage>::finished, this,
         &settings_template_widget::preview_render_finished
     );
+    QObject::connect(
+        &preview_watcher, &QFutureWatcher<QImage>::resultReadyAt, this,
+        &settings_template_widget::preview_result_ready
+    );
     setup_ui(selected_strategy);
 }
 
@@ -110,10 +115,11 @@ settings_template_widget::~settings_template_widget() {
     clear_preview_entries(displayed_theme_entries);
     clear_preview_entries(displayed_weights_entries);
     QObject::disconnect(&preview_watcher, nullptr, this, nullptr);
+    preview_watcher.cancel();
     auto& preview_cache = settings_template_support::preview_cache();
     QSet<raster_cache::entry_key> abandoned_keys = pending_preview_keys;
-    if (active_render_key.has_value()) {
-        abandoned_keys.insert(*active_render_key);
+    for (const auto& key : std::as_const(active_render_keys)) {
+        abandoned_keys.insert(key);
     }
     for (const raster_cache::entry_key& key : abandoned_keys) {
         const raster_cache::family_key family {
@@ -126,7 +132,7 @@ settings_template_widget::~settings_template_widget() {
         preview_cache.take_pending_latest(family);
         preview_cache.erase_result(key);
     }
-    active_render_key.reset();
+    active_render_keys.clear();
     pending_preview_queue.clear();
     pending_preview_keys.clear();
     retire_preview_generation(

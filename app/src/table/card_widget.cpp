@@ -89,8 +89,6 @@ card_widget::card_widget(BaseWidget* parent)
         &rasterize_watcher, &QFutureWatcher<QVector<QImage>>::finished, this,
         &card_widget::on_rasterization_finished
     );
-
-    card_sheet_renderer.load(card_sheet_source);
 }
 
 card_widget::~card_widget() = default;

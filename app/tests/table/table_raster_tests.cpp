@@ -28,6 +28,7 @@
 #include <KActionCollection>
 #endif
 
+#include "image_lifetime_fixture.hpp"
 #include "table/table_fixture.hpp"
 
 using namespace table_test;
@@ -250,6 +251,56 @@ void table_tests::theme_and_resize_transitions_are_non_blocking() {
     QVERIFY(resize_elapsed_ms < 350);
 
     QTRY_VERIFY_WITH_TIMEOUT(!table_widget.is_rasterization_busy(), 15000);
+}
+
+void table_tests::completed_shared_result_releases_future_data() {
+    QTest::addColumn<bool>("accepted");
+    QTest::newRow("accepted-then-evicted") << true;
+    QTest::newRow("obsolete-generation") << false;
+}
+
+void table_tests::completed_shared_result_releases_future() {
+    QFETCH(bool, accepted);
+    const auto totals = std::make_shared<image_lifetime_test::accounting>();
+    table table_widget;
+    const auto key = table_widget.entry_key_for_generation(
+        card_sheet_source_path(), 32, 7
+    );
+    table_widget.active_shared_generation_id = accepted ? 7 : 8;
+    table_widget.active_card_sheet_source_id = key.source_id;
+    table_widget.active_shared_bucket_px = 32;
+    table_widget.active_shared_faces_key = key;
+    table_widget.raster_cache_service.mark_in_flight(
+        {
+            .name_space = key.name_space,
+            .kind = key.kind,
+            .source_id = key.source_id,
+            .render_scope = key.render_scope,
+        },
+        key
+    );
+    QVector<QImage> images;
+    for (int index = 0; index < 55; ++index)
+        images.append(image_lifetime_test::tracked_image(totals, 32));
+    table_widget.shared_faces_watcher.setFuture(
+        image_lifetime_test::completed_future(std::move(images))
+    );
+    table_widget.on_shared_rasterization_finished();
+    QCOMPARE(table_widget.raster_cache_service.in_flight_count(), 0);
+    if (accepted) {
+        QCOMPARE(totals->live_images.load(), 55);
+        const auto ready = table_widget.raster_cache_service.get_if_ready(key);
+        QVERIFY(ready.has_value());
+        QCOMPARE(ready->face_images.size(), 55);
+        QCOMPARE(ready->face_images.front().pixelColor(0, 0), QColor(Qt::red));
+    }
+    table_widget.raster_cache_service.erase_result(key);
+    QCOMPARE(table_widget.raster_cache_service.ready_entry_count(), 0);
+    QCOMPARE(totals->live_bytes.load(), qsizetype { 0 });
+    QCOMPARE(totals->live_images.load(), 0);
+    table_widget.on_shared_rasterization_finished();
+    QCoreApplication::processEvents();
+    QVERIFY(!table_widget.active_shared_faces_key.has_value());
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

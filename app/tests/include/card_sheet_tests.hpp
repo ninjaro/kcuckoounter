@@ -10,6 +10,7 @@ private slots:
     void loads_svg();
     void contains_expected_elements();
     void logical_resource_ids_are_literal();
+    void bundled_selection_is_independent_of_picker();
     void themes_include_bundled_and_available_installed();
     void source_path_switches_between_themes();
     void required_ids_and_fallback_resolution_are_deterministic();

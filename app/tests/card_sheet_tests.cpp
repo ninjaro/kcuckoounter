@@ -11,6 +11,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QIODevice>
+#include <QScopeGuard>
 #include <QSet>
 #include <QSvgRenderer>
 #include <QTemporaryDir>
@@ -132,6 +133,44 @@ void card_sheet_tests::logical_resource_ids_are_literal() {
     expected.append(QStringLiteral("back"));
     QCOMPARE(required_card_ids_with_back(), expected);
     QCOMPARE(card_back_element_id(), QStringLiteral("back"));
+}
+
+void card_sheet_tests::bundled_selection_is_independent_of_picker() {
+    const QString original_source = card_sheet_source_path();
+    const auto restore_source = qScopeGuard([&original_source] {
+        set_card_sheet_source_path(original_source);
+    });
+    const QList<int> retained = { 0, 4, 9, 11, 23, 28, 40, 42 };
+    QStringList selected_sources;
+    for (const int number : retained) {
+        const QString relative
+            = QStringLiteral("sets/cards/cards_%1.svg").arg(number);
+        const QString expected = bundled_asset_path(relative);
+        QVERIFY(!expected.isEmpty());
+        set_card_sheet_source_path(QStringLiteral("assets/%1").arg(relative));
+        QCOMPARE(card_sheet_source_path(), expected);
+        selected_sources.append(expected);
+    }
+
+    const QString selected_source = card_sheet_source_path();
+    const auto& themes = available_card_themes();
+    QCOMPARE(card_sheet_source_path(), selected_source);
+    QStringList bundled_sources;
+    for (const auto& theme : themes) {
+        if (!theme.installed) {
+            bundled_sources.append(theme.source_path);
+        }
+    }
+    QCOMPARE(bundled_sources, selected_sources);
+
+    for (const auto& theme : themes) {
+        set_card_sheet_source_path(theme.source_path);
+        QCOMPARE(card_sheet_source_path(), theme.source_path);
+        QVERIFY(preload_card_sheet());
+        const auto ratio = card_sheet_ratio();
+        QVERIFY(ratio.first > 0);
+        QVERIFY(ratio.second > 0);
+    }
 }
 
 void card_sheet_tests::themes_include_bundled_and_available_installed() {

@@ -28,7 +28,6 @@ void settings_template_widget::update_theme_carousel(int suit_index) {
     theme_suit = suit_index;
     active_preview_element_ids.clear();
     warming_preview_element_ids.clear();
-    prune_preview_queue();
     clear_preview_entries(displayed_theme_entries);
     const QSize card_size = settings_template_support::preview_card_size();
     theme_carousel->set_card_size(card_size);
@@ -40,6 +39,7 @@ void settings_template_widget::update_theme_carousel(int suit_index) {
     theme_carousel->set_card_provider(
         13, std::bind_front(&settings_template_widget::active_theme_card, this)
     );
+    prune_preview_queue();
 }
 
 QPixmap
@@ -115,6 +115,7 @@ void settings_template_widget::warm_preview_generation(
     warming_preview_bucket = target_bucket_px;
     warming_preview_generation = next_preview_generation++;
     warming_preview_element_ids.clear();
+    prune_preview_queue();
 }
 
 void settings_template_widget::ensure_preview_generation(
@@ -144,6 +145,7 @@ void settings_template_widget::ensure_preview_generation(
             warming_preview_bucket = 0;
             warming_preview_generation = 0;
             warming_preview_element_ids.clear();
+            prune_preview_queue();
         }
         return;
     }
@@ -356,7 +358,8 @@ void settings_template_widget::enqueue_preview(
     if (!preview_key_relevant(key)) {
         return;
     }
-    if (pending_preview_keys.contains(key)) {
+    if (pending_preview_keys.contains(key)
+        || active_render_keys.contains(key)) {
         return;
     }
     pending_preview_keys.insert(key);
@@ -370,87 +373,64 @@ void settings_template_widget::enqueue_preview(
 
 void settings_template_widget::render_next_preview() {
     preview_render_scheduled = false;
-    if (preview_watcher.isRunning() || active_render_key.has_value()) {
+    if (preview_watcher.isRunning() || !active_render_keys.isEmpty()) {
         return;
     }
 
-    raster_cache::entry_key key;
-    bool has_key = false;
+    prune_preview_queue();
+    if (pending_preview_queue.isEmpty()) {
+        return;
+    }
+
+    // Capture only the queued contiguous requests for this source, size and
+    // generation. Later arrivals belong to another job, not an open-ended
+    // batch.
+    const auto first = pending_preview_queue.head();
+    const auto first_scope
+        = settings_template_support::parse_preview_scope(first.render_scope);
+    QStringList element_ids;
     while (!pending_preview_queue.isEmpty()) {
-        const raster_cache::entry_key candidate
-            = pending_preview_queue.dequeue();
-        pending_preview_keys.remove(candidate);
-        if (!preview_key_relevant(candidate)) {
-            continue;
+        const auto& key = pending_preview_queue.head();
+        const auto parsed
+            = settings_template_support::parse_preview_scope(key.render_scope);
+        if (key.source_id != first.source_id
+            || key.target_bucket_px != first.target_bucket_px
+            || parsed.generation_id != first_scope.generation_id) {
+            break;
         }
-        key = candidate;
-        has_key = true;
-        break;
+        element_ids.append(parsed.element_id);
+        active_render_keys.append(key);
+        pending_preview_keys.remove(key);
+        pending_preview_queue.dequeue();
     }
-    if (!has_key) {
-        return;
-    }
-
-    const QString render_scope = key.render_scope;
-    if (!render_scope.startsWith(QStringLiteral("subset:"))) {
-        const raster_cache::family_key family {
-            .name_space = key.name_space,
-            .kind = key.kind,
-            .source_id = key.source_id,
-            .render_scope = key.render_scope,
-        };
-        auto& service = settings_template_support::preview_cache();
-        const raster_cache::finish_outcome finish
-            = service.finish_active_request(family, key);
-        if (finish.next_entry_to_start.has_value()) {
-            enqueue_preview(finish.next_entry_to_start.value());
-        }
-        return;
-    }
-
-    const settings_template_support::parsed_scope parsed
-        = settings_template_support::parse_preview_scope(render_scope);
-    if (!parsed.valid) {
-        const raster_cache::family_key family {
-            .name_space = key.name_space,
-            .kind = key.kind,
-            .source_id = key.source_id,
-            .render_scope = key.render_scope,
-        };
-        auto& service = settings_template_support::preview_cache();
-        const raster_cache::finish_outcome finish
-            = service.finish_active_request(family, key);
-        if (finish.next_entry_to_start.has_value()) {
-            enqueue_preview(finish.next_entry_to_start.value());
-        }
-        return;
-    }
-
-    active_render_key = key;
-    const QString source_id = key.source_id;
-    const QString element_id = parsed.element_id;
-    const int target_bucket_px = key.target_bucket_px;
+    published_preview_results.clear();
     preview_watcher.setFuture(QtConcurrent::run(
-        &settings_template_widget::render_preview_face, source_id, element_id,
-        target_bucket_px
+        &settings_template_widget::render_preview_faces, first.source_id,
+        element_ids, first.target_bucket_px
     ));
 }
 
-void settings_template_widget::preview_render_finished() {
-    if (!active_render_key.has_value()) {
+void settings_template_widget::preview_result_ready(int result_index) {
+    if (result_index < 0 || result_index >= active_render_keys.size()
+        || published_preview_results.contains(result_index)
+        || !preview_watcher.future().isResultReadyAt(result_index)) {
+        return;
+    }
+    // Cache signals may update generations synchronously. Mark before
+    // publishing.
+    published_preview_results.insert(result_index);
+    const auto key = active_render_keys.at(result_index);
+    const auto parsed
+        = settings_template_support::parse_preview_scope(key.render_scope);
+    auto& service = settings_template_support::preview_cache();
+    if (!preview_key_relevant(key)) {
+        service.erase_result(key);
         return;
     }
 
-    const raster_cache::entry_key key = *active_render_key;
-    active_render_key.reset();
-    const settings_template_support::parsed_scope parsed
-        = settings_template_support::parse_preview_scope(key.render_scope);
-
-    auto& service = settings_template_support::preview_cache();
-    const QImage image = preview_watcher.result();
-    const bool key_is_expected = parsed.valid && preview_key_relevant(key);
-    if (!image.isNull() && key_is_expected) {
-        const raster_cache::result ready {
+    const QImage image = preview_watcher.resultAt(result_index);
+    if (!image.isNull()) {
+        service.insert_or_update_result(raster_cache::result {
             .key = key,
             .raster_size = QSize(key.target_bucket_px, key.target_bucket_px),
             .generation = static_cast<int>(parsed.generation_id),
@@ -458,25 +438,65 @@ void settings_template_widget::preview_render_finished() {
             .use_count = 0,
             .single_image = {},
             .face_images = { image },
-        };
-        service.insert_or_update_result(ready);
-    } else if (!key_is_expected) {
-        service.erase_result(key);
+        });
     }
+}
 
+void settings_template_widget::finish_preview_request(
+    const raster_cache::entry_key& key
+) {
     const raster_cache::family_key family {
         .name_space = key.name_space,
         .kind = key.kind,
         .source_id = key.source_id,
         .render_scope = key.render_scope,
     };
-    const raster_cache::finish_outcome finish
-        = service.finish_active_request(family, key);
-    if (finish.next_entry_to_start.has_value()) {
-        enqueue_preview(finish.next_entry_to_start.value());
+    auto& service = settings_template_support::preview_cache();
+    auto next = service.finish_active_request(family, key).next_entry_to_start;
+    while (next.has_value()) {
+        if (preview_key_relevant(*next)) {
+            enqueue_preview(*next);
+            return;
+        }
+        next = service.finish_active_request(family, *next).next_entry_to_start;
+    }
+}
+
+void settings_template_widget::preview_render_finished() {
+    if (active_render_keys.isEmpty()) {
+        return;
+    }
+    // Drain results even when the worker finished before GUI notifications ran.
+    // Individual notifications and this drain must never publish a face twice.
+    for (int index = 0; index < preview_watcher.future().resultCount();
+         ++index) {
+        preview_result_ready(index);
+    }
+    const bool canceled = preview_watcher.isCanceled();
+    const auto completed_keys = std::exchange(active_render_keys, {});
+    published_preview_results.clear();
+    // Draining precedes release; independent future/cache/display owners remain
+    // valid. Never takeResult(), which would consume other observers' results.
+    preview_watcher.setFuture(QFuture<QImage>());
+    for (const auto& key : completed_keys) {
+        finish_preview_request(key);
+        // Demand can return after cancellation but before completion delivery.
+        // Re-admit only current missing faces; ordinary failures are not
+        // retried.
+        if (canceled && preview_key_relevant(key)
+            && !settings_template_support::preview_cache().get_if_ready(key)) {
+            settings_template_support::preview_cache().submit_request({
+                .name_space = key.name_space,
+                .kind = key.kind,
+                .source_id = key.source_id,
+                .render_scope = key.render_scope,
+                .target_bucket_px = key.target_bucket_px,
+            });
+            enqueue_preview(key);
+        }
     }
 
-    if (!pending_preview_queue.isEmpty()) {
+    if (!pending_preview_queue.isEmpty() && !preview_render_scheduled) {
         preview_render_scheduled = true;
         QTimer::singleShot(
             0, this, &settings_template_widget::render_next_preview
@@ -484,17 +504,28 @@ void settings_template_widget::preview_render_finished() {
     }
 }
 
-QImage settings_template_widget::render_preview_face(
-    const QString& source_id, const QString& element_id, int target_bucket_px
+void settings_template_widget::render_preview_faces(
+    QPromise<QImage>& promise, const QString& source_id,
+    const QStringList& element_ids, int target_bucket_px
 ) {
-    if (target_bucket_px <= 0) {
-        return {};
+    if (target_bucket_px <= 0 || element_ids.isEmpty()
+        || promise.isCanceled()) {
+        return;
     }
 
+    card_sheet_render_context context(source_id);
     const QSize raster_size(target_bucket_px, target_bucket_px);
-    return rasterize_card_face_with_fallback(
-        source_id, element_id, raster_size
-    );
+    for (const auto& element_id : element_ids) {
+        if (promise.isCanceled()) {
+            return;
+        }
+        // Null images retain their index, so later faces cannot be
+        // misattributed.
+        if (!promise.addResult(context.rasterize_face(element_id, raster_size)
+            )) {
+            return;
+        }
+    }
 }
 
 void settings_template_widget::preview_cache_updated(
@@ -585,7 +616,6 @@ void settings_template_widget::update_weights_carousel(int suit_index) {
     weights_suit = suit_index;
     active_preview_element_ids.clear();
     warming_preview_element_ids.clear();
-    prune_preview_queue();
     clear_preview_entries(displayed_weights_entries);
     int strategy_index = strategy_list_widget != nullptr
         ? strategy_list_widget->currentRow()
@@ -619,6 +649,7 @@ void settings_template_widget::update_weights_carousel(int suit_index) {
         13,
         std::bind_front(&settings_template_widget::active_weighted_card, this)
     );
+    prune_preview_queue();
 }
 
 QPixmap settings_template_widget::active_weighted_card(
@@ -703,21 +734,20 @@ bool settings_template_widget::preview_key_relevant(
 }
 
 void settings_template_widget::prune_preview_queue() {
-    if (pending_preview_queue.isEmpty()) {
-        return;
-    }
-
-    QQueue<raster_cache::entry_key> filtered;
-    QSet<raster_cache::entry_key> filtered_set;
-    while (!pending_preview_queue.isEmpty()) {
-        const raster_cache::entry_key key = pending_preview_queue.dequeue();
-        if (!preview_key_relevant(key) || filtered_set.contains(key)) {
-            continue;
+    const auto queued = std::exchange(pending_preview_queue, {});
+    pending_preview_keys.clear();
+    for (const auto& key : queued) {
+        if (preview_key_relevant(key)) {
+            enqueue_preview(key);
+        } else {
+            finish_preview_request(key);
         }
-        filtered.enqueue(key);
-        filtered_set.insert(key);
     }
-
-    pending_preview_queue = filtered;
-    pending_preview_keys = filtered_set;
+    if (!active_render_keys.isEmpty()
+        && std::none_of(
+            active_render_keys.cbegin(), active_render_keys.cend(),
+            [this](const auto& key) { return preview_key_relevant(key); }
+        )) {
+        preview_watcher.cancel();
+    }
 }
