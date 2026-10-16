@@ -77,11 +77,25 @@ QString strategy_detail_html(const strategy_data& strategy) {
     const auto text
         = [](const QString& value) { return value.toHtmlEscaped(); };
     const auto absent = str_label("Not provided");
+    // D-STRAT-1 on the felt: gold section labels and a coloured weight strip.
+    const bool felt = theme_settings::felt_chrome();
+    const felt_material material = theme_settings::felt();
+    const QString heading = felt
+        ? QStringLiteral("<h3 style='color:%1; font-family:\"%2\"; "
+                         "font-size:small; font-weight:600'>%3</h3>")
+              .arg(material.gold.name(), material.mono_family)
+        : QStringLiteral("<h3>%1</h3>");
+    const auto section = [&](const QString& title) {
+        return felt ? heading.arg(text(title))
+                    : QStringLiteral("<h3>%1</h3>").arg(text(title));
+    };
     QString html = QStringLiteral("<h2>%1</h2><p>%2</p>")
                        .arg(text(strategy.name), text(strategy.description));
-    html += QStringLiteral("<h3>%1</h3><table border='1' cellspacing='0' "
-                           "cellpadding='4'><tr>")
-                .arg(text(str_label("Count value by rank")));
+    html += section(str_label("Count value by rank"));
+    html += felt ? QStringLiteral("<table border='0' cellspacing='3' "
+                                  "cellpadding='6'><tr>")
+                 : QStringLiteral("<table border='1' cellspacing='0' "
+                                  "cellpadding='4'><tr>");
     const QStringList ranks { QStringLiteral("A"), QStringLiteral("2"),
                               QStringLiteral("3"), QStringLiteral("4"),
                               QStringLiteral("5"), QStringLiteral("6"),
@@ -100,12 +114,28 @@ QString strategy_detail_html(const strategy_data& strategy) {
             ? (strategy.weights[i] > 0 ? QStringLiteral("+") : QString())
                 + QString::number(strategy.weights[i])
             : absent;
-        html += QStringLiteral("<td align='center'><p style='white-space:pre; "
-                               "margin:0'>%1</p></td>")
-                    .arg(text(value));
+        QString cell = QStringLiteral("<td align='center'>");
+        if (felt && i < strategy.weights.size()) {
+            const int weight = strategy.weights[i];
+            cell = QStringLiteral("<td align='center' bgcolor='%1' "
+                                  "style='color:%2; font-family:\"%3\"; "
+                                  "font-weight:600'>")
+                       .arg(
+                           (weight > 0       ? material.right
+                                : weight < 0 ? material.wrong
+                                             : material.inset)
+                               .name(),
+                           (weight == 0 ? material.muted : material.paper)
+                               .name(),
+                           material.mono_family
+                       );
+        }
+        html += cell
+            + QStringLiteral("<p style='white-space:pre; margin:0'>%1</p></td>")
+                  .arg(text(value));
     }
-    html += QStringLiteral("</tr></table><h3>%1</h3><table cellpadding='3'>")
-                .arg(text(str_label("General")));
+    html += QStringLiteral("</tr></table>") + section(str_label("General"))
+        + QStringLiteral("<table cellpadding='3'>");
     const auto field = [&](const QString& label, const QString& value) {
         html += QStringLiteral("<tr><th align='left'>%1</th><td>%2</td></tr>")
                     .arg(text(label), text(value.isEmpty() ? absent : value));
@@ -125,8 +155,8 @@ QString strategy_detail_html(const strategy_data& strategy) {
         str_label("Ace neutral"),
         strategy.ace_neutral ? str_label("Yes") : str_label("No")
     );
-    html += QStringLiteral("</table><h3>%1</h3><table cellpadding='3'>")
-                .arg(text(str_label("Metrics")));
+    html += QStringLiteral("</table>") + section(str_label("Metrics"))
+        + QStringLiteral("<table cellpadding='3'>");
     for (const auto& key : comparison_metric_keys()) {
         const auto value = strategy.metrics.constFind(key);
         field(
@@ -136,8 +166,8 @@ QString strategy_detail_html(const strategy_data& strategy) {
                 : absent
         );
     }
-    html += QStringLiteral("</table><h3>%1</h3>")
-                .arg(text(str_label("Notes / Unique fields")));
+    html += QStringLiteral("</table>")
+        + section(str_label("Notes / Unique fields"));
     if (strategy.unique_fields.isEmpty())
         html += QStringLiteral("<p>%1</p>").arg(text(absent));
     for (auto it = strategy.unique_fields.cbegin();
@@ -148,7 +178,7 @@ QString strategy_detail_html(const strategy_data& strategy) {
                         ))),
                         text(it.value())
                     );
-    html += QStringLiteral("<h3>%1</h3>").arg(text(str_label("References")));
+    html += section(str_label("References"));
     if (strategy.references.isEmpty())
         html += QStringLiteral("<p>%1</p>").arg(text(absent));
     for (const auto& ref : strategy.references) {

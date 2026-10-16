@@ -117,6 +117,9 @@ private:
     bool mobile_lifecycle_paused;
     qint64 last_mobile_checkpoint_elapsed_ms;
     bool compact_toolbar = false;
+    bool felt_chrome = false;
+    QLabel* kit_wordmark = nullptr;
+    QLabel* slot_preview = nullptr;
     desktop_status_strip* desktop_status = nullptr;
     desktop_hud_style gameplay_hud_style = desktop_hud_style::classic;
     int gameplay_default_suit = 0;
@@ -134,6 +137,7 @@ private:
 
     void setup_ui();
     void apply_desktop_presentation();
+    void refresh_slot_preview();
     void update_toolbar_buttons();
     void setup_game_actions();
     void setup_platform_shell();

@@ -330,8 +330,9 @@ void save_desktop_shell_state(const desktop_shell_state& state) {
 
 slot_frame_style desktop_ui_preferences::frame() const {
     return frame_override.value_or(
-        preset == desktop_ui_preset::quiet ? slot_frame_style::thin
-                                           : slot_frame_style::classic
+        preset == desktop_ui_preset::felt        ? slot_frame_style::piping
+            : preset == desktop_ui_preset::quiet ? slot_frame_style::thin
+                                                 : slot_frame_style::classic
     );
 }
 
@@ -344,15 +345,24 @@ quiz_answer_style desktop_ui_preferences::answer() const {
 }
 
 quiz_feedback_style desktop_ui_preferences::feedback() const {
-    return feedback_override.value_or(quiz_feedback_style::classic);
+    return feedback_override.value_or(
+        preset == desktop_ui_preset::felt ? quiz_feedback_style::stamp
+                                          : quiz_feedback_style::classic
+    );
 }
 
 slot_action_style desktop_ui_preferences::actions() const {
-    return actions_override.value_or(slot_action_style::classic);
+    return actions_override.value_or(
+        preset == desktop_ui_preset::felt ? slot_action_style::pills
+                                          : slot_action_style::classic
+    );
 }
 
 slot_settings_style desktop_ui_preferences::settings_surface() const {
-    return settings_override.value_or(slot_settings_style::classic);
+    return settings_override.value_or(
+        preset == desktop_ui_preset::felt ? slot_settings_style::card
+                                          : slot_settings_style::classic
+    );
 }
 
 desktop_toolbar_style desktop_ui_preferences::toolbar() const {
@@ -360,7 +370,17 @@ desktop_toolbar_style desktop_ui_preferences::toolbar() const {
 }
 
 desktop_hud_style desktop_ui_preferences::hud() const {
-    return hud_override.value_or(desktop_hud_style::classic);
+    return hud_override.value_or(
+        preset == desktop_ui_preset::felt ? desktop_hud_style::instruments
+                                          : desktop_hud_style::classic
+    );
+}
+
+desktop_chrome_style desktop_ui_preferences::chrome() const {
+    return chrome_override.value_or(
+        preset == desktop_ui_preset::felt ? desktop_chrome_style::felt
+                                          : desktop_chrome_style::native
+    );
 }
 
 void desktop_ui_preferences::reset_overrides() {
@@ -372,14 +392,17 @@ void desktop_ui_preferences::reset_overrides() {
     settings_override.reset();
     toolbar_override.reset();
     hud_override.reset();
+    chrome_override.reset();
 }
 
 desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
     desktop_ui_preferences result;
     settings.beginGroup(QStringLiteral("desktop_ui"));
-    if (settings.value(QStringLiteral("preset")).toString()
-        == QStringLiteral("quiet")) {
+    const QString preset = settings.value(QStringLiteral("preset")).toString();
+    if (preset == QStringLiteral("quiet")) {
         result.preset = desktop_ui_preset::quiet;
+    } else if (preset == QStringLiteral("felt")) {
+        result.preset = desktop_ui_preset::felt;
     }
     const QString frame
         = settings.value(QStringLiteral("overrides/frame")).toString();
@@ -387,6 +410,8 @@ desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
         result.frame_override = slot_frame_style::classic;
     } else if (frame == QStringLiteral("thin")) {
         result.frame_override = slot_frame_style::thin;
+    } else if (frame == QStringLiteral("piping")) {
+        result.frame_override = slot_frame_style::piping;
     }
     const QString speed
         = settings.value(QStringLiteral("overrides/speed_readout")).toString();
@@ -440,6 +465,12 @@ desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
         result.hud_override = desktop_hud_style::classic;
     else if (hud == QStringLiteral("instruments"))
         result.hud_override = desktop_hud_style::instruments;
+    const auto chrome
+        = settings.value(QStringLiteral("overrides/chrome")).toString();
+    if (chrome == QStringLiteral("native"))
+        result.chrome_override = desktop_chrome_style::native;
+    else if (chrome == QStringLiteral("felt"))
+        result.chrome_override = desktop_chrome_style::felt;
     settings.endGroup();
     return result;
 }
@@ -450,16 +481,18 @@ bool save_desktop_ui_preferences(
     settings.beginGroup(QStringLiteral("desktop_ui"));
     settings.setValue(
         QStringLiteral("preset"),
-        preferences.preset == desktop_ui_preset::quiet
-            ? QStringLiteral("quiet")
+        preferences.preset == desktop_ui_preset::quiet ? QStringLiteral("quiet")
+            : preferences.preset == desktop_ui_preset::felt
+            ? QStringLiteral("felt")
             : QStringLiteral("classic")
     );
     if (preferences.frame_override) {
+        const auto style = *preferences.frame_override;
         settings.setValue(
             QStringLiteral("overrides/frame"),
-            *preferences.frame_override == slot_frame_style::thin
-                ? QStringLiteral("thin")
-                : QStringLiteral("classic")
+            style == slot_frame_style::thin         ? QStringLiteral("thin")
+                : style == slot_frame_style::piping ? QStringLiteral("piping")
+                                                    : QStringLiteral("classic")
         );
     } else {
         settings.remove(QStringLiteral("overrides/frame"));
@@ -536,6 +569,16 @@ bool save_desktop_ui_preferences(
         );
     } else {
         settings.remove(QStringLiteral("overrides/hud"));
+    }
+    if (preferences.chrome_override) {
+        settings.setValue(
+            QStringLiteral("overrides/chrome"),
+            *preferences.chrome_override == desktop_chrome_style::felt
+                ? QStringLiteral("felt")
+                : QStringLiteral("native")
+        );
+    } else {
+        settings.remove(QStringLiteral("overrides/chrome"));
     }
     settings.endGroup();
     settings.sync();

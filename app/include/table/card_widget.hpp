@@ -69,6 +69,8 @@ public:
     // jitter/marking through resize frames; nullopt restores endpoint painting.
     void set_gameplay_layout_rotation(std::optional<qreal> degrees);
     void set_frame_style(slot_frame_style style);
+    // 1-based table position shown by framed presentations; 0 hides it.
+    void set_slot_number(int number);
     void set_show_card_indexing(bool enabled);
     void set_show_strategy_name(bool enabled);
     void set_training_mode(bool enabled);
@@ -125,6 +127,7 @@ private:
     // domain state. Native controls/accessibility remain on the bound widget.
     bool gameplay_paint_external = false;
     slot_frame_style frame_style = slot_frame_style::classic;
+    int slot_number = 0;
     bool show_card_indexing_flag;
     bool show_strategy_name_flag;
     bool training_mode_flag;
@@ -179,6 +182,10 @@ private:
     void
     paint_slot_frame(QPainter& painter, const paint_geometry& geometry) const;
     void paint_deck_content(QPainter& painter, const paint_geometry& geometry);
+    void paint_piping_frame(
+        QPainter& painter, const paint_geometry& geometry, const QColor& fill,
+        const QColor& border
+    ) const;
 
     void update_card_jitter();
     void update_accessible_description();
@@ -208,7 +215,8 @@ private:
         qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset
     );
     void draw_table_marking(
-        QPainter& painter, const QRectF& slot_frame_rect, qreal min_dim
+        QPainter& painter, const QRectF& slot_frame_rect, qreal min_dim,
+        qreal scale = 1.0
     ) const;
     void draw_card_index(
         QPainter& painter, const QRectF& oriented_card_rect,

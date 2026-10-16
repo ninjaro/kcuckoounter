@@ -337,5 +337,83 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     QVERIFY(!save_desktop_ui_preferences(unwritable, value));
 }
 
+void preferences_tests::desktop_felt_preset_and_chrome_round_trip() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const auto path = directory.filePath(QStringLiteral("felt.ini"));
+    QSettings settings(path, QSettings::IniFormat);
+    settings.setValue(
+        QStringLiteral("trainer_preferences/setup/slot_count"), 7
+    );
+    desktop_ui_preferences value;
+    QCOMPARE(value.chrome(), desktop_chrome_style::native);
+    value.preset = desktop_ui_preset::quiet;
+    QCOMPARE(value.chrome(), desktop_chrome_style::native);
+    // Felt fills presentation defaults only; it is not a speed policy.
+    value.preset = desktop_ui_preset::felt;
+    QCOMPARE(value.frame(), slot_frame_style::piping);
+    QCOMPARE(value.answer(), quiz_answer_style::numeric);
+    QCOMPARE(value.feedback(), quiz_feedback_style::stamp);
+    QCOMPARE(value.actions(), slot_action_style::pills);
+    QCOMPARE(value.settings_surface(), slot_settings_style::card);
+    QCOMPARE(value.toolbar(), desktop_toolbar_style::classic);
+    QCOMPARE(value.hud(), desktop_hud_style::instruments);
+    QCOMPARE(value.chrome(), desktop_chrome_style::felt);
+    QVERIFY(value.show_speed_readout());
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QCOMPARE(
+        settings.value(QStringLiteral("desktop_ui/preset")).toString(),
+        QStringLiteral("felt")
+    );
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/chrome")));
+    QCOMPARE(load_desktop_ui_preferences(settings), value);
+
+    value.chrome_override = desktop_chrome_style::native;
+    value.frame_override = slot_frame_style::thin;
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QCOMPARE(load_desktop_ui_preferences(settings), value);
+    QCOMPARE(
+        load_desktop_ui_preferences(settings).chrome(),
+        desktop_chrome_style::native
+    );
+    value.preset = desktop_ui_preset::classic;
+    value.chrome_override = desktop_chrome_style::felt;
+    value.frame_override = slot_frame_style::piping;
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QCOMPARE(
+        settings.value(QStringLiteral("desktop_ui/overrides/frame")).toString(),
+        QStringLiteral("piping")
+    );
+    QCOMPARE(load_desktop_ui_preferences(settings), value);
+    QCOMPARE(
+        load_desktop_ui_preferences(settings).chrome(),
+        desktop_chrome_style::felt
+    );
+    QCOMPARE(
+        load_desktop_ui_preferences(settings).frame(), slot_frame_style::piping
+    );
+
+    value.reset_overrides();
+    QVERIFY(!value.chrome_override);
+    QVERIFY(save_desktop_ui_preferences(settings, value));
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/chrome")));
+    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/frame")));
+    // Values written by a newer build inherit the preset without rewriting.
+    settings.setValue(
+        QStringLiteral("desktop_ui/overrides/chrome"), QStringLiteral("future")
+    );
+    QCOMPARE(load_desktop_ui_preferences(settings).chrome(), value.chrome());
+    QCOMPARE(
+        settings.value(QStringLiteral("desktop_ui/overrides/chrome"))
+            .toString(),
+        QStringLiteral("future")
+    );
+    QCOMPARE(
+        settings.value(QStringLiteral("trainer_preferences/setup/slot_count"))
+            .toInt(),
+        7
+    );
+}
+
 // NOLINTEND(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)

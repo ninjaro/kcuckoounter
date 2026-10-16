@@ -117,6 +117,8 @@ void card_widget::sync_card_sheet_source() {
     picks_since_rasterize = 0;
 
     if (rasterizing) {
+        // Keep one local job until completion, but stop painting an old theme.
+        rasterize_watcher.cancel();
         pending_raster_size = raster_cache_size(card_face_size);
     }
 
@@ -297,7 +299,11 @@ void card_widget::set_rasterizing(bool active) {
 }
 
 void card_widget::on_rasterization_finished() {
-    if (!rasterize_watcher.future().isValid()) {
+    // Cancellation invalidates result access, but an owned job still needs
+    // cleanup and dispatch of the latest demand. Idle notifications do not.
+    if (!rasterizing
+        || (!rasterize_watcher.future().isValid()
+            && !rasterize_watcher.isCanceled())) {
         return;
     }
     // Shared ownership can change before a local job's notification arrives.
@@ -309,22 +315,25 @@ void card_widget::on_rasterization_finished() {
     }
 
     const QString finished_source = raster_task_source;
-    const QVector<QImage> images = rasterize_watcher.result();
+    const bool canceled = rasterize_watcher.isCanceled();
+    const QVector<QImage> images
+        = canceled ? QVector<QImage>() : rasterize_watcher.result();
     // The widget owns accepted rasters; an idle observer need not retain them.
     rasterize_watcher.setFuture(QFuture<QVector<QImage>>());
     const bool source_still_current = finished_source == card_sheet_source;
 
-    if (source_still_current) {
+    if (!canceled && source_still_current) {
         apply_rasterized_images(images, raster_task_size);
     }
 
-    if (!source_still_current && pending_raster_size.isEmpty()
+    if ((canceled || !source_still_current) && pending_raster_size.isEmpty()
         && !card_face_size.isEmpty()) {
         pending_raster_size = raster_cache_size(card_face_size);
     }
 
     if (!pending_raster_size.isEmpty()
-        && (pending_raster_size != raster_task_size || !source_still_current)) {
+        && (canceled || pending_raster_size != raster_task_size
+            || !source_still_current)) {
         const QSize next_size = pending_raster_size;
         start_rasterization(next_size);
         update();

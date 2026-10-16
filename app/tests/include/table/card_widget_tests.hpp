@@ -21,6 +21,8 @@ private slots:
     void local_work_retires_with_ownership();
     void local_work_retires_without_valid_demand_data();
     void local_work_retires_without_valid_demand();
+    void local_theme_change_retires_obsolete_work_data();
+    void local_theme_change_retires_obsolete_work();
     void local_worker_publishes_only_complete_decks_data();
     void local_worker_publishes_only_complete_decks();
     void selected_presentation_reuses_and_invalidates();

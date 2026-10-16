@@ -2,7 +2,9 @@
 
 #include "arch/str_label.hpp"
 #include "settings/preferences.hpp"
+#include "settings/theme_settings.hpp"
 
+#include <QFontMetricsF>
 #include <QLabel>
 #include <QLayout>
 #include <QProgressBar>
@@ -10,6 +12,7 @@
 #include <QStyle>
 
 #include <algorithm>
+#include <cmath>
 #include <initializer_list>
 
 namespace status_strip_support {
@@ -98,8 +101,14 @@ private:
     int preferred_width(int index) const {
         auto* item = itemAt(index);
         int width = item->sizeHint().width();
+        // Fractional advances (e.g. styled monospace) must not wrap a label
+        // that was measured as fitting.
         if (auto* label = qobject_cast<QLabel*>(item->widget()))
-            width = label->fontMetrics().horizontalAdvance(label->text());
+            width = static_cast<int>(
+                        std::ceil(QFontMetricsF(label->font())
+                                      .horizontalAdvance(label->text()))
+                    )
+                + 2;
         return std::clamp(
             width, item->minimumSize().width(), item->maximumSize().width()
         );
@@ -233,5 +242,10 @@ void desktop_status_strip::set_instruments(bool enabled) {
     status->setFont(label_font);
     slider->setTickPosition(enabled ? QSlider::TicksBelow : QSlider::NoTicks);
     slider->setTickInterval(100);
+    // D-HUD-1: a dark instrument strip with tabular figures, whichever window
+    // chrome surrounds it.
+    setStyleSheet(enabled ? theme_settings::felt_hud_style_sheet() : QString());
+    if (enabled)
+        row->setContentsMargins(12, 7, 12, 7);
     row->invalidate();
 }

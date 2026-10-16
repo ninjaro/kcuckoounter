@@ -120,6 +120,9 @@ void main_window::open_gameplay_setup_dialog() {
         scroll->setWidgetResizable(true);
         auto* content = new QWidget(scroll);
         gameplay_setup_layout = new QVBoxLayout(content);
+        // Spare dialog height stays below the form, not inside an empty
+        // status label between the slot count and the global settings.
+        gameplay_setup_layout->setAlignment(Qt::AlignTop);
         auto* notice = new QLabel(
             str_label(
                 "Start saves global defaults and reserves this session for "

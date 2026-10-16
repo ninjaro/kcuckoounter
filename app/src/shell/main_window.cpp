@@ -20,10 +20,14 @@
 
 #include <QDialog>
 #include <QEvent>
+#include <QFormLayout>
 #include <QFrame>
 #include <QGuiApplication>
 #include <QLabel>
 #include <QLayout>
+#include <QMenuBar>
+#include <QPainter>
+#include <QPixmap>
 #include <QPointer>
 #include <QProgressBar>
 #include <QSignalBlocker>
@@ -359,6 +363,18 @@ void main_window::setup_ui() {
     android_ui::apply_combo_box_style(dealing_mode);
 
     form_layout->addRow(str_label("Table slots"), table_slots_count);
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    // D-NEW-1: the slot count drawn as this window's actual packed table.
+    slot_preview = new QLabel(setup_widget);
+    slot_preview->setObjectName(QStringLiteral("setup_slot_preview"));
+    slot_preview->setAlignment(Qt::AlignCenter);
+    slot_preview->setAccessibleName(str_label("Table slot preview"));
+    form_layout->addRow(slot_preview);
+    connect(
+        table_slots_count, &BaseSpinBox::valueChanged, this,
+        &main_window::refresh_slot_preview
+    );
+#endif
     form_layout->addRow(str_label("Quiz mode"), quiz_type);
     form_layout->addRow(wait_for_answers);
     form_layout->addRow(allow_skipping);
@@ -651,11 +667,18 @@ void main_window::apply_desktop_presentation() {
     const auto value = load_desktop_ui_preferences();
     gameplay_hud_style = value.hud();
     gameplay_default_suit = load_default_suit_preference();
+    // Material first: slots read it while restyling their overlays below.
+    felt_chrome = value.chrome() == desktop_chrome_style::felt;
+    theme_settings::set_felt_chrome(felt_chrome);
+    setStyleSheet(
+        felt_chrome ? theme_settings::felt_window_style_sheet() : QString()
+    );
     if (table_widget != nullptr) {
         table_widget->set_frame_style(value.frame());
         table_widget->set_action_style(value.actions());
         table_widget->set_settings_style(value.settings_surface());
         table_widget->set_quiz_presentation(value.answer(), value.feedback());
+        table_widget->refresh_material();
     }
     if (pickup_interval_label != nullptr) {
         pickup_interval_label->setVisible(value.show_speed_readout());
@@ -665,6 +688,16 @@ void main_window::apply_desktop_presentation() {
             value.hud() == desktop_hud_style::instruments
         );
     compact_toolbar = value.toolbar() == desktop_toolbar_style::compact;
+    // Decorative wordmark beside the menus; the toolbar keeps only commands.
+    if (kit_wordmark == nullptr && menuBar() != nullptr) {
+        kit_wordmark = new QLabel(str_label("KCUCKOOUNTER"), menuBar());
+        kit_wordmark->setObjectName(QStringLiteral("kit_wordmark"));
+        kit_wordmark->setAccessibleName(str_label("kcuckoounter"));
+        menuBar()->setCornerWidget(kit_wordmark, Qt::TopLeftCorner);
+    }
+    if (kit_wordmark != nullptr)
+        kit_wordmark->setVisible(felt_chrome);
+    refresh_slot_preview();
     if (primary_toolbar != nullptr) {
         primary_toolbar->setToolButtonStyle(
             compact_toolbar ? Qt::ToolButtonIconOnly
@@ -676,10 +709,65 @@ void main_window::apply_desktop_presentation() {
 #endif
 }
 
+void main_window::refresh_slot_preview() {
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    if (slot_preview == nullptr || table_widget == nullptr)
+        return;
+    if (auto* form = setup_widget->findChild<QFormLayout*>())
+        form->setRowVisible(slot_preview, felt_chrome);
+    if (!felt_chrome)
+        return;
+    const QSizeF area = table_widget->size().isEmpty()
+        ? QSizeF(16.0, 10.0)
+        : QSizeF(table_widget->size());
+    const qreal scale = std::min(240.0 / area.width(), 120.0 / area.height());
+    const QSizeF box = area * scale;
+    const qreal ratio = slot_preview->devicePixelRatioF();
+    QPixmap pixmap((box * ratio).toSize());
+    pixmap.setDevicePixelRatio(ratio);
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    const felt_material material = theme_settings::felt();
+    painter.setPen(QPen(material.line, 1.0));
+    painter.setBrush(theme_settings::table_color());
+    painter.drawRoundedRect(
+        QRectF(QPointF(), box).adjusted(0.5, 0.5, -0.5, -0.5), 6.0, 6.0
+    );
+    painter.setPen(QPen(material.gold, 1.0));
+    painter.setBrush(theme_settings::slot_fill_color());
+    const auto packed
+        = table_widget->preview_slot_layout(table_slots_count->value());
+    for (const QRectF& slot : packed) {
+        const QRectF scaled(
+            slot.x() * scale, slot.y() * scale, slot.width() * scale,
+            slot.height() * scale
+        );
+        painter.drawRoundedRect(
+            scaled.adjusted(2.0, 2.0, -2.0, -2.0), 2.5, 2.5
+        );
+    }
+    painter.end();
+    slot_preview->setPixmap(pixmap);
+#ifdef KC_KDE
+    slot_preview->setToolTip(i18n(
+        "%1 equal slots packed for the current window",
+        static_cast<int>(packed.size())
+    ));
+#else
+    slot_preview->setToolTip(
+        str_label("%1 equal slots packed for the current window")
+            .arg(packed.size())
+    );
+#endif
+#endif
+}
+
 void main_window::update_toolbar_buttons() {
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     if (primary_toolbar == nullptr)
         return;
+    const QColor icon_color = theme_settings::felt().text;
     for (auto* action : primary_toolbar->actions()) {
         auto* button
             = qobject_cast<QToolButton*>(primary_toolbar->widgetForAction(action
@@ -688,9 +776,21 @@ void main_window::update_toolbar_buttons() {
             continue;
         const bool icon_only = compact_toolbar && action != start_pause_action
             && !action->icon().isNull();
+        // Felt keeps labels for the one-bar look; Compact remains icon-only
+        // with icons recoloured for the dark material.
         button->setToolButtonStyle(
-            icon_only ? Qt::ToolButtonIconOnly : Qt::ToolButtonTextBesideIcon
+            icon_only         ? Qt::ToolButtonIconOnly
+                : felt_chrome ? Qt::ToolButtonTextOnly
+                              : Qt::ToolButtonTextBesideIcon
         );
+        if (action == start_pause_action)
+            button->setObjectName(QStringLiteral("game_start_pause_button"));
+        if (felt_chrome && icon_only)
+            button->setIcon(
+                theme_settings::tinted_icon(action->icon(), icon_color)
+            );
+        else if (button->icon().cacheKey() != action->icon().cacheKey())
+            button->setIcon(action->icon());
         button->setFocusPolicy(Qt::StrongFocus);
         button->installEventFilter(this);
     }

@@ -33,6 +33,7 @@ void main_window::open_setup_dialog() {
 #if defined(Q_OS_ANDROID)
         setup_dialog->setWindowState(Qt::WindowMaximized);
 #endif
+        refresh_slot_preview();
         setup_dialog->open();
     }
 }

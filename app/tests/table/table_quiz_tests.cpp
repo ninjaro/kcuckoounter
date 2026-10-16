@@ -705,5 +705,101 @@ void table_tests::quiz_presentation_editor_applies_and_resets() {
     QCOMPARE(slot->capture_session_state(), state);
 }
 
+void table_tests::felt_presentation_restyles_without_session_changes() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop presentation editor");
+#endif
+    struct restore_preferences {
+        desktop_ui_preferences ui = load_desktop_ui_preferences();
+        trainer_preferences trainer = load_trainer_preferences();
+        QColor color = theme_settings::base_color();
+        QString source = card_sheet_source_path();
+
+        ~restore_preferences() {
+            static_cast<void>(save_desktop_ui_preferences(ui));
+            save_trainer_preferences(trainer);
+            theme_settings::set_base_color(color);
+            set_card_sheet_source_path(source);
+            theme_settings::set_felt_chrome(false);
+        }
+    } guard;
+
+    QVERIFY(save_desktop_ui_preferences(desktop_ui_preferences {}));
+    table view;
+    view.resize(800, 600);
+    view.set_slot_count(2);
+    view.show();
+    auto* slot = view.findChild<table_slot*>();
+    QVERIFY(slot != nullptr);
+    slot->start_quiz(0);
+    for (int i = 0; i < 29; ++i)
+        slot->advance_card();
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
+    const auto state = slot->capture_session_state();
+    const auto geometry = slot->geometry();
+    auto* quiz_bar = slot->findChild<QFrame*>(QStringLiteral("quiz_bar_frame"));
+    auto* answer = slot->findChild<QSpinBox*>(QStringLiteral("quiz_spin_box"));
+    QVERIFY(quiz_bar && answer);
+    const QString native_sheet = quiz_bar->styleSheet();
+    settings_shared_state shared;
+    settings_template_widget editor(
+        settings_tab_kind::appearance, nullptr, QString(), &view, &shared
+    );
+    auto* preset
+        = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_preset"));
+    auto* frame
+        = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_frame"));
+    auto* chrome
+        = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_chrome"));
+    auto* reset
+        = editor.findChild<QPushButton*>(QStringLiteral("desktop_ui_reset"));
+    QVERIFY(preset && frame && chrome && reset);
+    QCOMPARE(preset->count(), 3);
+    QCOMPARE(frame->count(), 4);
+    QCOMPARE(chrome->count(), 3);
+    QCOMPARE(chrome->accessibleName(), str_label("Window chrome"));
+
+    preset->setCurrentIndex(2);
+    QVERIFY(!theme_settings::felt_chrome()); // Pending until Save.
+    QVERIFY(editor.apply_theme_settings());
+    const auto felt = load_desktop_ui_preferences();
+    QCOMPARE(felt.preset, desktop_ui_preset::felt);
+    QCOMPARE(felt.frame(), slot_frame_style::piping);
+    QCOMPARE(felt.chrome(), desktop_chrome_style::felt);
+    QVERIFY(!felt.chrome_override);
+    QVERIFY(theme_settings::felt_chrome());
+    QVERIFY(quiz_bar->styleSheet() != native_sheet);
+    QCOMPARE(answer->buttonSymbols(), QAbstractSpinBox::NoButtons);
+    QCOMPARE(slot->capture_session_state(), state);
+    QCOMPARE(slot->geometry(), geometry);
+
+    // Chrome is an independent override; the preset keeps its frame.
+    chrome->setCurrentIndex(1);
+    QVERIFY(editor.apply_theme_settings());
+    QVERIFY(!theme_settings::felt_chrome());
+    QCOMPARE(quiz_bar->styleSheet(), native_sheet);
+    QCOMPARE(answer->buttonSymbols(), QAbstractSpinBox::UpDownArrows);
+    QCOMPARE(load_desktop_ui_preferences().frame(), slot_frame_style::piping);
+    QCOMPARE(
+        load_desktop_ui_preferences().chrome_override,
+        std::optional(desktop_chrome_style::native)
+    );
+    chrome->setCurrentIndex(0);
+    editor.reset_theme_selection();
+    QCOMPARE(chrome->currentIndex(), 1);
+    QCOMPARE(preset->currentIndex(), 2);
+    reset->click();
+    QCOMPARE(chrome->currentIndex(), 0);
+    QVERIFY(editor.apply_theme_settings());
+    QVERIFY(theme_settings::felt_chrome());
+    QVERIFY(!load_desktop_ui_preferences().chrome_override);
+    preset->setCurrentIndex(0);
+    QVERIFY(editor.apply_theme_settings());
+    QVERIFY(!theme_settings::felt_chrome());
+    QCOMPARE(quiz_bar->styleSheet(), native_sheet);
+    QCOMPARE(slot->capture_session_state(), state);
+    QCOMPARE(slot->geometry(), geometry);
+}
+
 // NOLINTEND(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)

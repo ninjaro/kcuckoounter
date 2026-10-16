@@ -581,6 +581,15 @@ void table::apply_theme() {
     update_shared_card_face_need();
 }
 
+void table::refresh_material() {
+    for (table_slot* slot_widget : slot_widgets) {
+        slot_widget->update_overlay_palette(); // also restyles quiz controls
+        slot_widget->update_action_presentation();
+        slot_widget->update_overlay_layout();
+        slot_widget->card_widget_internal->update();
+    }
+}
+
 void table::on_slot_swap(table_slot* slot) {
     if (slot == nullptr) {
         return;

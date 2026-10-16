@@ -55,6 +55,26 @@ packing_orientation(card_orientation_mode orientation) noexcept {
 
 } // namespace table_layout
 
+QVector<QRectF> table::preview_slot_layout(int count) const {
+    QVector<QRectF> rectangles;
+    if (count <= 0 || width() <= 0 || height() <= 0)
+        return rectangles;
+    const auto [long_side, short_side] = card_sheet_ratio();
+    const auto packed = packing::pack_equal_rectangles({
+        .container
+        = { static_cast<double>(width()), static_cast<double>(height()) },
+        .item
+        = { static_cast<double>(long_side), static_cast<double>(short_side) },
+        .count = static_cast<std::size_t>(count),
+        .orientation = table_layout::packing_orientation(card_orientation),
+    });
+    for (const auto& rectangle : packed.rectangles)
+        rectangles.append(
+            QRectF(rectangle.x, rectangle.y, rectangle.width, rectangle.height)
+        );
+    return rectangles;
+}
+
 std::optional<packing::equal_packing_result>
 table::pack_gameplay_slots(std::size_t count) const {
     if (width() <= 0 || height() <= 0)
@@ -96,6 +116,10 @@ void table::project_gameplay_layout() {
                    ->sample(gameplay_layout_progress);
         const auto rotation = gameplay_rotation_paths[index];
         auto* slot = slot_widgets[index];
+        // Notches label the physical frame, matching review's "Current slot".
+        slot->card_widget_internal->set_slot_number(
+            static_cast<int>(gameplay_owner->slot_for({ index })->value) + 1
+        );
         slot->card_widget_internal->gameplay_paint_external
             = gameplay_content_motion;
         slot->set_rotated(motion->to.rotated); // Controls stay upright/native.
@@ -263,6 +287,7 @@ void table::update_layout() {
         const packing::rectangle& card = result.rectangles[i];
 
         table_slot* slot = slot_widgets[i];
+        slot->card_widget_internal->set_slot_number(static_cast<int>(i) + 1);
         slot->set_rotated(card.rotated);
         slot->setGeometry(
             static_cast<int>(card.x), static_cast<int>(card.y),

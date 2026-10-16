@@ -14,6 +14,7 @@
 #include <QFutureWatcher>
 #include <QImage>
 #include <QPromise>
+#include <QRectF>
 #include <QSet>
 #include <QSize>
 #include <QString>
@@ -154,6 +155,11 @@ public:
     void schedule_card_preload();
     void prepare_cards_for_start();
     void apply_theme();
+    // Restyles slot controls for the current window chrome; no repacking.
+    void refresh_material();
+    // Packed rectangles a classic table of this size would use for count
+    // slots. Launch previews only; slots and raster demand are untouched.
+    [[nodiscard]] QVector<QRectF> preview_slot_layout(int count) const;
     bool is_rasterization_busy() const;
     raster_cache* shared_raster_cache_service();
     const raster_cache* shared_raster_cache_service() const;

@@ -152,6 +152,24 @@ void card_widget_tests::frame_choice_only_changes_presentation() {
     QCOMPARE(widget.card_offset, offset);
     QCOMPARE(widget.discard_history.size(), history_size);
     QVERIFY(!widget.rasterizing);
+    // Gold piping paints its notch labels on the frame line only.
+    widget.set_frame_style(slot_frame_style::piping);
+    widget.set_slot_number(3);
+    QImage piping(widget.size(), QImage::Format_ARGB32_Premultiplied);
+    piping.fill(Qt::transparent);
+    widget.render(&piping);
+    QVERIFY(piping != classic && piping != thin);
+    widget.set_slot_number(4);
+    QImage renumbered(widget.size(), QImage::Format_ARGB32_Premultiplied);
+    renumbered.fill(Qt::transparent);
+    widget.render(&renumbered);
+    QVERIFY(renumbered != piping);
+    QCOMPARE(widget.capture_session_state(), state);
+    QCOMPARE(widget.card_face_target_size(), target_size);
+    QCOMPARE(widget.card_rotation_deg, rotation);
+    QCOMPARE(widget.card_offset, offset);
+    QCOMPARE(widget.discard_history.size(), history_size);
+    QVERIFY(!widget.rasterizing);
     widget.set_frame_style(slot_frame_style::classic);
     QImage restored(widget.size(), QImage::Format_ARGB32_Premultiplied);
     restored.fill(Qt::transparent);
@@ -172,8 +190,10 @@ void card_widget_tests::rotated_stack_stays_inside_slot() {
         widget.resize(size);
         widget.set_slot_rotated(size.height() > size.width());
         for (const auto style :
-             { slot_frame_style::classic, slot_frame_style::thin }) {
+             { slot_frame_style::classic, slot_frame_style::thin,
+               slot_frame_style::piping }) {
             widget.set_frame_style(style);
+            widget.set_slot_number(12);
             for (const qreal angle : { -3.5, 3.5 }) {
                 widget.card_rotation_deg = angle;
                 widget.card_offset = QPointF(7.2, 7.2);

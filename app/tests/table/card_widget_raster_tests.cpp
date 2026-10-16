@@ -175,7 +175,7 @@ void card_widget_tests::local_resize_coalesces_latest_demand() {
     const bool follow_up
         = change_source || (!retained_cache && wanted != active_raster);
     QCOMPARE(widget.pending_raster_size, follow_up ? wanted : QSize());
-    QVERIFY(!current.isCanceled());
+    QCOMPARE(current.isCanceled(), change_source);
     QCOMPARE(busy.size(), 1);
     if (!completed) {
         producer.finish();
@@ -202,6 +202,128 @@ void card_widget_tests::local_resize_coalesces_latest_demand() {
     QCOMPARE(busy.at(1).front().toBool(), false);
     QCoreApplication::processEvents();
     QVERIFY(!widget.rasterizing);
+}
+
+void card_widget_tests::local_theme_change_retires_obsolete_work_data() {
+    QTest::addColumn<int>("route");
+    QTest::addColumn<bool>("completed");
+    QTest::addColumn<bool>("resize");
+    for (bool completed : { false, true }) {
+        for (bool resize : { false, true }) {
+            const QByteArray suffix
+                = QByteArray(completed ? "-awaiting-delivery" : "-running")
+                + (resize ? "-resized" : "-same-size");
+            QTest::newRow(("alternate" + suffix).constData())
+                << 0 << completed << resize;
+            QTest::newRow(("return-to-original" + suffix).constData())
+                << 1 << completed << resize;
+            QTest::newRow(("newest-theme" + suffix).constData())
+                << 2 << completed << resize;
+        }
+    }
+}
+
+void card_widget_tests::local_theme_change_retires_obsolete_work() {
+    QFETCH(int, route);
+    QFETCH(bool, completed);
+    QFETCH(bool, resize);
+    const QString original_source = card_sheet_source_path();
+    const auto restore_source = qScopeGuard([&original_source] {
+        set_card_sheet_source_path(original_source);
+    });
+    const QString source
+        = bundled_asset_path(QStringLiteral("sets/cards/cards_0.svg"));
+    const QString alternate
+        = bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg"));
+    set_card_sheet_source_path(source);
+    const QSize initial(20, 30);
+    const QSize raster = card_widget::raster_cache_size(initial);
+    const auto snapshot = rasterize_card_faces_with_fallback(source, raster);
+    QCOMPARE(snapshot.size(), 55);
+
+    QPromise<QVector<QImage>> producer;
+    QPromise<QVector<QImage>> independent_producer;
+    producer.start();
+    independent_producer.start();
+    const auto obsolete = producer.future();
+    const auto independent = independent_producer.future();
+    QVERIFY(producer.addResult(snapshot));
+    QVERIFY(independent_producer.addResult(snapshot));
+    if (completed) {
+        producer.finish();
+    }
+    const auto initialize
+        = [&](card_widget& view, const QFuture<QVector<QImage>>& future) {
+              view.raster_task_source = source;
+              view.raster_task_size = raster;
+              view.card_face_size = initial;
+              view.set_rasterizing(true);
+              view.rasterize_watcher.setFuture(future);
+              view.update_card_faces(initial);
+          };
+    card_widget widget;
+    card_widget survivor;
+    QSignalSpy busy(&widget, &card_widget::rasterization_busy_changed);
+    initialize(widget, obsolete);
+    initialize(survivor, independent);
+
+    widget.sync_card_sheet_source();
+    QVERIFY(!obsolete.isCanceled());
+    set_card_sheet_source_path(alternate);
+    widget.sync_card_sheet_source();
+    QVERIFY(obsolete.isCanceled());
+    QVERIFY(widget.rasterizing);
+    QVERIFY(widget.card_faces_rasterized.isEmpty());
+    QVERIFY(!independent.isCanceled());
+    QCOMPARE(widget.raster_task_source, source);
+    QCOMPARE(widget.rasterize_watcher.isFinished(), completed);
+
+    const QSize wanted = resize ? QSize(28, 42) : initial;
+    widget.update_card_faces(wanted);
+    if (route != 0) {
+        set_card_sheet_source_path(
+            route == 1
+                ? source
+                : bundled_asset_path(QStringLiteral("sets/cards/cards_40.svg"))
+        );
+        widget.sync_card_sheet_source();
+    }
+    widget.sync_card_sheet_source();
+    QCOMPARE(busy.size(), 1);
+    if (!completed) {
+        QVERIFY(!producer.addResult(snapshot));
+        producer.finish();
+    }
+    widget.rasterize_watcher.waitForFinished();
+    QVERIFY(widget.rasterizing);
+    QVERIFY(widget.card_faces_rasterized.isEmpty());
+    QVERIFY(!widget.rasterize_watcher.isCanceled());
+    QCOMPARE(widget.raster_task_source, card_sheet_source_path());
+    QCOMPARE(widget.raster_task_size, card_widget::raster_cache_size(wanted));
+    QCOMPARE(widget.pending_raster_size, QSize());
+    QCOMPARE(busy.size(), 1);
+    widget.rasterize_watcher.waitForFinished();
+    QVERIFY(!widget.rasterizing);
+    QCOMPARE(widget.card_face_size, wanted);
+    QCOMPARE(widget.card_face_raster_size, widget.raster_task_size);
+    QCOMPARE(
+        widget.card_faces_rasterized,
+        rasterize_card_faces_with_fallback(
+            card_sheet_source_path(), widget.raster_task_size
+        )
+    );
+    QCOMPARE(busy.size(), 2);
+    QCOMPARE(busy.at(0).front().toBool(), true);
+    QCOMPARE(busy.at(1).front().toBool(), false);
+    independent_producer.finish();
+    survivor.rasterize_watcher.waitForFinished();
+    QVERIFY(!survivor.rasterizing);
+    QVERIFY(!independent.isCanceled());
+    QCOMPARE(survivor.card_faces_rasterized, snapshot);
+    widget.on_rasterization_finished();
+    QCoreApplication::processEvents();
+    QVERIFY(!widget.rasterizing);
+    QCOMPARE(busy.size(), 2);
 }
 
 void card_widget_tests::shared_faces_disable_local_rasterization() {

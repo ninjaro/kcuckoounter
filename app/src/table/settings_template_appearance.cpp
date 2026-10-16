@@ -212,7 +212,8 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
     ui_preset_combo = new BaseComboBox(this);
     ui_preset_combo->setObjectName(QStringLiteral("desktop_ui_preset"));
     ui_preset_combo->setAccessibleName(str_label("Desktop UI preset"));
-    ui_preset_combo->addItems({ str_label("Classic"), str_label("Quiet") });
+    ui_preset_combo->addItems({ str_label("Classic"), str_label("Quiet"),
+                                str_label("Felt") });
     ui_preset_combo->setToolTip(str_label(
         "Presentation only; does not change game rules, palette or card "
         "artwork."
@@ -222,8 +223,8 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
     ui_frame_combo->setObjectName(QStringLiteral("desktop_ui_frame"));
     ui_frame_combo->setAccessibleName(str_label("Slot frame"));
     ui_frame_combo->addItems({ str_label("Preset default"),
-                               str_label("Classic"), str_label("Thin outline") }
-    );
+                               str_label("Classic"), str_label("Thin outline"),
+                               str_label("Gold piping") });
     layout->addRow(str_label("Slot frame"), ui_frame_combo);
     ui_speed_combo = new BaseComboBox(this);
     ui_speed_combo->setObjectName(QStringLiteral("desktop_ui_speed_readout"));
@@ -299,6 +300,16 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
         "emphasis and slider ticks, not new scoring or speed rules."
     ));
     layout->addRow(str_label("Session HUD"), ui_hud_combo);
+    ui_chrome_combo = new BaseComboBox(this);
+    ui_chrome_combo->setObjectName(QStringLiteral("desktop_ui_chrome"));
+    ui_chrome_combo->setAccessibleName(str_label("Window chrome"));
+    ui_chrome_combo->addItems({ str_label("Preset default"),
+                                str_label("Native"), str_label("Felt") });
+    ui_chrome_combo->setToolTip(str_label(
+        "Material of the menus, toolbar, status strip and slot controls. "
+        "Table palette, card artwork and game rules are unchanged."
+    ));
+    layout->addRow(str_label("Window chrome"), ui_chrome_combo);
     auto* reset
         = new QPushButton(str_label("Reset components to preset"), this);
     reset->setObjectName(QStringLiteral("desktop_ui_reset"));
@@ -312,6 +323,7 @@ void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
         ui_settings_combo->setCurrentIndex(0);
         ui_toolbar_combo->setCurrentIndex(0);
         ui_hud_combo->setCurrentIndex(0);
+        ui_chrome_combo->setCurrentIndex(0);
     };
     connect(ui_preset_combo, &QComboBox::activated, this, reset_overrides);
     connect(reset, &QPushButton::clicked, this, reset_overrides);
@@ -327,12 +339,15 @@ void settings_template_widget::reset_desktop_component_selection() {
     }
     const auto value = load_desktop_ui_preferences();
     ui_preset_combo->setCurrentIndex(
-        value.preset == desktop_ui_preset::quiet ? 1 : 0
+        value.preset == desktop_ui_preset::quiet      ? 1
+            : value.preset == desktop_ui_preset::felt ? 2
+                                                      : 0
     );
     ui_frame_combo->setCurrentIndex(
-        !value.frame_override                                 ? 0
-            : *value.frame_override == slot_frame_style::thin ? 2
-                                                              : 1
+        !value.frame_override                                   ? 0
+            : *value.frame_override == slot_frame_style::thin   ? 2
+            : *value.frame_override == slot_frame_style::piping ? 3
+                                                                : 1
     );
     ui_speed_combo->setCurrentIndex(
         !value.speed_readout_override       ? 0
@@ -372,6 +387,11 @@ void settings_template_widget::reset_desktop_component_selection() {
             : *value.hud_override == desktop_hud_style::instruments ? 2
                                                                     : 1
     );
+    ui_chrome_combo->setCurrentIndex(
+        !value.chrome_override                                     ? 0
+            : *value.chrome_override == desktop_chrome_style::felt ? 2
+                                                                   : 1
+    );
 }
 
 desktop_ui_preferences
@@ -382,11 +402,13 @@ settings_template_widget::selected_desktop_components() const {
     }
     value.preset = ui_preset_combo->currentIndex() == 1
         ? desktop_ui_preset::quiet
-        : desktop_ui_preset::classic;
+        : ui_preset_combo->currentIndex() == 2 ? desktop_ui_preset::felt
+                                               : desktop_ui_preset::classic;
     if (ui_frame_combo->currentIndex() > 0) {
         value.frame_override = ui_frame_combo->currentIndex() == 2
             ? slot_frame_style::thin
-            : slot_frame_style::classic;
+            : ui_frame_combo->currentIndex() == 3 ? slot_frame_style::piping
+                                                  : slot_frame_style::classic;
     }
     if (ui_speed_combo->currentIndex() > 0) {
         value.speed_readout_override = ui_speed_combo->currentIndex() == 1;
@@ -426,6 +448,11 @@ settings_template_widget::selected_desktop_components() const {
         value.hud_override = ui_hud_combo->currentIndex() == 2
             ? desktop_hud_style::instruments
             : desktop_hud_style::classic;
+    }
+    if (ui_chrome_combo->currentIndex() > 0) {
+        value.chrome_override = ui_chrome_combo->currentIndex() == 2
+            ? desktop_chrome_style::felt
+            : desktop_chrome_style::native;
     }
     return value;
 }
@@ -469,12 +496,16 @@ bool settings_template_widget::apply_theme_settings() {
         }
         if (ui_preset_combo != nullptr) {
             const auto components = selected_desktop_components();
+            theme_settings::set_felt_chrome(
+                components.chrome() == desktop_chrome_style::felt
+            );
             table_widget->set_frame_style(components.frame());
             table_widget->set_action_style(components.actions());
             table_widget->set_settings_style(components.settings_surface());
             table_widget->set_quiz_presentation(
                 components.answer(), components.feedback()
             );
+            table_widget->refresh_material();
         }
     }
     emit desktop_presentation_applied();

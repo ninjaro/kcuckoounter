@@ -280,6 +280,14 @@ void card_widget::set_frame_style(slot_frame_style style) {
     update(); // No geometry, jitter, deck or raster-cache invalidation.
 }
 
+void card_widget::set_slot_number(int number) {
+    if (slot_number == number)
+        return;
+    slot_number = number;
+    if (frame_style == slot_frame_style::piping)
+        update();
+}
+
 void card_widget::set_show_card_indexing(bool enabled) {
     if (show_card_indexing_flag == enabled) {
         return;

@@ -20,14 +20,16 @@ struct strategy_catalog;
 
 enum class card_orientation_mode { automatic, vertical, horizontal };
 
-enum class slot_frame_style { classic, thin };
+enum class slot_frame_style { classic, thin, piping };
 enum class quiz_answer_style { numeric, chips };
 enum class quiz_feedback_style { classic, stamp };
 enum class slot_action_style { classic, rail, pills };
 enum class slot_settings_style { classic, card, drawer, sill };
 enum class desktop_toolbar_style { classic, compact };
 enum class desktop_hud_style { classic, instruments };
-enum class desktop_ui_preset { classic, quiet };
+// Window/dialog material around the table; never a palette or artwork choice.
+enum class desktop_chrome_style { native, felt };
+enum class desktop_ui_preset { classic, quiet, felt };
 
 // Presentation only: never put session/drill or artwork settings here.
 struct desktop_ui_preferences {
@@ -40,6 +42,7 @@ struct desktop_ui_preferences {
     std::optional<slot_settings_style> settings_override;
     std::optional<desktop_toolbar_style> toolbar_override;
     std::optional<desktop_hud_style> hud_override;
+    std::optional<desktop_chrome_style> chrome_override;
 
     [[nodiscard]] slot_frame_style frame() const;
     [[nodiscard]] bool show_speed_readout() const;
@@ -49,6 +52,7 @@ struct desktop_ui_preferences {
     [[nodiscard]] slot_settings_style settings_surface() const;
     [[nodiscard]] desktop_toolbar_style toolbar() const;
     [[nodiscard]] desktop_hud_style hud() const;
+    [[nodiscard]] desktop_chrome_style chrome() const;
     void reset_overrides();
     bool operator==(const desktop_ui_preferences&) const = default;
 };

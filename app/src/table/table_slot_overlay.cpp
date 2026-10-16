@@ -129,6 +129,7 @@ void table_slot::setup_overlay() {
     quiz_feedback_layout->setSpacing(2);
 
     quiz_weight_label = new QLabel(str_label("Weight"), quiz_bar_widget);
+    quiz_weight_label->setObjectName(QStringLiteral("quiz_weight_label"));
     quiz_spin_box = new BaseSpinBox(quiz_bar_widget);
     quiz_weight_label->setBuddy(quiz_spin_box);
     quiz_spin_box->setAccessibleName(str_label("Card-count answer"));
@@ -348,6 +349,12 @@ void table_slot::apply_palette_to_widget(
     palette.setColor(QPalette::Text, accent_color);
     palette.setColor(QPalette::Button, panel_color);
     palette.setColor(QPalette::Base, input_color);
+    if (theme_settings::felt_chrome()) {
+        widget->setStyleSheet(theme_settings::felt_overlay_style_sheet());
+        widget->setPalette(palette);
+        widget->setAutoFillBackground(false);
+        return;
+    }
     widget->setStyleSheet(
         QString(
             "QLabel { color: %1; background-color: transparent; }"
@@ -401,12 +408,15 @@ void table_slot::update_overlay_layout() {
     );
 
     if (quiz_prompt_active) {
-        overlay_layout->addStretch();
+        // Felt docks the prompt below the raised quiz marking.
+        const bool docked = theme_settings::felt_chrome()
+            && overlay_layout->direction() == QBoxLayout::TopToBottom;
+        overlay_layout->addStretch(docked ? 3 : 1);
         overlay_layout->addWidget(quiz_bar_widget, 0, Qt::AlignCenter);
         if (gameplay_owner
             && gameplay_owner->phase() == gameplay::session_phase::paused)
             overlay_layout->addWidget(swap_bar_widget, 0, Qt::AlignCenter);
-        overlay_layout->addStretch();
+        overlay_layout->addStretch(1);
     } else {
         overlay_layout->addWidget(settings_bar_widget, 0, Qt::AlignCenter);
         overlay_layout->addStretch();

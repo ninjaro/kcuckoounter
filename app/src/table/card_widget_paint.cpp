@@ -5,8 +5,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/theme_settings.hpp"
 #include <QColor>
+#include <QFontMetricsF>
 #include <QPaintEvent>
 #include <QPainter>
+#include <QRadialGradient>
 #include <QResizeEvent>
 #include <QSize>
 #include <QSizeF>
@@ -15,6 +17,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 qreal card_widget::compute_font_point_size(const QRectF& card_rect) {
     qreal point_size = card_rect.height() * 0.10;
@@ -157,11 +160,109 @@ void card_widget::paint_slot_frame(
         : (failed ? QColor(35, 35, 35)
                   : (completed ? QColor(40, 110, 70)
                                : theme_settings::slot_border_color()));
+    if (frame_style == slot_frame_style::piping) {
+        paint_piping_frame(
+            painter, geometry, slot_fill_color, slot_border_color
+        );
+        return;
+    }
     painter.setPen(QPen(
         slot_border_color, frame_style == slot_frame_style::thin ? 1.0 : 6.6
     ));
     painter.setBrush(QBrush(slot_fill_color));
     painter.drawRoundedRect(geometry.frame, 10.0, 10.0);
+}
+
+void card_widget::paint_piping_frame(
+    QPainter& painter, const paint_geometry& geometry, const QColor& fill,
+    const QColor& border
+) const {
+    // D-SLOT-2: a hairline gold frame with a soft outer bloom, the slot
+    // number in a top notch and shoe position/strategy in a bottom notch.
+    // Notches sit on the frame line, so the card keeps its full safe area.
+    const QRectF& frame = geometry.frame;
+    painter.save();
+    painter.setBrush(Qt::NoBrush);
+    for (const auto& [spread, alpha] :
+         { std::pair { 4.0, 22 }, std::pair { 2.0, 48 } }) {
+        QColor bloom = border;
+        bloom.setAlpha(alpha);
+        painter.setPen(QPen(bloom, spread));
+        painter.drawRoundedRect(
+            frame.adjusted(
+                -spread / 2.0, -spread / 2.0, spread / 2.0, spread / 2.0
+            ),
+            11.0, 11.0
+        );
+    }
+    QRadialGradient felt(
+        frame.center().x(), frame.top(), std::max(frame.width(), frame.height())
+    );
+    felt.setColorAt(0.0, fill.lighter(122));
+    felt.setColorAt(1.0, fill);
+    painter.setBrush(felt);
+    painter.setPen(QPen(border, 1.5));
+    painter.drawRoundedRect(frame, 10.0, 10.0);
+
+    if (geometry.min_dim < 64.0) {
+        painter.restore();
+        return;
+    }
+    const felt_material material = theme_settings::felt();
+    QFont notch_font(material.mono_family);
+    notch_font.setPixelSize(
+        static_cast<int>(std::clamp(geometry.min_dim * 0.04, 9.0, 12.0))
+    );
+    notch_font.setWeight(QFont::DemiBold);
+    notch_font.setLetterSpacing(QFont::AbsoluteSpacing, 1.6);
+    painter.setFont(notch_font);
+    const QFontMetricsF metrics(notch_font);
+    const auto draw_notch = [&](const QString& text, qreal center_y) {
+        const QString shown = metrics.elidedText(
+            text, Qt::ElideRight, std::max(0.0, frame.width() - 48.0)
+        );
+        if (shown.isEmpty())
+            return;
+        const QSizeF size(
+            metrics.horizontalAdvance(shown) + 20.0, metrics.height() + 6.0
+        );
+        QRectF notch(
+            QPointF(
+                frame.center().x() - size.width() / 2.0,
+                center_y - size.height() / 2.0
+            ),
+            size
+        );
+        notch.moveTop(std::clamp(
+            notch.top(), 0.0,
+            std::max(0.0, static_cast<qreal>(height()) - size.height())
+        ));
+        painter.setPen(QPen(border, 1.0));
+        painter.setBrush(material.deep);
+        painter.drawRoundedRect(
+            notch, size.height() / 2.0, size.height() / 2.0
+        );
+        painter.setPen(border);
+        painter.drawText(notch, Qt::AlignCenter, shown);
+    };
+    if (slot_number > 0) {
+        const QString number
+            = QStringLiteral("%1").arg(slot_number, 2, 10, QLatin1Char('0'));
+#ifdef KC_KDE
+        draw_notch(i18n("SLOT %1", number), frame.top());
+#else
+        draw_notch(str_label("SLOT %1").arg(number), frame.top());
+#endif
+    }
+    QStringList footer;
+    if (!gameplay_owner && show_strategy_name_flag && !strategy_name.isEmpty())
+        footer.append(strategy_name.toUpper());
+    const QString index = current_index_text();
+    if (!index.isEmpty())
+        footer.append(index);
+    if (!footer.isEmpty())
+        draw_notch(footer.join(QStringLiteral(" · ")), frame.bottom());
+    painter.restore();
 }
 
 void card_widget::paint_deck_content(
@@ -192,7 +293,19 @@ void card_widget::paint_deck_content(
 
     const auto target_lines = gameplay_extra_lines();
     if (display_hidden()) {
-        draw_table_marking(painter, slot_frame_rect, min_dim);
+        if (theme_settings::felt_chrome()) {
+            // Felt docks the answer panel below the quiz marking instead of
+            // covering its middle; the marking keeps its raster size.
+            draw_table_marking(
+                painter,
+                slot_frame_rect.adjusted(
+                    0.0, 0.0, 0.0, -slot_frame_rect.height() * 0.42
+                ),
+                min_dim, 0.72
+            );
+        } else {
+            draw_table_marking(painter, slot_frame_rect, min_dim);
+        }
         draw_card_index(
             painter, oriented_card_rect, slot_rotation_deg, rendered_offset
         );
@@ -293,7 +406,9 @@ void card_widget::paint_deck_content(
     }
 
     QStringList extra_lines = target_lines;
-    if (!target && show_strategy_name_flag && !strategy_name.isEmpty()) {
+    const bool piping = frame_style == slot_frame_style::piping;
+    if (!target && !piping && show_strategy_name_flag
+        && !strategy_name.isEmpty()) {
         extra_lines.append(strategy_name);
     }
     if (!target && training_mode_flag) {
@@ -356,11 +471,11 @@ void card_widget::apply_card_transform(
 }
 
 void card_widget::draw_table_marking(
-    QPainter& painter, const QRectF& slot_frame_rect, qreal min_dim
+    QPainter& painter, const QRectF& slot_frame_rect, qreal min_dim, qreal scale
 ) const {
     if (table_marking.is_ready()) {
         const QPixmap& marking = table_marking.pixmap();
-        const QSizeF marking_size = table_marking.display_size();
+        const QSizeF marking_size = table_marking.display_size() * scale;
         const QPointF marking_top_left(
             slot_frame_rect.center().x() - marking_size.width() / 2.0,
             slot_frame_rect.center().y() - marking_size.height() / 2.0
@@ -443,7 +558,7 @@ void card_widget::draw_card_index(
     qreal slot_rotation_deg, const QPointF& offset
 ) const {
     const QString index_text = current_index_text();
-    if (index_text.isEmpty()) {
+    if (index_text.isEmpty() || frame_style == slot_frame_style::piping) {
         return;
     }
 

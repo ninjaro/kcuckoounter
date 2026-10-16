@@ -23,6 +23,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QResizeEvent>
+#include <QStackedLayout>
 #include <QString>
 #include <QVBoxLayout>
 #include <QtGlobal>
@@ -49,6 +50,8 @@ void table_slot::update_action_presentation() {
           { copy_button, copy_label },
           { copy_all_button, str_label("Copy all") } }
     };
+    const bool felt = theme_settings::felt_chrome();
+    const felt_material material = theme_settings::felt();
     copy_button->setToolTip(
         current_copy_action == copy_action::cancel
             ? str_label("Cancel copying settings")
@@ -66,18 +69,46 @@ void table_slot::update_action_presentation() {
                 : label
         );
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+        // Keep the native icon so leaving the felt chrome restores it.
+        if (!button->property("native_icon").isValid())
+            button->setProperty("native_icon", button->icon());
+        const auto native_icon = button->property("native_icon").value<QIcon>();
+        if (felt) {
+            button->setIcon(
+                action_style == slot_action_style::pills
+                    ? QIcon()
+                    : theme_settings::tinted_icon(native_icon, material.text)
+            );
+        } else {
+            button->setIcon(native_icon);
+        }
         button->setStyleSheet(
             action_style == slot_action_style::rail
-                ? QStringLiteral(
-                      "QPushButton { min-width: 24px; min-height: 24px; "
-                      "padding: 4px; } QPushButton:focus { border-style: "
-                      "dashed; }"
-                  )
+                ? (felt ? theme_settings::felt_style(QStringLiteral(
+                              "QPushButton { min-width: 26px; min-height: "
+                              "26px; padding: 4px; border-radius: 6px; } "
+                              "QPushButton:checked { background: $gold$; "
+                              "border-color: $gold$; }"
+                          ))
+                        : QStringLiteral(
+                              "QPushButton { min-width: 24px; min-height: "
+                              "24px; padding: 4px; } QPushButton:focus { "
+                              "border-style: dashed; }"
+                          ))
                 : action_style == slot_action_style::pills
-                ? QStringLiteral(
-                      "QPushButton { border-radius: 12px; padding: 6px 12px; } "
-                      "QPushButton:focus { border-style: dashed; }"
-                  )
+                ? (felt ? theme_settings::felt_style(QStringLiteral(
+                              "QPushButton { border-radius: 13px; padding: "
+                              "6px 14px; background: $inset$; border: 1px "
+                              "solid $gold_line$; font-weight: 600; } "
+                              "QPushButton:hover { border-color: $gold$; } "
+                              "QPushButton:focus { border: 1px dashed "
+                              "$gold_light$; }"
+                          ))
+                        : QStringLiteral(
+                              "QPushButton { border-radius: 12px; padding: 6px "
+                              "12px; } QPushButton:focus { border-style: "
+                              "dashed; }"
+                          ))
                 : QString()
         );
 #endif
@@ -113,10 +144,7 @@ void table_slot::setup_quiz_chips() {
         button->setAutoDefault(false);
         button->setAccessibleName(description);
         button->setToolTip(button->accessibleName());
-        button->setStyleSheet(QStringLiteral(
-            "QPushButton { border-radius: 18px; min-width: 36px; min-height: "
-            "36px; padding: 0px; font-weight: 600; }"
-        ));
+        button->setProperty("chip_step", step);
         button->installEventFilter(this);
         row->addWidget(button);
         QWidget::setTabOrder(previous, button);
@@ -170,9 +198,39 @@ void table_slot::update_quiz_presentation() {
     const bool controls_had_focus
         = focused != nullptr && overlay_widget->isAncestorOf(focused);
     quiz_chip_widget->setVisible(chips);
+    const bool felt = theme_settings::felt_chrome();
+    // D-COUNT-1 keeps a plain figure; arrow keys still nudge the value.
     quiz_spin_box->setButtonSymbols(
-        chips ? QAbstractSpinBox::NoButtons : QAbstractSpinBox::UpDownArrows
+        chips || felt ? QAbstractSpinBox::NoButtons
+                      : QAbstractSpinBox::UpDownArrows
     );
+    if (auto* prompt
+        = qobject_cast<QBoxLayout*>(quiz_prompt_widget->layout())) {
+        prompt->setSpacing(felt ? 8 : 2);
+        if (auto* row
+            = qobject_cast<QBoxLayout*>(prompt->itemAt(0)->layout())) {
+            row->setDirection(
+                felt ? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight
+            );
+            row->setSpacing(felt ? 4 : 2);
+            row->setAlignment(
+                quiz_weight_label, felt ? Qt::AlignHCenter : Qt::Alignment()
+            );
+            row->setAlignment(
+                quiz_spin_box, felt ? Qt::AlignHCenter : Qt::Alignment()
+            );
+            if (gameplay_input != nullptr)
+                row->setAlignment(
+                    gameplay_input, felt ? Qt::AlignHCenter : Qt::Alignment()
+                );
+        }
+    }
+    // QStackedLayout ignores margins; pad the pages themselves.
+    for (auto* page : { quiz_prompt_widget, quiz_feedback_widget })
+        if (page->layout() != nullptr)
+            page->layout()->setContentsMargins(
+                felt ? QMargins(16, 10, 16, 12) : QMargins()
+            );
     if (!chips && chip_had_focus && quiz_prompt_active
         && !quiz_feedback_active) {
         if (gameplay_owner)
@@ -180,15 +238,58 @@ void table_slot::update_quiz_presentation() {
         else
             quiz_spin_box->setFocus(Qt::OtherFocusReason);
     }
+    for (auto* chip : quiz_chip_widget->findChildren<QPushButton*>()) {
+        const int step = chip->property("chip_step").toInt();
+        // D-COUNT-2: casino chips, red below zero and teal above it.
+        chip->setStyleSheet(
+            felt ? theme_settings::felt_style(
+                       QStringLiteral(
+                           "QPushButton { border-radius: 19px; min-width: "
+                           "38px; max-width: 38px; min-height: 38px; "
+                           "max-height: 38px; padding: 0px; font-family: "
+                           "\"$mono$\"; font-weight: 700; color: $paper$; "
+                           "background: %1; border: 2px dashed "
+                           "rgba(243, 239, 228, 0.55); } "
+                           "QPushButton:hover { border-style: solid; } "
+                           "QPushButton:focus { border: 2px solid $gold$; } "
+                           "QPushButton:disabled { background: transparent; "
+                           "color: $muted_dim$; border-color: $line$; }"
+                       )
+                           .arg(
+                               step < 0 ? QStringLiteral("$wrong$")
+                                        : QStringLiteral("$right$")
+                           )
+                   )
+                 : QStringLiteral(
+                       "QPushButton { border-radius: 18px; min-width: 36px; "
+                       "min-height: 36px; padding: 0px; font-weight: 600; }"
+                   )
+        );
+    }
+    if (quiz_weight_label != nullptr) {
+        quiz_weight_label->setText(
+            felt                 ? str_label("YOUR COUNT")
+                : gameplay_owner ? str_label("Count")
+                                 : str_label("Weight")
+        );
+    }
     const bool stamp = feedback_style == quiz_feedback_style::stamp;
     quiz_feedback_heading->setVisible(stamp);
-    quiz_feedback_heading->setStyleSheet(QStringLiteral("font-weight: 700;"));
+    quiz_feedback_heading->setStyleSheet(
+        felt ? QString() : QStringLiteral("font-weight: 700;")
+    );
     quiz_feedback_label->setStyleSheet(
-        stamp
-            ? QStringLiteral("QLabel { font-weight: 600; border: 2px solid %1; "
-                             "border-radius: 4px; padding: 8px; }")
-                  .arg(theme_settings::slot_border_color().name())
-            : QString()
+        stamp ? (felt ? theme_settings::felt_style(QStringLiteral(
+                            "QLabel { font-weight: 600; color: $text$; "
+                            "border: 2px solid $gold$; border-radius: 8px; "
+                            "padding: 10px 12px; background: $gold_soft$; }"
+                        ))
+                      : QStringLiteral(
+                            "QLabel { font-weight: 600; border: 2px solid %1; "
+                            "border-radius: 4px; padding: 8px; }"
+                        )
+                            .arg(theme_settings::slot_border_color().name()))
+              : QString()
     );
     // Only presentation hints change. Invalidate them before checking whether
     // the controls still fit inline; neither table packing nor card demand
