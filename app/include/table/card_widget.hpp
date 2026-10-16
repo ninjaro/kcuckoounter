@@ -13,6 +13,7 @@
 #include <QImage>
 #include <QPixmap>
 #include <QPointF>
+#include <QPromise>
 #include <QRectF>
 #include <QSizeF>
 #include <QString>
@@ -246,8 +247,10 @@ private:
     static int blend_color_channel(int from, int to, qreal strength);
     static QColor
     blend_color(const QColor& from, const QColor& to, qreal strength);
-    static QVector<QImage>
-    rasterize_card_faces(const QString& source, const QSize& raster_size);
+    static void rasterize_card_faces(
+        QPromise<QVector<QImage>>& promise, const QString& source,
+        const QSize& raster_size
+    );
 };
 
 #endif // KCUCKOOUNTER_TABLE_CARD_WIDGET_HPP

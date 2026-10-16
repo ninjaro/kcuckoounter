@@ -235,6 +235,130 @@ void image_cacher_tests::published_pixels_outlive_producer_changes() {
     QCOMPARE(published->single_image, displayed_at_publication);
 }
 
+void image_cacher_tests::publication_observers_can_retarget_producer_data() {
+    QTest::addColumn<QString>("change");
+    QTest::addColumn<bool>("settings_namespace");
+    QTest::addColumn<bool>("warm");
+    for (const char* change : { "size", "source", "namespace", "scale",
+                                "minimum", "clear-size", "clear-source" }) {
+        for (const bool settings_namespace : { false, true }) {
+            for (const bool warm : { false, true }) {
+                const QByteArray name = QByteArray(change)
+                    + (settings_namespace ? "-settings" : "-main")
+                    + (warm ? "-warm" : "-cold");
+                QTest::newRow(name.constData()) << QString::fromLatin1(change)
+                                                << settings_namespace << warm;
+            }
+        }
+    }
+}
+
+void image_cacher_tests::publication_observers_can_retarget_producer() {
+    QFETCH(QString, change);
+    QFETCH(bool, settings_namespace);
+    QFETCH(bool, warm);
+    raster_cache service;
+    raster_cache reference_service;
+    const QString original_source
+        = bundled_asset_path(QStringLiteral("brand/cuckoo.svg"));
+    const QString next_source
+        = bundled_asset_path(QStringLiteral("brand/logo.svg"));
+    const auto initial_namespace = settings_namespace
+        ? raster_cache::cache_namespace::settings
+        : raster_cache::cache_namespace::main;
+    const auto other_namespace = settings_namespace
+        ? raster_cache::cache_namespace::main
+        : raster_cache::cache_namespace::settings;
+    image_cacher producer(original_source, &service);
+    producer.set_cache_namespace(initial_namespace);
+    if (warm)
+        producer.set_target_size(QSize(200, 100));
+
+    const QSize initial_size(72, 72);
+    const QSize next_size(144, 72);
+    bool changed = false;
+    QVector<raster_cache::entry_key> publications;
+    QVector<int> in_flight_at_publication;
+    QObject::connect(
+        &service, &raster_cache::result_updated, &service,
+        [&](const raster_cache::entry_key& key) {
+            publications.append(key);
+            in_flight_at_publication.append(service.in_flight_count());
+            if (changed)
+                return;
+            changed = true;
+            if (change == QStringLiteral("size"))
+                producer.set_target_size(next_size);
+            else if (change == QStringLiteral("source"))
+                producer.set_source(next_source);
+            else if (change == QStringLiteral("namespace"))
+                producer.set_cache_namespace(other_namespace);
+            else if (change == QStringLiteral("scale"))
+                producer.set_base_scale(2.0);
+            else if (change == QStringLiteral("minimum"))
+                producer.set_min_short_px(250);
+            else if (change == QStringLiteral("clear-size"))
+                producer.set_target_size(QSize());
+            else
+                producer.set_source(QString());
+        },
+        Qt::DirectConnection
+    );
+    producer.set_target_size(initial_size);
+    QVERIFY(changed);
+
+    QString expected_source = original_source;
+    if (change == QStringLiteral("source"))
+        expected_source = next_source;
+    else if (change == QStringLiteral("clear-source"))
+        expected_source.clear();
+    image_cacher reference(expected_source, &reference_service);
+    reference.set_cache_namespace(
+        change == QStringLiteral("namespace") ? other_namespace
+                                              : initial_namespace
+    );
+    if (change == QStringLiteral("scale"))
+        reference.set_base_scale(2.0);
+    if (change == QStringLiteral("minimum"))
+        reference.set_min_short_px(250);
+    QSize expected_size = initial_size;
+    if (change == QStringLiteral("size"))
+        expected_size = next_size;
+    else if (change == QStringLiteral("clear-size"))
+        expected_size = QSize();
+    reference.set_target_size(expected_size);
+
+    QCOMPARE(producer.display_size(), reference.display_size());
+    QCOMPARE(producer.cache_namespace(), reference.cache_namespace());
+    QCOMPARE(producer.has_source(), reference.has_source());
+    QCOMPARE(producer.is_ready(), reference.is_ready());
+    QCOMPARE(producer.pixmap().toImage(), reference.pixmap().toImage());
+    QCOMPARE(service.ready_entry_count(), reference.is_ready() ? 1 : 0);
+    QCOMPARE(service.in_flight_count(), 0);
+    QCOMPARE(publications.size(), reference.is_ready() ? 2 : 1);
+    if (reference.is_ready()) {
+        const auto ready = service.get_if_ready(publications.constLast());
+        QVERIFY(ready.has_value());
+        QCOMPARE(ready->single_image, reference.pixmap().toImage());
+    }
+    for (const int count : in_flight_at_publication)
+        QCOMPARE(count, 0);
+
+    // Cleanup must follow the accepted callback result, then allow fresh work.
+    producer.set_target_size(QSize());
+    QCOMPARE(service.ready_entry_count(), 0);
+    producer.set_source(original_source);
+    producer.set_cache_namespace(initial_namespace);
+    producer.set_base_scale(1.25);
+    producer.set_min_short_px(63);
+    producer.set_target_size(initial_size);
+    QVERIFY(producer.is_ready());
+    QCOMPARE(service.ready_entry_count(), 1);
+    QCOMPARE(service.in_flight_count(), 0);
+    producer.set_target_size(QSize());
+    QCOMPARE(service.ready_entry_count(), 0);
+}
+
 void image_cacher_tests::replaces_oversized_and_undersized_rasters() {
     raster_cache service;
     image_cacher cacher(

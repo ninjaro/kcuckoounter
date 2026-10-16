@@ -17,6 +17,8 @@ private slots:
     void provider_window_releases_departed_cards();
     void changing_prefetch_preserves_visible_cards();
     void supplied_cards_survive_window_navigation();
+    void geometry_requests_use_settled_dimensions_data();
+    void geometry_requests_use_settled_dimensions();
     void navigation_controls_expose_accessible_semantics();
     void visible_cards_expose_domain_accessible_names();
     void settings_previews_share_one_queued_render_job();

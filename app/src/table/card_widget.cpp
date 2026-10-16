@@ -91,7 +91,7 @@ card_widget::card_widget(BaseWidget* parent)
     );
 }
 
-card_widget::~card_widget() = default;
+card_widget::~card_widget() { rasterize_watcher.cancel(); }
 
 bool card_widget::bind_gameplay_deck(
     const gameplay::session& owner, gameplay::deck_id id

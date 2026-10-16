@@ -9,12 +9,20 @@ class card_widget_tests : public QObject {
 private slots:
     void stretches_between_raster_intervals();
     void memory_cache_tracks_resize();
+    void local_resize_coalesces_latest_demand_data();
+    void local_resize_coalesces_latest_demand();
     void shared_faces_disable_local_rasterization();
     void shared_faces_outlive_source_file();
     void source_validation_follows_raster_ownership();
-    void standalone_source_validation_rejects_invalid_data();
+    void standalone_source_validation_rejects_invalid_svg();
     void shared_faces_reject_late_local_completion_data();
     void shared_faces_reject_late_local_completion();
+    void local_work_retires_with_ownership_data();
+    void local_work_retires_with_ownership();
+    void local_work_retires_without_valid_demand_data();
+    void local_work_retires_without_valid_demand();
+    void local_worker_publishes_only_complete_decks_data();
+    void local_worker_publishes_only_complete_decks();
     void selected_presentation_reuses_and_invalidates();
     void completed_local_result_releases_future_data();
     void completed_local_result_releases_future();

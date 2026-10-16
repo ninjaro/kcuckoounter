@@ -45,8 +45,9 @@ private slots:
 
 private:
     void rebuild_labels();
-    void update_visible_count();
-    void update_card_dimensions();
+    void update_card_layout();
+    bool update_visible_count();
+    bool update_card_dimensions();
     void refresh_view();
 
     void clear_cached_cards();

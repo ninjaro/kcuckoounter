@@ -99,6 +99,124 @@ static QVector<QRgb> carousel_colors(const card_preview_carousel& carousel) {
 
 static QRgb card_color(int index) { return qRgb(index + 1, 0, 0); }
 
+void preview_carousel_tests::geometry_requests_use_settled_dimensions_data() {
+    QTest::addColumn<QString>("transition");
+    QTest::addColumn<bool>("prefetch");
+    for (const char* transition :
+         { "grow", "shrink", "range", "minimum-width", "spacing", "resize",
+           "pending", "aspect", "unchanged", "no-size" }) {
+        for (const bool prefetch : { false, true }) {
+            const QByteArray name = QByteArray(transition)
+                + (prefetch ? "-adjacent" : "-visible");
+            QTest::newRow(name.constData())
+                << QString::fromLatin1(transition) << prefetch;
+        }
+    }
+}
+
+void preview_carousel_tests::geometry_requests_use_settled_dimensions() {
+    QFETCH(QString, transition);
+    QFETCH(bool, prefetch);
+
+    card_preview_carousel carousel;
+    carousel.setFixedSize(1000, 400);
+    carousel.set_visible_count(
+        transition == QStringLiteral("shrink")
+                || transition == QStringLiteral("pending")
+            ? 5
+            : 3
+    );
+    carousel.set_prefetch_adjacent_cards(prefetch);
+    if (transition != QStringLiteral("no-size"))
+        carousel.set_card_size(QSize(64, 96));
+    if (transition == QStringLiteral("minimum-width")
+        || transition == QStringLiteral("spacing")
+        || transition == QStringLiteral("resize"))
+        carousel.set_visible_range(3, 5);
+    carousel.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&carousel));
+
+    QVector<int> requests;
+    QVector<QSize> requested_sizes;
+    carousel.set_card_provider(
+        13,
+        [&requests, &requested_sizes,
+         &transition](int index, const QSize& size) {
+            requests.append(index);
+            requested_sizes.append(size);
+            if (transition == QStringLiteral("pending"))
+                return QPixmap();
+            QPixmap pixmap(size.isValid() ? size : QSize(1, 1));
+            pixmap.fill(card_color(index));
+            return pixmap;
+        }
+    );
+    const auto initial_labels = carousel.findChildren<QLabel*>();
+    QVERIFY(!initial_labels.isEmpty());
+    const QSize initial_size = initial_labels.front()->size();
+    requests.clear();
+    requested_sizes.clear();
+
+    if (transition == QStringLiteral("grow")
+        || transition == QStringLiteral("no-size"))
+        carousel.set_visible_count(4);
+    else if (transition == QStringLiteral("shrink")
+             || transition == QStringLiteral("pending"))
+        carousel.set_visible_count(3);
+    else if (transition == QStringLiteral("range"))
+        carousel.set_visible_range(4, 5);
+    else if (transition == QStringLiteral("minimum-width"))
+        carousel.set_minimum_card_width(300);
+    else if (transition == QStringLiteral("spacing"))
+        carousel.set_card_spacing(240);
+    else if (transition == QStringLiteral("resize"))
+        carousel.setFixedSize(320, 400);
+    else if (transition == QStringLiteral("aspect"))
+        carousel.set_card_size(QSize(96, 64));
+    else
+        carousel.set_visible_count(3);
+
+    const auto labels = carousel.findChildren<QLabel*>();
+    QVERIFY(!labels.isEmpty());
+    const int expected_count = transition == QStringLiteral("grow")
+            || transition == QStringLiteral("no-size")
+        ? 4
+        : transition == QStringLiteral("range") ? 5
+                                                : 3;
+    QCOMPARE(labels.size(), expected_count);
+    if (transition == QStringLiteral("unchanged")) {
+        QVERIFY(requests.isEmpty());
+        QCOMPARE(labels.front()->size(), initial_size);
+    } else {
+        QCOMPARE(requests, carousel.requested_card_indices());
+        for (const QSize& size : requested_sizes) {
+            if (transition == QStringLiteral("no-size"))
+                QVERIFY(!size.isValid());
+            else
+                QCOMPARE(size, labels.front()->size());
+        }
+    }
+    for (int index = 0; index < labels.size(); ++index) {
+        if (transition == QStringLiteral("pending")) {
+            QVERIFY(labels[index]->pixmap().isNull());
+            continue;
+        }
+        QCOMPARE(
+            labels[index]->pixmap().toImage().pixel(0, 0), card_color(index)
+        );
+        if (transition != QStringLiteral("no-size"))
+            QCOMPARE(labels[index]->pixmap().size(), labels[index]->size());
+    }
+    requests.clear();
+    requested_sizes.clear();
+    if (transition != QStringLiteral("no-size")) {
+        carousel.refresh_cards();
+        QCOMPARE(requests, carousel.requested_card_indices());
+        for (const QSize& size : requested_sizes)
+            QCOMPARE(size, labels.front()->size());
+    }
+}
+
 static QVector<QRgb> expected_carousel_colors(int first, int total) {
     QVector<QRgb> colors;
     for (int offset = 0; offset < 3; ++offset)

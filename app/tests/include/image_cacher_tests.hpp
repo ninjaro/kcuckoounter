@@ -19,6 +19,8 @@ private slots:
     void shared_cache_reuses_identical_rasters();
     void published_pixels_outlive_producer_changes_data();
     void published_pixels_outlive_producer_changes();
+    void publication_observers_can_retarget_producer_data();
+    void publication_observers_can_retarget_producer();
     void replaces_oversized_and_undersized_rasters();
     void empty_display_size_retires_cached_raster();
 };

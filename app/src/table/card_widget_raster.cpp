@@ -12,6 +12,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 void card_rasterize_watcher::waitForFinished() {
     QFutureWatcher<QVector<QImage>>::waitForFinished();
@@ -20,10 +21,25 @@ void card_rasterize_watcher::waitForFinished() {
     }
 }
 
-QVector<QImage> card_widget::rasterize_card_faces(
-    const QString& source, const QSize& raster_size
+void card_widget::rasterize_card_faces(
+    QPromise<QVector<QImage>>& promise, const QString& source,
+    const QSize& raster_size
 ) {
-    return rasterize_card_faces_with_fallback(source, raster_size);
+    if (raster_size.isEmpty() || promise.isCanceled()) {
+        return;
+    }
+    card_sheet_render_context context(source);
+    const QStringList ids = required_card_ids_with_back();
+    QVector<QImage> images;
+    images.reserve(ids.size());
+    for (const auto& id : ids) {
+        if (promise.isCanceled()) {
+            return;
+        }
+        images.append(context.rasterize_face(id, raster_size));
+    }
+    // Keep local publication atomic, just like the shared table deck.
+    promise.addResult(std::move(images));
 }
 
 void card_widget::prepare_card_faces() {
@@ -43,6 +59,9 @@ void card_widget::set_shared_card_faces(
 
     apply_rasterized_images(face_images, raster_size);
     shared_card_faces_active = true;
+    rasterize_watcher.cancel();
+    // Retire the observer too; canceled futures may still retain old images.
+    rasterize_watcher.setFuture(QFuture<QVector<QImage>>());
     card_sheet_renderer.reset();
 
     if (rasterizing) {
@@ -71,6 +90,8 @@ void card_widget::set_shared_card_faces_mode(bool enabled) {
 
     shared_card_faces_mode = enabled;
     if (shared_card_faces_mode) {
+        rasterize_watcher.cancel();
+        rasterize_watcher.setFuture(QFuture<QVector<QImage>>());
         card_sheet_renderer.reset();
     }
     if (shared_card_faces_mode && rasterizing) {
@@ -142,12 +163,16 @@ QSize card_widget::raster_cache_size(const QSize& target_size) {
 
 void card_widget::update_card_faces(const QSize& target_size) {
     if (target_size.isEmpty()) {
+        // No demand remains for the local worker or its queued completion.
+        rasterize_watcher.cancel();
+        rasterize_watcher.setFuture(QFuture<QVector<QImage>>());
         invalidate_selected_card_face();
         card_face_size = QSize();
         card_faces_rasterized.clear();
         card_face_raster_size = QSize();
         picks_since_rasterize = 0;
         pending_raster_size = QSize();
+        set_rasterizing(false);
         return;
     }
 
@@ -162,12 +187,15 @@ void card_widget::update_card_faces(const QSize& target_size) {
             card_sheet_renderer->load(card_sheet_source);
         }
         if (!card_sheet_renderer->isValid()) {
+            rasterize_watcher.cancel();
+            rasterize_watcher.setFuture(QFuture<QVector<QImage>>());
             invalidate_selected_card_face();
             card_face_size = QSize();
             card_faces_rasterized.clear();
             card_face_raster_size = QSize();
             picks_since_rasterize = 0;
             pending_raster_size = QSize();
+            set_rasterizing(false);
             return;
         }
     }
@@ -182,11 +210,17 @@ void card_widget::update_card_faces(const QSize& target_size) {
         || (allow_local_rasterization && raster_size_changed
             && picks_since_rasterize >= 3);
 
-    if (should_rasterize && allow_local_rasterization) {
-        if (!rasterizing) {
+    if (allow_local_rasterization) {
+        if (rasterizing) {
+            // Re-entry into ready or in-flight pixels supersedes a queued
+            // resize.
+            pending_raster_size = should_rasterize
+                    && (raster_task_size != raster_target_size
+                        || raster_task_source != card_sheet_source)
+                ? raster_target_size
+                : QSize();
+        } else if (should_rasterize) {
             start_rasterization(raster_target_size);
-        } else if (raster_task_size != raster_target_size) {
-            pending_raster_size = raster_target_size;
         }
     }
 

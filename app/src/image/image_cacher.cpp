@@ -182,6 +182,7 @@ void image_cacher::rasterize(bool force) {
     // Finish mutation before sharing the pixels with display and cache owners.
     painter.end();
     cached_pixmap = new_pixmap;
+    displayed_entry_key = outcome.key;
 
     raster_cache::result ready {
         .key = outcome.key,
@@ -192,9 +193,6 @@ void image_cacher::rasterize(bool force) {
         .single_image = new_pixmap.toImage(),
         .face_images = {},
     };
-    service.insert_or_update_result(ready);
-    displayed_entry_key = outcome.key;
-
     const raster_cache::family_key family {
         .name_space = outcome.key.name_space,
         .kind = outcome.key.kind,
@@ -205,6 +203,9 @@ void image_cacher::rasterize(bool force) {
     if (previous_entry.has_value() && *previous_entry != outcome.key) {
         service.erase_result(*previous_entry);
     }
+    // Direct observers may retarget this cacher. Finish the local transition
+    // before notifying them, and never overwrite their state afterward.
+    service.insert_or_update_result(ready);
 }
 
 raster_cache& image_cacher::cache_service() const {

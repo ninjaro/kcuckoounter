@@ -115,8 +115,7 @@ void card_preview_carousel::set_visible_range(int min_count, int max_count) {
     }
     min_visible_count_value = min_count;
     max_visible_count_value = max_count;
-    update_visible_count();
-    update_card_dimensions();
+    update_card_layout();
 }
 
 void card_preview_carousel::set_card_size(const QSize& size) {
@@ -128,7 +127,10 @@ void card_preview_carousel::set_card_size(const QSize& size) {
         card_aspect_ratio = static_cast<double>(base_card_size.height())
             / static_cast<double>(base_card_size.width());
     }
-    update_card_dimensions();
+    if (update_card_dimensions()) {
+        clear_cached_cards();
+        refresh_view();
+    }
 }
 
 void card_preview_carousel::set_minimum_card_width(int width) {
@@ -139,8 +141,7 @@ void card_preview_carousel::set_minimum_card_width(int width) {
         return;
     }
     min_card_width_value = width;
-    update_visible_count();
-    update_card_dimensions();
+    update_card_layout();
 }
 
 void card_preview_carousel::set_card_spacing(int spacing) {
@@ -152,8 +153,7 @@ void card_preview_carousel::set_card_spacing(int spacing) {
     }
     card_spacing_value = spacing;
     cards_layout->setSpacing(card_spacing_value);
-    update_visible_count();
-    update_card_dimensions();
+    update_card_layout();
 }
 
 void card_preview_carousel::set_prefetch_adjacent_cards(bool enabled) {
@@ -225,8 +225,7 @@ void card_preview_carousel::show_next() {
 
 void card_preview_carousel::resizeEvent(QResizeEvent* event) {
     BaseWidget::resizeEvent(event);
-    update_visible_count();
-    update_card_dimensions();
+    update_card_layout();
 }
 
 void card_preview_carousel::rebuild_labels() {
@@ -246,10 +245,20 @@ void card_preview_carousel::rebuild_labels() {
     }
 }
 
-void card_preview_carousel::update_visible_count() {
+void card_preview_carousel::update_card_layout() {
+    const bool count_changed = update_visible_count();
+    const bool dimensions_changed = update_card_dimensions();
+    if (count_changed || dimensions_changed) {
+        // Publish demand only after both parts of the geometry are current.
+        clear_cached_cards();
+        refresh_view();
+    }
+}
+
+bool card_preview_carousel::update_visible_count() {
     const int available_width = cards_container->width();
     if (available_width <= 0) {
-        return;
+        return false;
     }
     const int spacing = card_spacing_value;
     const int slot_size = min_card_width_value + spacing;
@@ -262,21 +271,20 @@ void card_preview_carousel::update_visible_count() {
         next_count = 1;
     }
     if (visible_count_value == next_count) {
-        return;
+        return false;
     }
     visible_count_value = next_count;
     rebuild_labels();
-    clear_cached_cards();
-    refresh_view();
+    return true;
 }
 
-void card_preview_carousel::update_card_dimensions() {
+bool card_preview_carousel::update_card_dimensions() {
     if (!base_card_size.isValid()) {
-        return;
+        return false;
     }
     const int available_width = cards_container->width();
     if (available_width <= 0 || visible_count_value <= 0) {
-        return;
+        return false;
     }
     const int spacing = card_spacing_value;
     const int total_spacing = spacing * std::max(0, visible_count_value - 1);
@@ -289,10 +297,9 @@ void card_preview_carousel::update_card_dimensions() {
     );
     const QSize next_size(card_width, card_height);
     if (card_size == next_size) {
-        return;
+        return false;
     }
     card_size = next_size;
-    clear_cached_cards();
     for (QLabel* label : card_labels) {
         if (label == nullptr) {
             continue;
@@ -303,7 +310,7 @@ void card_preview_carousel::update_card_dimensions() {
             label->setMinimumSize(QSize(1, 1));
         }
     }
-    refresh_view();
+    return true;
 }
 
 void card_preview_carousel::clear_cached_cards() {
