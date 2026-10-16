@@ -15,16 +15,29 @@
 #include <cmath>
 #include <limits>
 #include <memory>
+#include <utility>
 
-static QVector<QImage>
-rasterize_all_card_faces(const QString& source_path, int bucket_px) {
-    if (bucket_px <= 0) {
-        return {};
+void table::render_shared_faces(
+    QPromise<QVector<QImage>>& promise, const QString& source_path,
+    int bucket_px
+) {
+    if (bucket_px <= 0 || promise.isCanceled()) {
+        return;
     }
 
-    return rasterize_card_faces_with_fallback(
-        source_path, QSize(bucket_px, bucket_px)
-    );
+    card_sheet_render_context context(source_path);
+    const QStringList ids = required_card_ids_with_back();
+    const QSize size(bucket_px, bucket_px);
+    QVector<QImage> images;
+    images.reserve(ids.size());
+    for (const auto& id : ids) {
+        if (promise.isCanceled()) {
+            return;
+        }
+        images.append(context.rasterize_face(id, size));
+    }
+    // A generation becomes visible only as one complete deck, never per face.
+    promise.addResult(std::move(images));
 }
 
 static raster_cache::family_key
@@ -164,6 +177,9 @@ void table::enforce_shared_generation_bounds() {
 
 void table::retire_warming_generation() {
     if (warming_shared_faces_key.has_value()) {
+        if (active_shared_faces_key == warming_shared_faces_key) {
+            shared_faces_watcher.cancel();
+        }
         const raster_cache::family_key family
             = family_for_entry(*warming_shared_faces_key);
         raster_cache_service.take_pending_latest(family);
@@ -244,7 +260,7 @@ bool table::start_shared_raster_for_key(const raster_cache::entry_key& key) {
         const QString source_id = outcome.key.source_id;
         const int target_bucket_px = outcome.key.target_bucket_px;
         shared_faces_watcher.setFuture(QtConcurrent::run(
-            rasterize_all_card_faces, source_id, target_bucket_px
+            &table::render_shared_faces, source_id, target_bucket_px
         ));
         refresh_rasterization_busy_state();
     }
@@ -378,7 +394,9 @@ void table::on_shared_rasterization_finished() {
         && (completed_generation_id == active_shared_generation_id
             || completed_generation_id == warming_shared_generation_id);
 
-    const QVector<QImage> face_images = shared_faces_watcher.result();
+    const QVector<QImage> face_images = shared_faces_watcher.isCanceled()
+        ? QVector<QImage>()
+        : shared_faces_watcher.result();
     // Cache/display owners keep accepted images; discard the observer's handle
     // so rejected or evicted generations can release their buffers immediately.
     shared_faces_watcher.setFuture(QFuture<QVector<QImage>>());

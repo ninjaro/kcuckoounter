@@ -162,24 +162,36 @@ void card_preview_carousel::set_prefetch_adjacent_cards(bool enabled) {
     }
     prefetch_adjacent_cards = enabled;
     if (!prefetch_adjacent_cards && card_provider && !cached_cards.isEmpty()) {
-        const int total_cards = total_cards_value;
-        const int label_count = static_cast<int>(card_labels.size());
-        QVector<bool> keep_cache(total_cards, false);
-        for (int i = 0; i < label_count; ++i) {
-            if (total_cards <= 0) {
-                break;
-            }
-            const int card_index = (first_index + i) % total_cards;
-            if (card_index >= 0 && card_index < keep_cache.size()) {
-                keep_cache[card_index] = true;
-            }
-        }
+        QVector<bool> keep_cache(total_cards_value, false);
+        for (int index : requested_card_indices())
+            keep_cache[index] = true;
         for (int i = 0; i < cached_cards.size(); ++i) {
             if (!keep_cache[i]) {
                 cached_cards[i] = QPixmap();
             }
         }
     }
+}
+
+QVector<int> card_preview_carousel::requested_card_indices() const {
+    QVector<int> indices;
+    if (!card_provider || total_cards_value <= 0)
+        return indices;
+    const auto append = [&indices, this](qsizetype index) {
+        const int wrapped
+            = static_cast<int>((index + total_cards_value) % total_cards_value);
+        if (!indices.contains(wrapped))
+            indices.append(wrapped);
+    };
+    const qsizetype first = first_index;
+    const int label_count = static_cast<int>(card_labels.size());
+    for (int offset = 0; offset < label_count; ++offset)
+        append(first + offset);
+    if (prefetch_adjacent_cards) {
+        append(first - 1);
+        append(first + label_count);
+    }
+    return indices;
 }
 
 void card_preview_carousel::refresh_cards() {
@@ -317,6 +329,8 @@ void card_preview_carousel::refresh_view() {
     QVector<bool> keep_cache;
     if (card_provider && !cached_cards.isEmpty()) {
         keep_cache = QVector<bool>(total_cards, false);
+        for (int index : requested_card_indices())
+            keep_cache[index] = true;
     }
     for (int i = 0; i < label_count; ++i) {
         QLabel* label = card_labels[i];
@@ -335,10 +349,6 @@ void card_preview_carousel::refresh_view() {
         label->setAccessibleDescription(QStringLiteral("Preview card %1 of %2")
                                             .arg(card_index + 1)
                                             .arg(total_cards));
-        if (!keep_cache.isEmpty() && card_index >= 0
-            && card_index < keep_cache.size()) {
-            keep_cache[card_index] = true;
-        }
         QPixmap pixmap;
         if (!cached_cards.isEmpty() && card_index >= 0
             && card_index < cached_cards.size()) {
@@ -369,17 +379,14 @@ void card_preview_carousel::refresh_view() {
             && cached_cards[next_index].isNull()) {
             cached_cards[next_index] = card_provider(next_index, card_size);
         }
-        if (!keep_cache.isEmpty()) {
-            if (prev_index >= 0 && prev_index < keep_cache.size()) {
-                keep_cache[prev_index] = true;
-            }
-            if (next_index >= 0 && next_index < keep_cache.size()) {
-                keep_cache[next_index] = true;
-            }
-            for (int i = 0; i < cached_cards.size(); ++i) {
-                if (!keep_cache[i]) {
-                    cached_cards[i] = QPixmap();
-                }
+    }
+
+    // Provider-backed retention follows the current window in both modes.
+    // Supplied cards have no provider to reload them, so keep their originals.
+    if (!keep_cache.isEmpty()) {
+        for (int i = 0; i < cached_cards.size(); ++i) {
+            if (!keep_cache[i]) {
+                cached_cards[i] = QPixmap();
             }
         }
     }

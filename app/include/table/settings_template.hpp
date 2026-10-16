@@ -99,6 +99,7 @@ private:
     void preview_result_ready(int result_index);
     void finish_preview_request(const raster_cache::entry_key& key);
     bool preview_key_relevant(const raster_cache::entry_key& key) const;
+    void cancel_obsolete_preview_batch();
     void prune_preview_queue();
     void preview_cache_updated(const raster_cache::entry_key& key);
     void flush_preview_refresh();

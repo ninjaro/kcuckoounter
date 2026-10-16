@@ -43,8 +43,11 @@ void image_cacher::set_target_size(const QSize& new_target_size) {
     if (target_size == new_target_size) {
         return;
     }
+    const bool aspect_changed
+        = static_cast<qint64>(target_size.width()) * new_target_size.height()
+        != static_cast<qint64>(new_target_size.width()) * target_size.height();
     target_size = new_target_size;
-    rasterize();
+    rasterize(aspect_changed);
 }
 
 void image_cacher::set_base_scale(qreal new_base_scale) {
@@ -128,8 +131,7 @@ void image_cacher::rasterize(bool force) {
     const bool same_family = displayed_entry_key.has_value()
         && displayed_entry_key->name_space == name_space
         && displayed_entry_key->kind == raster_cache::resource_kind::single_svg
-        && displayed_entry_key->source_id == source_path
-        && displayed_entry_key->render_scope == QStringLiteral("full");
+        && displayed_entry_key->source_id == source_path;
     if (same_family && !cached_pixmap.isNull() && !force) {
         const rasterization_runner::evaluation decision
             = rasterization_runner::evaluate_size_need(
@@ -146,7 +148,9 @@ void image_cacher::rasterize(bool force) {
         .name_space = name_space,
         .kind = raster_cache::resource_kind::single_svg,
         .source_id = source_path,
-        .render_scope = QStringLiteral("full"),
+        .render_scope = QStringLiteral("full:%1x%2")
+                            .arg(cache_size.width())
+                            .arg(cache_size.height()),
         .target_bucket_px = bucket,
     };
     raster_cache& service = cache_service();
@@ -175,6 +179,8 @@ void image_cacher::rasterize(bool force) {
     renderer.render(
         &painter, QRectF(QPointF(0.0, 0.0), QSizeF(new_pixmap.size()))
     );
+    // Finish mutation before sharing the pixels with display and cache owners.
+    painter.end();
     cached_pixmap = new_pixmap;
 
     raster_cache::result ready {

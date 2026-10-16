@@ -33,6 +33,8 @@ public:
     void set_card_spacing(int spacing);
     void set_prefetch_adjacent_cards(bool enabled);
     void refresh_cards();
+    /** Current provider demand, including enabled adjacent preloading. */
+    [[nodiscard]] QVector<int> requested_card_indices() const;
 
 protected:
     void resizeEvent(QResizeEvent* event) override;

@@ -13,6 +13,7 @@
 #include <QElapsedTimer>
 #include <QFutureWatcher>
 #include <QImage>
+#include <QPromise>
 #include <QSet>
 #include <QSize>
 #include <QString>
@@ -200,6 +201,10 @@ private slots:
     void on_shared_rasterization_finished();
 
 private:
+    static void render_shared_faces(
+        QPromise<QVector<QImage>>& promise, const QString& source_path,
+        int bucket_px
+    );
     enum class dealing_mode { sequential, random, simultaneous };
 
     std::vector<table_slot*> slot_widgets;

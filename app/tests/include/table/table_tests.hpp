@@ -142,6 +142,13 @@ private slots:
     void shared_faces_track_set_and_clear();
     void completed_shared_result_releases_future_data();
     void completed_shared_result_releases_future();
+    void retiring_warming_generation_cancels_shared_work_data();
+    void retiring_warming_generation_cancels_shared_work();
+    void shared_worker_publishes_only_complete_decks_data();
+    void shared_worker_publishes_only_complete_decks();
+    void destruction_retires_raster_notifications();
+    void destruction_cancels_shared_work_data();
+    void destruction_cancels_shared_work();
     /// @brief Verifies persisted orientation modes constrain packed slots.
     void card_orientation_constrains_packed_slot_geometry();
     void presentation_preserves_packed_slots_data();

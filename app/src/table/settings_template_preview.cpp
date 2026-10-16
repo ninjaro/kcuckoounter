@@ -159,8 +159,16 @@ bool settings_template_widget::cutover_preview_generation() {
         return false;
     }
 
+    QSet<QString> needed_elements;
     for (const QString& element_id :
          std::as_const(warming_preview_element_ids)) {
+        if (!preview_key_relevant(preview_key(
+                warming_preview_source, warming_preview_bucket,
+                warming_preview_generation, element_id
+            ))) {
+            continue;
+        }
+        needed_elements.insert(element_id);
         if (!preview_key_ready(
                 warming_preview_source, warming_preview_bucket,
                 warming_preview_generation, element_id
@@ -168,6 +176,8 @@ bool settings_template_widget::cutover_preview_generation() {
             return false;
         }
     }
+    if (needed_elements.isEmpty())
+        return false;
 
     const QString previous_source_id = active_preview_source;
     const int previous_bucket_px = active_preview_bucket;
@@ -176,7 +186,7 @@ bool settings_template_widget::cutover_preview_generation() {
     active_preview_source = warming_preview_source;
     active_preview_bucket = warming_preview_bucket;
     active_preview_generation = warming_preview_generation;
-    active_preview_element_ids = warming_preview_element_ids;
+    active_preview_element_ids = std::move(needed_elements);
 
     warming_preview_source.clear();
     warming_preview_bucket = 0;
@@ -231,6 +241,7 @@ std::optional<QImage> settings_template_widget::preview_face(
         active_preview_element_ids.insert(element_id);
     }
     cutover_preview_generation();
+    cancel_obsolete_preview_batch();
 
     const bool use_warming_after_cutover = warming_preview_generation > 0;
     const QString request_source_id = use_warming_after_cutover
@@ -713,9 +724,14 @@ bool settings_template_widget::preview_key_relevant(
     }
 
     const int suit_index = card_index / 13;
-    const bool suit_is_relevant
-        = suit_index == theme_suit || suit_index == weights_suit;
-    if (!suit_is_relevant) {
+    const int rank_index = card_index % 13;
+    const bool theme_requests_face = theme_carousel != nullptr
+        && suit_index == theme_suit
+        && theme_carousel->requested_card_indices().contains(rank_index);
+    const bool weights_request_face = weights_carousel != nullptr
+        && suit_index == weights_suit
+        && weights_carousel->requested_card_indices().contains(rank_index);
+    if (!theme_requests_face && !weights_request_face) {
         return false;
     }
 
@@ -733,6 +749,16 @@ bool settings_template_widget::preview_key_relevant(
     return false;
 }
 
+void settings_template_widget::cancel_obsolete_preview_batch() {
+    if (!active_render_keys.isEmpty()
+        && std::none_of(
+            active_render_keys.cbegin(), active_render_keys.cend(),
+            [this](const auto& key) { return preview_key_relevant(key); }
+        )) {
+        preview_watcher.cancel();
+    }
+}
+
 void settings_template_widget::prune_preview_queue() {
     const auto queued = std::exchange(pending_preview_queue, {});
     pending_preview_keys.clear();
@@ -743,11 +769,5 @@ void settings_template_widget::prune_preview_queue() {
             finish_preview_request(key);
         }
     }
-    if (!active_render_keys.isEmpty()
-        && std::none_of(
-            active_render_keys.cbegin(), active_render_keys.cend(),
-            [this](const auto& key) { return preview_key_relevant(key); }
-        )) {
-        preview_watcher.cancel();
-    }
+    cancel_obsolete_preview_batch();
 }

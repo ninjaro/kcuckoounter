@@ -11,6 +11,7 @@
 #include <QPaintEvent>
 #include <QPainter>
 #include <QResizeEvent>
+#include <QSignalBlocker>
 #include <QString>
 #include <QStyle>
 #include <QTimer>
@@ -88,6 +89,9 @@ table::table(BaseWidget* parent)
 }
 
 table::~table() {
+    const QSignalBlocker teardown_notifications(this);
+    // The worker owns its inputs; request retirement without blocking the GUI.
+    shared_faces_watcher.cancel();
     stop_gameplay_clock();
     gameplay_layout_animation.stop();
     // QObject deletes children after member destruction. Bound views must go
