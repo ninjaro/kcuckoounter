@@ -14,6 +14,8 @@ struct felt_material {
     QColor line;
     QColor text;
     QColor muted;
+    // Small spaced instrument labels (SCORE, PICKUP, YOUR COUNT).
+    QColor dim;
     QColor gold;
     QColor gold_light;
     QColor right;
@@ -43,6 +45,8 @@ public:
     static QString felt_window_style_sheet();
     static QString felt_hud_style_sheet();
     static QString felt_overlay_style_sheet();
+    // Kit "paper" cards (D-NEW-1, D-SET-1): warm paper on the felt chrome.
+    static QString felt_paper_style_sheet();
     // Single-colour copy of a native icon for legibility on the dark felt.
     static QIcon tinted_icon(const QIcon& icon, const QColor& color);
 };

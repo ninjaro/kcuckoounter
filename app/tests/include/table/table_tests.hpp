@@ -161,6 +161,7 @@ private slots:
     void quiz_presentation_reaches_existing_and_new_slots();
     void quiz_presentation_editor_applies_and_resets();
     void felt_presentation_restyles_without_session_changes();
+    void felt_shell_round_trips_one_bar();
     void action_variants_reuse_controls_data();
     void action_variants_reuse_controls();
     void action_variants_preserve_copy_and_swap_workflows();

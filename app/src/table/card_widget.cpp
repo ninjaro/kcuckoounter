@@ -288,6 +288,14 @@ void card_widget::set_slot_number(int number) {
         update();
 }
 
+void card_widget::set_verdict_glow(bool enabled) {
+    if (verdict_glow == enabled)
+        return;
+    verdict_glow = enabled;
+    if (frame_style == slot_frame_style::piping)
+        update();
+}
+
 void card_widget::set_show_card_indexing(bool enabled) {
     if (show_card_indexing_flag == enabled) {
         return;

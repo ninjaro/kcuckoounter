@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstdlib>
 #include <limits>
 #include <utility>
 
@@ -96,14 +97,37 @@ void table_slot::update_action_presentation() {
                               "border-style: dashed; }"
                           ))
                 : action_style == slot_action_style::pills
-                ? (felt ? theme_settings::felt_style(QStringLiteral(
-                              "QPushButton { border-radius: 13px; padding: "
-                              "6px 14px; background: $inset$; border: 1px "
-                              "solid $gold_line$; font-weight: 600; } "
-                              "QPushButton:hover { border-color: $gold$; } "
-                              "QPushButton:focus { border: 1px dashed "
-                              "$gold_light$; }"
-                          ))
+                ? (felt ? theme_settings::felt_style(
+                              // D-BAR-2: the leading action is a paper pill,
+                              // the rest are translucent outlined pills.
+                              button == settings_button
+                                  ? QStringLiteral(
+                                        "QPushButton { border-radius: 15px; "
+                                        "padding: 7px 13px; background: "
+                                        "$paper$; color: #12261a; border: "
+                                        "1px solid $paper$; font-size: 13px; "
+                                        "font-weight: 600; } "
+                                        "QPushButton:checked { background: "
+                                        "$gold$; border-color: $gold$; } "
+                                        "QPushButton:focus { border: 1px "
+                                        "dashed $deep$; }"
+                                    )
+                                  : QStringLiteral(
+                                        "QPushButton { border-radius: 15px; "
+                                        "padding: 7px 13px; background: "
+                                        "rgba(243, 239, 228, 0.12); color: "
+                                        "$paper$; border: 1px solid "
+                                        "rgba(243, 239, 228, 0.35); "
+                                        "font-size: 13px; } "
+                                        "QPushButton:hover { border-color: "
+                                        "$paper$; } "
+                                        "QPushButton:checked { background: "
+                                        "$gold$; color: $deep$; border-color: "
+                                        "$gold$; } "
+                                        "QPushButton:focus { border: 1px "
+                                        "dashed $gold_light$; }"
+                                    )
+                          )
                         : QStringLiteral(
                               "QPushButton { border-radius: 12px; padding: 6px "
                               "12px; } QPushButton:focus { border-style: "
@@ -204,33 +228,84 @@ void table_slot::update_quiz_presentation() {
         chips || felt ? QAbstractSpinBox::NoButtons
                       : QAbstractSpinBox::UpDownArrows
     );
+    // D-COUNT-1 sets the figure beside its buttons; the chip stepper keeps
+    // the stacked composition so its chips stay centred under the figure.
+    const bool felt_typed = felt && !chips;
     if (auto* prompt
         = qobject_cast<QBoxLayout*>(quiz_prompt_widget->layout())) {
-        prompt->setSpacing(felt ? 8 : 2);
+        prompt->setDirection(
+            felt_typed ? QBoxLayout::LeftToRight : QBoxLayout::TopToBottom
+        );
+        prompt->setSpacing(felt_typed ? 20 : (felt ? 12 : 2));
         if (auto* row
             = qobject_cast<QBoxLayout*>(prompt->itemAt(0)->layout())) {
             row->setDirection(
                 felt ? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight
             );
-            row->setSpacing(felt ? 4 : 2);
+            row->setSpacing(felt ? 8 : 2);
+            const Qt::Alignment figure
+                = felt_typed ? Qt::AlignLeft : Qt::AlignHCenter;
             row->setAlignment(
-                quiz_weight_label, felt ? Qt::AlignHCenter : Qt::Alignment()
+                quiz_weight_label, felt ? figure : Qt::Alignment()
             );
-            row->setAlignment(
-                quiz_spin_box, felt ? Qt::AlignHCenter : Qt::Alignment()
-            );
+            row->setAlignment(quiz_spin_box, felt ? figure : Qt::Alignment());
             if (gameplay_input != nullptr)
                 row->setAlignment(
-                    gameplay_input, felt ? Qt::AlignHCenter : Qt::Alignment()
+                    gameplay_input, felt ? figure : Qt::Alignment()
                 );
         }
+        if (auto* buttons = qobject_cast<QBoxLayout*>(
+                prompt->itemAt(prompt->count() - 1)->layout()
+            )) {
+            buttons->setSpacing(felt ? 8 : 2);
+            buttons->setContentsMargins(0, 0, 0, felt_typed ? 12 : 0);
+            prompt->setAlignment(
+                buttons, felt_typed ? Qt::AlignBottom : Qt::Alignment()
+            );
+        }
+    }
+    // D-COUNT-2 sets the figure in a gold ring between the chips; every other
+    // composition keeps it in the prompt row under its label.
+    if (auto* prompt
+        = qobject_cast<QBoxLayout*>(quiz_prompt_widget->layout())) {
+        auto* row = qobject_cast<QBoxLayout*>(prompt->itemAt(0)->layout());
+        auto* chip_row = qobject_cast<QBoxLayout*>(quiz_chip_widget->layout());
+        const bool ring = felt && chips;
+        for (QWidget* figure : { static_cast<QWidget*>(quiz_spin_box),
+                                 static_cast<QWidget*>(gameplay_input) }) {
+            if (figure == nullptr || row == nullptr || chip_row == nullptr)
+                continue;
+            if (ring && chip_row->indexOf(figure) < 0) {
+                row->removeWidget(figure);
+                // stretch, -2, -1 | figure | +1, +2, stretch
+                chip_row->insertWidget(3, figure);
+            } else if (!ring && chip_row->indexOf(figure) >= 0) {
+                chip_row->removeWidget(figure);
+                row->addWidget(figure);
+            }
+        }
+        if (quiz_spin_box != nullptr)
+            quiz_spin_box->setAlignment(
+                ring ? Qt::AlignCenter : Qt::AlignLeft | Qt::AlignVCenter
+            );
+        if (gameplay_input != nullptr)
+            gameplay_input->setAlignment(
+                ring ? Qt::AlignCenter : Qt::AlignLeft | Qt::AlignVCenter
+            );
+        if (chip_row != nullptr)
+            chip_row->setSpacing(ring ? 8 : 6);
+        // The ring is the label; collapse rather than hide so prompt
+        // visibility stays owned by update_quiz_controls_visibility().
+        if (quiz_weight_label != nullptr)
+            quiz_weight_label->setMaximumHeight(ring ? 0 : QWIDGETSIZE_MAX);
     }
     // QStackedLayout ignores margins; pad the pages themselves.
     for (auto* page : { quiz_prompt_widget, quiz_feedback_widget })
         if (page->layout() != nullptr)
             page->layout()->setContentsMargins(
-                felt ? QMargins(16, 10, 16, 12) : QMargins()
+                felt ? QMargins(20, 14, 20, 14) : QMargins()
             );
+    update_quiz_figure_size();
     if (!chips && chip_had_focus && quiz_prompt_active
         && !quiz_feedback_active) {
         if (gameplay_owner)
@@ -241,24 +316,27 @@ void table_slot::update_quiz_presentation() {
     for (auto* chip : quiz_chip_widget->findChildren<QPushButton*>()) {
         const int step = chip->property("chip_step").toInt();
         // D-COUNT-2: casino chips, red below zero and teal above it.
+        // Kit chip colours: deeper for the outer steps, lighter edges.
+        const char* chip_colour = step == -2 ? "#b4503f"
+            : step == -1                     ? "#8d4234"
+            : step == 1                      ? "#2a7a66"
+                                             : "#2f8f78";
         chip->setStyleSheet(
             felt ? theme_settings::felt_style(
                        QStringLiteral(
-                           "QPushButton { border-radius: 19px; min-width: "
+                           "QPushButton { border-radius: 22px; min-width: "
                            "38px; max-width: 38px; min-height: 38px; "
                            "max-height: 38px; padding: 0px; font-family: "
-                           "\"$mono$\"; font-weight: 700; color: $paper$; "
-                           "background: %1; border: 2px dashed "
-                           "rgba(243, 239, 228, 0.55); } "
+                           "\"$mono$\"; font-size: 14px; color: #ffffff; "
+                           "background: %1; border: 3px dashed "
+                           "rgba(243, 239, 228, %2); } "
                            "QPushButton:hover { border-style: solid; } "
-                           "QPushButton:focus { border: 2px solid $gold$; } "
+                           "QPushButton:focus { border: 3px solid $gold$; } "
                            "QPushButton:disabled { background: transparent; "
                            "color: $muted_dim$; border-color: $line$; }"
                        )
-                           .arg(
-                               step < 0 ? QStringLiteral("$wrong$")
-                                        : QStringLiteral("$right$")
-                           )
+                           .arg(QLatin1String(chip_colour))
+                           .arg(std::abs(step) == 2 ? 0.55 : 0.45)
                    )
                  : QStringLiteral(
                        "QPushButton { border-radius: 18px; min-width: 36px; "
@@ -278,12 +356,10 @@ void table_slot::update_quiz_presentation() {
     quiz_feedback_heading->setStyleSheet(
         felt ? QString() : QStringLiteral("font-weight: 700;")
     );
+    // Felt: the stamp band carries both figures; the sentence stays as a
+    // quiet, readable restatement under it.
     quiz_feedback_label->setStyleSheet(
-        stamp ? (felt ? theme_settings::felt_style(QStringLiteral(
-                            "QLabel { font-weight: 600; color: $text$; "
-                            "border: 2px solid $gold$; border-radius: 8px; "
-                            "padding: 10px 12px; background: $gold_soft$; }"
-                        ))
+        stamp ? (felt ? QString()
                       : QStringLiteral(
                             "QLabel { font-weight: 600; border: 2px solid %1; "
                             "border-radius: 4px; padding: 8px; }"
@@ -303,6 +379,43 @@ void table_slot::update_quiz_presentation() {
         && compact_controls_button->isVisible() && quiz_prompt_active) {
         compact_controls_button->setFocus(Qt::OtherFocusReason);
     }
+}
+
+void table_slot::update_quiz_figure_size() {
+    if (quiz_spin_box == nullptr)
+        return;
+    QString sheet;
+    if (theme_settings::felt_chrome()
+        && answer_style == quiz_answer_style::chips) {
+        // D-COUNT-2's 88px gold ring with a 6px halo, scaled for small slots.
+        const int ring = std::clamp(
+            static_cast<int>(std::min(width(), height()) * 0.26), 56, 88
+        );
+        sheet = QStringLiteral(
+                    "background: #04240f; color: #d4af37; font-size: %1px; "
+                    "border: 2px solid #d4af37; border-radius: %2px; "
+                    "min-width: %3px; max-width: %3px; min-height: %3px; "
+                    "max-height: %3px; padding: 0px;"
+        )
+                    .arg(ring * 34 / 88)
+                    .arg(ring / 2)
+                    .arg(ring - 4);
+    } else if (theme_settings::felt_chrome()) {
+        // 54px in the kit's 290px slot; scaled down for crowded tables.
+        const int size = std::clamp(
+            static_cast<int>(std::min(width(), height()) * 0.15), 22, 54
+        );
+        // The kit's figure is a short ruled field, not a full-width input.
+        sheet = QStringLiteral("font-size: %1px; min-width: %2px; "
+                               "max-width: %3px;")
+                    .arg(size)
+                    .arg(size * 5 / 2)
+                    .arg(size * 3);
+    }
+    for (QWidget* figure : { static_cast<QWidget*>(quiz_spin_box),
+                             static_cast<QWidget*>(gameplay_input) })
+        if (figure != nullptr && figure->styleSheet() != sheet)
+            figure->setStyleSheet(sheet);
 }
 
 void table_slot::update_compact_controls() {
@@ -509,6 +622,7 @@ void table_slot::update_lockable_settings() {
 
 void table_slot::resizeEvent(QResizeEvent* event) {
     BaseWidget::resizeEvent(event);
+    update_quiz_figure_size();
 
     if (card_widget_internal != nullptr) {
         card_widget_internal->setGeometry(rect());

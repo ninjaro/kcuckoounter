@@ -12,6 +12,7 @@
 
 #include <QtTest/QtTest>
 
+#include <QPointer>
 #include <QScopeGuard>
 #include <QSet>
 #include <functional>
@@ -1100,6 +1101,123 @@ void preview_carousel_tests::completed_preview_result_releases_future() {
     QCOMPARE(totals->live_bytes.load(), qsizetype { 0 });
     QCOMPARE(totals->live_images.load(), 0);
     editor.preview_render_finished();
+}
+
+void preview_carousel_tests::publication_can_retire_preview_owner_data() {
+    QTest::addColumn<bool>("weighted");
+    QTest::addColumn<bool>("queued");
+    QTest::addColumn<int>("position");
+    for (const bool weighted : { false, true }) {
+        for (const bool queued : { false, true }) {
+            for (int position = 0; position < 3; ++position) {
+                const QByteArray name
+                    = QByteArray(weighted ? "weights" : "theme")
+                    + (queued ? "-queued-" : "-drain-")
+                    + QByteArray::number(position);
+                QTest::newRow(name.constData())
+                    << weighted << queued << position;
+            }
+        }
+    }
+}
+
+void preview_carousel_tests::publication_can_retire_preview_owner() {
+    QFETCH(bool, weighted);
+    QFETCH(bool, queued);
+    QFETCH(int, position);
+    const auto live = std::make_shared<image_lifetime_test::accounting>();
+    auto editor = std::make_unique<settings_template_widget>(
+        weighted ? settings_tab_kind::strategies : settings_tab_kind::appearance
+    );
+    const QPointer<settings_template_widget> lifetime(editor.get());
+    {
+        QPromise<QImage> producer;
+        hold_preview_batch(*editor, producer);
+        for (qsizetype index = 0; index < editor->active_render_keys.size();
+             ++index) {
+            QVERIFY(
+                producer.addResult(image_lifetime_test::tracked_image(live, 32))
+            );
+        }
+        producer.finish();
+    }
+    const auto keys = editor->active_render_keys;
+    QVERIFY(keys.size() >= 3);
+    const qsizetype retire_at = position == 0 ? 0
+        : position == 1                       ? keys.size() / 2
+                                              : keys.size() - 1;
+    QFuture<QImage> independent_future = editor->preview_watcher.future();
+
+    settings_template_widget survivor(settings_tab_kind::appearance);
+    QPromise<QImage> survivor_producer;
+    hold_preview_batch(survivor, survivor_producer);
+    const auto survivor_keys = survivor.active_render_keys;
+    auto& cache = settings_template_support::preview_cache();
+    QVector<raster_cache::entry_key> publications;
+    std::optional<raster_cache::result> independent_pixels;
+    int destructions = 0;
+    QObject::connect(editor.get(), &QObject::destroyed, this, [&destructions] {
+        ++destructions;
+    });
+    const auto observer = QObject::connect(
+        &cache, &raster_cache::result_updated, this,
+        [&](const auto& key) {
+            if (!keys.contains(key))
+                return;
+            publications.append(key);
+            if (key == keys.at(retire_at)) {
+                independent_pixels = cache.get_if_ready(key);
+                editor.reset();
+            }
+        }
+    );
+    const auto disconnect
+        = qScopeGuard([&observer] { QObject::disconnect(observer); });
+
+    if (queued) {
+        QTRY_VERIFY_WITH_TIMEOUT(lifetime.isNull(), 4000);
+    } else {
+        editor->preview_render_finished();
+    }
+    QVERIFY(lifetime.isNull());
+    QCOMPARE(destructions, 1);
+    QCOMPARE(publications.size(), retire_at + 1);
+    QVERIFY(independent_pixels.has_value());
+    QCOMPARE(
+        independent_pixels->face_images.front().pixelColor(0, 0),
+        QColor(Qt::red)
+    );
+    for (const auto& key : keys) {
+        QVERIFY(!cache.is_in_flight(preview_family(key)));
+        QVERIFY(!cache.get_if_ready(key).has_value());
+    }
+    // Canceled future copies still own their stored buffers; never read their
+    // results after cancellation. Independently handed-off pixels remain valid.
+    QVERIFY(independent_future.isCanceled());
+    QCOMPARE(live->live_images.load(), static_cast<int>(keys.size()));
+    independent_future = QFuture<QImage>();
+    QCOMPARE(live->live_images.load(), 1);
+    independent_pixels.reset();
+    QCOMPARE(live->live_images.load(), 0);
+    QCOMPARE(live->live_bytes.load(), qsizetype { 0 });
+
+    QVERIFY(!survivor_producer.isCanceled());
+    for (const auto& key : survivor_keys)
+        QVERIFY(cache.is_in_flight(preview_family(key)));
+    const QImage face = test_card_pixmap(QSize(32, 32)).toImage();
+    for (qsizetype index = 0; index < survivor_keys.size(); ++index)
+        QVERIFY(survivor_producer.addResult(face));
+    survivor_producer.finish();
+    survivor.preview_render_finished();
+    for (const auto& key : survivor_keys) {
+        const auto ready = cache.get_if_ready(key);
+        QVERIFY(ready.has_value());
+        QCOMPARE(ready->face_images.front(), face);
+        QVERIFY(!cache.is_in_flight(preview_family(key)));
+    }
+    QCoreApplication::processEvents();
+    QCOMPARE(destructions, 1);
+    QCOMPARE(publications.size(), retire_at + 1);
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

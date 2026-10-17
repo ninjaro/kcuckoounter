@@ -165,6 +165,9 @@ private:
     BaseSpinBox* quiz_spin_box;
     BaseWidget* quiz_chip_widget = nullptr;
     QLabel* quiz_feedback_heading = nullptr;
+    // Felt D-FEED-2 band: submitted and expected accumulated counts.
+    QLabel* quiz_feedback_band = nullptr;
+    std::optional<std::pair<qint64, qint64>> legacy_feedback_counts;
     quiz_answer_style answer_style = quiz_answer_style::numeric;
     quiz_feedback_style feedback_style = quiz_feedback_style::classic;
     BasePushButton* quiz_answer_button;
@@ -184,6 +187,9 @@ private:
     void setup_overlay();
     void setup_quiz_chips();
     void update_quiz_presentation();
+    // Felt D-COUNT-1 figure size follows the slot; no repacking.
+    void update_quiz_figure_size();
+    void update_feedback_stamp();
     void update_overlay_layout();
     void update_action_presentation();
     void update_compact_controls();

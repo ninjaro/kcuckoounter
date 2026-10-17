@@ -5,6 +5,7 @@
 #include "table/table_tests.hpp"
 
 #include "arch/str_label.hpp"
+#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/settings_template.hpp"
@@ -15,6 +16,9 @@
 #include <QComboBox>
 #include <QDialog>
 #include <QFocusEvent>
+#include <QFrame>
+#include <QLabel>
+#include <QLayout>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMenuBar>
@@ -491,6 +495,95 @@ void table_tests::toolbar_styles_preserve_terminal_routes() {
     QVERIFY(!actions[2]->isEnabled());
     QVERIFY(window.findChild<QAction*>(QStringLiteral("game_saved_drills"))
                 ->isEnabled());
+}
+
+void table_tests::felt_shell_round_trips_one_bar() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop shell chrome");
+#endif
+    launcher_preferences_guard preferences;
+    shell_state_guard shell;
+
+    struct felt_reset {
+        ~felt_reset() { theme_settings::set_felt_chrome(false); }
+    } felt_guard;
+
+    desktop_ui_preferences ui;
+    ui.preset = desktop_ui_preset::felt;
+    QVERIFY(save_desktop_ui_preferences(ui));
+    main_window window;
+    window.resize(1400, 900);
+    window.show();
+    QCoreApplication::processEvents();
+
+    // D-NEW-1: segmented choices are views of the unchanged combo models.
+    auto* setup = window.findChild<QDialog*>(QStringLiteral("setup_dialog"));
+    QVERIFY(setup);
+    const auto tracks
+        = setup->findChildren<QFrame*>(QStringLiteral("kit_segmented"));
+    QCOMPARE(tracks.size(), qsizetype { 2 });
+    auto* quiz_mode
+        = tracks.constFirst()->parentWidget()->findChild<QComboBox*>();
+    QVERIFY(quiz_mode);
+    QVERIFY(tracks.constFirst()->isVisible());
+    QVERIFY(!quiz_mode->isVisible());
+    const auto options = tracks.constFirst()->findChildren<QPushButton*>();
+    QCOMPARE(options.size(), qsizetype { quiz_mode->count() });
+    const int initial_mode = quiz_mode->currentIndex();
+    options.at(1 - initial_mode)->click();
+    QCOMPARE(quiz_mode->currentIndex(), 1 - initial_mode);
+    quiz_mode->setCurrentIndex(initial_mode);
+    QVERIFY(options.at(initial_mode)->isChecked());
+    setup->reject();
+
+    // D-TOP-1: brand first; in-window menus join the same bar.
+    auto* toolbar
+        = window.findChild<BaseToolBar*>(QStringLiteral("main_toolbar"));
+    QVERIFY(toolbar);
+    const auto felt_actions = toolbar->actions();
+    auto* brand = toolbar->widgetForAction(felt_actions.constFirst());
+    QVERIFY(brand && brand->objectName() == QStringLiteral("kit_brand"));
+    const bool in_window_menus = !window.menuBar()->isNativeMenuBar();
+#ifndef KC_KDE
+    if (in_window_menus) {
+        QVERIFY(window.menuBar()->isHidden());
+        qsizetype menus = 0;
+        for (auto* action : felt_actions)
+            menus += action->menu() != nullptr ? 1 : 0;
+        QCOMPARE(menus, qsizetype { 2 });
+    }
+#endif
+    QCOMPARE(window.centralWidget()->layout()->contentsMargins(), QMargins());
+
+    // D-HUD-1 paints instruments over the unchanged status text.
+    auto* status = window.findChild<QLabel*>(QStringLiteral("session_status"));
+    QVERIFY(status);
+    QVERIFY(status->property("instrument_paint").toBool());
+    QVERIFY(status->text().startsWith(str_label("Status: ")));
+
+    // Back to Classic: the native shell is exactly what it was.
+    QVERIFY(QMetaObject::invokeMethod(
+        &window, "on_settings_triggered", Qt::DirectConnection
+    ));
+    auto* editor = appearance_editor(window);
+    QVERIFY(editor);
+    editor->window()->hide();
+    auto* preset
+        = editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_preset"));
+    QVERIFY(preset);
+    preset->setCurrentIndex(0);
+    QVERIFY(editor->apply_theme_settings());
+    QCoreApplication::processEvents();
+    QCOMPARE(toolbar->actions().size(), qsizetype { 4 });
+    for (auto* action : toolbar->actions())
+        QVERIFY(action->menu() == nullptr);
+    if (in_window_menus)
+        QVERIFY(!window.menuBar()->isHidden());
+    QVERIFY(window.centralWidget()->layout()->contentsMargins() != QMargins());
+    QVERIFY(tracks.constFirst()->isHidden());
+    QVERIFY(!quiz_mode->isHidden());
+    QVERIFY(!status->property("instrument_paint").toBool());
+    QVERIFY(!theme_settings::felt_chrome());
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

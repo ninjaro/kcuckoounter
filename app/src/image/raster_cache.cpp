@@ -3,6 +3,9 @@
 #include <QStringList>
 
 #include <algorithm>
+#include <cstdint>
+#include <utility>
+#include <vector>
 
 size_t raster_cache_combine_hash(size_t lhs, size_t rhs) {
     return lhs ^ (rhs + 0x9e3779b9U + (lhs << 6U) + (lhs >> 2U));
@@ -212,6 +215,43 @@ int raster_cache::in_flight_count() const {
         }
     }
     return count;
+}
+
+raster_cache::image_footprint
+raster_cache::ready_image_footprint(std::optional<cache_namespace> name_space
+) const {
+    image_footprint footprint;
+    std::vector<std::pair<std::uintptr_t, std::uintptr_t>> ranges;
+    const auto record_image = [&footprint, &ranges](const QImage& image) {
+        if (image.isNull()) {
+            return;
+        }
+        ++footprint.image_references;
+        const auto bytes = static_cast<quint64>(image.sizeInBytes());
+        footprint.referenced_pixel_bytes += bytes;
+        const auto start = reinterpret_cast<std::uintptr_t>(image.constBits());
+        ranges.emplace_back(start, start + static_cast<std::uintptr_t>(bytes));
+    };
+    for (auto it = ready_results.cbegin(); it != ready_results.cend(); ++it) {
+        if (name_space.has_value() && it.key().name_space != *name_space) {
+            continue;
+        }
+        record_image(it->single_image);
+        for (const QImage& image : it->face_images) {
+            record_image(image);
+        }
+    }
+
+    std::sort(ranges.begin(), ranges.end());
+    std::uintptr_t covered_end = 0;
+    for (const auto& [start, end] : ranges) {
+        if (end > covered_end) {
+            footprint.unique_pixel_bytes
+                += static_cast<quint64>(end - std::max(start, covered_end));
+            covered_end = end;
+        }
+    }
+    return footprint;
 }
 
 void raster_cache::set_namespace_entry_limit(

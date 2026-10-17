@@ -4,12 +4,17 @@
 #include "arch/widget_helpers.hpp"
 #include "settings/preferences.hpp"
 
+#include <QList>
+#include <QMargins>
 #include <QPointer>
+#include <QSize>
 #include <QString>
 #include <QtCore/Qt>
 
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <utility>
 
 class table;
 class KGameClock;
@@ -119,7 +124,15 @@ private:
     bool compact_toolbar = false;
     bool felt_chrome = false;
     QLabel* kit_wordmark = nullptr;
+    // D-TOP-1 one-bar pieces: brand at the toolbar start and, where menus
+    // live inside the window, the existing menus at its end.
+    QAction* kit_brand_action = nullptr;
+    QList<QAction*> kit_menu_actions;
+    std::optional<std::pair<QMargins, int>> classic_central_spacing;
+    std::optional<QSize> classic_toolbar_icon_size;
+    std::optional<QMargins> classic_setup_margins;
     QLabel* slot_preview = nullptr;
+    QLabel* setup_heading = nullptr;
     desktop_status_strip* desktop_status = nullptr;
     desktop_hud_style gameplay_hud_style = desktop_hud_style::classic;
     int gameplay_default_suit = 0;
@@ -137,6 +150,7 @@ private:
 
     void setup_ui();
     void apply_desktop_presentation();
+    void apply_kit_one_bar();
     void refresh_slot_preview();
     void update_toolbar_buttons();
     void setup_game_actions();

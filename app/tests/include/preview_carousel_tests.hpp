@@ -39,6 +39,8 @@ private slots:
     void settings_preview_batches_keep_generation_boundaries();
     void completed_preview_result_releases_future_data();
     void completed_preview_result_releases_future();
+    void publication_can_retire_preview_owner_data();
+    void publication_can_retire_preview_owner();
     void settings_preview_cancellation_recovers_returning_demand();
 
 private:

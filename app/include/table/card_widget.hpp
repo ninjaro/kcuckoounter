@@ -71,6 +71,8 @@ public:
     void set_frame_style(slot_frame_style style);
     // 1-based table position shown by framed presentations; 0 hides it.
     void set_slot_number(int number);
+    // Felt piping glows in the correction colour while feedback is shown.
+    void set_verdict_glow(bool enabled);
     void set_show_card_indexing(bool enabled);
     void set_show_strategy_name(bool enabled);
     void set_training_mode(bool enabled);
@@ -128,6 +130,7 @@ private:
     bool gameplay_paint_external = false;
     slot_frame_style frame_style = slot_frame_style::classic;
     int slot_number = 0;
+    bool verdict_glow = false;
     bool show_card_indexing_flag;
     bool show_strategy_name_flag;
     bool training_mode_flag;
@@ -221,6 +224,12 @@ private:
     void draw_card_index(
         QPainter& painter, const QRectF& oriented_card_rect,
         qreal slot_rotation_deg, const QPointF& offset
+    ) const;
+    // Felt only: soft drop shadow and, under piping, the kit's paper mat.
+    void draw_card_mat(
+        QPainter& painter, const QRectF& oriented_card_rect,
+        qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
+        bool top_card
     ) const;
     static void draw_card_shape(
         QPainter& painter, const QRectF& oriented_card_rect,

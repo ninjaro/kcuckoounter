@@ -15,24 +15,75 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListView>
+#include <QPainter>
 #include <QSignalBlocker>
 #include <QSortFilterProxyModel>
 #include <QSplitter>
 #include <QStandardItemModel>
+#include <QStyledItemDelegate>
 #include <QTabWidget>
 #include <QTableView>
 #include <QTextBrowser>
 #include <QUrl>
 #include <QtConcurrent/QtConcurrent>
 
+#include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 namespace strategy_browser_support {
 enum strategy_browser_role {
     slug_role = Qt::UserRole + 1,
     search_role,
     detail_role,
-    number_role
+    number_role,
+    level_role
+};
+
+// Count level as the catalogue's tags define it: the largest absolute tag.
+// Point counts stop at level 4; larger tags (Thorp's ten count) are ratio
+// counts with no level, shown as a dash.
+int strategy_level(const strategy_data& strategy) {
+    int level = 0;
+    for (const int weight : strategy.weights)
+        level = std::max(level, std::abs(weight));
+    return level <= 4 ? level : -1;
+}
+
+// D-STRAT-1 list rows: the name, with its level as a quiet right-hand tag.
+class kit_strategy_delegate final : public QStyledItemDelegate {
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index)
+        const override {
+        QSize size = QStyledItemDelegate::sizeHint(option, index);
+        size.setHeight(std::max(size.height(), 30));
+        return size;
+    }
+
+    void paint(
+        QPainter* painter, const QStyleOptionViewItem& option,
+        const QModelIndex& index
+    ) const override {
+        QStyledItemDelegate::paint(painter, option, index);
+        const int level = index.data(level_role).toInt();
+        if (level == 0)
+            return;
+        const felt_material m = theme_settings::felt();
+        QFont tag(m.mono_family);
+        tag.setPixelSize(10);
+        painter->save();
+        painter->setFont(tag);
+        painter->setPen(option.state & QStyle::State_Selected ? m.gold : m.dim);
+        painter->drawText(
+            option.rect.adjusted(0, 0, -14, 0),
+            Qt::AlignRight | Qt::AlignVCenter,
+            level > 0 ? QStringLiteral("L%1").arg(level)
+                      : QStringLiteral("\u2013")
+        );
+        painter->restore();
+    }
 };
 
 const QStringList& comparison_metric_keys() {
@@ -73,7 +124,205 @@ protected:
     }
 };
 
+// D-STRAT-1 detail page on the felt: title, tags and provenance, the
+// thirteen-rank tag strip as tiles, then description, notes and sources
+// beside the catalogue metrics (values only; Phase 3.6 keeps them unscaled).
+QString strategy_detail_kit_html(const strategy_data& strategy) {
+    const auto text
+        = [](const QString& value) { return value.toHtmlEscaped(); };
+    const felt_material m = theme_settings::felt();
+    const QString mono = m.mono_family;
+    const auto label = [&](const QString& title) {
+        return QStringLiteral(
+                   "<p style=\"font-family:'%1'; font-size:10px; "
+                   "letter-spacing:2px; color:%2; margin:14px 0 6px 0;\">%3"
+                   "</p>"
+        )
+            .arg(mono, m.dim.name(), text(title.toUpper()));
+    };
+    QStringList pills;
+    const auto pill = [&](const QString& value, const QColor& fg,
+                          const QColor& bg) {
+        pills.append(
+            QStringLiteral("<td bgcolor=\"%1\" style=\"font-family:'%2'; "
+                           "font-size:10px; letter-spacing:1px; color:%3;\">"
+                           "&nbsp;%4&nbsp;</td>")
+                .arg(bg.name(), mono, fg.name(), text(value))
+        );
+    };
+    const QColor teal_bg = QColor(0x12, 0x3d, 0x33);
+    const QColor gold_bg = QColor(0x3a, 0x33, 0x14);
+    const QColor grey_bg = QColor(0x1d, 0x26, 0x20);
+    pill(
+        strategy.balance ? str_label("BALANCED") : str_label("UNBALANCED"),
+        m.right.lighter(135), teal_bg
+    );
+    if (strategy.ace_neutral)
+        pill(str_label("ACE-NEUTRAL"), m.gold, gold_bg);
+    if (const int level = strategy_level(strategy); level > 0)
+        pill(str_label("LEVEL %1").arg(level), m.muted, grey_bg);
+    QStringList games;
+    for (QString game : strategy.games) {
+        game.remove(QStringLiteral("blackjack_"));
+        games.append(game.replace(QLatin1Char('_'), QLatin1Char(' ')));
+    }
+    QStringList provenance;
+    if (!strategy.date.isEmpty())
+        provenance.append(strategy.date);
+    if (!strategy.authors.isEmpty())
+        provenance.append(strategy.authors.join(QStringLiteral(" & ")));
+    QStringList scope;
+    if (strategy.min_decks > 0)
+        scope.append(
+            strategy.min_decks == 1
+                ? str_label("min 1 deck")
+                : str_label("min %1 decks").arg(strategy.min_decks)
+        );
+    if (!games.isEmpty())
+        scope.append(games.join(QStringLiteral(", ")));
+    QString html
+        = QStringLiteral(
+              "<table width=\"100%\" cellspacing=\"0\" "
+              "cellpadding=\"0\"><tr><td valign=\"top\">"
+              "<p style=\"font-size:26px; font-weight:600; color:%1; "
+              "margin:0 0 8px 0;\">%2</p>"
+              "<table cellspacing=\"0\" cellpadding=\"3\"><tr>%3"
+              "</tr></table></td>"
+              "<td align=\"right\" valign=\"top\" "
+              "style=\"font-family:'%4'; font-size:11px; "
+              "color:%5;\">%6<br>%7</td></tr></table>"
+        )
+              .arg(
+                  m.paper.name(), text(strategy.name),
+                  pills.join(QStringLiteral("<td>&nbsp;</td>")), mono,
+                  m.dim.name(), text(provenance.join(QStringLiteral(" · "))),
+                  text(scope.join(QStringLiteral(" · ")))
+              );
+    html += QStringLiteral("<table width=\"100%\" cellspacing=\"0\" "
+                           "cellpadding=\"0\" style=\"margin-top:14px;\" "
+                           "bgcolor=\"%1\"><tr><td height=\"1\"></td></tr>"
+                           "</table>")
+                .arg(m.line.name());
+    html += label(str_label("Tag per rank"));
+    const QStringList ranks { QStringLiteral("A"), QStringLiteral("2"),
+                              QStringLiteral("3"), QStringLiteral("4"),
+                              QStringLiteral("5"), QStringLiteral("6"),
+                              QStringLiteral("7"), QStringLiteral("8"),
+                              QStringLiteral("9"), QStringLiteral("10"),
+                              QStringLiteral("J"), QStringLiteral("Q"),
+                              QStringLiteral("K") };
+    html += QStringLiteral("<table width=\"100%\" cellspacing=\"4\" "
+                           "cellpadding=\"7\"><tr>");
+    for (const auto& rank : ranks)
+        html += QStringLiteral(
+                    "<td align=\"center\" style=\"font-family:'Noto Serif', "
+                    "Georgia, serif; font-size:16px; color:%1;\">%2</td>"
+        )
+                    .arg(m.text.name(), rank);
+    html += QStringLiteral("</tr><tr>");
+    for (qsizetype i = 0; i < ranks.size(); ++i) {
+        if (i >= strategy.weights.size()) {
+            html += QStringLiteral("<td align=\"center\">—</td>");
+            continue;
+        }
+        const int weight = strategy.weights[i];
+        const QString value = weight > 0 ? QStringLiteral("+%1").arg(weight)
+            : weight < 0 ? QStringLiteral("\u2212%1").arg(-weight)
+                         : QStringLiteral("0");
+        html
+            += QStringLiteral("<td align=\"center\" bgcolor=\"%1\" "
+                              "style=\"font-family:'%2'; font-size:13px; "
+                              "font-weight:600; color:%3;\">%4</td>")
+                   .arg(
+                       (weight > 0       ? m.right
+                            : weight < 0 ? m.wrong
+                                         : QColor(0x24, 0x2c, 0x26))
+                           .name(),
+                       mono, (weight == 0 ? m.muted : QColor(Qt::white)).name(),
+                       value
+                   );
+    }
+    html += QStringLiteral("</tr></table>");
+    // Two columns: reading on the left, the catalogue's numbers on the right.
+    QString left
+        = QStringLiteral("<p style=\"font-size:13.5px; color:%1;\">%2</p>")
+              .arg(m.text.name(), text(strategy.description));
+    if (!strategy.unique_fields.isEmpty()) {
+        left += label(str_label("Notes"));
+        for (auto it = strategy.unique_fields.cbegin();
+             it != strategy.unique_fields.cend(); ++it)
+            left += QStringLiteral("<p style=\"font-size:12.5px; color:%1;\">"
+                                   "<b>%2:</b> %3</p>")
+                        .arg(
+                            m.muted.name(),
+                            text(settings_template_support::format_key_label(
+                                it.key()
+                            )),
+                            text(it.value())
+                        );
+    }
+    left += label(str_label("References"));
+    if (strategy.references.isEmpty())
+        left += QStringLiteral("<p style=\"color:%1;\">%2</p>")
+                    .arg(m.muted.name(), text(str_label("Not provided")));
+    int number = 0;
+    for (const auto& ref : strategy.references) {
+        QString line
+            = QStringLiteral("[%1] %2").arg(++number).arg(text(ref.citation));
+        const QUrl url(ref.url);
+        if (url.isValid()
+            && (url.scheme() == QStringLiteral("https")
+                || url.scheme() == QStringLiteral("http")))
+            line += QStringLiteral(" <a style=\"color:%1;\" href=\"%2\">%3</a>")
+                        .arg(
+                            m.gold.name(),
+                            text(url.toString(QUrl::FullyEncoded)),
+                            text(url.host())
+                        );
+        if (!ref.accessed.isEmpty())
+            line += QStringLiteral(" (%1 %2)")
+                        .arg(text(str_label("accessed")), text(ref.accessed));
+        left += QStringLiteral("<p style=\"font-size:12.5px; color:%1; "
+                               "margin:0 0 4px 0;\">%2</p>")
+                    .arg(m.muted.name(), line);
+    }
+    QString right = label(str_label("Effectiveness"))
+        + QStringLiteral("<table width=\"100%\" cellspacing=\"0\" "
+                         "cellpadding=\"5\">");
+    for (const auto& key : comparison_metric_keys()) {
+        const auto value = strategy.metrics.constFind(key);
+        const bool known
+            = value != strategy.metrics.cend() && std::isfinite(value.value());
+        const QString shown = !known ? str_label("not provided")
+            : key == QStringLiteral("ease_of_use")
+            ? QStringLiteral("%1<span style=\"color:%2;\">/10</span>")
+                  .arg(QString::number(value.value()), m.dim.name())
+            : QString::number(value.value(), 'f', 2);
+        right += QStringLiteral("<tr><td style=\"font-size:13px; color:%1; "
+                                "border-bottom:1px solid %2;\">%3</td>"
+                                "<td align=\"right\" style=\"font-family:'%4'; "
+                                "font-size:13px; color:%5;\">%6</td></tr>")
+                     .arg(
+                         m.text.name(), m.line.name(),
+                         text(settings_template_support::format_key_label(key)),
+                         mono, known ? m.paper.name() : m.dim.name(), shown
+                     );
+    }
+    right += QStringLiteral("</table>");
+    html += QStringLiteral(
+                "<table width=\"100%\" cellspacing=\"0\" "
+                "cellpadding=\"0\" style=\"margin-top:16px;\"><tr>"
+                "<td width=\"56%\" valign=\"top\" "
+                "style=\"padding-right:18px;\">%1</td><td width=\"44%\" "
+                "valign=\"top\">%2</td></tr></table>"
+    )
+                .arg(left, right);
+    return html;
+}
+
 QString strategy_detail_html(const strategy_data& strategy) {
+    if (theme_settings::felt_chrome())
+        return strategy_detail_kit_html(strategy);
     const auto text
         = [](const QString& value) { return value.toHtmlEscaped(); };
     const auto absent = str_label("Not provided");
@@ -306,6 +555,7 @@ QWidget* create_strategy_browser(
                 search_role
             );
             name->setData(strategy_detail_html(strategy), detail_role);
+            name->setData(strategy_level(strategy), level_role);
             name->setToolTip(strategy.name);
             QList<QStandardItem*> row { name };
             for (const auto& key : comparison_metric_keys()) {
@@ -423,6 +673,17 @@ QWidget* create_strategy_browser(
         else
             comparison->scrollTo(comparison->currentIndex());
     });
+    if (theme_settings::felt_chrome()) {
+        // D-STRAT-1: search inside the list's column, level tags on rows.
+        search_label->hide();
+        search->setPlaceholderText(str_label("Search"));
+        list->setItemDelegate(new kit_strategy_delegate(list));
+        details->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        state->setObjectName(QStringLiteral("strategy_search_status"));
+        state->setProperty("kit_caption", true);
+        note->setProperty("kit_note", true);
+        split->setSizes({ 230, 620 });
+    }
     select_slug(selected_slug);
     refresh_status();
     return browser;

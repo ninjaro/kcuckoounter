@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cmath>
 #include <utility>
+#include <vector>
 
 qreal card_widget::compute_font_point_size(const QRectF& card_rect) {
     qreal point_size = card_rect.height() * 0.10;
@@ -177,91 +178,185 @@ void card_widget::paint_piping_frame(
     QPainter& painter, const paint_geometry& geometry, const QColor& fill,
     const QColor& border
 ) const {
-    // D-SLOT-2: a hairline gold frame with a soft outer bloom, the slot
-    // number in a top notch and shoe position/strategy in a bottom notch.
-    // Notches sit on the frame line, so the card keeps its full safe area.
+    // D-SLOT-2: a 1.5px gold hairline with a 6px soft outer ring, an inset
+    // vignette, the slot number in a top notch and the strategy and shoe
+    // position as legends on the bottom line. Nothing occupies the card's
+    // safe area, so card size, jitter and history are unchanged.
     const QRectF& frame = geometry.frame;
+    const felt_material material = theme_settings::felt();
+    const qreal radius = std::clamp(geometry.min_dim * 0.045, 6.0, 16.0);
+    const QColor line = verdict_glow ? material.wrong : border;
     painter.save();
     painter.setBrush(Qt::NoBrush);
-    for (const auto& [spread, alpha] :
-         { std::pair { 4.0, 22 }, std::pair { 2.0, 48 } }) {
-        QColor bloom = border;
-        bloom.setAlpha(alpha);
+    // Outer bloom; a correction glows wider and stronger (D-FEED-2's edge).
+    const qreal ring = std::min(6.0, geometry.min_dim / 40.0 + 2.0);
+    std::vector<std::pair<qreal, qreal>> blooms { { ring, 0.09 } };
+    if (verdict_glow)
+        blooms = { { ring * 2.4, 0.10 }, { ring * 1.4, 0.22 }, { 3.0, 0.9 } };
+    for (const auto& [spread, alpha] : blooms) {
+        QColor bloom = line;
+        bloom.setAlphaF(static_cast<float>(alpha));
         painter.setPen(QPen(bloom, spread));
         painter.drawRoundedRect(
             frame.adjusted(
                 -spread / 2.0, -spread / 2.0, spread / 2.0, spread / 2.0
             ),
-            11.0, 11.0
+            radius + spread / 2.0, radius + spread / 2.0
         );
     }
-    QRadialGradient felt(
-        frame.center().x(), frame.top(), std::max(frame.width(), frame.height())
-    );
-    felt.setColorAt(0.0, fill.lighter(122));
-    felt.setColorAt(1.0, fill);
-    painter.setBrush(felt);
-    painter.setPen(QPen(border, 1.5));
-    painter.drawRoundedRect(frame, 10.0, 10.0);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(fill);
+    painter.drawRoundedRect(frame, radius, radius);
+    // Inset shadow: darker toward the frame, clear in the middle.
+    const qreal depth = std::min(40.0, geometry.min_dim * 0.12);
+    constexpr int steps = 8;
+    for (int i = 0; i < steps; ++i) {
+        const qreal t = static_cast<qreal>(i) / steps;
+        const qreal inset = depth * t;
+        QColor shade(0, 0, 0);
+        shade.setAlphaF(static_cast<float>(0.3 * (1.0 - t) * (1.0 - t) / 2.2));
+        painter.setPen(QPen(shade, depth / steps + 0.5));
+        painter.setBrush(Qt::NoBrush);
+        const qreal half = depth / steps / 2.0;
+        painter.drawRoundedRect(
+            frame.adjusted(
+                inset + half, inset + half, -inset - half, -inset - half
+            ),
+            std::max(0.0, radius - inset), std::max(0.0, radius - inset)
+        );
+    }
+    painter.setPen(QPen(line, 1.5));
+    painter.setBrush(Qt::NoBrush);
+    painter.drawRoundedRect(frame, radius, radius);
 
     if (geometry.min_dim < 64.0) {
         painter.restore();
         return;
     }
-    const felt_material material = theme_settings::felt();
     QFont notch_font(material.mono_family);
-    notch_font.setPixelSize(
-        static_cast<int>(std::clamp(geometry.min_dim * 0.04, 9.0, 12.0))
-    );
-    notch_font.setWeight(QFont::DemiBold);
-    notch_font.setLetterSpacing(QFont::AbsoluteSpacing, 1.6);
-    painter.setFont(notch_font);
+    const qreal font_px = std::clamp(geometry.min_dim * 0.035, 9.0, 11.0);
+    notch_font.setPixelSize(static_cast<int>(font_px));
+    notch_font.setLetterSpacing(QFont::AbsoluteSpacing, font_px * 0.14);
     const QFontMetricsF metrics(notch_font);
-    const auto draw_notch = [&](const QString& text, qreal center_y) {
-        const QString shown = metrics.elidedText(
-            text, Qt::ElideRight, std::max(0.0, frame.width() - 48.0)
-        );
-        if (shown.isEmpty())
-            return;
-        const QSizeF size(
-            metrics.horizontalAdvance(shown) + 20.0, metrics.height() + 6.0
-        );
-        QRectF notch(
-            QPointF(
-                frame.center().x() - size.width() / 2.0,
-                center_y - size.height() / 2.0
-            ),
-            size
-        );
-        notch.moveTop(std::clamp(
-            notch.top(), 0.0,
-            std::max(0.0, static_cast<qreal>(height()) - size.height())
-        ));
-        painter.setPen(QPen(border, 1.0));
-        painter.setBrush(material.deep);
-        painter.drawRoundedRect(
-            notch, size.height() / 2.0, size.height() / 2.0
-        );
-        painter.setPen(border);
-        painter.drawText(notch, Qt::AlignCenter, shown);
-    };
+    const QColor table_fill = theme_settings::table_color();
     if (slot_number > 0) {
         const QString number
             = QStringLiteral("%1").arg(slot_number, 2, 10, QLatin1Char('0'));
 #ifdef KC_KDE
-        draw_notch(i18n("SLOT %1", number), frame.top());
+        const QString text = i18n("SLOT %1", number);
 #else
-        draw_notch(str_label("SLOT %1").arg(number), frame.top());
+        const QString text = str_label("SLOT %1").arg(number);
 #endif
+        const QSizeF size(
+            metrics.horizontalAdvance(text) + 24.0, metrics.height() + 4.0
+        );
+        QRectF notch(
+            QPointF(
+                frame.center().x() - size.width() / 2.0,
+                frame.top() - size.height() / 2.0
+            ),
+            size
+        );
+        notch.moveTop(std::max(0.0, notch.top()));
+        painter.setPen(QPen(line, 1.5));
+        painter.setBrush(table_fill);
+        painter.drawRoundedRect(
+            notch, size.height() / 2.0, size.height() / 2.0
+        );
+        painter.setFont(notch_font);
+        painter.setPen(line);
+        painter.drawText(notch, Qt::AlignCenter, text);
     }
-    QStringList footer;
-    if (!gameplay_owner && show_strategy_name_flag && !strategy_name.isEmpty())
-        footer.append(strategy_name.toUpper());
+    // Bottom legends cut the line like a fieldset legend: the strategy at
+    // the left, the shoe position at the right.
+    const auto legend = [&](const QString& text, const QFont& font,
+                            const QColor& color, bool left) {
+        const QFontMetricsF legend_metrics(font);
+        const qreal available = frame.width() / 2.0 - radius - 12.0;
+        const QString shown
+            = legend_metrics.elidedText(text, Qt::ElideRight, available);
+        if (shown.isEmpty())
+            return;
+        const qreal width = legend_metrics.horizontalAdvance(shown) + 12.0;
+        const qreal height = legend_metrics.height();
+        const QRectF box(
+            left ? frame.left() + radius + 4.0
+                 : frame.right() - radius - 4.0 - width,
+            frame.bottom() - height / 2.0, width, height
+        );
+        painter.fillRect(
+            QRectF(box.left(), box.top(), box.width(), box.height() / 2.0),
+            table_fill
+        );
+        painter.fillRect(
+            QRectF(
+                box.left(), box.center().y(), box.width(), box.height() / 2.0
+            ),
+            fill
+        );
+        painter.setFont(font);
+        painter.setPen(color);
+        painter.drawText(box, Qt::AlignCenter, shown);
+    };
+    if (!gameplay_owner && show_strategy_name_flag
+        && !strategy_name.isEmpty()) {
+        QColor gold = line;
+        gold.setAlphaF(0.75f);
+        legend(strategy_name.toUpper(), notch_font, gold, true);
+    }
     const QString index = current_index_text();
-    if (!index.isEmpty())
-        footer.append(index);
-    if (!footer.isEmpty())
-        draw_notch(footer.join(QStringLiteral(" · ")), frame.bottom());
+    if (!index.isEmpty()) {
+        QFont index_font(material.mono_family);
+        index_font.setPixelSize(static_cast<int>(font_px) + 1);
+        QColor paper = material.paper;
+        paper.setAlphaF(0.75f);
+        legend(index, index_font, paper, false);
+    }
+    painter.restore();
+}
+
+void card_widget::draw_card_mat(
+    QPainter& painter, const QRectF& oriented_card_rect,
+    qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
+    bool top_card
+) const {
+    if (!theme_settings::felt_chrome())
+        return;
+    const qreal short_side
+        = std::min(oriented_card_rect.width(), oriented_card_rect.height());
+    // Shadow falls down the screen whatever the card's orientation.
+    const qreal drop
+        = std::min(10.0, short_side * 0.05) * (top_card ? 1.0 : 0.5);
+    const qreal blur = std::min(24.0, short_side * 0.1);
+    painter.save();
+    painter.translate(0.0, drop);
+    apply_card_transform(
+        painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
+    );
+    painter.setPen(Qt::NoPen);
+    constexpr int layers = 6;
+    for (int i = 0; i < layers; ++i) {
+        const qreal spread
+            = blur * (1.0 - static_cast<qreal>(i) / layers) / 2.0;
+        painter.setBrush(QColor(0, 0, 0, top_card ? 20 : 10));
+        painter.drawRoundedRect(
+            oriented_card_rect.adjusted(-spread, -spread, spread, spread),
+            9.0 + spread, 9.0 + spread
+        );
+    }
+    painter.restore();
+    if (!top_card || frame_style != slot_frame_style::piping)
+        return;
+    const qreal mat = std::clamp(short_side * 0.025, 1.5, 4.0);
+    painter.save();
+    apply_card_transform(
+        painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
+    );
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(theme_settings::felt().paper);
+    painter.drawRoundedRect(
+        oriented_card_rect.adjusted(-mat, -mat, mat, mat), 9.0 + mat, 9.0 + mat
+    );
     painter.restore();
 }
 
@@ -321,6 +416,10 @@ void card_widget::paint_deck_content(
     const QColor discard_fill_color(248, 248, 248, 235);
     const QColor discard_border_color(220, 220, 220, 210);
     for (const discard_card& discard : discard_history) {
+        draw_card_mat(
+            painter, oriented_card_rect, slot_rotation_deg,
+            discard.rotation_deg, geometry.bounded_offset(discard.offset), false
+        );
         draw_card_shape(
             painter, oriented_card_rect, slot_rotation_deg,
             discard.rotation_deg, geometry.bounded_offset(discard.offset),
@@ -338,6 +437,10 @@ void card_widget::paint_deck_content(
     if (show_back) {
         const QColor base_card_fill(250, 250, 250);
         const QColor base_card_border(210, 210, 210, 220);
+        draw_card_mat(
+            painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
+            rendered_offset, true
+        );
         draw_card_shape(
             painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
             rendered_offset, base_card_fill, base_card_border
@@ -383,6 +486,10 @@ void card_widget::paint_deck_content(
     const QColor card_border_color
         = blend_color(base_card_border, highlight_border_target, strength);
 
+    draw_card_mat(
+        painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
+        rendered_offset, true
+    );
     draw_card_shape(
         painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
         rendered_offset, card_fill_color, card_border_color

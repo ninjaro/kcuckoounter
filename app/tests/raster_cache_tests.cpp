@@ -5,8 +5,10 @@
 #include "include/raster_cache_tests.hpp"
 
 #include "image/raster_cache.hpp"
+#include "include/image_lifetime_fixture.hpp"
 
 #include <QtTest/QtTest>
+#include <array>
 #include <utility>
 
 static raster_cache::entry_key make_entry(int bucket) {
@@ -49,6 +51,241 @@ static raster_cache::family_key make_family() {
         .source_id = QStringLiteral("assets/cuckoo.svg"),
         .render_scope = QStringLiteral("full"),
     };
+}
+
+static void compare_footprint(
+    const raster_cache::image_footprint& actual, qsizetype references,
+    quint64 referenced_bytes, quint64 unique_bytes
+) {
+    QCOMPARE(actual.image_references, references);
+    QCOMPARE(actual.referenced_pixel_bytes, referenced_bytes);
+    QCOMPARE(actual.unique_pixel_bytes, unique_bytes);
+}
+
+void raster_cache_tests::image_footprint_ignores_empty_and_pending_results() {
+    raster_cache service;
+    compare_footprint(service.ready_image_footprint(), 0, 0, 0);
+    QCOMPARE(
+        service.submit_request(make_request(160)).state,
+        raster_cache::request_state::start_async
+    );
+    service.insert_or_update_result(raster_cache::result {
+        .key = make_entry(224),
+        .raster_size = {},
+        .generation = 0,
+        .timestamp_ms = 0,
+        .use_count = 0,
+        .single_image = {},
+        .face_images = { QImage(), QImage() },
+    });
+    QSignalSpy changed(&service, &raster_cache::result_updated);
+    compare_footprint(service.ready_image_footprint(), 0, 0, 0);
+    QCOMPARE(service.ready_entry_count(), 1);
+    QCOMPARE(service.in_flight_count(), 1);
+    QCOMPARE(changed.count(), 0);
+}
+
+void raster_cache_tests::
+    image_footprint_deduplicates_shared_pixels_across_namespaces() {
+    raster_cache service;
+    const QImage large(16, 16, QImage::Format_ARGB32_Premultiplied);
+    const QImage small(8, 8, QImage::Format_ARGB32_Premultiplied);
+    const raster_cache::result main_result {
+        .key = make_entry(16),
+        .raster_size = large.size(),
+        .generation = 0,
+        .timestamp_ms = 0,
+        .use_count = 0,
+        .single_image = large,
+        .face_images = { large, small, QImage(), small },
+    };
+    raster_cache::result settings_result = main_result;
+    settings_result.key.name_space = raster_cache::cache_namespace::settings;
+    settings_result.face_images.clear();
+    service.insert_or_update_result(main_result);
+    service.insert_or_update_result(settings_result);
+    QSignalSpy changed(&service, &raster_cache::result_updated);
+    const auto* const pixels = large.constBits();
+    const qint64 image_key = large.cacheKey();
+
+    compare_footprint(service.ready_image_footprint(), 5, 3584, 1280);
+    compare_footprint(
+        service.ready_image_footprint(raster_cache::cache_namespace::main), 4,
+        2560, 1280
+    );
+    compare_footprint(
+        service.ready_image_footprint(raster_cache::cache_namespace::settings),
+        1, 1024, 1024
+    );
+    QCOMPARE(service.ready_entry_count(), 2);
+    QCOMPARE(service.in_flight_count(), 0);
+    QCOMPARE(changed.count(), 0);
+    QCOMPARE(large.constBits(), pixels);
+    QCOMPARE(large.cacheKey(), image_key);
+    QCOMPARE(
+        service.get_if_ready(main_result.key)->single_image.constBits(), pixels
+    );
+}
+
+void raster_cache_tests::
+    image_footprint_distinguishes_equal_pixels_and_detachment() {
+    raster_cache service;
+    QImage image(16, 16, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::red);
+    raster_cache::result first {
+        .key = make_entry(16),
+        .raster_size = image.size(),
+        .generation = 0,
+        .timestamp_ms = 0,
+        .use_count = 0,
+        .single_image = image,
+        .face_images = {},
+    };
+    raster_cache::result second = first;
+    second.key = make_entry(32);
+    service.insert_or_update_result(first);
+    service.insert_or_update_result(second);
+    compare_footprint(service.ready_image_footprint(), 2, 2048, 1024);
+
+    second.single_image = image.copy();
+    QCOMPARE(second.single_image, image);
+    QVERIFY(second.single_image.constBits() != image.constBits());
+    service.insert_or_update_result(second);
+    compare_footprint(service.ready_image_footprint(), 2, 2048, 2048);
+
+    second.single_image = image;
+    service.insert_or_update_result(second);
+    compare_footprint(service.ready_image_footprint(), 2, 2048, 1024);
+    first.single_image.fill(Qt::blue);
+    compare_footprint(service.ready_image_footprint(), 2, 2048, 1024);
+    service.insert_or_update_result(first);
+    compare_footprint(service.ready_image_footprint(), 2, 2048, 2048);
+    QCOMPARE(
+        service.get_if_ready(first.key)->single_image.pixelColor(0, 0),
+        QColor(Qt::blue)
+    );
+    QCOMPARE(
+        service.get_if_ready(second.key)->single_image.pixelColor(0, 0),
+        QColor(Qt::red)
+    );
+}
+
+void raster_cache_tests::image_footprint_includes_scanline_padding() {
+    raster_cache service;
+    const QImage image(3, 2, QImage::Format_RGB888);
+    QCOMPARE(image.bytesPerLine(), 12);
+    service.insert_or_update_result(raster_cache::result {
+        .key = make_entry(3),
+        .raster_size = image.size(),
+        .generation = 0,
+        .timestamp_ms = 0,
+        .use_count = 0,
+        .single_image = image,
+        .face_images = {},
+    });
+    compare_footprint(service.ready_image_footprint(), 1, 24, 24);
+}
+
+void raster_cache_tests::image_footprint_merges_external_views_data() {
+    QTest::addColumn<int>("offset");
+    QTest::addColumn<int>("height");
+    QTest::addColumn<quint64>("referenced_bytes");
+    QTest::addColumn<quint64>("unique_bytes");
+    QTest::newRow("same-address") << 16 << 4 << quint64(128) << quint64(64);
+    QTest::newRow("contained") << 32 << 2 << quint64(96) << quint64(64);
+    QTest::newRow("partial-overlap") << 64 << 4 << quint64(128) << quint64(112);
+    QTest::newRow("adjacent") << 80 << 2 << quint64(96) << quint64(96);
+    QTest::newRow("disjoint") << 128 << 2 << quint64(96) << quint64(96);
+}
+
+void raster_cache_tests::image_footprint_merges_external_views() {
+    QFETCH(int, offset);
+    QFETCH(int, height);
+    QFETCH(quint64, referenced_bytes);
+    QFETCH(quint64, unique_bytes);
+    std::array<quint32, 64> storage {};
+    auto* const pixels = reinterpret_cast<uchar*>(storage.data());
+    raster_cache service;
+    const QImage first(
+        pixels + 16, 4, 4, 16, QImage::Format_ARGB32_Premultiplied
+    );
+    const QImage second(
+        pixels + offset, 4, height, 16, QImage::Format_ARGB32_Premultiplied
+    );
+    QVERIFY(!first.isNull());
+    QVERIFY(!second.isNull());
+    service.insert_or_update_result(raster_cache::result {
+        .key = make_entry(4),
+        .raster_size = first.size(),
+        .generation = 0,
+        .timestamp_ms = 0,
+        .use_count = 0,
+        .single_image = first,
+        .face_images = { second },
+    });
+    compare_footprint(
+        service.ready_image_footprint(), 2, referenced_bytes, unique_bytes
+    );
+    QCOMPARE(first.constBits(), pixels + 16);
+    QCOMPARE(second.constBits(), pixels + offset);
+}
+
+void raster_cache_tests::image_footprint_follows_replacement_and_eviction() {
+    raster_cache service;
+    const auto ns = raster_cache::cache_namespace::settings;
+    raster_cache::result first {
+        .key = make_entry_in_namespace(ns, 16),
+        .raster_size = QSize(16, 16),
+        .generation = 0,
+        .timestamp_ms = 0,
+        .use_count = 0,
+        .single_image = QImage(16, 16, QImage::Format_ARGB32_Premultiplied),
+        .face_images = {},
+    };
+    raster_cache::result second = first;
+    second.key.target_bucket_px = 32;
+    second.single_image = QImage(32, 32, QImage::Format_ARGB32_Premultiplied);
+    service.insert_or_update_result(first);
+    service.insert_or_update_result(second);
+    compare_footprint(service.ready_image_footprint(), 2, 5120, 5120);
+
+    first.single_image = QImage(8, 8, QImage::Format_ARGB32_Premultiplied);
+    service.insert_or_update_result(first);
+    compare_footprint(service.ready_image_footprint(), 2, 4352, 4352);
+    service.set_namespace_entry_limit(ns, 1);
+    QVERIFY(!service.get_if_ready(first.key).has_value());
+    compare_footprint(service.ready_image_footprint(), 1, 4096, 4096);
+    QVERIFY(service.erase_result(second.key));
+    compare_footprint(service.ready_image_footprint(), 0, 0, 0);
+}
+
+void raster_cache_tests::image_footprint_does_not_retain_evicted_pixels() {
+    const auto live = std::make_shared<image_lifetime_test::accounting>();
+    raster_cache service;
+    raster_cache::result stored {
+        .key = make_entry(16),
+        .raster_size = QSize(16, 16),
+        .generation = 0,
+        .timestamp_ms = 0,
+        .use_count = 0,
+        .single_image = image_lifetime_test::tracked_image(live, 16),
+        .face_images = {},
+    };
+    service.insert_or_update_result(stored);
+    stored.single_image = {};
+    auto holder = service.get_if_ready(stored.key);
+    QVERIFY(holder.has_value());
+    const auto snapshot = service.ready_image_footprint();
+    compare_footprint(snapshot, 1, 1024, 1024);
+    QCOMPARE(live->live_bytes.load(), 1024);
+
+    QVERIFY(service.erase_result(stored.key));
+    compare_footprint(service.ready_image_footprint(), 0, 0, 0);
+    QCOMPARE(live->live_bytes.load(), 1024);
+    holder.reset();
+    QCOMPARE(live->live_bytes.load(), 0);
+    QCOMPARE(live->live_images.load(), 0);
+    compare_footprint(snapshot, 1, 1024, 1024);
 }
 
 void raster_cache_tests::stores_and_reads_ready_result() {
@@ -431,3 +668,6 @@ void raster_cache_tests::render_scope_normalizes_for_cache_hits() {
     QVERIFY(hit.ready_result.has_value());
     QCOMPARE(hit.ready_result->generation, 5);
 }
+
+// NOLINTEND(readability-convert-member-functions-to-static,
+// readability-make-member-function-const)

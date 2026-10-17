@@ -8,6 +8,7 @@
 #include "table/table.hpp"
 
 #include "arch/android_ui.hpp"
+#include "arch/asset_locator.hpp"
 #include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
 #include "settings/preferences.hpp"
@@ -18,18 +19,24 @@
 #include "settings/training_progress.hpp"
 #include "shell/gameplay_reservation.hpp"
 
+#include <QButtonGroup>
+#include <QComboBox>
 #include <QDialog>
 #include <QEvent>
 #include <QFormLayout>
 #include <QFrame>
 #include <QGuiApplication>
+#include <QHBoxLayout>
+#include <QIcon>
 #include <QLabel>
 #include <QLayout>
+#include <QMenu>
 #include <QMenuBar>
 #include <QPainter>
 #include <QPixmap>
 #include <QPointer>
 #include <QProgressBar>
+#include <QPushButton>
 #include <QSignalBlocker>
 #include <QSlider>
 #include <QStringList>
@@ -39,6 +46,80 @@
 #include <algorithm>
 
 namespace {
+
+// Play triangle or pause bars, drawn so the glyph matches the kit on every
+// icon theme.
+QIcon kit_transport_icon(bool pause, const QColor& color) {
+    QPixmap pixmap(QSize(22, 22));
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing, true);
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(color);
+    if (pause) {
+        painter.drawRect(QRectF(5.0, 3.0, 4.5, 16.0));
+        painter.drawRect(QRectF(12.5, 3.0, 4.5, 16.0));
+    } else {
+        const QPointF triangle[]
+            = { { 4.0, 2.0 }, { 20.0, 11.0 }, { 4.0, 20.0 } };
+        painter.drawPolygon(triangle, 3);
+    }
+    painter.end();
+    return QIcon(pixmap);
+}
+
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+// D-NEW-1 segmented control: a view of an existing combo box, which stays
+// the model (and the only object other code reads or persists).
+QWidget* kit_segmented_field(QComboBox* combo, QWidget* parent) {
+    auto* field = new QWidget(parent);
+    auto* stack = new QVBoxLayout(field);
+    stack->setContentsMargins(0, 0, 0, 0);
+    stack->setSpacing(0);
+    combo->setParent(field);
+    stack->addWidget(combo);
+    auto* track = new QFrame(field);
+    track->setObjectName(QStringLiteral("kit_segmented"));
+    auto* row = new QHBoxLayout(track);
+    row->setContentsMargins(3, 3, 3, 3);
+    row->setSpacing(2);
+    auto* group = new QButtonGroup(track);
+    group->setExclusive(true);
+    for (int i = 0; i < combo->count(); ++i) {
+        auto* option = new QPushButton(combo->itemText(i), track);
+        option->setCheckable(true);
+        option->setAutoDefault(false);
+        option->setFocusPolicy(Qt::TabFocus);
+        option->setChecked(i == combo->currentIndex());
+        group->addButton(option, i);
+        row->addWidget(option, 1);
+    }
+    QObject::connect(
+        group, &QButtonGroup::idClicked, combo, &QComboBox::setCurrentIndex
+    );
+    QObject::connect(
+        combo, &QComboBox::currentIndexChanged, group,
+        [group](int index) {
+            if (auto* option = group->button(index))
+                option->setChecked(true);
+        }
+    );
+    track->hide();
+    stack->addWidget(track);
+    return field;
+}
+
+void show_kit_segmented(QComboBox* combo, bool segmented) {
+    auto* field = combo->parentWidget();
+    auto* track = field->findChild<QFrame*>(
+        QStringLiteral("kit_segmented"), Qt::FindDirectChildrenOnly
+    );
+    if (track == nullptr)
+        return;
+    combo->setVisible(!segmented);
+    track->setVisible(segmented);
+}
+#endif
 
 QString pickup_interval_text(int interval_ms) {
 #ifdef KC_KDE
@@ -322,6 +403,14 @@ void main_window::setup_ui() {
 
     setup_widget = new BaseWidget(setup_dialog);
     auto setup_layout = new BaseVBoxLayout;
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    setup_dialog->setObjectName(QStringLiteral("setup_dialog"));
+    // D-NEW-1 card heading; the native title bar keeps the window title.
+    setup_heading = new QLabel(str_label("New game"), setup_widget);
+    setup_heading->setObjectName(QStringLiteral("kit_card_heading"));
+    setup_heading->hide();
+    setup_layout->addWidget(setup_heading);
+#endif
 
     auto form_layout = new BaseFormLayout;
 
@@ -375,13 +464,27 @@ void main_window::setup_ui() {
         &main_window::refresh_slot_preview
     );
 #endif
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    form_layout->addRow(
+        str_label("Quiz mode"), kit_segmented_field(quiz_type, setup_widget)
+    );
+#else
     form_layout->addRow(str_label("Quiz mode"), quiz_type);
+#endif
     form_layout->addRow(wait_for_answers);
     form_layout->addRow(allow_skipping);
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    form_layout->addRow(
+        str_label("Dealing mode"),
+        kit_segmented_field(dealing_mode, setup_widget)
+    );
+#else
     form_layout->addRow(str_label("Dealing mode"), dealing_mode);
+#endif
 
     continue_button = android_ui::create_button(setup_widget);
     continue_button->setText(str_label("Continue"));
+    continue_button->setProperty("kit_primary", true);
     android_ui::apply_button_style(
         continue_button, android_button_profile::primary
     );
@@ -688,15 +791,7 @@ void main_window::apply_desktop_presentation() {
             value.hud() == desktop_hud_style::instruments
         );
     compact_toolbar = value.toolbar() == desktop_toolbar_style::compact;
-    // Decorative wordmark beside the menus; the toolbar keeps only commands.
-    if (kit_wordmark == nullptr && menuBar() != nullptr) {
-        kit_wordmark = new QLabel(str_label("KCUCKOOUNTER"), menuBar());
-        kit_wordmark->setObjectName(QStringLiteral("kit_wordmark"));
-        kit_wordmark->setAccessibleName(str_label("kcuckoounter"));
-        menuBar()->setCornerWidget(kit_wordmark, Qt::TopLeftCorner);
-    }
-    if (kit_wordmark != nullptr)
-        kit_wordmark->setVisible(felt_chrome);
+    apply_kit_one_bar();
     refresh_slot_preview();
     if (primary_toolbar != nullptr) {
         primary_toolbar->setToolButtonStyle(
@@ -709,12 +804,133 @@ void main_window::apply_desktop_presentation() {
 #endif
 }
 
+void main_window::apply_kit_one_bar() {
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    // Table and HUD run edge to edge under the felt chrome (D-TOP-1/D-HUD-1);
+    // Classic keeps the platform layout margins it started with.
+    if (auto* layout = centralWidget() ? centralWidget()->layout() : nullptr) {
+        if (!classic_central_spacing)
+            classic_central_spacing.emplace(
+                layout->contentsMargins(), layout->spacing()
+            );
+        layout->setContentsMargins(
+            felt_chrome ? QMargins() : classic_central_spacing->first
+        );
+        layout->setSpacing(felt_chrome ? 0 : classic_central_spacing->second);
+    }
+    if (primary_toolbar == nullptr)
+        return;
+    // Brand first in the toolbar: a native macOS menu bar has no corner.
+    // It exists only under the felt chrome so the native toolbar keeps
+    // exactly its own commands.
+    if (!felt_chrome && kit_brand_action != nullptr) {
+        // The toolbar's widget action owns the brand widget.
+        primary_toolbar->removeAction(kit_brand_action);
+        kit_brand_action->deleteLater();
+        kit_brand_action = nullptr;
+        kit_wordmark = nullptr;
+    }
+    if (felt_chrome && kit_brand_action == nullptr) {
+        auto* brand = new QWidget(primary_toolbar);
+        brand->setObjectName(QStringLiteral("kit_brand"));
+        auto* row = new QHBoxLayout(brand);
+        row->setContentsMargins(0, 0, 0, 0);
+        row->setSpacing(0);
+        auto* icon = new QLabel(brand);
+        icon->setObjectName(QStringLiteral("kit_wordmark_icon"));
+        const QString cuckoo
+            = bundled_asset_path(QStringLiteral("brand/cuckoo.svg"));
+        if (!cuckoo.isEmpty())
+            icon->setPixmap(QIcon(cuckoo).pixmap(QSize(20, 20)));
+        kit_wordmark = new QLabel(str_label("KCUCKOOUNTER"), brand);
+        kit_wordmark->setObjectName(QStringLiteral("kit_wordmark"));
+        kit_wordmark->setAccessibleName(str_label("kcuckoounter"));
+        row->addWidget(icon);
+        row->addWidget(kit_wordmark);
+        const auto actions = primary_toolbar->actions();
+        kit_brand_action = actions.isEmpty()
+            ? primary_toolbar->addWidget(brand)
+            : primary_toolbar->insertWidget(actions.constFirst(), brand);
+    }
+    // Text-only commands in a 46px bar; the theme's large icons would set
+    // the bar's height through the play/pause glyph.
+    if (!classic_toolbar_icon_size)
+        classic_toolbar_icon_size = primary_toolbar->iconSize();
+    primary_toolbar->setIconSize(
+        !felt_chrome          ? *classic_toolbar_icon_size
+            : compact_toolbar ? QSize(20, 20)
+                              : QSize(12, 12)
+    );
+#ifndef KC_KDE
+    // One bar where the menus are drawn inside the window: the same menus
+    // move to the toolbar's end and keep their actions and shortcuts. KDE's
+    // menu bar and a native (global) menu bar stay as they are.
+    const bool merge_menus
+        = felt_chrome && menuBar() != nullptr && !menuBar()->isNativeMenuBar();
+    if (merge_menus && kit_menu_actions.isEmpty()) {
+        auto* spacer = new QWidget(primary_toolbar);
+        spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        kit_menu_actions.append(primary_toolbar->addWidget(spacer));
+        for (QMenu* menu : { game_menu, settings_menu }) {
+            if (menu == nullptr)
+                continue;
+            primary_toolbar->addAction(menu->menuAction());
+            kit_menu_actions.append(menu->menuAction());
+            if (auto* button = qobject_cast<QToolButton*>(
+                    primary_toolbar->widgetForAction(menu->menuAction())
+                )) {
+                button->setObjectName(QStringLiteral("kit_menu_button"));
+                button->setPopupMode(QToolButton::InstantPopup);
+            }
+        }
+    } else if (!merge_menus && !kit_menu_actions.isEmpty()) {
+        for (QAction* action : std::as_const(kit_menu_actions)) {
+            primary_toolbar->removeAction(action);
+            // Menu actions belong to their menus; only the spacer is ours.
+            if (action->menu() == nullptr)
+                action->deleteLater();
+        }
+        kit_menu_actions.clear();
+    }
+    if (menuBar() != nullptr && !menuBar()->isNativeMenuBar())
+        menuBar()->setVisible(!merge_menus);
+#endif
+#endif
+}
+
 void main_window::refresh_slot_preview() {
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     if (slot_preview == nullptr || table_widget == nullptr)
         return;
-    if (auto* form = setup_widget->findChild<QFormLayout*>())
+    if (auto* form = setup_widget->findChild<QFormLayout*>()) {
         form->setRowVisible(slot_preview, felt_chrome);
+        // Paper card: labels above full-width fields, segmented choices.
+        form->setRowWrapPolicy(
+            felt_chrome ? QFormLayout::WrapAllRows : QFormLayout::DontWrapRows
+        );
+        form->setVerticalSpacing(felt_chrome ? 10 : -1);
+    }
+    if (setup_heading != nullptr)
+        setup_heading->setVisible(felt_chrome);
+    for (QComboBox* combo : { static_cast<QComboBox*>(quiz_type),
+                              static_cast<QComboBox*>(dealing_mode) })
+        if (combo != nullptr)
+            show_kit_segmented(combo, felt_chrome);
+    if (setup_dialog != nullptr) {
+        setup_dialog->setStyleSheet(
+            felt_chrome ? theme_settings::felt_paper_style_sheet() : QString()
+        );
+        // The kit's card is ~350px wide with 20px of paper around the form.
+        setup_dialog->setMinimumWidth(felt_chrome ? 352 : 0);
+        if (setup_dialog->layout() != nullptr) {
+            if (!classic_setup_margins)
+                classic_setup_margins
+                    = setup_dialog->layout()->contentsMargins();
+            setup_dialog->layout()->setContentsMargins(
+                felt_chrome ? QMargins(12, 12, 12, 12) : *classic_setup_margins
+            );
+        }
+    }
     if (!felt_chrome)
         return;
     const QSizeF area = table_widget->size().isEmpty()
@@ -728,14 +944,11 @@ void main_window::refresh_slot_preview() {
     pixmap.fill(Qt::transparent);
     QPainter painter(&pixmap);
     painter.setRenderHint(QPainter::Antialiasing, true);
-    const felt_material material = theme_settings::felt();
-    painter.setPen(QPen(material.line, 1.0));
+    // On the paper card: a pale tray with the packed slots in table green.
+    painter.setPen(Qt::NoPen);
+    painter.setBrush(QColor(0xe4, 0xdf, 0xd0));
+    painter.drawRoundedRect(QRectF(QPointF(), box), 6.0, 6.0);
     painter.setBrush(theme_settings::table_color());
-    painter.drawRoundedRect(
-        QRectF(QPointF(), box).adjusted(0.5, 0.5, -0.5, -0.5), 6.0, 6.0
-    );
-    painter.setPen(QPen(material.gold, 1.0));
-    painter.setBrush(theme_settings::slot_fill_color());
     const auto packed
         = table_widget->preview_slot_layout(table_slots_count->value());
     for (const QRectF& slot : packed) {
@@ -744,7 +957,7 @@ void main_window::refresh_slot_preview() {
             slot.height() * scale
         );
         painter.drawRoundedRect(
-            scaled.adjusted(2.0, 2.0, -2.0, -2.0), 2.5, 2.5
+            scaled.adjusted(2.5, 2.5, -2.5, -2.5), 3.0, 3.0
         );
     }
     painter.end();
@@ -785,7 +998,14 @@ void main_window::update_toolbar_buttons() {
         );
         if (action == start_pause_action)
             button->setObjectName(QStringLiteral("game_start_pause_button"));
-        if (felt_chrome && icon_only)
+        if (felt_chrome && action == start_pause_action) {
+            // D-TOP-1: the gold primary keeps a drawn transport glyph.
+            button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+            button->setIcon(kit_transport_icon(
+                action->text() == str_label("Pause"),
+                theme_settings::felt().deep
+            ));
+        } else if (felt_chrome && icon_only)
             button->setIcon(
                 theme_settings::tinted_icon(action->icon(), icon_color)
             );

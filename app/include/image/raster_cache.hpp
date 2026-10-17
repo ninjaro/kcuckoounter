@@ -82,6 +82,14 @@ public:
         std::optional<entry_key> next_entry_to_start;
     };
 
+    struct image_footprint {
+        // Logical occurrences in cache entries, including shared face vectors.
+        qsizetype image_references {};
+        quint64 referenced_pixel_bytes {};
+        // Union of the virtual-address ranges exposed by those occurrences.
+        quint64 unique_pixel_bytes {};
+    };
+
     explicit raster_cache(QObject* parent = nullptr);
 
     [[nodiscard]] std::optional<result> get_if_ready(const entry_key& key
@@ -105,6 +113,13 @@ public:
     [[nodiscard]] int ready_entry_count() const;
     [[nodiscard]] int ready_entry_count(cache_namespace name_space) const;
     [[nodiscard]] int in_flight_count() const;
+    // On-demand, owner-thread snapshot of retained QImage pixel ranges. Shared
+    // and overlapping ranges count once in unique_pixel_bytes. This excludes
+    // other owners, in-flight work, pixmaps, metadata and allocator overhead;
+    // it measures neither RSS nor bytes that eviction would necessarily free.
+    [[nodiscard]] image_footprint ready_image_footprint(
+        std::optional<cache_namespace> name_space = std::nullopt
+    ) const;
     void set_namespace_entry_limit(cache_namespace name_space, int limit);
     bool erase_result(const entry_key& key);
 

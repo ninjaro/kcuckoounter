@@ -229,6 +229,11 @@ void table_slot::setup_overlay() {
     quiz_feedback_heading->setWordWrap(true);
     quiz_feedback_heading->setAlignment(Qt::AlignCenter);
     quiz_feedback_layout->addWidget(quiz_feedback_heading);
+    quiz_feedback_band = new QLabel(quiz_feedback_widget);
+    quiz_feedback_band->setObjectName(QStringLiteral("quiz_feedback_band"));
+    quiz_feedback_band->setTextFormat(Qt::RichText);
+    quiz_feedback_band->hide();
+    quiz_feedback_layout->addWidget(quiz_feedback_band);
 #endif
     quiz_feedback_layout->addWidget(quiz_feedback_label);
     quiz_feedback_layout->addWidget(quiz_continue_button, 0, Qt::AlignCenter);
@@ -327,6 +332,17 @@ void table_slot::update_overlay_palette() {
     apply_palette_to_widget(
         settings_editor_panel, panel_color, accent_color, input_color
     );
+    // D-SET-1: under the felt chrome the settings card is warm paper placed
+    // on the table rather than another dark panel.
+    if (settings_editor_panel && theme_settings::felt_chrome()
+        && settings_style == slot_settings_style::card)
+        settings_editor_panel->setStyleSheet(
+            theme_settings::felt_paper_style_sheet()
+            + theme_settings::felt_style(QStringLiteral(
+                "QFrame#slot_settings_editor { background: $paper$; border: "
+                "none; border-radius: 8px; padding: 6px 8px; }"
+            ))
+        );
     update_quiz_presentation();
 }
 

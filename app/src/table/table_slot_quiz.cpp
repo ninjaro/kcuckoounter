@@ -57,6 +57,7 @@ void table_slot::on_quiz_answer_button_clicked() {
         = str_label("You've set %1 while the correct answer is %2.")
               .arg(provided)
               .arg(expected);
+    legacy_feedback_counts.emplace(provided, expected);
     if (training_enabled) {
         show_quiz_feedback(message, true);
         return;
@@ -88,6 +89,7 @@ void table_slot::on_quiz_skip_button_clicked() {
         emit score_adjusted(0, -1);
     }
 
+    legacy_feedback_counts.emplace(provided, expected);
     show_quiz_feedback(
         str_label("You've set %1 while the correct answer is %2.")
             .arg(provided)
@@ -237,6 +239,7 @@ void table_slot::update_quiz_controls_visibility() {
                 );
             }
         }
+        update_feedback_stamp();
         update_compact_controls();
         return;
     }
@@ -278,5 +281,53 @@ void table_slot::update_quiz_controls_visibility() {
         quiz_continue_button->setVisible(show_continue);
         quiz_continue_button->setEnabled(show_continue);
     }
+    update_feedback_stamp();
     update_compact_controls();
+}
+
+void table_slot::update_feedback_stamp() {
+    if (!quiz_feedback_active)
+        legacy_feedback_counts.reset();
+    std::optional<std::pair<qint64, qint64>> counts;
+    if (gameplay_owner) {
+        if (quiz_feedback_active && gameplay_feedback)
+            counts.emplace(
+                static_cast<qint64>(gameplay_feedback->submitted_count),
+                static_cast<qint64>(gameplay_feedback->expected_count)
+            );
+    } else if (quiz_feedback_active) {
+        counts = legacy_feedback_counts;
+    }
+    const bool felt = theme_settings::felt_chrome();
+    if (card_widget_internal != nullptr)
+        card_widget_internal->set_verdict_glow(felt && counts.has_value());
+    if (quiz_feedback_band == nullptr)
+        return;
+    const bool show = felt && counts.has_value()
+        && feedback_style == quiz_feedback_style::stamp;
+    quiz_feedback_band->setVisible(show);
+    if (!show)
+        return;
+    const felt_material m = theme_settings::felt();
+    const auto signed_text = [](qint64 value) {
+        return value < 0 ? QStringLiteral("\u2212%1").arg(-value)
+                         : QString::number(value);
+    };
+    // The verdict states both figures; the sentence below repeats them.
+    quiz_feedback_band->setText(
+        QStringLiteral(
+            "<table width=\"100%\" cellspacing=\"0\" cellpadding=\"0\"><tr>"
+            "<td valign=\"bottom\" style=\"font-family:'%1'; font-size:10px; "
+            "letter-spacing:1px; color:rgba(255,255,255,0.8);\">%2 %3</td>"
+            "<td align=\"right\" valign=\"bottom\" style=\"font-family:'%1'; "
+            "font-size:10px; letter-spacing:1px; "
+            "color:rgba(255,255,255,0.8);\">%4 <span style=\"font-size:24px; "
+            "font-weight:700; color:#ffffff; letter-spacing:0px;\">%5</span>"
+            "</td></tr></table>"
+        )
+            .arg(
+                m.mono_family, str_label("YOU"), signed_text(counts->first),
+                str_label("WAS"), signed_text(counts->second)
+            )
+    );
 }

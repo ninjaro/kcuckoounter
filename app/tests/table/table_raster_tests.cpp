@@ -285,8 +285,22 @@ void table_tests::completed_shared_result_releases_future() {
     table_widget.shared_faces_watcher.setFuture(
         image_lifetime_test::completed_future(std::move(images))
     );
+    QCOMPARE(
+        table_widget.raster_cache_service.ready_image_footprint()
+            .unique_pixel_bytes,
+        quint64 { 0 }
+    );
+    QCOMPARE(totals->live_bytes.load(), qsizetype { 55 * 32 * 32 * 4 });
     table_widget.on_shared_rasterization_finished();
     QCOMPARE(table_widget.raster_cache_service.in_flight_count(), 0);
+    const auto footprint
+        = table_widget.raster_cache_service.ready_image_footprint();
+    QCOMPARE(footprint.image_references, accepted ? 55 : 0);
+    QCOMPARE(
+        footprint.referenced_pixel_bytes,
+        accepted ? quint64 { 225280 } : quint64 { 0 }
+    );
+    QCOMPARE(footprint.unique_pixel_bytes, footprint.referenced_pixel_bytes);
     if (accepted) {
         QCOMPARE(totals->live_images.load(), 55);
         const auto ready = table_widget.raster_cache_service.get_if_ready(key);
@@ -296,6 +310,11 @@ void table_tests::completed_shared_result_releases_future() {
     }
     table_widget.raster_cache_service.erase_result(key);
     QCOMPARE(table_widget.raster_cache_service.ready_entry_count(), 0);
+    QCOMPARE(
+        table_widget.raster_cache_service.ready_image_footprint()
+            .unique_pixel_bytes,
+        quint64 { 0 }
+    );
     QCOMPARE(totals->live_bytes.load(), qsizetype { 0 });
     QCOMPARE(totals->live_images.load(), 0);
     table_widget.on_shared_rasterization_finished();

@@ -85,7 +85,10 @@ void table_slot::setup_gameplay_input() {
     );
     quiz_spin_box->hide();
     quiz_spin_box->setEnabled(false);
-    quiz_weight_label->setText(str_label("Count"));
+    quiz_weight_label->setText(
+        theme_settings::felt_chrome() ? str_label("YOUR COUNT")
+                                      : str_label("Count")
+    );
     quiz_weight_label->setBuddy(gameplay_input);
     gameplay_input->installEventFilter(this);
     quiz_answer_button->installEventFilter(this);

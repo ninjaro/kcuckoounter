@@ -21,6 +21,14 @@ private slots:
     void settings_lookup_can_fallback_to_main_namespace();
     void settings_lookup_prefers_settings_when_both_ready();
     void render_scope_normalizes_for_cache_hits();
+    void image_footprint_ignores_empty_and_pending_results();
+    void image_footprint_deduplicates_shared_pixels_across_namespaces();
+    void image_footprint_distinguishes_equal_pixels_and_detachment();
+    void image_footprint_includes_scanline_padding();
+    void image_footprint_merges_external_views_data();
+    void image_footprint_merges_external_views();
+    void image_footprint_follows_replacement_and_eviction();
+    void image_footprint_does_not_retain_evicted_pixels();
 };
 
 #endif // KCUCKOOUNTER_TESTS_RASTER_CACHE_TESTS_HPP

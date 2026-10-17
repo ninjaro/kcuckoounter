@@ -11,6 +11,7 @@
 #include <QDateTime>
 #include <QImage>
 #include <QPixmap>
+#include <QPointer>
 #include <QTimer>
 #include <QtConcurrent/QtConcurrent>
 
@@ -477,11 +478,16 @@ void settings_template_widget::preview_render_finished() {
     if (active_render_keys.isEmpty()) {
         return;
     }
+    const QPointer<settings_template_widget> lifetime(this);
     // Drain results even when the worker finished before GUI notifications ran.
     // Individual notifications and this drain must never publish a face twice.
     for (int index = 0; index < preview_watcher.future().resultCount();
          ++index) {
         preview_result_ready(index);
+        // A direct cache observer may retire this editor during publication.
+        if (lifetime.isNull()) {
+            return;
+        }
     }
     const bool canceled = preview_watcher.isCanceled();
     const auto completed_keys = std::exchange(active_render_keys, {});
