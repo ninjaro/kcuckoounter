@@ -36,22 +36,16 @@ table::table(BaseWidget* parent)
     , rasterizing_slots()
     , rasterization_busy(false)
     , random_gen()
-    , preload_timer(nullptr)
-    , main_faces_runner(this)
-    , raster_cache_service(this)
-    , shared_faces_watcher(this)
-    , active_shared_faces_key(std::nullopt)
-    , displayed_shared_faces_key(std::nullopt)
-    , warming_shared_faces_key(std::nullopt)
-    , shared_faces_refresh_queued(false)
-    , active_card_sheet_source_id(card_sheet_source_path())
-    , active_shared_bucket_px(0)
-    , active_shared_generation_id(0)
-    , warming_card_sheet_source_id()
-    , warming_shared_bucket_px(0)
-    , warming_shared_generation_id(0)
-    , next_shared_generation_id(1)
-    , retained_shared_faces_keys() {
+    , card_images(this) {
+    connect(
+        &current_card_sheet_metadata(), &card_sheet_metadata::geometry_changed,
+        this,
+        [this] {
+            update_layout();
+            schedule_card_preload();
+        },
+        Qt::QueuedConnection
+    );
     setMinimumHeight(88);
     gameplay_timer.setInterval(50);
     gameplay_timer.setTimerType(Qt::PreciseTimer);
@@ -74,24 +68,16 @@ table::table(BaseWidget* parent)
     connect(
         &gameplay_timer, &QTimer::timeout, this, &table::on_gameplay_clock_tick
     );
-    QObject::connect(
-        &main_faces_runner, &rasterization_runner::rasterization_requested,
-        this, &table::on_shared_rasterization_requested
-    );
-    QObject::connect(
-        &raster_cache_service, &raster_cache::result_updated, this,
-        &table::on_shared_cache_result_updated
-    );
-    QObject::connect(
-        &shared_faces_watcher, &QFutureWatcher<QVector<QImage>>::finished, this,
-        &table::on_shared_rasterization_finished
+    connect(
+        &card_images, &card_image_consumer::images_changed, this,
+        &table::on_card_images_changed, Qt::QueuedConnection
     );
 }
 
 table::~table() {
     const QSignalBlocker teardown_notifications(this);
-    // The worker owns its inputs; request retirement without blocking the GUI.
-    shared_faces_watcher.cancel();
+    // Withdraw only this table; other consumers retain shared jobs and images.
+    card_images.clear();
     stop_gameplay_clock();
     gameplay_layout_animation.stop();
     // QObject deletes children after member destruction. Bound views must go
@@ -107,7 +93,11 @@ std::unique_ptr<table_slot> table::create_slot_widget() {
     slot->set_settings_style(settings_style);
     slot->set_quiz_presentation(answer_style, feedback_style);
     slot->set_allow_skipping(allow_skipping);
-    slot->set_shared_card_faces_mode(true);
+    slot->set_presented_image_mode(true);
+    connect(
+        slot->card_widget_internal, &card_widget::image_demand_changed, this,
+        &table::schedule_card_preload
+    );
     connect(slot.get(), &table_slot::swap_clicked, this, &table::on_slot_swap);
     connect(slot.get(), &table_slot::copy_clicked, this, &table::on_slot_copy);
     connect(
@@ -215,10 +205,7 @@ void table::clear_gameplay_session() {
     gameplay_layout_progress = 1.0;
     gameplay_owner.reset();
     ++gameplay_scene_revision;
-    main_faces_runner.cancel_pending();
-    if (preload_timer)
-        preload_timer->stop();
-    clear_shared_card_faces();
+    clear_presented_card_images();
     emit gameplay_session_changed();
 }
 
@@ -264,7 +251,7 @@ void table::set_slot_count(int count) {
 
     update_layout();
     schedule_card_preload();
-    update_shared_card_face_need();
+    update_card_image_demands();
 }
 
 void table::start_quiz(int quiz_type_index, bool wait_for_answers) {
@@ -288,7 +275,7 @@ void table::start_quiz(int quiz_type_index, bool wait_for_answers) {
         }
     }
     pick_elapsed_ms = 0;
-    update_shared_card_face_need();
+    update_card_image_demands();
 }
 
 void table::clear_quiz() {
@@ -362,10 +349,6 @@ void table::set_pick_interval(int interval_ms) {
         interval_ms = 1;
     }
     pick_interval_ms = interval_ms;
-    if (preload_timer != nullptr && preload_timer->is_active()) {
-        preload_timer->set_interval(rasterization_delay_ms());
-        preload_timer->start();
-    }
 }
 
 void table::set_dealing_mode(int mode_index) {
@@ -403,7 +386,7 @@ void table::set_card_orientation(card_orientation_mode orientation) {
     card_orientation = orientation;
     update_layout();
     schedule_card_preload();
-    update_shared_card_face_need();
+    update_card_image_demands();
 }
 
 table_session_state table::capture_session_state() const {
@@ -482,7 +465,7 @@ bool table::restore_session_state(const table_session_state& state) {
         }
     }
     schedule_card_preload();
-    update_shared_card_face_need();
+    update_card_image_demands();
     return true;
 }
 
@@ -514,7 +497,7 @@ bool table::event(QEvent* event) {
         QTimer::singleShot(0, this, [this]() {
             update_layout();
             schedule_card_preload();
-            update_shared_card_face_need();
+            update_card_image_demands();
         });
     }
 
@@ -525,7 +508,7 @@ void table::resizeEvent(QResizeEvent* event) {
     BaseWidget::resizeEvent(event);
     update_layout();
     schedule_card_preload();
-    update_shared_card_face_need();
+    update_card_image_demands();
 }
 
 void table::set_frame_style(slot_frame_style style) {
@@ -560,7 +543,7 @@ void table::set_settings_style(slot_settings_style style) {
 
 void table::apply_theme() {
     const QString next_source_id = card_sheet_source_path();
-    const bool source_changed = active_card_sheet_source_id != next_source_id;
+    const bool source_changed = desired_card_source != next_source_id;
 
     update();
     for (table_slot* slot_widget : slot_widgets) {
@@ -574,11 +557,11 @@ void table::apply_theme() {
     update_layout();
 
     if (source_changed) {
-        update_shared_card_face_need(true, true);
+        update_card_image_demands(true, true);
         return;
     }
 
-    update_shared_card_face_need();
+    update_card_image_demands();
 }
 
 void table::refresh_material() {

@@ -59,7 +59,7 @@ void table_tests::frame_styles_preserve_owned_runtime() {
     auto& owner = *view.active_gameplay_session();
     QCOMPARE(owner.size(), std::size_t { 4 });
     const auto widgets = view.slot_widgets;
-    auto* cache = view.shared_raster_cache_service();
+    auto* cache = table::shared_image_service();
     QSignalSpy legacy_score(&view, &table::score_adjusted);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
     QSignalSpy resolved(&view, &table::gameplay_quiz_resolved);
@@ -155,7 +155,8 @@ void table_tests::frame_styles_preserve_owned_runtime() {
         card->set_frame_style(frame);
         QCOMPARE(card->grab().toImage(), original);
     }
-    const auto generation = view.next_shared_generation_id;
+    const auto image_demand
+        = std::pair(view.desired_card_source, view.desired_card_size);
     for (const auto style :
          { slot_frame_style::classic, slot_frame_style::thin, frame }) {
         view.set_frame_style(style);
@@ -168,7 +169,10 @@ void table_tests::frame_styles_preserve_owned_runtime() {
             card->set_frame_style(style);
             QCOMPARE(card->grab().toImage(), rendered);
         }
-        QCOMPARE(view.next_shared_generation_id, generation);
+        QCOMPARE(
+            std::pair(view.desired_card_source, view.desired_card_size),
+            image_demand
+        );
         QCOMPARE(view.gameplay_quiz_prompt({ 2 }), prompt);
     }
 
@@ -216,7 +220,7 @@ void table_tests::frame_styles_preserve_owned_runtime() {
     QCOMPARE(owner.statistics(), statistics);
     QCOMPARE(owner.timing(), timing);
     QCOMPARE(owner.configuration(), configuration);
-    QCOMPARE(view.shared_raster_cache_service(), cache);
+    QCOMPARE(table::shared_image_service(), cache);
     QCOMPARE(preparation.count(), 0);
     QCOMPARE(legacy_score.count(), 0);
 

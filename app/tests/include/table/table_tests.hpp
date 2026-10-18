@@ -140,15 +140,12 @@ private slots:
     void quiz_spin_box_remembers_last_input();
     /// @brief Verifies shared card-face presence tracks set and clear calls.
     void shared_faces_track_set_and_clear();
-    void completed_shared_result_releases_future_data();
-    void completed_shared_result_releases_future();
-    void retiring_warming_generation_cancels_shared_work_data();
-    void retiring_warming_generation_cancels_shared_work();
-    void shared_worker_publishes_only_complete_decks_data();
-    void shared_worker_publishes_only_complete_decks();
+    void shared_tables_reuse_and_withdraw_data();
+    void shared_tables_reuse_and_withdraw();
+    void replacing_shared_demand_rejects_obsolete_images();
+    void first_visible_subset_is_incremental();
     void destruction_retires_raster_notifications();
-    void destruction_cancels_shared_work_data();
-    void destruction_cancels_shared_work();
+    void visible_window_closes_with_pending_images();
     /// @brief Verifies persisted orientation modes constrain packed slots.
     void card_orientation_constrains_packed_slot_geometry();
     void presentation_preserves_packed_slots_data();
@@ -167,6 +164,7 @@ private slots:
     void action_variants_preserve_copy_and_swap_workflows();
     void settings_surfaces_stage_changes_data();
     void settings_surfaces_stage_changes();
+    void felt_settings_card_follows_kit_layout();
     void settings_editor_lifecycle_cancels_stale_drafts();
     void classic_settings_dialog_preserves_transaction();
     void desktop_toolbar_preserves_table_and_commands_data();

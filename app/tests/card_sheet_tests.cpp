@@ -7,6 +7,8 @@
 
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
+#include "image/card_images.hpp"
+#include <stdexcept>
 
 #include <QFile>
 #include <QFileInfo>
@@ -17,6 +19,84 @@
 #include <QTemporaryDir>
 #include <QTextStream>
 #include <QtTest/QtTest>
+
+namespace {
+// Tests drive the actual installed service and process its completion events.
+// No reference renderer, fake future or alternate pixel cache lives here.
+class card_images_probe {
+public:
+    explicit card_images_probe(
+        const QString& preferred,
+        const QString& fallback = default_card_sheet_source_path()
+    ) {
+        images.set_source(preferred, fallback);
+    }
+
+    QVector<QImage> faces(
+        const QSize& size, card_sheet_fallback_resolution* resolution = nullptr
+    ) {
+        std::vector<card_image_demand> desired;
+        for (const auto& id : required_card_ids_with_back())
+            desired.push_back({ id, size });
+        images.replace_desired(std::move(desired));
+        await_completion();
+        if (resolution)
+            *resolution = images.source_resolution();
+        QVector<QImage> result;
+        for (const auto& id : required_card_ids_with_back())
+            result.push_back(images.image_for(id));
+        return result;
+    }
+
+    QImage face(
+        const QString& id, const QSize& size,
+        card_sheet_fallback_resolution* resolution = nullptr
+    ) {
+        images.replace_desired({ { id, size } });
+        await_completion();
+        if (resolution)
+            *resolution = images.source_resolution();
+        return images.image_for(id);
+    }
+
+    card_sheet_fallback_resolution sources() {
+        faces(QSize(1, 1));
+        return images.source_resolution();
+    }
+
+private:
+    void await_completion() const {
+        if (!QTest::qWaitFor([this] { return !images.is_pending(); }, 15000))
+            QTest::qFail(
+                "Rasterflow did not complete the authored card demand",
+                __FILE__, __LINE__
+            );
+    }
+
+    card_image_consumer images;
+};
+
+QVector<QImage> test_faces(
+    const QString& path, const QSize& size,
+    card_sheet_fallback_resolution* resolution = nullptr
+) {
+    card_images_probe consumer(path);
+    return consumer.faces(size, resolution);
+}
+
+QImage test_face(
+    const QString& path, const QString& id, const QSize& size,
+    card_sheet_fallback_resolution* resolution = nullptr
+) {
+    card_images_probe consumer(path);
+    return consumer.face(id, size, resolution);
+}
+
+card_sheet_fallback_resolution test_sources(const QString& path) {
+    card_images_probe consumer(path);
+    return consumer.sources();
+}
+}
 
 static QString alternate_svg_id_for_test(const QString& logical_id) {
     static const QStringList suits = {
@@ -76,6 +156,50 @@ static bool write_alternate_id_card_svg(const QString& source_path) {
 
     stream << "</svg>\n";
     return stream.status() == QTextStream::Ok;
+}
+
+void card_sheet_tests::metadata_selection_rejects_stale_completion() {
+    const auto original = card_sheet_source_path();
+    const auto restore
+        = qScopeGuard([&] { set_card_sheet_source_path(original); });
+    QTemporaryDir directory;
+    const auto old_path = directory.filePath("old.svg");
+    const auto current_path = directory.filePath("current.svg");
+    const auto write = [](const QString& path, const QByteArray& elements) {
+        QFile file(path);
+        const auto svg = QByteArray("<svg xmlns=\"http://www.w3.org/2000/svg\" "
+                                    "width=\"80\" height=\"120\">")
+            + elements + "</svg>";
+        return file.open(QIODevice::WriteOnly) && file.write(svg) == svg.size();
+    };
+    QVERIFY(write(old_path, "<rect id=\"club_1\" width=\"10\" height=\"30\"/>")
+    );
+    QVERIFY(
+        write(current_path, "<rect id=\"club_1\" width=\"20\" height=\"40\"/>")
+    );
+    auto& metadata = current_card_sheet_metadata();
+    QSignalSpy changed(&metadata, &card_sheet_metadata::geometry_changed);
+    set_card_sheet_source_path(old_path);
+    QVERIFY(metadata.is_pending());
+    set_card_sheet_source_path(current_path);
+    QTRY_VERIFY(!metadata.is_pending());
+    QVERIFY(metadata.is_valid());
+    QCOMPARE(card_sheet_ratio(), (std::pair<int, int> { 40, 20 }));
+    QTRY_COMPARE(
+        application_image_service().observations().scheduling.running_jobs, 0
+    );
+    QCOMPARE(card_sheet_source_path(), current_path);
+    QCOMPARE(card_sheet_ratio(), (std::pair<int, int> { 40, 20 }));
+    QCOMPARE(changed.size(), 1);
+    // A malformed readable file is rejected asynchronously, with base geometry.
+    QFile invalid(old_path);
+    QVERIFY(invalid.open(QIODevice::WriteOnly));
+    invalid.write("invalid svg");
+    invalid.close();
+    set_card_sheet_source_path(old_path);
+    QTRY_VERIFY(!metadata.is_pending());
+    QVERIFY(!metadata.is_valid());
+    QCOMPARE(card_sheet_ratio(), (std::pair<int, int> { 88, 63 }));
 }
 
 void card_sheet_tests::loads_svg() {
@@ -166,7 +290,8 @@ void card_sheet_tests::bundled_selection_is_independent_of_picker() {
     for (const auto& theme : themes) {
         set_card_sheet_source_path(theme.source_path);
         QCOMPARE(card_sheet_source_path(), theme.source_path);
-        QVERIFY(preload_card_sheet());
+        QTRY_VERIFY(!current_card_sheet_metadata().is_pending());
+        QVERIFY(current_card_sheet_metadata().is_valid());
         const auto ratio = card_sheet_ratio();
         QVERIFY(ratio.first > 0);
         QVERIFY(ratio.second > 0);
@@ -247,14 +372,16 @@ void card_sheet_tests::source_path_switches_between_themes() {
 
     set_card_sheet_source_path(theme_one);
     QCOMPARE(card_sheet_source_path(), theme_one);
-    QVERIFY(preload_card_sheet());
+    QTRY_VERIFY(!current_card_sheet_metadata().is_pending());
+    QVERIFY(current_card_sheet_metadata().is_valid());
     const auto ratio_one = card_sheet_ratio();
     QVERIFY(ratio_one.first > 0);
     QVERIFY(ratio_one.second > 0);
 
     set_card_sheet_source_path(theme_two);
     QCOMPARE(card_sheet_source_path(), theme_two);
-    QVERIFY(preload_card_sheet());
+    QTRY_VERIFY(!current_card_sheet_metadata().is_pending());
+    QVERIFY(current_card_sheet_metadata().is_valid());
     const auto ratio_two = card_sheet_ratio();
     QVERIFY(ratio_two.first > 0);
     QVERIFY(ratio_two.second > 0);
@@ -269,16 +396,15 @@ void card_sheet_tests::required_ids_and_fallback_resolution_are_deterministic(
     );
     QCOMPARE(required_ids.constLast(), card_back_element_id());
 
-    const card_sheet_fallback_resolution active_resolution
-        = resolve_required_card_face_sources(
-            bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg"))
-        );
+    const card_sheet_fallback_resolution active_resolution = test_sources(
+        bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg"))
+    );
     QCOMPARE(active_resolution.active_theme_keys, required_ids.size());
     QCOMPARE(active_resolution.default_theme_keys, 0);
     QCOMPARE(active_resolution.placeholder_keys, 0);
 
     card_sheet_fallback_resolution active_raster_resolution;
-    const QVector<QImage> active_images = rasterize_card_faces_with_fallback(
+    const QVector<QImage> active_images = test_faces(
         bundled_asset_path(QStringLiteral("sets/cards/cards_4.svg")),
         QSize(72, 72), &active_raster_resolution
     );
@@ -318,7 +444,7 @@ void card_sheet_tests::required_ids_and_fallback_resolution_are_deterministic(
     sheet_file.close();
     QVERIFY(QSvgRenderer(sheet_path).isValid());
     const card_sheet_fallback_resolution sheet_resolution
-        = resolve_required_card_face_sources(sheet_path);
+        = test_sources(sheet_path);
     QCOMPARE(sheet_resolution.active_theme_keys, 0);
     QCOMPARE(sheet_resolution.default_theme_keys, required_ids.size());
     QCOMPARE(sheet_resolution.placeholder_keys, 0);
@@ -326,7 +452,7 @@ void card_sheet_tests::required_ids_and_fallback_resolution_are_deterministic(
     // The four-color sprite has all 52 faces but no jokers or back. Only those
     // optional graphics should come from the default deck.
     card_sheet_fallback_resolution optional_resolution;
-    const QVector<QImage> optional_images = rasterize_card_faces_with_fallback(
+    const QVector<QImage> optional_images = test_faces(
         bundled_asset_path(QStringLiteral("sets/cards/cards_40.svg")),
         QSize(72, 72), &optional_resolution
     );
@@ -339,15 +465,13 @@ void card_sheet_tests::required_ids_and_fallback_resolution_are_deterministic(
     }
 
     const card_sheet_fallback_resolution default_resolution
-        = resolve_required_card_face_sources(
-            str_label("assets/non_existent_cards.svg")
-        );
+        = test_sources(str_label("assets/non_existent_cards.svg"));
     QCOMPARE(default_resolution.active_theme_keys, 0);
     QCOMPARE(default_resolution.default_theme_keys, required_ids.size());
     QCOMPARE(default_resolution.placeholder_keys, 0);
 
     card_sheet_fallback_resolution fallback_raster_resolution;
-    const QVector<QImage> fallback_images = rasterize_card_faces_with_fallback(
+    const QVector<QImage> fallback_images = test_faces(
         str_label("assets/non_existent_cards.svg"), QSize(72, 72),
         &fallback_raster_resolution
     );
@@ -386,9 +510,7 @@ void card_sheet_tests::retained_themes_render_all_logical_cards() {
     );
     QVERIFY(!source.isEmpty());
     card_sheet_fallback_resolution resolution;
-    const auto images = rasterize_card_faces_with_fallback(
-        source, QSize(72, 108), &resolution
-    );
+    const auto images = test_faces(source, QSize(72, 108), &resolution);
     QCOMPARE(resolution.active_theme_keys, active_count);
     QCOMPARE(resolution.default_theme_keys, 55 - active_count);
     QCOMPARE(resolution.placeholder_keys, 0);
@@ -447,7 +569,8 @@ void card_sheet_tests::removed_bundled_sources_fall_back_to_default() {
     QCOMPARE(card_sheet_source_path(), default_card_sheet_source_path());
     set_card_sheet_source_path(QString());
     QCOMPARE(card_sheet_source_path(), default_card_sheet_source_path());
-    QVERIFY(preload_card_sheet());
+    QTRY_VERIFY(!current_card_sheet_metadata().is_pending());
+    QVERIFY(current_card_sheet_metadata().is_valid());
 
     // Stored surviving paths rebind to today's resource/installation location.
     set_card_sheet_source_path(
@@ -477,16 +600,14 @@ void card_sheet_tests::alternate_svg_id_conventions_are_resolved() {
 
     const int required_keys
         = static_cast<int>(required_card_ids_with_back().size());
-    const card_sheet_fallback_resolution resolution
-        = resolve_required_card_face_sources(source_path);
+    const card_sheet_fallback_resolution resolution = test_sources(source_path);
     QCOMPARE(resolution.active_theme_keys, required_keys);
     QCOMPARE(resolution.default_theme_keys, 0);
     QCOMPARE(resolution.placeholder_keys, 0);
 
     card_sheet_fallback_resolution raster_resolution;
-    const QVector<QImage> images = rasterize_card_faces_with_fallback(
-        source_path, QSize(72, 72), &raster_resolution
-    );
+    const QVector<QImage> images
+        = test_faces(source_path, QSize(72, 72), &raster_resolution);
     QCOMPARE(images.size(), required_keys);
     QCOMPARE(raster_resolution.active_theme_keys, required_keys);
     QCOMPARE(raster_resolution.default_theme_keys, 0);
@@ -496,7 +617,7 @@ void card_sheet_tests::alternate_svg_id_conventions_are_resolved() {
     }
 
     card_sheet_fallback_resolution preview_resolution;
-    const QImage preview = rasterize_card_face_with_fallback(
+    const QImage preview = test_face(
         source_path, str_label("club_1"), QSize(72, 72), &preview_resolution
     );
     QVERIFY(!preview.isNull());
@@ -505,37 +626,34 @@ void card_sheet_tests::alternate_svg_id_conventions_are_resolved() {
     QCOMPARE(preview_resolution.placeholder_keys, 0);
 }
 
-void card_sheet_tests::context_reuses_parsed_sources_after_file_removal() {
+void card_sheet_tests::registered_sources_survive_file_removal() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     const QString path = directory.filePath(QStringLiteral("cards.svg"));
     QVERIFY(write_alternate_id_card_svg(path));
 
-    card_sheet_render_context context(path);
-    const auto sources = context.resolve_required_sources();
+    card_images_probe context(path);
+    const auto sources = context.sources();
     QCOMPARE(sources.active_theme_keys, required_card_ids_with_back().size());
     QVERIFY(QFile::remove(path));
 
     const QSize size(36, 48);
-    const auto images = context.rasterize_faces(size);
+    const auto images = context.faces(size);
     QCOMPARE(images.size(), required_card_ids_with_back().size());
     for (int index = 0; index < images.size(); ++index) {
         QVERIFY(!images.at(index).isNull());
-        QCOMPARE(images.at(index).size(), size);
+        QVERIFY(images.at(index).width() > size.width());
+        QVERIFY(images.at(index).height() > size.height());
         QCOMPARE(
-            context.rasterize_face(
-                required_card_ids_with_back().at(index), size
-            ),
+            context.face(required_card_ids_with_back().at(index), size),
             images.at(index)
         );
     }
-    QCOMPARE(
-        context.rasterize_face(card_back_element_id(), QSize(20, 30)).size(),
-        QSize(20, 30)
-    );
+    const auto back = context.face(card_back_element_id(), QSize(20, 30));
+    QVERIFY(back.width() > 20 && back.height() > 30);
 }
 
-void card_sheet_tests::context_loads_fallback_on_first_missing_face() {
+void card_sheet_tests::fallback_loads_on_first_missing_face() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     const QString active = directory.filePath(QStringLiteral("partial.svg"));
@@ -549,24 +667,23 @@ void card_sheet_tests::context_loads_fallback_on_first_missing_face() {
     QCOMPARE(file.write(svg), svg.size());
     file.close();
 
-    card_sheet_render_context context(active, fallback);
+    card_images_probe context(active, fallback);
     card_sheet_fallback_resolution resolution;
     const QSize size(24, 32);
     const QImage selected
-        = context.rasterize_face(QStringLiteral("club_1"), size, &resolution);
+        = context.face(QStringLiteral("club_1"), size, &resolution);
     QCOMPARE(selected.pixelColor(12, 16), QColor(Qt::red));
     QCOMPARE(resolution.active_theme_keys, 1);
     QCOMPARE(resolution.default_theme_keys, 0);
 
     // The fallback did not exist at construction or during the active hit.
     QVERIFY(write_alternate_id_card_svg(fallback));
-    const QImage back
-        = context.rasterize_face(card_back_element_id(), size, &resolution);
+    const QImage back = context.face(card_back_element_id(), size, &resolution);
     QVERIFY(!back.isNull());
     QCOMPARE(resolution.default_theme_keys, 1);
     QVERIFY(QFile::remove(fallback));
     QVERIFY(QFile::remove(active));
-    const auto images = context.rasterize_faces(size, &resolution);
+    const auto images = context.faces(size, &resolution);
     QCOMPARE(resolution.active_theme_keys, 1);
     QCOMPARE(resolution.default_theme_keys, images.size() - 1);
     QCOMPARE(resolution.placeholder_keys, 0);
@@ -574,7 +691,7 @@ void card_sheet_tests::context_loads_fallback_on_first_missing_face() {
     QCOMPARE(images.last(), back);
 }
 
-void card_sheet_tests::context_preserves_placeholders_and_invalid_input() {
+void card_sheet_tests::missing_faces_and_invalid_demand() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     const QString path = directory.filePath(QStringLiteral("empty.svg"));
@@ -585,29 +702,30 @@ void card_sheet_tests::context_preserves_placeholders_and_invalid_input() {
     QCOMPARE(file.write(svg), svg.size());
     file.close();
 
-    card_sheet_render_context context(path, path);
+    card_images_probe context(path, path);
     card_sheet_fallback_resolution resolution;
-    const auto images = context.rasterize_faces(QSize(16, 24), &resolution);
+    const auto images = context.faces(QSize(16, 24), &resolution);
     QCOMPARE(images.size(), required_card_ids_with_back().size());
     QCOMPARE(resolution.placeholder_keys, images.size());
     for (const auto& image : images) {
         QVERIFY(image.isNull());
     }
-    QVERIFY(
-        context.rasterize_face(QString(), QSize(16, 24), &resolution).isNull()
+    card_image_consumer consumer;
+    consumer.set_source(path, path);
+    consumer.replace_desired({ { QStringLiteral("club_1"), QSize(16, 24) } });
+    QTRY_VERIFY(!consumer.is_pending());
+    QVERIFY_THROWS_EXCEPTION(
+        std::invalid_argument,
+        consumer.replace_desired({ { QString(), QSize(16, 24) } })
     );
-    QCOMPARE(resolution.placeholder_keys, 0);
-    resolution.active_theme_keys = 7;
-    QVERIFY(context.rasterize_faces(QSize(), &resolution).isEmpty());
-    QCOMPARE(resolution.active_theme_keys, 0);
-    resolution.default_theme_keys = 5;
-    QVERIFY(
-        rasterize_card_faces_with_fallback(path, QSize(), &resolution).isEmpty()
+    QVERIFY_THROWS_EXCEPTION(
+        std::invalid_argument,
+        consumer.replace_desired({ { QStringLiteral("club_1"), QSize() } })
     );
-    QCOMPARE(resolution.default_theme_keys, 0);
+    QCOMPARE(consumer.source_resolution().placeholder_keys, 1);
 }
 
-void card_sheet_tests::context_normalizes_each_sources_base_bounds() {
+void card_sheet_tests::base_frames_follow_each_selected_source() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     const QString active = directory.filePath(QStringLiteral("active.svg"));
@@ -634,25 +752,23 @@ void card_sheet_tests::context_normalizes_each_sources_base_bounds() {
         "<rect width=\"10\" height=\"10\" fill=\"lime\"/></g></svg>"
     ));
 
-    card_sheet_render_context context(active, fallback);
-    QImage expected_active(QSize(24, 34), QImage::Format_ARGB32_Premultiplied);
-    expected_active.fill(Qt::blue);
-    QCOMPARE(
-        context.rasterize_face(
-            QStringLiteral("club_1"), expected_active.size()
-        ),
-        expected_active
+    card_images_probe context(active, fallback);
+    const auto active_image
+        = context.face(QStringLiteral("club_1"), QSize(24, 34));
+    QVERIFY(active_image.width() > 24 && active_image.height() > 34);
+    QImage expected_active(
+        active_image.size(), QImage::Format_ARGB32_Premultiplied
     );
+    expected_active.fill(Qt::blue);
+    QCOMPARE(active_image, expected_active);
+    const auto fallback_image
+        = context.face(card_back_element_id(), QSize(28, 28));
+    QVERIFY(fallback_image.width() > 28 && fallback_image.height() > 28);
     QImage expected_fallback(
-        QSize(28, 28), QImage::Format_ARGB32_Premultiplied
+        fallback_image.size(), QImage::Format_ARGB32_Premultiplied
     );
     expected_fallback.fill(Qt::green);
-    QCOMPARE(
-        context.rasterize_face(
-            card_back_element_id(), expected_fallback.size()
-        ),
-        expected_fallback
-    );
+    QCOMPARE(fallback_image, expected_fallback);
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

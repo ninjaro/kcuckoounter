@@ -7,28 +7,21 @@ class card_widget_tests : public QObject {
     Q_OBJECT
 
 private slots:
-    void stretches_between_raster_intervals();
-    void memory_cache_tracks_resize();
-    void local_resize_coalesces_latest_demand_data();
-    void local_resize_coalesces_latest_demand();
+    void visible_faces_preserve_variants_data();
+    void visible_faces_preserve_variants();
+    void local_resize_tracks_latest_demand_data();
+    void local_resize_tracks_latest_demand();
     void shared_faces_disable_local_rasterization();
     void shared_faces_outlive_source_file();
-    void source_validation_follows_raster_ownership();
     void standalone_source_validation_rejects_invalid_svg();
-    void shared_faces_reject_late_local_completion_data();
-    void shared_faces_reject_late_local_completion();
-    void local_work_retires_with_ownership_data();
-    void local_work_retires_with_ownership();
-    void local_work_retires_without_valid_demand_data();
-    void local_work_retires_without_valid_demand();
-    void local_theme_change_retires_obsolete_work_data();
-    void local_theme_change_retires_obsolete_work();
-    void local_worker_publishes_only_complete_decks_data();
-    void local_worker_publishes_only_complete_decks();
+    void shared_faces_reject_local_notifications_data();
+    void shared_faces_reject_local_notifications();
+    void local_withdrawal_preserves_other_subscribers_data();
+    void local_withdrawal_preserves_other_subscribers();
     void selected_presentation_reuses_and_invalidates();
-    void completed_local_result_releases_future_data();
-    void completed_local_result_releases_future();
     void theme_source_change_invalidates_stale_raster_result();
+    void visible_face_does_not_wait_for_unrelated_elements();
+    void completion_observer_can_destroy_widget();
     void accumulated_count_survives_presentation_changes();
     void recent_stack_retains_five_transforms();
     void accessible_description_tracks_visible_card_state();
@@ -38,6 +31,7 @@ private slots:
     void binding_reads_owned_decks_rejects_legacy_mutation();
     void count_visibility_uses_training_choice_and_int64();
     void quiz_and_pause_keep_faces_hidden();
+    void piping_moves_gameplay_strategy_to_legend();
     void terminal_states_are_distinct_geometry_is_unchanged();
     void stack_refresh_and_swap_preserve_deck_binding();
     void rollover_reads_current_buffer_and_cumulative_index();

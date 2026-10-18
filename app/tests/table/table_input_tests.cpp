@@ -156,8 +156,9 @@ void table_tests::gameplay_controls_numeric_and_chips() {
     }
     const auto before = *view.gameplay_owner->deck({ 0 });
     const auto prompt = view.gameplay_quiz_prompt({ 0 });
-    auto* cache = view.shared_raster_cache_service();
-    const auto generation = view.next_shared_generation_id;
+    auto* cache = table::shared_image_service();
+    const auto image_demand
+        = std::pair(view.desired_card_source, view.desired_card_size);
     const auto text = input->text();
     input->setSelection(1, 3);
     const auto cursor = input->cursorPosition();
@@ -173,8 +174,11 @@ void table_tests::gameplay_controls_numeric_and_chips() {
         QCOMPARE(input->selectedText(), selected);
         QCOMPARE(*view.gameplay_owner->deck({ 0 }), before);
         QCOMPARE(view.gameplay_quiz_prompt({ 0 }), prompt);
-        QCOMPARE(view.shared_raster_cache_service(), cache);
-        QCOMPARE(view.next_shared_generation_id, generation);
+        QCOMPARE(table::shared_image_service(), cache);
+        QCOMPARE(
+            std::pair(view.desired_card_source, view.desired_card_size),
+            image_demand
+        );
         auto* plus
             = slot->findChild<QPushButton*>(QStringLiteral("quiz_chip_1"));
         QCOMPARE(plus->isVisible(), use_chips);
@@ -489,8 +493,9 @@ void table_tests::control_refresh_keeps_caret_and_raster_owner() {
     input->setSelection(2, 2);
     const auto cursor = input->cursorPosition();
     const auto selected = input->selectedText();
-    auto* cache = view.shared_raster_cache_service();
-    const auto generation = view.next_shared_generation_id;
+    auto* cache = table::shared_image_service();
+    const auto image_demand
+        = std::pair(view.desired_card_source, view.desired_card_size);
     for (int repeat = 0; repeat < 12; ++repeat) {
         QVERIFY(view.advance_gameplay_runtime(50, answers));
         view.publish_gameplay_runtime(answers);
@@ -501,8 +506,11 @@ void table_tests::control_refresh_keeps_caret_and_raster_owner() {
     QCOMPARE(
         view.gameplay_owner->deck({ 0 })->latest_input, std::int64_t { 12345 }
     );
-    QCOMPARE(view.shared_raster_cache_service(), cache);
-    QCOMPARE(view.next_shared_generation_id, generation);
+    QCOMPARE(table::shared_image_service(), cache);
+    QCOMPARE(
+        std::pair(view.desired_card_source, view.desired_card_size),
+        image_demand
+    );
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

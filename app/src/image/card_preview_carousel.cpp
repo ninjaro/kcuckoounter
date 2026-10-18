@@ -1,8 +1,11 @@
 #include "image/card_preview_carousel.hpp"
+#include <QPointer>
 
 #include <QAccessible>
 #include <QHBoxLayout>
+#include <QHideEvent>
 #include <QResizeEvent>
+#include <QShowEvent>
 #include <QStyle>
 
 #include <algorithm>
@@ -171,11 +174,33 @@ void card_preview_carousel::set_prefetch_adjacent_cards(bool enabled) {
             }
         }
     }
+    emit demand_changed();
 }
 
 QVector<int> card_preview_carousel::requested_card_indices() const {
+    if (!card_provider)
+        return {};
+    auto indices = visible_card_indices();
+    if (indices.isEmpty())
+        return indices;
+    if (prefetch_adjacent_cards) {
+        const auto append = [&indices, this](qsizetype index) {
+            const int wrapped = static_cast<int>(
+                (index + total_cards_value) % total_cards_value
+            );
+            if (!indices.contains(wrapped))
+                indices.append(wrapped);
+        };
+        const qsizetype first = first_index;
+        append(first - 1);
+        append(first + card_labels.size());
+    }
+    return indices;
+}
+
+QVector<int> card_preview_carousel::visible_card_indices() const {
     QVector<int> indices;
-    if (!card_provider || total_cards_value <= 0)
+    if (total_cards_value <= 0)
         return indices;
     const auto append = [&indices, this](qsizetype index) {
         const int wrapped
@@ -187,10 +212,6 @@ QVector<int> card_preview_carousel::requested_card_indices() const {
     const int label_count = static_cast<int>(card_labels.size());
     for (int offset = 0; offset < label_count; ++offset)
         append(first + offset);
-    if (prefetch_adjacent_cards) {
-        append(first - 1);
-        append(first + label_count);
-    }
     return indices;
 }
 
@@ -226,6 +247,16 @@ void card_preview_carousel::show_next() {
 void card_preview_carousel::resizeEvent(QResizeEvent* event) {
     BaseWidget::resizeEvent(event);
     update_card_layout();
+}
+
+void card_preview_carousel::showEvent(QShowEvent* event) {
+    BaseWidget::showEvent(event);
+    emit demand_changed();
+}
+
+void card_preview_carousel::hideEvent(QHideEvent* event) {
+    BaseWidget::hideEvent(event);
+    emit demand_changed();
 }
 
 void card_preview_carousel::rebuild_labels() {
@@ -319,7 +350,13 @@ void card_preview_carousel::clear_cached_cards() {
     }
 }
 
+QSize card_preview_carousel::requested_card_size() const { return card_size; }
+
 void card_preview_carousel::refresh_view() {
+    const QPointer<card_preview_carousel> lifetime(this);
+    emit demand_changed();
+    if (!lifetime)
+        return;
     const int total_cards = total_cards_value;
     if (total_cards <= 0) {
         for (QLabel* label : card_labels) {

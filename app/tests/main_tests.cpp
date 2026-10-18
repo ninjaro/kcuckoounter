@@ -8,8 +8,6 @@
 #include "include/image_cacher_tests.hpp"
 #include "include/infinity_spinbox_tests.hpp"
 #include "include/preview_carousel_tests.hpp"
-#include "include/raster_cache_tests.hpp"
-#include "include/rasterization_runner_tests.hpp"
 #include "include/settings/gameplay_checkpoint_tests.hpp"
 #include "include/settings/gameplay_progress_tests.hpp"
 #include "include/settings/gameplay_recovery_tests.hpp"
@@ -86,14 +84,6 @@ int main(int argc, char** argv) {
     }
     {
         infinity_spinbox_tests t;
-        status |= QTest::qExec(&t, argc, argv);
-    }
-    {
-        rasterization_runner_tests t;
-        status |= QTest::qExec(&t, argc, argv);
-    }
-    {
-        raster_cache_tests t;
         status |= QTest::qExec(&t, argc, argv);
     }
     {

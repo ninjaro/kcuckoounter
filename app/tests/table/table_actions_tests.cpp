@@ -168,8 +168,9 @@ void table_tests::action_styles_preserve_owned_quiz() {
         bounds[id] = widgets[id]->geometry();
         demand[id] = widgets[id]->card_face_need_short_px();
     }
-    auto* cache = view.shared_raster_cache_service();
-    const auto generation = view.next_shared_generation_id;
+    auto* cache = table::shared_image_service();
+    const auto image_demand
+        = std::pair(view.desired_card_source, view.desired_card_size);
     auto* host
         = source->findChild<QDialog*>(QStringLiteral("slot_controls_dialog"));
     for (const auto next_style :
@@ -238,8 +239,11 @@ void table_tests::action_styles_preserve_owned_quiz() {
         QCOMPARE(input->text(), QStringLiteral("+17"));
         QCOMPARE(input->cursorPosition(), cursor);
         QCOMPARE(input->selectedText(), selection);
-        QCOMPARE(view.shared_raster_cache_service(), cache);
-        QCOMPARE(view.next_shared_generation_id, generation);
+        QCOMPARE(table::shared_image_service(), cache);
+        QCOMPARE(
+            std::pair(view.desired_card_source, view.desired_card_size),
+            image_demand
+        );
     }
     if (failed_opener->isVisible()) {
         failed_opener->click();

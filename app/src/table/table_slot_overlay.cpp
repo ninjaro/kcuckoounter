@@ -340,7 +340,8 @@ void table_slot::update_overlay_palette() {
             theme_settings::felt_paper_style_sheet()
             + theme_settings::felt_style(QStringLiteral(
                 "QFrame#slot_settings_editor { background: $paper$; border: "
-                "none; border-radius: 8px; padding: 6px 8px; }"
+                "none; border-radius: 8px; padding: 14px 16px; } "
+                "QFrame#slot_settings_editor QLabel { font-size: 14px; }"
             ))
         );
     update_quiz_presentation();

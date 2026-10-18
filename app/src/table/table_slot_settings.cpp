@@ -18,12 +18,15 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFrame>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QShortcut>
 #include <QSignalBlocker>
 #include <QString>
 #include <QVBoxLayout>
 #include <QtGlobal>
+
+#include <algorithm>
 
 static QVector<int> weights_for_strategy_slug(const QString& strategy_slug) {
     const strategy_catalog& repository = strategy_repository();
@@ -143,7 +146,43 @@ void table_slot::open_settings_editor() {
             "edits."
         ));
     heading->setWordWrap(true);
-    layout->addWidget(heading);
+    // D-SET-1 on the felt: a `SLOT nn` header with a close mark over a rule;
+    // the staged-edit notice moves to the panel's accessible description.
+    const bool kit_card = theme_settings::felt_chrome()
+        && settings_style == slot_settings_style::card;
+    if (kit_card && card_widget_internal->displayed_slot_number() > 0) {
+        panel->setAccessibleDescription(heading->text());
+        heading->setText(str_label("SLOT %1").arg(
+            card_widget_internal->displayed_slot_number(), 2, 10,
+            QLatin1Char('0')
+        ));
+        heading->setObjectName(QStringLiteral("kit_settings_heading"));
+        heading->setWordWrap(false);
+        auto* header = new QFrame(panel);
+        header->setObjectName(QStringLiteral("kit_settings_header"));
+        auto* header_layout = new QHBoxLayout(header);
+        header_layout->setContentsMargins(0, 0, 0, 8);
+        header_layout->addWidget(heading);
+        header_layout->addStretch();
+        auto* close = new QToolButton(header);
+        close->setObjectName(QStringLiteral("kit_settings_close"));
+        close->setAccessibleName(str_label("Cancel"));
+        close->setToolTip(str_label("Discard these changes"));
+        close->setIcon(
+            QIcon(bundled_asset_path(QStringLiteral("brand/kit_close.svg")))
+        );
+        close->setIconSize(QSize(15, 15));
+        close->setAutoRaise(true);
+        connect(close, &QToolButton::clicked, this, [this] {
+            finish_settings_editor(false);
+        });
+        header_layout->addWidget(close);
+        layout->addWidget(header);
+        layout->setContentsMargins(0, 0, 0, 0);
+        layout->setSpacing(10);
+    } else {
+        layout->addWidget(heading);
+    }
     if (gameplay_owner) {
         gameplay_editor_fields = new gameplay::deck_setup_widget(
             *gameplay_owner, gameplay_id, strategy_repository(), panel,
@@ -161,7 +200,11 @@ void table_slot::open_settings_editor() {
             &table_slot::gameplay_show_count_changed
         );
     } else {
-        settings_editor_fields = new slot_settings(panel, true);
+        settings_editor_fields = new slot_settings(
+            panel, true,
+            kit_card ? slot_settings::layout::kit
+                     : slot_settings::layout::classic
+        );
         populate_settings_editor(settings_editor_fields);
         layout->addWidget(settings_editor_fields);
         connect(
@@ -232,7 +275,11 @@ void table_slot::place_settings_editor() {
     auto* panel = settings_editor_panel.data();
     panel->ensurePolished();
     const QSize needed = panel->sizeHint().expandedTo(panel->minimumSizeHint());
-    const QRect available = rect().adjusted(8, 8, -8, -8);
+    // Under piping the top notch and the bottom legends sit equally far in;
+    // the panel stays between them.
+    const int clear
+        = std::max(8, card_widget_internal->bottom_legend_clearance());
+    const QRect available = rect().adjusted(8, clear, -8, -clear);
     if (needed.width() > available.width()
         || needed.height() > available.height()) {
         QPointer<QWidget> focused = panel->focusWidget();

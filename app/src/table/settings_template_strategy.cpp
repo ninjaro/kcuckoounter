@@ -20,7 +20,6 @@
 #include <QListWidget>
 #include <QPushButton>
 #include <QScrollArea>
-#include <QtConcurrent/QtConcurrent>
 
 #include "table/settings_template_support.hpp"
 

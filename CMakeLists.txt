@@ -8,7 +8,7 @@ if(NOT ECOSYSTEM_FACADE_INNER)
     if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
         set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
     endif()
-    string(SHA256 _ecosystem_selection [=[[["monitor","https://github.com/ninjaro/peepbooth","master"],["packing","https://github.com/ninjaro/rothko","master"]]]=])
+    string(SHA256 _ecosystem_selection [=[[["monitor","https://github.com/ninjaro/peepbooth","master"],["packing","https://github.com/ninjaro/rothko","master"],["rasterflow","https://github.com/ninjaro/rasterflow","HEAD"],["shared_ui","https://github.com/ninjaro/shared_ui","HEAD"]]]=])
     set(_ecosystem_state "${CMAKE_CURRENT_BINARY_DIR}/.ecosystem-facade/${_ecosystem_selection}")
     file(MAKE_DIRECTORY "${_ecosystem_state}")
     foreach(name mvp mvp.exe)
@@ -71,6 +71,8 @@ if(NOT ECOSYSTEM_FACADE_INNER)
     endfunction()
     _ecosystem_source([=[monitor]=] [=[https://github.com/ninjaro/peepbooth]=] [=[master]=])
     _ecosystem_source([=[packing]=] [=[https://github.com/ninjaro/rothko]=] [=[master]=])
+    _ecosystem_source([=[rasterflow]=] [=[https://github.com/ninjaro/rasterflow]=] [=[HEAD]=])
+    _ecosystem_source([=[shared_ui]=] [=[https://github.com/ninjaro/shared_ui]=] [=[HEAD]=])
 
     # Validate the installed contract, not a provider's source/build layout.
     file(WRITE "${_ecosystem_state}/packages.cmake" [==[
@@ -299,6 +301,8 @@ if (ECOSYSTEM_PROFILE_KDE)
     unset(_ecosystem_support_property)
     unset(_ecosystem_support_values)
 endif ()
+
+find_package(ZLIB REQUIRED)
 
 function(ecosystem_apply_defaults target_name)
     get_target_property(target_type ${target_name} TYPE)
@@ -863,10 +867,10 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/widget_helpers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/card_helpers/card_picker.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/card_helpers/card_sheet.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/card_images.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/card_preview_carousel.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/image_cacher.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/raster_cache.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/rasterization_runner.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/image_sources.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/gameplay_checkpoint.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/gameplay_checkpoint_codec.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/gameplay_codec.hpp
@@ -915,10 +919,10 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/time_interface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_picker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_sheet.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_images.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_preview_carousel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/image_cacher.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/raster_cache.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/rasterization_runner.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/image_sources.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_codec.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_decks.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_fields.cpp
@@ -1006,10 +1010,10 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/time_interface.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_picker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_sheet.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_images.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_preview_carousel.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/image_cacher.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/raster_cache.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/rasterization_runner.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/image_sources.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_codec.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_decks.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_fields.cpp
@@ -1095,6 +1099,18 @@ set(KCUCKOOUNTER_TRAINER_APP_APP_SOURCES
 set(KCUCKOOUNTER_TRAINER_APP_APP_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/cli/main.cpp
 )
+find_package(rasterflow CONFIG REQUIRED)
+if (NOT TARGET rasterflow::qt__qt)
+    message(FATAL_ERROR "Package rasterflow does not export rasterflow::qt__qt")
+endif ()
+add_library(rasterflow__qt ALIAS rasterflow::qt__qt)
+
+find_package(shared_ui CONFIG REQUIRED)
+if (NOT TARGET shared_ui::qt__qt)
+    message(FATAL_ERROR "Package shared_ui does not export shared_ui::qt__qt")
+endif ()
+add_library(shared_ui__qt ALIAS shared_ui::qt__qt)
+
 find_package(monitor CONFIG REQUIRED)
 if (NOT TARGET monitor::watchdog_client__client)
     message(FATAL_ERROR "Package monitor does not export monitor::watchdog_client__client")
@@ -1131,8 +1147,11 @@ target_link_libraries(trainer_app__core PUBLIC
     Qt6::Svg
     Qt6::Widgets
     ecosystem_kde_support
+    ZLIB::ZLIB
     watchdog_client__client
     packing_library__core
+    rasterflow__qt
+    shared_ui__qt
 )
 
 target_compile_definitions(trainer_app__core PUBLIC $<$<BOOL:${ECOSYSTEM_PROFILE_KDE}>:KC_KDE>)

@@ -86,9 +86,39 @@ face/resource IDs are untranslated machine identifiers. Physical and embedded
 resource lookup preserve the same artwork and metadata; generated caches and
 retired downloader output are not application inputs.
 
-Parsed SVG contexts are job-owned, with lazy fallback loading. Raster, source
-and displayed pixmap lifetimes are distinct. Generation acceptance, cache cutover
-and request coalescing preserve bounded state and reject superseded results;
+Single-SVG markings, standalone cards and visible table cards use one
+application-owned image service. Clients load immutable
+SVG bytes, decode SVGZ containers and replace lifetime-owned subscriptions.
+Rasterflow owns asynchronous preparation and shared image masters; widgets retain
+display pixmaps, include device pixel ratio in physical demand and fit artwork
+without stretching. Removing a display withdraws only its own demand.
+
+Source discovery enumerates readable bundled and installed files without parsing
+SVG on the GUI thread. Selected-source validity, element bounds and aliases use
+Rasterflow's asynchronously prepared metadata. Layouts retain usable base/last
+geometry until the current selection is ready, then update through one geometry
+notification; superseded source completion has no authority.
+
+Card aliases, fallback selection and base-frame trimming belong to the client.
+Standalone widgets request only their displayed face or back; empty and hidden
+card presentations withdraw that demand. State, visibility, geometry and DPR
+events update intent; painting does not submit image work. Different displays
+share compatible Rasterflow masters. Displayed handles can survive a source
+transition, independently of backend cache ownership. The table owns neither a
+raster cache nor image workers. It combines the current visible face/back demands
+by logical ID and physical size, publishes first useful faces independently, and
+retains only the visible presentation subset. A source change can retain that
+subset until its replacement is ready; unrelated deck elements are never a
+completion barrier. Each slot borrows its own currently useful image, with no
+upscaling across geometry changes.
+Settings previews use that same service. Visible faces are required; at most two
+adjacent candidates per carousel are speculative. A hidden carousel withdraws its
+intent. Initial faces publish incrementally; source or physical-size changes
+replace the visible window coherently without waiting for speculative neighbors
+or their fallback preparation. Presentation rejects insufficient physical
+resolution. Weighted labels decorate separate GUI pixels and never modify shared
+masters. Source, raster and display
+lifetimes remain distinct;
 visibility does not turn a valid prepared session into a different game.
 Retaining artwork is not redistribution approval: licensing/provenance uncertainty
 remains and this contract grants no additional rights.

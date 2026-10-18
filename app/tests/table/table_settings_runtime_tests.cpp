@@ -140,8 +140,9 @@ void table_tests::settings_hosts_preserve_frozen_quiz() {
         bounds[id] = widgets[id]->geometry();
         demand[id] = widgets[id]->card_face_need_short_px();
     }
-    auto* cache = view.shared_raster_cache_service();
-    const auto generation = view.next_shared_generation_id;
+    auto* cache = table::shared_image_service();
+    const auto image_demand
+        = std::pair(view.desired_card_source, view.desired_card_size);
     auto* panel = open_settings(training);
     QVERIFY(panel && panel->isVisible());
     auto* draft = panel->findChild<gameplay::deck_setup_widget*>();
@@ -192,8 +193,11 @@ void table_tests::settings_hosts_preserve_frozen_quiz() {
         QCOMPARE(peer_input->text(), QStringLiteral("+17"));
         QCOMPARE(peer_input->cursorPosition(), peer_cursor);
         QCOMPARE(peer_input->selectedText(), peer_selection);
-        QCOMPARE(view.shared_raster_cache_service(), cache);
-        QCOMPARE(view.next_shared_generation_id, generation);
+        QCOMPARE(table::shared_image_service(), cache);
+        QCOMPARE(
+            std::pair(view.desired_card_source, view.desired_card_size),
+            image_demand
+        );
     }
     QTest::mouseClick(
         panel->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),
@@ -245,7 +249,7 @@ void table_tests::settings_hosts_preserve_frozen_quiz() {
     QCOMPARE(owner.slot_for({ 2 }), training_position);
     QCOMPARE(panel->findChild<gameplay::deck_setup_widget*>(), draft);
     QVERIFY(draft->pending_changes_current() && !show->isChecked());
-    // Resize can legitimately start an adaptive raster generation. The
+    // Resize can legitimately start an adaptive raster replacement. The
     // settings commit must preserve its final geometry/demand, not freeze
     // the asynchronous cache at the pre-resize size.
     for (std::size_t id = 0; id < widgets.size(); ++id) {
@@ -277,7 +281,7 @@ void table_tests::settings_hosts_preserve_frozen_quiz() {
         QCOMPARE(widgets[id]->geometry(), bounds[id]);
         QCOMPARE(widgets[id]->card_face_need_short_px(), demand[id]);
     }
-    QCOMPARE(view.shared_raster_cache_service(), cache);
+    QCOMPARE(table::shared_image_service(), cache);
     QVERIFY(view.resume_gameplay_runtime());
     view.stop_gameplay_clock();
     QVERIFY(view.advance_gameplay_runtime(101, answers));

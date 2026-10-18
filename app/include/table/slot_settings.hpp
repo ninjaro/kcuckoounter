@@ -7,8 +7,13 @@ class slot_settings : public BaseWidget {
     Q_OBJECT
 
 public:
+    // kit: D-SET-1's rules-card arrangement of the same controls (labels left,
+    // a switch and a stepper right, the strategy label above its row).
+    enum class layout { classic, kit };
+
     explicit slot_settings(
-        BaseWidget* parent = nullptr, bool info_button = true
+        BaseWidget* parent = nullptr, bool info_button = true,
+        layout style = layout::classic
     );
     ~slot_settings() override;
 
@@ -32,7 +37,7 @@ private:
     BasePushButton* info_button_internal;
 
     static QSize build_minimum_settings_size();
-    void setup_ui(bool info_button);
+    void setup_ui(bool info_button, layout style);
 };
 
 #endif // KCUCKOOUNTER_TABLE_SLOT_SETTINGS_HPP

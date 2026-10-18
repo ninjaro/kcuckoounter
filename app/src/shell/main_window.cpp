@@ -219,6 +219,10 @@ main_window::main_window(BaseWidget* parent)
     , mobile_lifecycle_paused(false)
     , last_mobile_checkpoint_elapsed_ms(0) {
     setup_ui();
+    connect(
+        &current_card_sheet_metadata(), &card_sheet_metadata::geometry_changed,
+        this, &main_window::refresh_gameplay_setup, Qt::QueuedConnection
+    );
 }
 
 main_window::~main_window() {
@@ -231,6 +235,10 @@ main_window::~main_window() {
     }
     persist_setup_preferences();
     persist_desktop_shell_state();
+    // Base-widget teardown hides the still-live table. Demand withdrawal can
+    // emit a busy change then, after this derived receiver has been destroyed.
+    if (table_widget)
+        QObject::disconnect(table_widget, nullptr, this, nullptr);
 }
 
 void main_window::update_start_pause_action(bool paused) const {

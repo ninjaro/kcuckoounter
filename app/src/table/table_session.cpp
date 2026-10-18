@@ -107,10 +107,10 @@ bool table::install_gameplay_scene(
         refresh_gameplay_session();
     }
     project_gameplay_layout();
-    if (displayed_shared_faces_key)
-        apply_shared_faces_entry(*displayed_shared_faces_key);
+    if (!apply_displayed_card_images())
+        return false;
     schedule_card_preload();
-    update_shared_card_face_need();
+    update_card_image_demands();
     if (!guard || gameplay_scene_revision != revision)
         return false;
     gameplay_start_pending = false;

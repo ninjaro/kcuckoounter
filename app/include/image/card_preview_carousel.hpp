@@ -13,6 +13,8 @@
 
 class QHBoxLayout;
 class QResizeEvent;
+class QShowEvent;
+class QHideEvent;
 
 class card_preview_carousel : public BaseWidget {
     Q_OBJECT
@@ -35,9 +37,17 @@ public:
     void refresh_cards();
     /** Current provider demand, including enabled adjacent preloading. */
     [[nodiscard]] QVector<int> requested_card_indices() const;
+    /** Logical displayed window, excluding adjacent prefetch. */
+    [[nodiscard]] QVector<int> visible_card_indices() const;
+    [[nodiscard]] QSize requested_card_size() const;
+
+signals:
+    void demand_changed();
 
 protected:
     void resizeEvent(QResizeEvent* event) override;
+    void showEvent(QShowEvent* event) override;
+    void hideEvent(QHideEvent* event) override;
 
 private slots:
     void show_previous();

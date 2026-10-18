@@ -291,44 +291,53 @@ int table_slot::card_face_need_short_px() const {
     return card_widget_internal->card_face_target_short_px();
 }
 
-void table_slot::set_shared_card_faces(
-    const QVector<QImage>& face_images, const QSize& raster_size
+void table_slot::set_presented_card_images(const QHash<QString, QImage>& images
 ) {
     if (card_widget_internal == nullptr) {
         return;
     }
 
-    card_widget_internal->set_shared_card_faces(face_images, raster_size);
+    card_widget_internal->set_presented_card_images(images);
 }
 
-void table_slot::clear_shared_card_faces() {
+void table_slot::clear_presented_card_images() {
     if (card_widget_internal == nullptr) {
         return;
     }
 
-    card_widget_internal->clear_shared_card_faces();
+    card_widget_internal->clear_presented_card_images();
 }
 
-bool table_slot::has_shared_card_faces() const {
+bool table_slot::has_presented_card_images() const {
     if (card_widget_internal == nullptr) {
         return false;
     }
 
-    return card_widget_internal->has_shared_card_faces();
+    return card_widget_internal->has_presented_card_images();
 }
 
-void table_slot::set_shared_card_faces_mode(bool enabled) {
+void table_slot::set_presented_image_mode(bool enabled) {
     if (card_widget_internal == nullptr) {
         return;
     }
 
-    card_widget_internal->set_shared_card_faces_mode(enabled);
+    card_widget_internal->set_presented_image_mode(enabled);
 }
 
 void table_slot::set_frame_style(slot_frame_style style) {
     if (card_widget_internal != nullptr) {
         card_widget_internal->set_frame_style(style);
     }
+    update_overlay_margins();
+}
+
+void table_slot::update_overlay_margins() {
+    if (overlay_layout == nullptr || card_widget_internal == nullptr)
+        return;
+    // D-BAR-2: actions sit on the felt, clear of the piping's bottom legends.
+    overlay_layout->setContentsMargins(
+        2, 2, 2, std::max(2, card_widget_internal->bottom_legend_clearance())
+    );
 }
 
 void table_slot::set_quiz_presentation(

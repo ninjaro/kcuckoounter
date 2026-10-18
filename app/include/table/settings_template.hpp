@@ -2,16 +2,13 @@
 #define KCUCKOOUNTER_TABLE_SETTINGS_TEMPLATE_HPP
 
 #include "arch/widget_helpers.hpp"
-#include "image/raster_cache.hpp"
+#include "image/card_images.hpp"
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "table/strategy_browser.hpp"
 
-#include <QFutureWatcher>
 #include <QImage>
 #include <QObject>
-#include <QPromise>
-#include <QQueue>
 #include <QSet>
 #include <QString>
 #include <QtGlobal>
@@ -73,64 +70,31 @@ private:
     void setup_appearance_ui();
     void setup_desktop_components(QFormLayout* layout);
     void reset_desktop_component_selection();
-    desktop_ui_preferences selected_desktop_components() const;
+    [[nodiscard]] desktop_ui_preferences selected_desktop_components() const;
     void sync_theme_combo_shared_state(int index);
     void on_theme_source_button_clicked(QAbstractButton* button);
     void update_strategy_details(int index);
     void update_theme_carousel(int suit_index);
     void update_theme_palette_preview(int index);
-    QString selected_theme_source_id() const;
+    [[nodiscard]] QString selected_theme_source_id() const;
     void update_weights_carousel(int suit_index);
     void update_suit_selection(int index);
-    /** Render the selected suit, retaining the active cache generation. */
-    QPixmap active_theme_card(int card_index, const QSize& size);
-    QPixmap theme_card(int card_index, int suit_index, const QSize& size);
+    /** Presentation lookup for the selected suit. */
+    [[nodiscard]] QPixmap
+    active_theme_card(int card_index, const QSize& size) const;
+    [[nodiscard]] QPixmap
+    theme_card(int card_index, int suit_index, const QSize& size) const;
     /** Selected-suit preview with strategy weights, not a separate face cache.
      */
-    QPixmap active_weighted_card(int card_index, const QSize& size);
-    QPixmap weighted_card(int card_index, int suit_index, const QSize& size);
-    std::optional<QImage> preview_face(
-        int card_index, int suit_index, const QSize& size,
-        QSet<raster_cache::entry_key>& tracked_keys
-    );
-    void enqueue_preview(const raster_cache::entry_key& key);
-    void render_next_preview();
-    void preview_render_finished();
-    void preview_result_ready(int result_index);
-    void finish_preview_request(const raster_cache::entry_key& key);
-    bool preview_key_relevant(const raster_cache::entry_key& key) const;
-    void cancel_obsolete_preview_batch();
-    void prune_preview_queue();
-    void preview_cache_updated(const raster_cache::entry_key& key);
+    [[nodiscard]] QPixmap
+    active_weighted_card(int card_index, const QSize& size) const;
+    [[nodiscard]] QPixmap
+    weighted_card(int card_index, int suit_index, const QSize& size) const;
+    [[nodiscard]] QImage preview_face(int card_index, int suit_index) const;
+    void update_preview_demands();
+    void preview_images_changed();
     void flush_preview_refresh();
-    void clear_displayed_theme_entries();
     void mark_preview_refresh_pending(bool theme_preview, bool weights_preview);
-    static void track_preview_entry(
-        const raster_cache::entry_key& key,
-        QSet<raster_cache::entry_key>& tracked_keys
-    );
-    static void
-    clear_preview_entries(QSet<raster_cache::entry_key>& tracked_keys);
-    void
-    ensure_preview_generation(const QString& source_id, int target_bucket_px);
-    void
-    warm_preview_generation(const QString& source_id, int target_bucket_px);
-    bool cutover_preview_generation();
-    raster_cache::entry_key preview_key(
-        const QString& source_id, int target_bucket_px, qint64 generation_id,
-        const QString& element_id
-    ) const;
-    bool preview_key_ready(
-        const QString& source_id, int target_bucket_px, qint64 generation_id,
-        const QString& element_id
-    ) const;
-    void retire_preview_generation(
-        const QString& source_id, int target_bucket_px, qint64 generation_id
-    );
-    static void render_preview_faces(
-        QPromise<QImage>& promise, const QString& source_id,
-        const QStringList& element_ids, int target_bucket_px
-    );
 
     settings_tab_kind tab_kind;
     table* table_widget;
@@ -164,27 +128,16 @@ private:
     card_preview_carousel* theme_carousel;
     int theme_suit;
     int weights_suit;
-    qint64 preview_id;
-    QString active_preview_source;
-    int active_preview_bucket;
-    qint64 active_preview_generation;
-    QSet<QString> active_preview_element_ids;
-    QString warming_preview_source;
-    int warming_preview_bucket;
-    qint64 warming_preview_generation;
-    QSet<QString> warming_preview_element_ids;
-    qint64 next_preview_generation;
-    QFutureWatcher<QImage> preview_watcher;
-    QVector<raster_cache::entry_key> active_render_keys;
-    QSet<int> published_preview_results;
-    QQueue<raster_cache::entry_key> pending_preview_queue;
-    QSet<raster_cache::entry_key> pending_preview_keys;
-    bool preview_render_scheduled;
+    card_image_consumer preview_images;
+    QString preview_source;
+    QSize preview_physical_size;
+    QStringList preview_requested_ids;
+    QHash<QString, QImage> displayed_preview_images;
+    QString displayed_preview_source;
+    QSize displayed_preview_physical_size;
     bool preview_refresh_scheduled;
     bool theme_preview_needs_refresh;
     bool weights_preview_needs_refresh;
-    QSet<raster_cache::entry_key> displayed_theme_entries;
-    QSet<raster_cache::entry_key> displayed_weights_entries;
 };
 
 #endif // KCUCKOOUNTER_TABLE_SETTINGS_TEMPLATE_HPP

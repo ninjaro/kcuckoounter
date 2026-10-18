@@ -179,11 +179,14 @@ void card_widget_tests::frame_choice_only_changes_presentation() {
 
 void card_widget_tests::rotated_stack_stays_inside_slot() {
     card_widget widget;
-    widget.set_shared_card_faces_mode(true);
+    widget.set_presented_image_mode(true);
     widget.start_quiz(0, 1, false);
     QImage face(16, 24, QImage::Format_ARGB32_Premultiplied);
     face.fill(Qt::magenta);
-    widget.set_shared_card_faces(QVector<QImage>(55, face), face.size());
+    QHash<QString, QImage> faces;
+    for (const auto& id : required_card_ids_with_back())
+        faces.insert(id, face);
+    widget.set_presented_card_images(faces);
     widget.show();
     for (const QSize size :
          { QSize(1920, 1080), QSize(1080, 1920), QSize(60, 42) }) {
@@ -229,7 +232,7 @@ void card_widget_tests::rotated_stack_stays_inside_slot() {
 
 void card_widget_tests::retained_transforms_fit_after_resize() {
     card_widget widget;
-    widget.set_shared_card_faces_mode(true);
+    widget.set_presented_image_mode(true);
     widget.show();
     widget.discard_history = { { -3.5, { -7.2, -7.2 } },
                                { 3.5, { 7.2, 7.2 } },

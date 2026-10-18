@@ -25,7 +25,6 @@
 #include <QTableView>
 #include <QTextBrowser>
 #include <QUrl>
-#include <QtConcurrent/QtConcurrent>
 
 #include <algorithm>
 #include <cmath>
@@ -198,10 +197,13 @@ QString strategy_detail_kit_html(const strategy_data& strategy) {
                   m.dim.name(), text(provenance.join(QStringLiteral(" · "))),
                   text(scope.join(QStringLiteral(" · ")))
               );
+    // Qt rich text gives an empty cell a full line, so a `height="1"` row on
+    // a coloured table paints a band; a cell border is the kit's 1px rule.
     html += QStringLiteral("<table width=\"100%\" cellspacing=\"0\" "
-                           "cellpadding=\"0\" style=\"margin-top:14px;\" "
-                           "bgcolor=\"%1\"><tr><td height=\"1\"></td></tr>"
-                           "</table>")
+                           "cellpadding=\"0\" style=\"margin-top:14px; "
+                           "border-collapse:collapse;\"><tr><td "
+                           "style=\"border-bottom:1px solid %1; "
+                           "font-size:1px;\"></td></tr></table>")
                 .arg(m.line.name());
     html += label(str_label("Tag per rank"));
     const QStringList ranks { QStringLiteral("A"), QStringLiteral("2"),

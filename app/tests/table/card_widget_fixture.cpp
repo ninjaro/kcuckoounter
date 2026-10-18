@@ -36,14 +36,15 @@ gameplay::session renderer_session(bool training) {
 }
 
 void supply_renderer_faces(card_widget& widget) {
-    QVector<QImage> faces;
-    for (qsizetype index = 0; index <= card_element_ids().size(); ++index) {
+    // Presentation-only fixture for model/geometry tests; resource acceptance
+    // separately exercises real SVGs through the installed backend.
+    QHash<QString, QImage> faces;
+    for (const auto& id : required_card_ids_with_back()) {
         QImage face(24, 36, QImage::Format_ARGB32_Premultiplied);
-        face.fill(index == card_element_ids().size() ? Qt::blue : Qt::white);
-        faces.push_back(face);
+        face.fill(id == card_back_element_id() ? Qt::blue : Qt::white);
+        faces.insert(id, face);
     }
-    widget.set_shared_card_faces_mode(true);
-    widget.set_shared_card_faces(faces, QSize(24, 36));
+    widget.set_presented_card_images(faces);
     widget.resize(260, 360);
     widget.set_slot_rotated(true);
 }

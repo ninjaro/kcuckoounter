@@ -4,16 +4,15 @@
 #include "arch/random_generator.hpp"
 #include "arch/time_interface.hpp"
 #include "arch/widget_helpers.hpp"
-#include "image/raster_cache.hpp"
-#include "image/rasterization_runner.hpp"
+#include "image/card_images.hpp"
 #include "settings/gameplay_checkpoint.hpp"
 #include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
 #include "table/gameplay_layout.hpp"
 #include <QElapsedTimer>
-#include <QFutureWatcher>
+#include <QHash>
 #include <QImage>
-#include <QPromise>
+#include <QMap>
 #include <QRectF>
 #include <QSet>
 #include <QSize>
@@ -160,9 +159,9 @@ public:
     // Packed rectangles a classic table of this size would use for count
     // slots. Launch previews only; slots and raster demand are untouched.
     [[nodiscard]] QVector<QRectF> preview_slot_layout(int count) const;
-    bool is_rasterization_busy() const;
-    raster_cache* shared_raster_cache_service();
-    const raster_cache* shared_raster_cache_service() const;
+    [[nodiscard]] bool is_rasterization_busy() const;
+    [[nodiscard]] static const rasterflow::qt::image_service*
+    shared_image_service();
     [[nodiscard]] table_session_state capture_session_state() const;
     // Invalid/unsupported input leaves the entire table unchanged. This
     // prepares a fresh session; normal start_quiz still creates the new shoes.
@@ -201,16 +200,9 @@ private slots:
     void on_slot_copy(table_slot* slot);
     void on_slot_copy_all(table_slot* slot);
     void on_slot_rasterization_busy_changed(bool busy);
-    void on_preload_tick();
-    void on_shared_rasterization_requested(int target_cache_px);
-    void on_shared_cache_result_updated(const raster_cache::entry_key& key);
-    void on_shared_rasterization_finished();
+    void on_card_images_changed();
 
 private:
-    static void render_shared_faces(
-        QPromise<QVector<QImage>>& promise, const QString& source_path,
-        int bucket_px
-    );
     enum class dealing_mode { sequential, random, simultaneous };
 
     std::vector<table_slot*> slot_widgets;
@@ -254,41 +246,17 @@ private:
     QSet<table_slot*> rasterizing_slots;
     bool rasterization_busy;
     random_generator random_gen;
-    std::unique_ptr<time_interface> preload_timer;
-    rasterization_runner main_faces_runner;
-    raster_cache raster_cache_service;
-    QFutureWatcher<QVector<QImage>> shared_faces_watcher;
-    std::optional<raster_cache::entry_key> active_shared_faces_key;
-    std::optional<raster_cache::entry_key> displayed_shared_faces_key;
-    std::optional<raster_cache::entry_key> warming_shared_faces_key;
-    bool shared_faces_refresh_queued;
-    QString active_card_sheet_source_id;
-    int active_shared_bucket_px;
-    qint64 active_shared_generation_id;
-    QString warming_card_sheet_source_id;
-    int warming_shared_bucket_px;
-    qint64 warming_shared_generation_id;
-    qint64 next_shared_generation_id;
-    QSet<raster_cache::entry_key> retained_shared_faces_keys;
-    int rasterization_delay_ms() const;
-    int max_card_need_short_px() const;
-    void
-    update_shared_card_face_need(bool immediate = false, bool force = false);
-    void clear_shared_card_faces();
-    static QString generation_render_scope(qint64 generation_id);
-    static qint64 generation_id_from_render_scope(const QString& render_scope);
-    static raster_cache::entry_key entry_key_for_generation(
-        const QString& source_id, int target_bucket_px, qint64 generation_id
-    );
-    void
-    begin_warming_generation(const QString& source_id, int target_bucket_px);
-    void retire_warming_generation();
-    bool start_shared_raster_for_key(const raster_cache::entry_key& key);
-    void cutover_to_ready_generation(const raster_cache::entry_key& key);
-    void apply_shared_faces_entry(const raster_cache::entry_key& key);
-    void remember_shared_faces_key(const raster_cache::entry_key& key);
-    void forget_shared_faces_key(const raster_cache::entry_key& key);
-    void enforce_shared_generation_bounds();
+    card_image_consumer card_images;
+    QHash<QString, QImage> displayed_card_images;
+    QMap<QString, QSize> desired_card_sizes;
+    QString desired_card_source;
+    QSize desired_card_size;
+    QString displayed_card_source;
+    bool card_demand_active = false;
+    bool layout_demand_queued = false;
+    void update_card_image_demands(bool immediate = false, bool force = false);
+    void clear_presented_card_images();
+    [[nodiscard]] bool apply_displayed_card_images();
     void update_layout();
     [[nodiscard]] std::unique_ptr<table_slot> create_slot_widget();
     void destroy_slot_widgets();
@@ -325,7 +293,7 @@ private:
     void clear_swap_selection();
     void clear_copy_selection();
     void update_copy_button_labels(table_slot* selected_slot = nullptr);
-    bool all_slots_exhausted() const;
+    [[nodiscard]] bool all_slots_exhausted() const;
     void handle_game_over();
     bool gameplay_start_pending = false;
     // One explicit shell-owned metadata sink. No settings I/O or Qt

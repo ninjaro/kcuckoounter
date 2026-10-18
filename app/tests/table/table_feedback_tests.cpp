@@ -103,8 +103,9 @@ void table_tests::corrections_neither_gate_nor_overwrite_controls() {
     const auto text = feedback->text();
     const auto geometry = slot->geometry();
     const auto demand = slot->card_face_need_short_px();
-    auto* cache = view.shared_raster_cache_service();
-    const auto generation = view.next_shared_generation_id;
+    auto* cache = table::shared_image_service();
+    const auto image_demand
+        = std::pair(view.desired_card_source, view.desired_card_size);
     for (const bool next_stamp : { !stamp, stamp }) {
         view.set_quiz_presentation(
             input_style,
@@ -127,8 +128,11 @@ void table_tests::corrections_neither_gate_nor_overwrite_controls() {
         QCOMPARE(peer_input->selectedText(), selection);
         QCOMPARE(slot->geometry(), geometry);
         QCOMPARE(slot->card_face_need_short_px(), demand);
-        QCOMPARE(view.shared_raster_cache_service(), cache);
-        QCOMPARE(view.next_shared_generation_id, generation);
+        QCOMPARE(table::shared_image_service(), cache);
+        QCOMPARE(
+            std::pair(view.desired_card_source, view.desired_card_size),
+            image_demand
+        );
     }
 
     QVERIFY(view.advance_gameplay_runtime(300, answers));
@@ -411,8 +415,9 @@ void table_tests::feedback_timeout_preserves_finished_result() {
     const auto result = *owner.result();
     const auto timing = owner.timing();
     QCOMPARE(view.gameplay_corrections().size(), std::size_t { 3 });
-    const auto generation = view.next_shared_generation_id;
-    auto* cache = view.shared_raster_cache_service();
+    const auto image_demand
+        = std::pair(view.desired_card_source, view.desired_card_size);
+    auto* cache = table::shared_image_service();
     for (const auto& answer : answers) {
         const auto id = answer.owner.value;
         QVERIFY(answer.timed_out);
@@ -461,8 +466,11 @@ void table_tests::feedback_timeout_preserves_finished_result() {
             QCOMPARE(*owner.deck(answer.owner), before);
             QCOMPARE(*owner.result(), result);
             QCOMPARE(owner.timing(), timing);
-            QCOMPARE(view.shared_raster_cache_service(), cache);
-            QCOMPARE(view.next_shared_generation_id, generation);
+            QCOMPARE(table::shared_image_service(), cache);
+            QCOMPARE(
+                std::pair(view.desired_card_source, view.desired_card_size),
+                image_demand
+            );
         }
         dismiss->click(); // native dismissal cannot mutate terminal accounting
         QCOMPARE(*owner.deck(answer.owner), before);

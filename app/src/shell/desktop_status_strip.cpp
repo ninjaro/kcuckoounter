@@ -38,6 +38,13 @@ public:
         updateGeometry();
     }
 
+    // The kit's shorter caption for an entry; text() keeps the full one.
+    void set_caption_alias(const QString& caption, const QString& shown) {
+        alias_caption = caption;
+        alias_shown = shown;
+        updateGeometry();
+    }
+
     void set_instruments(bool enabled) {
         instruments = enabled;
         setProperty("instrument_paint", enabled);
@@ -45,10 +52,13 @@ public:
         update();
     }
 
+    // Measured at the tightest divider gap, so the strip stays one row until
+    // even that cannot fit; painting widens the gaps back when there is room.
     QSize sizeHint() const override {
         if (!painting())
             return QLabel::sizeHint();
-        return { static_cast<int>(std::ceil(layout_entries(nullptr))) + 2,
+        return { static_cast<int>(std::ceil(layout_entries(nullptr, tight_gap)))
+                     + 2,
                  row_height() };
     }
 
@@ -74,7 +84,7 @@ protected:
         }
         QPainter painter(this);
         painter.setRenderHint(QPainter::Antialiasing, true);
-        layout_entries(&painter);
+        layout_entries(&painter, divider_gap());
     }
 
     void changeEvent(QEvent* event) override {
@@ -92,10 +102,30 @@ private:
     bool headline = false;
     bool instruments = false;
     QString omitted_caption;
+    QString alias_caption;
+    QString alias_shown;
 
     bool painting() const { return instruments && !entries().isEmpty(); }
 
     int row_height() const { return 30; }
+
+    // Space around a headline divider: the kit's 16px padding on each side,
+    // down to 8px before the strip wraps.
+    static constexpr qreal natural_gap = 31.0;
+    static constexpr qreal tight_gap = 17.0;
+
+    qreal divider_gap() const {
+        const qsizetype dividers = headline ? entries().size() - 1 : 0;
+        if (dividers <= 0)
+            return natural_gap;
+        const qreal natural = layout_entries(nullptr, natural_gap);
+        if (natural <= width())
+            return natural_gap;
+        return std::max(
+            tight_gap,
+            natural_gap - (natural - width()) / static_cast<qreal>(dividers)
+        );
+    }
 
     QList<entry> entries() const {
         QList<entry> result;
@@ -114,13 +144,16 @@ private:
 
     // Lays the entries out left to right; paints when a painter is given and
     // returns the consumed width either way, so measuring matches painting.
-    qreal layout_entries(QPainter* painter) const {
+    qreal layout_entries(QPainter* painter, qreal gap) const {
         const felt_material m = theme_settings::felt();
         QFont caption_font(m.mono_family);
         caption_font.setPixelSize(10);
         caption_font.setLetterSpacing(QFont::AbsoluteSpacing, 1.7);
-        QFont value_font(m.mono_family);
-        value_font.setPixelSize(headline ? 17 : 11);
+        // Headline figures are 17px; a secondary readout ("PICKUP 300ms")
+        // is set entirely in the caption style.
+        QFont value_font(headline ? QFont(m.mono_family) : caption_font);
+        if (headline)
+            value_font.setPixelSize(17);
         QFont state_font(m.mono_family);
         state_font.setPixelSize(11);
         state_font.setLetterSpacing(QFont::AbsoluteSpacing, 1.8);
@@ -137,11 +170,14 @@ private:
             if (i > 0 && headline) {
                 if (painter) {
                     painter->fillRect(
-                        QRectF(x + 15.0, height() / 2.0 - 10.0, 1.0, 20.0),
+                        QRectF(
+                            x + (gap - 1.0) / 2.0, height() / 2.0 - 10.0, 1.0,
+                            20.0
+                        ),
                         divider
                     );
                 }
-                x += 31.0;
+                x += gap;
             }
             if (headline && i == 0) {
                 // State: a lit dot and the spaced value.
@@ -171,7 +207,11 @@ private:
                 x += 15.0 + state_metrics.horizontalAdvance(state);
                 continue;
             }
-            const QString shown_caption = caption.toUpper();
+            const QString shown_caption
+                = (!alias_caption.isEmpty() && caption == alias_caption
+                       ? alias_shown
+                       : caption)
+                      .toUpper();
             if (painter) {
                 painter->setFont(caption_font);
                 painter->setPen(m.dim);
@@ -184,7 +224,7 @@ private:
             const QString tail = slash > 0 ? value.mid(slash) : QString();
             if (painter) {
                 painter->setFont(value_font);
-                painter->setPen(headline ? m.paper : m.muted);
+                painter->setPen(headline ? m.paper : m.dim);
                 painter->drawText(QPointF(x, baseline), lead);
             }
             x += value_metrics.horizontalAdvance(lead);
@@ -213,7 +253,7 @@ public:
     }
 
     QSize sizeHint() const override {
-        return tape ? QSize(110, 26) : QSlider::sizeHint();
+        return tape ? QSize(96, 26) : QSlider::sizeHint();
     }
 
     QSize minimumSizeHint() const override {
@@ -454,6 +494,8 @@ desktop_status_strip::desktop_status_strip(QWidget* parent)
     readout = new status_strip_support::instrument_label(false, this);
     readout->setTextFormat(Qt::PlainText);
     readout->setWordWrap(true);
+    static_cast<status_strip_support::instrument_label*>(readout)
+        ->set_caption_alias(str_label("Pickup interval"), str_label("Pickup"));
     slider = new status_strip_support::tape_slider(this);
     slider->setRange(
         trainer_preferences::minimum_pickup_interval_ms,
@@ -509,8 +551,9 @@ void desktop_status_strip::set_instruments(bool enabled) {
     clock->setVisible(enabled);
 #endif
     if (enabled) {
+        // D-HUD-1: 14px ends, 10px between the pickup group's parts.
         row->setContentsMargins(14, 7, 14, 7);
-        row->setSpacing(14);
+        row->setSpacing(10);
     } else {
         row->setSpacing(8);
     }

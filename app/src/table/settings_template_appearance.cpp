@@ -15,7 +15,6 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QRadioButton>
-#include <QtConcurrent/QtConcurrent>
 
 #include "table/settings_template_support.hpp"
 
@@ -201,8 +200,7 @@ void settings_template_widget::on_theme_source_button_clicked(
 ) {
     Q_UNUSED(button);
 
-    prune_preview_queue();
-    clear_displayed_theme_entries();
+    update_preview_demands();
     mark_preview_refresh_pending(true, true);
     flush_preview_refresh();
 }
@@ -549,8 +547,7 @@ void settings_template_widget::reset_theme_selection() {
         button_to_check->setChecked(true);
     }
 
-    prune_preview_queue();
-    clear_displayed_theme_entries();
+    update_preview_demands();
     mark_preview_refresh_pending(true, true);
     flush_preview_refresh();
 }

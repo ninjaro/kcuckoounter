@@ -80,8 +80,9 @@ void table_tests::gameplay_resize_paths() {
     }
     const auto statistics = owner.statistics();
     const auto timing = owner.timing();
-    const auto generation = view.next_shared_generation_id;
-    auto* cache = view.shared_raster_cache_service();
+    const auto image_demand
+        = std::pair(view.desired_card_source, view.desired_card_size);
+    auto* cache = table::shared_image_service();
     QSignalSpy layouts(&view, &table::gameplay_layout_changed);
     QSignalSpy runtime(&view, &table::gameplay_runtime_updated);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
@@ -150,9 +151,10 @@ void table_tests::gameplay_resize_paths() {
         QCOMPARE(view.gameplay_rotation_paths[index].from, 45.0);
         QCOMPARE(view.gameplay_rotation_paths[index].to, 90.0);
     }
-    QCOMPARE(view.shared_raster_cache_service(), cache);
+    QCOMPARE(table::shared_image_service(), cache);
     QCOMPARE(
-        view.next_shared_generation_id, generation
+        std::pair(view.desired_card_source, view.desired_card_size),
+        image_demand
     ); // no frame generations
     QCOMPARE(runtime.count(), 0);
     QCOMPARE(preparation.count(), 0);
@@ -444,8 +446,9 @@ void table_tests::gameplay_swap_content_paths() {
     );
     const auto timing = owner.timing();
     const auto statistics = owner.statistics();
-    auto* cache = view.shared_raster_cache_service();
-    const auto generation = view.next_shared_generation_id;
+    auto* cache = table::shared_image_service();
+    const auto image_demand
+        = std::pair(view.desired_card_source, view.desired_card_size);
     QSignalSpy layouts(&view, &table::gameplay_layout_changed);
     QSignalSpy runtime(&view, &table::gameplay_runtime_updated);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
@@ -530,8 +533,11 @@ void table_tests::gameplay_swap_content_paths() {
         widget_rectangle(halfway_content)
     );
     QCOMPARE(widgets[0]->geometry(), widget_rectangle(halfway_frame));
-    QCOMPARE(view.shared_raster_cache_service(), cache);
-    QCOMPARE(view.next_shared_generation_id, generation);
+    QCOMPARE(table::shared_image_service(), cache);
+    QCOMPARE(
+        std::pair(view.desired_card_source, view.desired_card_size),
+        image_demand
+    );
     QCOMPARE(runtime.count(), 0);
     QCOMPARE(preparation.count(), 0);
     view.gameplay_layout_animation.setCurrentTime(200);
@@ -756,13 +762,14 @@ void table_tests::swap_paints_moving_content_below_controls() {
     const std::array<QColor, 2> colors { QColor(240, 30, 20),
                                          QColor(20, 30, 240) };
     for (std::size_t index = 0; index < colors.size(); ++index) {
-        QVector<QImage> faces(card_element_ids().size() + 1);
-        for (auto& face : faces) {
+        QHash<QString, QImage> faces;
+        for (const auto& id : required_card_ids_with_back()) {
+            QImage face;
             face = QImage(24, 36, QImage::Format_ARGB32_Premultiplied);
             face.fill(colors[index]);
+            faces.insert(id, face);
         }
-        owned_card(view.slot_widgets[index])
-            ->set_shared_card_faces(faces, QSize(24, 36));
+        owned_card(view.slot_widgets[index])->set_presented_card_images(faces);
     }
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 1 }));
     auto* layer = view.gameplay_motion_layer;

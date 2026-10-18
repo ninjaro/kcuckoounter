@@ -83,6 +83,13 @@ void table_tests::gameplay_hud_projects_owned_session() {
     QVERIFY(fixture->set_pick_interval_ms(700));
     QVERIFY(view->install_gameplay_session(std::move(fixture)));
     QCOMPARE(speed->value(), 700);
+    // Compare gameplay-only text after the independently reported image work.
+    if (view->is_rasterization_busy())
+        QVERIFY(status->text().startsWith(
+            str_label("Processing") + QStringLiteral(" / ")
+        ));
+    view->prepare_cards_for_start();
+    QTRY_VERIFY_WITH_TIMEOUT(!view->is_rasterization_busy(), 10000);
     QCOMPARE(status->text(), view->gameplay_status_text());
     QVERIFY(view->start_gameplay_runtime(38));
     view->stop_gameplay_clock();

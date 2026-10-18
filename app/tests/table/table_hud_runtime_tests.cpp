@@ -180,7 +180,7 @@ void table_tests::hud_styles_preserve_owned_quiz() {
     const auto statistics = owner.statistics();
     const auto configuration = owner.configuration();
     const auto widgets = view->slot_widgets;
-    auto* cache = view->shared_raster_cache_service();
+    auto* cache = table::shared_image_service();
     const auto original_status = status->text();
     legacy_clock->set_elapsed_time_ms(900'000);
     QVERIFY(QMetaObject::invokeMethod(
@@ -294,7 +294,7 @@ void table_tests::hud_styles_preserve_owned_quiz() {
                 QCOMPARE(input->cursorPosition(), cursor);
                 QCOMPARE(input->selectedText(), selection);
                 QVERIFY(!input->isEnabled());
-                QCOMPARE(view->shared_raster_cache_service(), cache);
+                QCOMPARE(table::shared_image_service(), cache);
                 QVERIFY(!view->gameplay_timer.isActive());
                 QVERIFY(!view->advance_gameplay_runtime(1000, answers));
                 view->rasterization_busy_changed(false);
@@ -382,6 +382,8 @@ void table_tests::hud_styles_preserve_finished_result() {
     auto& owner = *view->active_gameplay_session();
     QVERIFY(view->start_gameplay_runtime(84));
     view->stop_gameplay_clock();
+    view->prepare_cards_for_start();
+    QTRY_VERIFY_WITH_TIMEOUT(!view->is_rasterization_busy(), 10000);
     std::vector<gameplay::quiz_answer> answers;
     QVERIFY(view->advance_gameplay_runtime(300, answers));
     view->publish_gameplay_runtime(answers);
@@ -399,6 +401,10 @@ void table_tests::hud_styles_preserve_finished_result() {
          { !initial_instruments, initial_instruments }) {
         choice->setCurrentIndex(instruments ? 2 : 1);
         QVERIFY(editor->apply_theme_settings());
+        // A skipped/answered question can reveal a previously undemanded face.
+        // Compare the settled HUD, preserving its separate Processing state.
+        view->prepare_cards_for_start();
+        QTRY_VERIFY_WITH_TIMEOUT(!view->is_rasterization_busy(), 10000);
         QVERIFY(status->text().contains(str_label("Running")));
         QVERIFY(speed->isEnabled());
         if (lives) {
@@ -432,7 +438,7 @@ void table_tests::hud_styles_preserve_finished_result() {
     const auto result = *owner.result();
     const auto timing = owner.timing();
     const auto interval = owner.pick_interval_ms();
-    auto* cache = view->shared_raster_cache_service();
+    auto* cache = table::shared_image_service();
     for (const bool instruments :
          { !initial_instruments, initial_instruments }) {
         choice->setCurrentIndex(instruments ? 2 : 1);
@@ -448,7 +454,7 @@ void table_tests::hud_styles_preserve_finished_result() {
         QCOMPARE(speed->value(), interval);
         QCOMPARE(*owner.result(), result);
         QCOMPARE(owner.timing(), timing);
-        QCOMPARE(view->shared_raster_cache_service(), cache);
+        QCOMPARE(table::shared_image_service(), cache);
         QVERIFY(!view->gameplay_timer.isActive());
         QVERIFY(!status->text().contains(QStringLiteral("%1")));
         QVERIFY(!status->text().contains(QStringLiteral("I18N_ARGUMENT_MISSING")
@@ -456,6 +462,9 @@ void table_tests::hud_styles_preserve_finished_result() {
     }
     // HUD widgets outlive scenes; no previous result/life/speed leaks to setup.
     QVERIFY(view->install_gameplay_session(owned_clock_fixture(1)));
+    // The replacement scene can require larger physical rasters.
+    view->prepare_cards_for_start();
+    QTRY_VERIFY_WITH_TIMEOUT(!view->is_rasterization_busy(), 10000);
     QCOMPARE(
         window.findChild<QLabel*>(QStringLiteral("session_status")), status
     );

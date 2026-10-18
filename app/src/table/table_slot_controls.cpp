@@ -627,6 +627,7 @@ void table_slot::resizeEvent(QResizeEvent* event) {
     if (card_widget_internal != nullptr) {
         card_widget_internal->setGeometry(rect());
     }
+    update_overlay_margins();
     if (gameplay_owner) {
         if (!controls_dialog)
             overlay_widget->setGeometry(rect());

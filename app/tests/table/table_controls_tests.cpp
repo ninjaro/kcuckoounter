@@ -116,7 +116,7 @@ void table_tests::compact_slot_controls_remain_reachable() {
 #endif
     QFETCH(QSize, slot_size);
     table_slot slot;
-    slot.set_shared_card_faces_mode(true);
+    slot.set_presented_image_mode(true);
     slot.set_rotated(slot_size.height() > slot_size.width());
     slot.resize(slot_size);
     slot.show();
@@ -316,7 +316,7 @@ void table_tests::action_variants_reuse_controls() {
     QFETCH(bool, compact);
     const auto style = static_cast<slot_action_style>(style_id);
     table_slot slot;
-    slot.set_shared_card_faces_mode(true);
+    slot.set_presented_image_mode(true);
     slot.set_rotated(rotated);
     slot.resize(compact ? QSize(60, 40) : QSize(800, 600));
     slot.set_action_style(style);

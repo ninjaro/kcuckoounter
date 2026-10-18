@@ -197,7 +197,7 @@ void table::finish_gameplay_layout_transition() {
     gameplay_layout_progress = 1.0;
     project_gameplay_layout();
     if (gameplay_owner)
-        update_shared_card_face_need();
+        update_card_image_demands();
 }
 
 void table::restart_gameplay_layout_transition() {

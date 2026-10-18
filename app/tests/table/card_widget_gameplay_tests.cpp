@@ -123,6 +123,32 @@ void card_widget_tests::count_visibility_uses_training_choice_and_int64() {
     );
 }
 
+void card_widget_tests::piping_moves_gameplay_strategy_to_legend() {
+    auto owner = renderer_session();
+    card_widget widget;
+    supply_renderer_faces(widget);
+    QVERIFY(widget.bind_gameplay_deck(owner, { 0 }));
+    QVERIFY(owner.start());
+    QCOMPARE(owner.deal_step().status, gameplay::dealing_step_status::advanced);
+    widget.refresh_gameplay_deck();
+    widget.set_strategy_name(QStringLiteral("Hi-Lo"));
+    widget.set_frame_style(slot_frame_style::piping);
+    const auto unnamed = render_card(widget);
+    widget.set_show_strategy_name(true);
+    // Accessibility keeps the strategy; only its painted place changes.
+    QVERIFY(widget.gameplay_extra_lines().contains(QStringLiteral("Hi-Lo")));
+    const auto named = render_card(widget);
+    QVERIFY(named != unnamed);
+    // D-SLOT-2: everything above the bottom line, the card included, stays.
+    const QRect above(0, 0, widget.width(), widget.height() - 24);
+    QCOMPARE(named.copy(above), unnamed.copy(above));
+    // Other frames still label the card itself.
+    widget.set_frame_style(slot_frame_style::thin);
+    const auto thin_named = render_card(widget);
+    widget.set_show_strategy_name(false);
+    QVERIFY(render_card(widget).copy(above) != thin_named.copy(above));
+}
+
 void card_widget_tests::quiz_and_pause_keep_faces_hidden() {
     auto owner = renderer_session();
     auto prepared = owner.deck({ 0 })->stream;

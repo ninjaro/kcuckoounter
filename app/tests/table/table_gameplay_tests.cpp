@@ -381,34 +381,41 @@ void table_tests::gameplay_table_reuses_one_bounded_raster_owner() {
     const auto all_ready = [&view] {
         return !view.is_rasterization_busy()
             && std::ranges::all_of(view.slot_widgets, [](const auto* slot) {
-                   return slot->has_shared_card_faces();
+                   return slot->has_presented_card_images();
                });
     };
     QTRY_VERIFY_WITH_TIMEOUT(all_ready(), 10000);
-    QCOMPARE(view.findChildren<raster_cache*>().size(), 1);
+    QVERIFY(view.findChildren<rasterflow::qt::image_service*>().isEmpty());
+    QCOMPARE(table::shared_image_service(), &application_image_service());
     QVERIFY(view.rasterizing_slots.isEmpty());
-    const auto displayed = view.displayed_shared_faces_key;
-    QVERIFY(displayed);
-    QVERIFY(displayed->render_scope.startsWith(QStringLiteral("all_faces#g")));
-    QVERIFY(!displayed->render_scope.contains(
-        QStringLiteral("I18N_ARGUMENT_MISSING")
-    ));
+    const auto displayed = view.displayed_card_images;
+    QVERIFY(!displayed.isEmpty());
+    QCOMPARE(view.displayed_card_source, card_sheet_source_path());
     auto& game = *view.active_gameplay_session();
     QVERIFY(game.start());
     QCOMPARE(game.deal_step().status, gameplay::dealing_step_status::advanced);
     const auto before = *game.deck({ 0 });
     for (int repeat = 0; repeat < 3; ++repeat)
         view.refresh_gameplay_session();
-    QCOMPARE(view.displayed_shared_faces_key, displayed);
-    QVERIFY(!view.shared_faces_watcher.isRunning());
+    QCOMPARE(view.displayed_card_images, displayed);
+    QTRY_VERIFY_WITH_TIMEOUT(all_ready(), 10000);
+    QTRY_COMPARE(view.desired_card_sizes.size(), 2);
+    QTRY_VERIFY_WITH_TIMEOUT(!view.is_rasterization_busy(), 10000);
+    QCOMPARE(view.displayed_card_images.size(), 2);
+    QVERIFY(view.displayed_card_images.contains(card_element_ids().at(0)));
+    QVERIFY(view.displayed_card_images.contains(card_element_ids().at(12)));
+    QVERIFY(!view.displayed_card_images.contains(card_back_element_id()));
+    QVERIFY(!view.card_images.is_pending());
     QCOMPARE(*game.deck({ 0 }), before);
     for (const auto count : { std::size_t { 24 }, std::size_t { 2 } }) {
         QVERIFY(view.install_gameplay_session(owned_table_fixture(count)));
         view.prepare_cards_for_start();
         QTRY_VERIFY_WITH_TIMEOUT(all_ready(), 10000);
         QVERIFY(view.rasterizing_slots.isEmpty());
-        QCOMPARE(view.shared_raster_cache_service()->ready_entry_count(), 1);
-        QVERIFY(view.retained_shared_faces_keys.size() <= 2);
+        QCOMPARE(view.displayed_card_images.size(), 1);
+        QVERIFY(view.displayed_card_images.contains(card_back_element_id()));
+        QCOMPARE(view.card_images.source_resolution().active_theme_keys, 1);
+        QVERIFY(!view.card_images.is_pending());
     }
 }
 

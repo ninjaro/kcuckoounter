@@ -6,7 +6,6 @@
 #include "settings/preferences.hpp"
 #include "settings/theme_palette.hpp"
 #include "settings/theme_settings.hpp"
-#include "table/table.hpp"
 
 #include <QAbstractItemView>
 #include <QFont>
@@ -16,7 +15,6 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QTableWidget>
-#include <QtConcurrent/QtConcurrent>
 
 #include <algorithm>
 #include <cmath>
@@ -115,19 +113,6 @@ QSize preview_card_size() {
     return { width, target_long };
 }
 
-raster_cache& preview_cache() {
-    static raster_cache service;
-    service.set_namespace_entry_limit(
-        raster_cache::cache_namespace::settings, 12
-    );
-    return service;
-}
-
-qint64 next_preview_id() {
-    static qint64 next_id = 1;
-    return next_id++;
-}
-
 QString preview_scope(int rank_index, int suit_index) {
     const QStringList& ids = card_element_ids();
     const int card_index = suit_index * 13 + rank_index;
@@ -135,53 +120,6 @@ QString preview_scope(int rank_index, int suit_index) {
         return {};
     }
     return ids.at(card_index);
-}
-
-QString generation_scope(
-    const QString& element_id, qint64 instance_id, qint64 generation_id
-) {
-    if (element_id.isEmpty() || instance_id <= 0 || generation_id <= 0) {
-        return {};
-    }
-    return QStringLiteral("subset:%1#w%2#g%3")
-        .arg(element_id)
-        .arg(instance_id)
-        .arg(generation_id);
-}
-
-parsed_scope parse_preview_scope(const QString& scope) {
-    const QString prefix = QStringLiteral("subset:");
-    if (!scope.startsWith(prefix)) {
-        return { {}, 0, 0, false };
-    }
-
-    const QString payload = scope.mid(prefix.size()).trimmed();
-    const qsizetype generation_index
-        = payload.lastIndexOf(QStringLiteral("#g"));
-    if (generation_index <= 0) {
-        return { {}, 0, 0, false };
-    }
-    const qsizetype instance_index
-        = payload.lastIndexOf(QStringLiteral("#w"), generation_index - 1);
-    if (instance_index <= 0 || instance_index >= generation_index) {
-        return { {}, 0, 0, false };
-    }
-
-    const QString element_id = payload.left(instance_index).trimmed();
-    bool instance_ok = false;
-    const qint64 instance_id
-        = payload
-              .mid(instance_index + 2, generation_index - (instance_index + 2))
-              .toLongLong(&instance_ok);
-    bool generation_ok = false;
-    const qint64 generation_id
-        = payload.mid(generation_index + 2).toLongLong(&generation_ok);
-    if (!instance_ok || !generation_ok || instance_id <= 0 || generation_id <= 0
-        || element_id.isEmpty()) {
-        return { {}, 0, 0, false };
-    }
-
-    return { element_id, instance_id, generation_id, true };
 }
 
 QString weight_text_for_value(int weight) {
@@ -201,20 +139,31 @@ QString format_key_label(QString key) {
 
 QPixmap build_weighted_card_preview(
     const QImage& base_face, int rank_index, int suit_index,
-    const QSize& card_size, const QVector<int>& weights
+    const QSize& card_size, const QVector<int>& weights,
+    qreal device_pixel_ratio
 ) {
-    if (base_face.isNull() || !card_size.isValid()) {
+    if (base_face.isNull() || card_size.isEmpty()
+        || !std::isfinite(device_pixel_ratio) || device_pixel_ratio <= 0) {
         return {};
     }
 
-    QImage image = base_face;
-    if (image.size() != card_size) {
-        image = image.scaled(
-            card_size, Qt::IgnoreAspectRatio, Qt::SmoothTransformation
-        );
-    }
-
+    QImage image(
+        QSize(
+            static_cast<int>(std::ceil(card_size.width() * device_pixel_ratio)),
+            static_cast<int>(std::ceil(card_size.height() * device_pixel_ratio))
+        ),
+        QImage::Format_ARGB32_Premultiplied
+    );
+    image.fill(Qt::transparent);
+    image.setDevicePixelRatio(device_pixel_ratio);
     QPainter painter(&image);
+    const auto fit = QSizeF(base_face.size())
+                         .scaled(QSizeF(card_size), Qt::KeepAspectRatio);
+    const QPointF origin(
+        (card_size.width() - fit.width()) / 2,
+        (card_size.height() - fit.height()) / 2
+    );
+    painter.drawImage(QRectF(origin, fit), base_face, QRectF(base_face.rect()));
 
     const int weight = (rank_index >= 0 && rank_index < weights.size())
         ? weights[rank_index]

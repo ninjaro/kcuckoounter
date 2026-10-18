@@ -22,6 +22,34 @@
   "facade": "trainer_app:app",
   "artifacts": [
     {
+      "id": "rasterflow:qt",
+      "kind": "static_lib",
+      "owns": [],
+      "packages": {
+        "external_project": {
+          "repository": "https://github.com/ninjaro/rasterflow",
+          "revision": "HEAD",
+          "package": "rasterflow",
+          "artifact": "qt:qt"
+        }
+      },
+      "name": "rasterflow_qt"
+    },
+    {
+      "id": "shared_ui:qt",
+      "kind": "static_lib",
+      "owns": [],
+      "packages": {
+        "external_project": {
+          "repository": "https://github.com/ninjaro/shared_ui",
+          "revision": "HEAD",
+          "package": "shared_ui",
+          "artifact": "qt:qt"
+        }
+      },
+      "name": "shared_ui_qt"
+    },
+    {
       "id": "watchdog_client:client",
       "kind": "static_lib",
       "owns": [],
@@ -84,9 +112,14 @@
       ],
       "dependencies": [
         "watchdog_client:client",
-        "packing_library:core"
+        "packing_library:core",
+        "rasterflow:qt",
+        "shared_ui:qt"
       ],
       "packages": {
+        "zlib": [
+          "zlib"
+        ],
         "qt": [
           "Core",
           "Concurrent",

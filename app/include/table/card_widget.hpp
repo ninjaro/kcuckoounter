@@ -5,20 +5,19 @@
 #include "arch/time_interface.hpp"
 #include "arch/widget_helpers.hpp"
 #include "card_helpers/card_picker.hpp"
+#include "image/card_images.hpp"
 #include "image/image_cacher.hpp"
 #include "settings/preferences.hpp"
 #include "settings/session_checkpoint.hpp"
 #include "table/gameplay_session.hpp"
-#include <QFutureWatcher>
+#include <QHash>
 #include <QImage>
 #include <QPixmap>
 #include <QPointF>
-#include <QPromise>
 #include <QRectF>
 #include <QSizeF>
 #include <QString>
 #include <QStringList>
-#include <QSvgRenderer>
 #include <QVector>
 #include <deque>
 #include <memory>
@@ -28,12 +27,6 @@ class QPaintEvent;
 class QResizeEvent;
 class QColor;
 class QPainter;
-
-class card_rasterize_watcher : public QFutureWatcher<QVector<QImage>> {
-public:
-    using QFutureWatcher<QVector<QImage>>::QFutureWatcher;
-    void waitForFinished();
-};
 
 class card_widget : public BaseWidget {
     Q_OBJECT
@@ -56,7 +49,7 @@ public:
     void unbind_gameplay_deck();
 
     void set_swap_selected(bool selected);
-    bool swap_selected() const;
+    [[nodiscard]] bool swap_selected() const;
 
     void start_quiz(
         int quiz_type_index, int requested_decks_count,
@@ -71,8 +64,14 @@ public:
     void set_frame_style(slot_frame_style style);
     // 1-based table position shown by framed presentations; 0 hides it.
     void set_slot_number(int number);
+
+    [[nodiscard]] int displayed_slot_number() const { return slot_number; }
+
     // Felt piping glows in the correction colour while feedback is shown.
     void set_verdict_glow(bool enabled);
+    // Under gold piping, the band above the bottom edge that holds the frame
+    // line and its legends; overlays stay above it. 0 for other frames.
+    [[nodiscard]] int bottom_legend_clearance() const;
     void set_show_card_indexing(bool enabled);
     void set_show_strategy_name(bool enabled);
     void set_training_mode(bool enabled);
@@ -81,14 +80,14 @@ public:
     void set_table_marking_source(const QString& source);
     void set_hide_cards(bool hide);
     void advance_card();
-    bool has_cards() const;
-    bool has_current_card() const;
-    bool is_deck_exhausted() const;
+    [[nodiscard]] bool has_cards() const;
+    [[nodiscard]] bool has_current_card() const;
+    [[nodiscard]] bool is_deck_exhausted() const;
     void mark_deck_exhausted();
     // Trainer checkpoint accessors. A session-bound card has no separate shoe;
     // its host reads typed counters and recovery state from the session.
-    int current_position() const;
-    int current_total_weight() const;
+    [[nodiscard]] int current_position() const;
+    [[nodiscard]] int current_total_weight() const;
     [[nodiscard]] card_session_state capture_session_state() const;
     [[nodiscard]] static bool
     can_restore_session_state(const card_session_state& state);
@@ -97,19 +96,19 @@ public:
     void trigger_highlight(int duration_ms);
     void tick_highlight(int delta_ms);
     void prepare_card_faces();
-    int card_face_target_short_px() const;
-    void set_shared_card_faces(
-        const QVector<QImage>& face_images, const QSize& raster_size
-    );
-    void clear_shared_card_faces();
-    bool has_shared_card_faces() const;
-    void set_shared_card_faces_mode(bool enabled);
+    [[nodiscard]] int card_face_target_short_px() const;
+    void set_presented_card_images(const QHash<QString, QImage>& images);
+    void clear_presented_card_images();
+    [[nodiscard]] bool has_presented_card_images() const;
+    void set_presented_image_mode(bool enabled);
     void sync_card_sheet_source();
 
 signals:
     void rasterization_busy_changed(bool busy);
+    void image_demand_changed();
 
 protected:
+    bool event(QEvent* event) override;
     void paintEvent(QPaintEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
 
@@ -154,20 +153,14 @@ private:
     bool hide_cards_flag;
     image_cacher table_marking;
     QString card_sheet_source;
-    std::unique_ptr<QSvgRenderer> card_sheet_renderer;
+    std::unique_ptr<card_image_consumer> card_images;
     QPixmap selected_card_face;
     int selected_card_face_index;
     QSize card_face_size;
-    QVector<QImage> card_faces_rasterized;
-    QSize card_face_raster_size;
-    int picks_since_rasterize;
-    card_rasterize_watcher rasterize_watcher;
-    QSize raster_task_size;
-    QString raster_task_source;
-    QSize pending_raster_size;
+    QHash<QString, QImage> displayed_card_images;
+    bool preparation_queued = false;
     bool rasterizing;
-    bool shared_card_faces_active;
-    bool shared_card_faces_mode;
+    bool presented_image_mode;
 
     // One slot-local geometry for paint, jitter and raster demand. The packer
     // still owns the widget rectangle, independently of presentation choices.
@@ -177,11 +170,11 @@ private:
         qreal slot_rotation = 0.0;
         qreal min_dim = 0.0;
         qreal jitter_limit = 0.0;
-        QPointF bounded_offset(const QPointF& offset) const;
+        [[nodiscard]] QPointF bounded_offset(const QPointF& offset) const;
     };
 
-    paint_geometry layout_geometry() const;
-    paint_geometry layout_geometry(const QSizeF& size) const;
+    [[nodiscard]] paint_geometry layout_geometry() const;
+    [[nodiscard]] paint_geometry layout_geometry(const QSizeF& size) const;
     void
     paint_slot_frame(QPainter& painter, const paint_geometry& geometry) const;
     void paint_deck_content(QPainter& painter, const paint_geometry& geometry);
@@ -198,21 +191,19 @@ private:
     [[nodiscard]] bool display_hidden() const;
     [[nodiscard]] QStringList gameplay_extra_lines() const;
     void update_table_marking();
-    QSize card_face_target_size() const;
-    static QSize raster_cache_size(const QSize& target_size);
+    [[nodiscard]] QSize card_face_target_size() const;
     void update_card_faces(const QSize& target_size);
+    void schedule_card_preparation();
+    [[nodiscard]] QString displayed_card_image_id() const;
     void invalidate_selected_card_face();
     const QPixmap& card_face_pixmap(int index);
     void record_discard();
-    qreal highlight_strength() const;
+    [[nodiscard]] qreal highlight_strength() const;
     void update_selection_pulse();
-    int total_weight_for_picks() const;
-    void start_rasterization(const QSize& target_size);
-    void apply_rasterized_images(
-        const QVector<QImage>& images, const QSize& target_size
-    );
+    [[nodiscard]] int total_weight_for_picks() const;
+    void apply_presented_images(const QHash<QString, QImage>& images);
     void set_rasterizing(bool active);
-    void on_rasterization_finished();
+    void on_card_images_changed();
     static void apply_card_transform(
         QPainter& painter, const QRectF& oriented_card_rect,
         qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset
@@ -256,7 +247,7 @@ private:
         qreal slot_rotation_deg, const QPointF& offset,
         const QStringList& extra_lines
     ) const;
-    QString current_index_text() const;
+    [[nodiscard]] QString current_index_text() const;
     static int total_cards_for_quiz_type(int quiz_type_index);
     static qreal compute_font_point_size(const QRectF& card_rect);
     static QString weight_text_for_value(std::int64_t weight);
@@ -264,10 +255,6 @@ private:
     static int blend_color_channel(int from, int to, qreal strength);
     static QColor
     blend_color(const QColor& from, const QColor& to, qreal strength);
-    static void rasterize_card_faces(
-        QPromise<QVector<QImage>>& promise, const QString& source,
-        const QSize& raster_size
-    );
 };
 
 #endif // KCUCKOOUNTER_TABLE_CARD_WIDGET_HPP

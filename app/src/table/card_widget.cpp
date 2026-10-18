@@ -4,14 +4,14 @@
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
 #include "settings/theme_settings.hpp"
-#include <QFutureWatcher>
+#include <QEvent>
 #include <QImage>
+#include <QPointer>
 #include <QString>
 #include <QStringList>
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 
 int card_widget::total_cards_for_quiz_type(int quiz_type_index) {
     if (quiz_type_index == 1) {
@@ -64,20 +64,13 @@ card_widget::card_widget(BaseWidget* parent)
     , hide_cards_flag(false)
     , table_marking(bundled_asset_path(QStringLiteral("brand/cuckoo.svg")))
     , card_sheet_source(card_sheet_source_path())
-    , card_sheet_renderer()
+    , card_images()
     , selected_card_face()
     , selected_card_face_index(-1)
     , card_face_size()
-    , card_faces_rasterized()
-    , card_face_raster_size()
-    , picks_since_rasterize(0)
-    , rasterize_watcher()
-    , raster_task_size()
-    , raster_task_source()
-    , pending_raster_size()
+    , displayed_card_images()
     , rasterizing(false)
-    , shared_card_faces_active(false)
-    , shared_card_faces_mode(false) {
+    , presented_image_mode(false) {
     selection_timer->set_interval(45);
     QObject::connect(
         selection_timer.get(), &time_interface::timeout, this,
@@ -86,12 +79,24 @@ card_widget::card_widget(BaseWidget* parent)
     setAccessibleName(str_label("Playing card"));
     update_accessible_description();
     QObject::connect(
-        &rasterize_watcher, &QFutureWatcher<QVector<QImage>>::finished, this,
-        &card_widget::on_rasterization_finished
+        &table_marking, &image_cacher::pixmap_changed, this,
+        qOverload<>(&card_widget::update)
     );
 }
 
-card_widget::~card_widget() { rasterize_watcher.cancel(); }
+card_widget::~card_widget() = default;
+
+bool card_widget::event(QEvent* event) {
+    const bool intent_changed = event
+        && (event->type() == QEvent::Show || event->type() == QEvent::Hide
+            || event->type() == QEvent::DevicePixelRatioChange
+            || event->type() == QEvent::ScreenChangeInternal);
+    const QPointer<card_widget> lifetime(this);
+    const bool accepted = BaseWidget::event(event);
+    if (lifetime && intent_changed)
+        schedule_card_preparation();
+    return accepted;
+}
 
 bool card_widget::bind_gameplay_deck(
     const gameplay::session& owner, gameplay::deck_id id
@@ -118,8 +123,6 @@ void card_widget::refresh_gameplay_deck() {
         // One transform for the newly presented face, not a replay of missed
         // frames or an owned card-history copy. Same-state refresh is inert.
         presented_physical_cards = exposure;
-        if (picks_since_rasterize < std::numeric_limits<int>::max())
-            ++picks_since_rasterize;
         update_card_jitter();
     }
     update_accessible_description();
@@ -225,7 +228,6 @@ void card_widget::start_quiz(
     decks_count = requested_decks_count;
     infinity_enabled = infinity_enabled_flag;
     discard_history.clear();
-    picks_since_rasterize = 0;
     update_card_jitter();
     update_accessible_description();
     update();
@@ -257,6 +259,7 @@ void card_widget::set_slot_rotated(bool rotated) {
     }
 
     slot_rotated = rotated;
+    schedule_card_preparation();
     update();
 }
 
@@ -267,6 +270,7 @@ void card_widget::set_gameplay_layout_rotation(std::optional<qreal> degrees) {
         || gameplay_layout_rotation_deg == degrees)
         return;
     gameplay_layout_rotation_deg = degrees;
+    schedule_card_preparation();
     if (!degrees)
         update_table_marking(); // Final geometry only, not every motion frame.
     update();
@@ -368,7 +372,6 @@ void card_widget::advance_card() {
     record_discard();
     picker.advance();
     update_accessible_description();
-    ++picks_since_rasterize;
     update_card_jitter();
     update();
 }
@@ -431,7 +434,6 @@ bool card_widget::restore_session_state(const card_session_state& state) {
     decks_count = state.decks_count;
     infinity_enabled = state.infinity_enabled;
     discard_history.clear();
-    picks_since_rasterize = 0;
     running = false;
     swap_selected_flag = false;
     highlight_duration_ms = 0;
@@ -463,7 +465,6 @@ void card_widget::clear_quiz() {
     decks_count = 0;
     infinity_enabled = false;
     discard_history.clear();
-    picks_since_rasterize = 0;
     running = false;
     swap_selected_flag = false;
     highlight_duration_ms = 0;
@@ -514,6 +515,7 @@ void card_widget::update_accessible_description() {
             accessibleDescription() + QLatin1Char('\n')
             + lines.join(QLatin1Char('\n'))
         );
+    schedule_card_preparation();
 }
 
 void card_widget::trigger_highlight(int duration_ms) {

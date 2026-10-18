@@ -169,7 +169,7 @@ void table_tests::toolbar_styles_preserve_owned_quiz() {
         bounds[id] = widgets[id]->geometry();
         demand[id] = widgets[id]->card_face_need_short_px();
     }
-    auto* cache = view->shared_raster_cache_service();
+    auto* cache = table::shared_image_service();
     const auto state = window.saveState();
     auto* speed
         = window.findChild<QSlider*>(QStringLiteral("pickup_interval_slider"));
@@ -240,7 +240,7 @@ void table_tests::toolbar_styles_preserve_owned_quiz() {
         QCOMPARE(*owner.current_quiz_batch(), batch);
         QCOMPARE(owner.timing(), timing);
         QCOMPARE(owner.statistics(), statistics);
-        QCOMPARE(view->shared_raster_cache_service(), cache);
+        QCOMPARE(table::shared_image_service(), cache);
         QCOMPARE(speed->value(), interval);
         QVERIFY(speed->isEnabled());
         QCOMPARE(window.saveState(), state);

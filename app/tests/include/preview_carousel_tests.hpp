@@ -4,8 +4,7 @@
 #include <QObject>
 
 class settings_template_widget;
-class QImage;
-template <typename T> class QPromise;
+class QString;
 
 class preview_carousel_tests : public QObject {
     Q_OBJECT
@@ -21,32 +20,23 @@ private slots:
     void geometry_requests_use_settled_dimensions();
     void navigation_controls_expose_accessible_semantics();
     void visible_cards_expose_domain_accessible_names();
-    void settings_previews_share_one_queued_render_job();
-    void settings_preview_dispatch_uses_current_window_data();
-    void settings_preview_dispatch_uses_current_window();
-    void settings_preview_cutover_ignores_departed_demand();
-    void settings_preview_navigation_rejects_late_results();
-    void settings_preview_navigation_cancels_obsolete_batch_data();
-    void settings_preview_navigation_cancels_obsolete_batch();
-    void settings_preview_navigation_keeps_useful_batch();
-    void settings_preview_navigation_recovers_canceled_demand();
-    void settings_preview_cancellation_is_per_editor();
-    void settings_preview_results_publish_before_batch_finishes();
-    void settings_preview_cutover_rejects_late_results();
-    void settings_preview_pruning_releases_requests();
-    void settings_preview_destruction_cancels_batch();
-    void settings_preview_worker_outlives_widget();
-    void settings_preview_batches_keep_generation_boundaries();
-    void completed_preview_result_releases_future_data();
-    void completed_preview_result_releases_future();
-    void publication_can_retire_preview_owner_data();
-    void publication_can_retire_preview_owner();
-    void settings_preview_cancellation_recovers_returning_demand();
+    void settings_previews_share_master_images();
+    void table_and_preview_share_master_images();
+    void settings_preview_window_replaces_desired();
+    void settings_preview_source_cutover_is_atomic();
+    void speculative_neighbors_do_not_hold_visible_cutover();
+    void initial_previews_publish_before_all_requests_finish();
+    void settings_preview_retirement_preserves_survivor_data();
+    void settings_preview_retirement_preserves_survivor();
+    void settings_preview_returns_to_cached_demand();
+    void settings_preview_geometry_has_physical_quality();
+    void weighted_preview_does_not_mutate_shared_pixels();
+    void preview_publication_can_destroy_owner_data();
+    void preview_publication_can_destroy_owner();
 
 private:
-    static void hold_preview_batch(
-        settings_template_widget& editor, QPromise<QImage>& promise
-    );
+    static bool
+    select_source(settings_template_widget& editor, const QString& path);
 };
 
 #endif // KCUCKOOUNTER_TESTS_PREVIEW_CAROUSEL_TESTS_HPP

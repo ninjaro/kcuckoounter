@@ -2,20 +2,17 @@
 
 #include "arch/asset_locator.hpp"
 #include "arch/str_label.hpp"
+#include "image/image_sources.hpp"
+#include <QCoreApplication>
+#include <QTimer>
 
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QHash>
-#include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QPainter>
-#include <QRect>
-#include <QRectF>
 #include <QSettings>
-#include <QSvgRenderer>
 #include <QVector>
 
 #include <algorithm>
@@ -39,8 +36,9 @@ static bool card_theme_source_is_reachable(const QString& source_path) {
         return false;
     }
 
-    QSvgRenderer renderer(source_path);
-    return renderer.isValid();
+    // Discovery is I/O-only. Validate the chosen immutable snapshot through
+    // Rasterflow rather than parsing every installed theme on the GUI thread.
+    return info.isReadable();
 }
 
 static QString installed_card_theme_root_name(const QFileInfo& directory_info) {
@@ -345,8 +343,7 @@ static parsed_card_element_id parse_card_element_id(const QString& element_id) {
     return {};
 }
 
-static QStringList candidate_card_element_ids(const QString& logical_element_id
-) {
+QStringList candidate_card_element_ids(const QString& logical_element_id) {
     QStringList candidates;
     append_unique(candidates, logical_element_id);
 
@@ -388,23 +385,6 @@ static QStringList candidate_card_element_ids(const QString& logical_element_id
     return candidates;
 }
 
-static QString resolve_element_id_for_renderer(
-    const QSvgRenderer& renderer, const QString& logical_element_id
-) {
-    if (!renderer.isValid()) {
-        return {};
-    }
-
-    const QStringList candidates
-        = candidate_card_element_ids(logical_element_id);
-    for (const QString& candidate : candidates) {
-        if (renderer.elementExists(candidate)) {
-            return candidate;
-        }
-    }
-    return {};
-}
-
 static QString rank_suit_element_id(int rank_index, int suit_index) {
     const auto& suit_list = suit_ids();
     if (rank_index < 0 || rank_index >= k_ranks_per_suit) {
@@ -430,310 +410,80 @@ static QString rank_suit_element_id(int rank_index, int suit_index) {
     return {};
 }
 
-static QImage normalize_card_to_base_frame(
-    const QImage& image, const QRectF& element_bounds, const QRectF& base_bounds
-) {
-    if (image.isNull() || !element_bounds.isValid() || !base_bounds.isValid()
-        || element_bounds.width() <= 0.0 || element_bounds.height() <= 0.0
-        || base_bounds.width() <= 0.0 || base_bounds.height() <= 0.0) {
-        return image;
-    }
-
-    const qreal extra_width
-        = std::max(0.0, element_bounds.width() - base_bounds.width());
-    const qreal extra_height
-        = std::max(0.0, element_bounds.height() - base_bounds.height());
-    if (extra_width <= 0.0 && extra_height <= 0.0) {
-        return image;
-    }
-
-    const qreal trim_x
-        = image.width() * (extra_width / element_bounds.width()) * 0.5;
-    const qreal trim_y
-        = image.height() * (extra_height / element_bounds.height()) * 0.5;
-
-    const int max_trim_x = std::max(0, (image.width() - 1) / 2);
-    const int max_trim_y = std::max(0, (image.height() - 1) / 2);
-
-    const int trim_left
-        = std::clamp(static_cast<int>(std::lround(trim_x)), 0, max_trim_x);
-    const int trim_right = trim_left;
-    const int trim_top
-        = std::clamp(static_cast<int>(std::lround(trim_y)), 0, max_trim_y);
-    const int trim_bottom = trim_top;
-
-    const int cropped_width = image.width() - trim_left - trim_right;
-    const int cropped_height = image.height() - trim_top - trim_bottom;
-    if (cropped_width <= 0 || cropped_height <= 0) {
-        return image;
-    }
-    if (cropped_width == image.width() && cropped_height == image.height()) {
-        return image;
-    }
-
-    const QRect crop_rect(trim_left, trim_top, cropped_width, cropped_height);
-    const QImage cropped = image.copy(crop_rect);
-    return cropped.isNull()
-        ? image
-        : cropped.scaled(
-              image.size(), Qt::IgnoreAspectRatio, Qt::FastTransformation
-          );
-}
-
-struct card_sheet_cache {
-    bool valid = false;
-    std::pair<int, int> ratio { 88, 63 };
-};
-
-enum class resolved_source_kind {
-    active_theme,
-    default_theme,
-    placeholder,
-};
-
-struct resolved_required_element {
-    QString render_element_id;
-    resolved_source_kind source_kind = resolved_source_kind::placeholder;
-    QRectF element_bounds;
-};
-
 static QString& active_card_sheet_source() {
     static QString source = default_card_sheet_source_value();
     return source;
 }
 
-struct cached_sheet_state {
-    QString source;
-    card_sheet_cache cache;
-    bool has_value = false;
-};
-
-static card_sheet_cache build_sheet_cache_for_source(const QString& source_path
-) {
-    const std::pair<int, int> fallback_ratio { 88, 63 };
-    QSvgRenderer renderer(source_path);
-    if (!renderer.isValid()) {
-        return { false, fallback_ratio };
-    }
-
-    const QStringList ids = required_card_ids_with_back();
-    for (const QString& id : ids) {
-        const QString render_id = resolve_element_id_for_renderer(renderer, id);
-        if (render_id.isEmpty()) {
-            continue;
-        }
-        const QRectF bounds = renderer.boundsOnElement(render_id);
-        if (!bounds.isValid() || bounds.width() <= 0.0
-            || bounds.height() <= 0.0) {
-            continue;
-        }
-
-        const int width = static_cast<int>(std::lround(bounds.width()));
-        const int height = static_cast<int>(std::lround(bounds.height()));
-        if (width > 0 && height > 0) {
-            const int long_side = std::max(width, height);
-            const int short_side = std::min(width, height);
-            return { true, { long_side, short_side } };
-        }
-    }
-
-    return { true, fallback_ratio };
+card_sheet_metadata::card_sheet_metadata(QObject* parent)
+    : QObject(parent) {
+    auto& service = application_image_service();
+    const auto changed = [this](const QString& id) {
+        if (source.content_id() == id.toStdString())
+            publish_metadata();
+    };
+    connect(
+        &service, &rasterflow::qt::image_service::source_ready, this, changed
+    );
+    connect(
+        &service, &rasterflow::qt::image_service::source_failed, this,
+        [changed](const QString& id, const QString&) { changed(id); }
+    );
+    refresh();
 }
 
-static card_sheet_cache cached_card_sheet_for_source(const QString& source_path
-) {
-    static cached_sheet_state state;
-    if (state.has_value && state.source == source_path) {
-        return state.cache;
-    }
-
-    state.source = source_path;
-    state.cache = build_sheet_cache_for_source(source_path);
-    state.has_value = true;
-    return state.cache;
+void card_sheet_metadata::refresh() {
+    const auto path = card_sheet_source_path();
+    if (selected_path == path)
+        return;
+    selected_path = path;
+    metadata_published = false;
+    source = load_image_source(path);
+    // Warm sources and I/O failures must notify through the same queued path.
+    QTimer::singleShot(0, this, &card_sheet_metadata::publish_metadata);
 }
 
-class card_sheet_render_context::implementation {
-public:
-    explicit implementation(
-        const QString& preferred_source_path,
-        const QString& fallback_source_path
-    )
-        : active_source(
-              preferred_source_path.isEmpty() ? fallback_source_path
-                                              : preferred_source_path
-          )
-        , fallback_source(fallback_source_path)
-        , active_renderer(active_source)
-        , active_base_bounds(base_bounds(active_renderer)) { }
+bool card_sheet_metadata::is_pending() const { return !metadata_published; }
 
-    static QRectF base_bounds(const QSvgRenderer& renderer) {
-        const QString id
-            = resolve_element_id_for_renderer(renderer, QStringLiteral("base"));
-        return id.isEmpty() ? QRectF() : renderer.boundsOnElement(id);
-    }
+bool card_sheet_metadata::is_valid() const {
+    return metadata_published && source.is_ready();
+}
 
-    resolved_required_element resolve(const QString& logical_id) {
-        const auto cached = resolved_elements.constFind(logical_id);
-        if (cached != resolved_elements.cend()) {
-            return cached.value();
-        }
+std::pair<int, int> card_sheet_metadata::ratio() const { return current_ratio; }
 
-        resolved_required_element resolved;
-        resolved.render_element_id
-            = resolve_element_id_for_renderer(active_renderer, logical_id);
-        if (!resolved.render_element_id.isEmpty()) {
-            resolved.source_kind = resolved_source_kind::active_theme;
-            resolved.element_bounds
-                = active_renderer.boundsOnElement(resolved.render_element_id);
-        } else if (active_source != fallback_source) {
-            // Parsing the fallback is unnecessary for complete themes and for
-            // single-face previews whose element exists in the active source.
-            if (!fallback_renderer) {
-                fallback_renderer
-                    = std::make_unique<QSvgRenderer>(fallback_source);
-                fallback_base_bounds = base_bounds(*fallback_renderer);
-            }
-            resolved.render_element_id = resolve_element_id_for_renderer(
-                *fallback_renderer, logical_id
-            );
-            if (!resolved.render_element_id.isEmpty()) {
-                resolved.source_kind = resolved_source_kind::default_theme;
-                resolved.element_bounds = fallback_renderer->boundsOnElement(
-                    resolved.render_element_id
-                );
-            }
-        }
-        resolved_elements.insert(logical_id, resolved);
-        return resolved;
-    }
-
-    static void count_source(
-        const resolved_required_element& resolved,
-        card_sheet_fallback_resolution& resolution
-    ) {
-        switch (resolved.source_kind) {
-        case resolved_source_kind::active_theme:
-            ++resolution.active_theme_keys;
-            break;
-        case resolved_source_kind::default_theme:
-            ++resolution.default_theme_keys;
-            break;
-        case resolved_source_kind::placeholder:
-            ++resolution.placeholder_keys;
+void card_sheet_metadata::publish_metadata() {
+    if (metadata_published
+        || (source.is_valid() && !source.is_ready() && source.error().isEmpty()
+        ))
+        return;
+    metadata_published = true;
+    current_ratio = { 88, 63 };
+    for (const auto& logical : required_card_ids_with_back()) {
+        bool found = false;
+        for (const auto& id : candidate_card_element_ids(logical)) {
+            const auto bounds = source.bounds(id);
+            if (bounds.isEmpty())
+                continue;
+            const auto width = static_cast<int>(std::lround(bounds.width()));
+            const auto height = static_cast<int>(std::lround(bounds.height()));
+            if (width <= 0 || height <= 0)
+                continue;
+            current_ratio
+                = { std::max(width, height), std::min(width, height) };
+            found = true;
             break;
         }
+        if (found)
+            break;
     }
-
-    QImage
-    render(const resolved_required_element& resolved, const QSize& size) {
-        QSvgRenderer* renderer = nullptr;
-        QRectF base;
-        if (resolved.source_kind == resolved_source_kind::active_theme) {
-            renderer = &active_renderer;
-            base = active_base_bounds;
-        } else if (resolved.source_kind
-                   == resolved_source_kind::default_theme) {
-            renderer = fallback_renderer.get();
-            base = fallback_base_bounds;
-        }
-        if (renderer == nullptr) {
-            return {};
-        }
-
-        QImage image(size, QImage::Format_ARGB32_Premultiplied);
-        image.fill(Qt::transparent);
-        QPainter painter(&image);
-        renderer->render(
-            &painter, resolved.render_element_id,
-            QRectF(QPointF(0.0, 0.0), QSizeF(size))
-        );
-        painter.end();
-        return normalize_card_to_base_frame(
-            image, resolved.element_bounds, base
-        );
-    }
-
-    QString active_source;
-    QString fallback_source;
-    QSvgRenderer active_renderer;
-    QRectF active_base_bounds;
-    std::unique_ptr<QSvgRenderer> fallback_renderer;
-    QRectF fallback_base_bounds;
-    QHash<QString, resolved_required_element> resolved_elements;
-};
-
-card_sheet_render_context::card_sheet_render_context(
-    const QString& preferred_source_path, const QString& fallback_source_path
-)
-    : implementation_(std::make_unique<implementation>(
-          preferred_source_path, fallback_source_path
-      )) { }
-
-card_sheet_render_context::~card_sheet_render_context() = default;
-
-QImage card_sheet_render_context::rasterize_face(
-    const QString& logical_element_id, const QSize& raster_size,
-    card_sheet_fallback_resolution* resolution
-) {
-    if (resolution != nullptr) {
-        *resolution = {};
-    }
-    if (logical_element_id.isEmpty() || raster_size.isEmpty()) {
-        return {};
-    }
-    const auto resolved = implementation_->resolve(logical_element_id);
-    if (resolution != nullptr) {
-        implementation::count_source(resolved, *resolution);
-    }
-    return implementation_->render(resolved, raster_size);
+    emit geometry_changed(); // Observers read only the current selection.
 }
 
-card_sheet_fallback_resolution
-card_sheet_render_context::resolve_required_sources() {
-    card_sheet_fallback_resolution resolution;
-    for (const QString& id : required_card_ids_with_back()) {
-        implementation::count_source(implementation_->resolve(id), resolution);
-    }
-    return resolution;
-}
-
-QVector<QImage> card_sheet_render_context::rasterize_faces(
-    const QSize& raster_size, card_sheet_fallback_resolution* resolution
-) {
-    if (resolution != nullptr) {
-        *resolution = {};
-    }
-    if (raster_size.isEmpty()) {
-        return {};
-    }
-    card_sheet_fallback_resolution local_resolution;
-    const QStringList ids = required_card_ids_with_back();
-    QVector<QImage> images;
-    images.reserve(ids.size());
-    for (const QString& id : ids) {
-        const auto resolved = implementation_->resolve(id);
-        implementation::count_source(resolved, local_resolution);
-        images.push_back(implementation_->render(resolved, raster_size));
-    }
-    if (resolution != nullptr) {
-        *resolution = local_resolution;
-    }
-    return images;
-}
-
-QImage rasterize_card_face_with_fallback(
-    const QString& preferred_source_path, const QString& logical_element_id,
-    const QSize& raster_size, card_sheet_fallback_resolution* resolution
-) {
-    if (logical_element_id.isEmpty() || raster_size.isEmpty()) {
-        if (resolution != nullptr) {
-            *resolution = {};
-        }
-        return {};
-    }
-    card_sheet_render_context context(preferred_source_path);
-    return context.rasterize_face(logical_element_id, raster_size, resolution);
+card_sheet_metadata& current_card_sheet_metadata() {
+    static QPointer<card_sheet_metadata> metadata;
+    if (!metadata)
+        metadata = new card_sheet_metadata(QCoreApplication::instance());
+    return *metadata;
 }
 
 static QStringList build_card_element_ids() {
@@ -761,10 +511,9 @@ const QVector<card_theme_option>& available_card_themes() {
     return themes;
 }
 
-void set_card_sheet_source_path(const QString& source_path) {
+static QString resolve_card_sheet_source_path(const QString& source_path) {
     if (source_path.isEmpty()) {
-        active_card_sheet_source() = default_card_sheet_source_value();
-        return;
+        return default_card_sheet_source_value();
     }
     // Rebind stored bundled paths through the current catalog. Old staged or
     // installed copies must not keep a removed bundle selectable.
@@ -778,30 +527,26 @@ void set_card_sheet_source_path(const QString& source_path) {
             || normalized.startsWith(QStringLiteral("assets/cards_")))) {
         for (const card_theme_option& theme : bundled_card_themes()) {
             if (QFileInfo(theme.source_path).fileName() == info.fileName()) {
-                active_card_sheet_source() = theme.source_path;
-                return;
+                return theme.source_path;
             }
         }
-        active_card_sheet_source() = default_card_sheet_source_value();
-        return;
+        return default_card_sheet_source_value();
     }
     if (!info.exists() || !info.isFile()) {
-        active_card_sheet_source() = default_card_sheet_source_value();
-        return;
+        return default_card_sheet_source_value();
     }
-    active_card_sheet_source() = source_path;
+    return source_path;
 }
 
-bool preload_card_sheet() {
-    const card_sheet_cache cache
-        = cached_card_sheet_for_source(card_sheet_source_path());
-    return cache.valid;
+void set_card_sheet_source_path(const QString& source_path) {
+    active_card_sheet_source() = resolve_card_sheet_source_path(source_path);
+    current_card_sheet_metadata().refresh();
 }
 
 std::pair<int, int> card_sheet_ratio() {
-    const card_sheet_cache cache
-        = cached_card_sheet_for_source(card_sheet_source_path());
-    return cache.ratio;
+    auto& metadata = current_card_sheet_metadata();
+    metadata.refresh();
+    return metadata.ratio();
 }
 
 QString card_label_from_index(int index) {
@@ -846,24 +591,4 @@ QStringList required_card_ids_with_back() {
         ids.append(back_id);
     }
     return ids;
-}
-
-card_sheet_fallback_resolution
-resolve_required_card_face_sources(const QString& preferred_source_path) {
-    card_sheet_render_context context(preferred_source_path);
-    return context.resolve_required_sources();
-}
-
-QVector<QImage> rasterize_card_faces_with_fallback(
-    const QString& preferred_source_path, const QSize& raster_size,
-    card_sheet_fallback_resolution* resolution
-) {
-    if (raster_size.isEmpty()) {
-        if (resolution != nullptr) {
-            *resolution = {};
-        }
-        return {};
-    }
-    card_sheet_render_context context(preferred_source_path);
-    return context.rasterize_faces(raster_size, resolution);
 }

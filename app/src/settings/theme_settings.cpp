@@ -7,8 +7,8 @@
 #include <QPixmap>
 #include <QStringList>
 
-#include <initializer_list>
-#include <utility>
+#include <shared_ui/qt/fonts.hpp>
+#include <shared_ui/qt/style_sheet.hpp>
 
 static QColor& theme_base_color() {
     static QColor base_color(10, 80, 40);
@@ -52,47 +52,23 @@ bool theme_settings::felt_chrome() { return felt_chrome_flag(); }
 
 namespace {
 
-QColor mix_colors(const QColor& from, const QColor& to, qreal amount) {
-    const auto channel = [amount](int a, int b) {
-        return static_cast<int>(a + (b - a) * amount + 0.5);
-    };
-    return { channel(from.red(), to.red()), channel(from.green(), to.green()),
-             channel(from.blue(), to.blue()) };
-}
+using shared_ui::qt::css_rgba;
+using shared_ui::qt::mix_colors;
 
 // The kit's faces ship as Latin subsets under assets/brand/fonts (OFL).
-void register_kit_fonts() {
-    static bool registered = false;
-    if (registered)
-        return;
-    registered = true;
+QString kit_family(
+    const QStringList& wanted, const QFontDatabase::SystemFont fallback
+) {
+    QStringList paths;
     for (const char* name :
          { "Archivo-Regular", "Archivo-Medium", "Archivo-SemiBold",
            "Archivo-Bold", "JetBrainsMono-Regular", "JetBrainsMono-Medium",
-           "JetBrainsMono-SemiBold", "JetBrainsMono-Bold" }) {
-        const QString path = bundled_asset_path(
+           "JetBrainsMono-SemiBold", "JetBrainsMono-Bold" })
+        paths.append(bundled_asset_path(
             QStringLiteral("brand/fonts/%1.ttf").arg(QLatin1String(name))
-        );
-        if (!path.isEmpty())
-            QFontDatabase::addApplicationFont(path);
-    }
-}
-
-QString first_family(const QStringList& wanted, const QString& fallback) {
-    register_kit_fonts();
-    const QStringList available = QFontDatabase::families();
-    for (const QString& family : wanted)
-        if (available.contains(family, Qt::CaseInsensitive))
-            return family;
-    return fallback;
-}
-
-QString rgba(const QColor& color, qreal alpha) {
-    return QStringLiteral("rgba(%1, %2, %3, %4)")
-        .arg(color.red())
-        .arg(color.green())
-        .arg(color.blue())
-        .arg(alpha, 0, 'f', 2);
+        ));
+    shared_ui::qt::register_fonts(paths);
+    return shared_ui::qt::first_family(wanted, fallback);
 }
 
 } // namespace
@@ -115,19 +91,19 @@ felt_material theme_settings::felt() {
     m.wrong = QColor(0xb4, 0x50, 0x3f);
     m.paper = QColor(0xf3, 0xef, 0xe4);
     m.paper_ink = QColor(0x17, 0x22, 0x1a);
-    static const QString ui = first_family(
+    static const QString ui = kit_family(
         { QStringLiteral("Archivo"), QStringLiteral("Inter"),
           QStringLiteral("Helvetica Neue"), QStringLiteral("Segoe UI"),
           QStringLiteral("Noto Sans"), QStringLiteral("DejaVu Sans") },
-        QFontDatabase::systemFont(QFontDatabase::GeneralFont).family()
+        QFontDatabase::GeneralFont
     );
-    static const QString mono = first_family(
+    static const QString mono = kit_family(
         { QStringLiteral("JetBrains Mono"), QStringLiteral("JetBrains Mono NL"),
           QStringLiteral("SF Mono"), QStringLiteral("Menlo"),
           QStringLiteral("Cascadia Mono"), QStringLiteral("Consolas"),
           QStringLiteral("DejaVu Sans Mono"),
           QStringLiteral("Noto Sans Mono") },
-        QFontDatabase::systemFont(QFontDatabase::FixedFont).family()
+        QFontDatabase::FixedFont
     );
     m.ui_family = ui;
     m.mono_family = mono;
@@ -136,36 +112,49 @@ felt_material theme_settings::felt() {
 
 QString theme_settings::felt_style(QString sheet) {
     const felt_material m = felt();
-    // Longer tokens first so $gold_light$ is not consumed by $gold$.
-    const std::initializer_list<std::pair<const char*, QString>> tokens {
-        { "$gold_line_soft$", rgba(m.gold, 0.28) },
-        { "$gold_line$", rgba(m.gold, 0.45) },
-        { "$gold_soft$", rgba(m.gold, 0.16) },
-        { "$gold_light$", m.gold_light.name() },
-        { "$gold$", m.gold.name() },
-        { "$ink$", m.ink.name() },
-        { "$deep_glass$", rgba(m.deep, 0.94) },
-        { "$deep$", m.deep.name() },
-        { "$inset$", m.inset.name() },
-        { "$line_strong$", mix_colors(m.line, m.text, 0.18).name() },
-        { "$line$", m.line.name() },
-        { "$text$", m.text.name() },
-        { "$muted_dim$", mix_colors(m.muted, m.ink, 0.45).name() },
-        { "$muted$", m.muted.name() },
-        { "$dim$", m.dim.name() },
-        { "$table$", theme_base_color().name() },
-        { "$right$", m.right.name() },
-        { "$wrong$", m.wrong.name() },
-        { "$paper_ink$", m.paper_ink.name() },
-        { "$paper$", m.paper.name() },
-        { "$check$",
-          bundled_asset_path(QStringLiteral("brand/kit_check.svg")) },
-        { "$ui$", m.ui_family },
-        { "$mono$", m.mono_family },
-    };
-    for (const auto& [token, value] : tokens)
-        sheet.replace(QLatin1String(token), value);
-    return sheet;
+    return shared_ui::qt::apply_style_tokens(
+        sheet,
+        {
+            { QStringLiteral("gold_line_soft"), css_rgba(m.gold, 0.28) },
+            { QStringLiteral("gold_line"), css_rgba(m.gold, 0.45) },
+            { QStringLiteral("gold_soft"), css_rgba(m.gold, 0.16) },
+            { QStringLiteral("gold_light"), m.gold_light.name() },
+            { QStringLiteral("gold"), m.gold.name() },
+            { QStringLiteral("ink"), m.ink.name() },
+            { QStringLiteral("deep_glass"), css_rgba(m.deep, 0.94) },
+            { QStringLiteral("deep"), m.deep.name() },
+            { QStringLiteral("inset"), m.inset.name() },
+            { QStringLiteral("line_strong"),
+              mix_colors(m.line, m.text, 0.18).name() },
+            { QStringLiteral("line"), m.line.name() },
+            { QStringLiteral("text"), m.text.name() },
+            { QStringLiteral("muted_dim"),
+              mix_colors(m.muted, m.ink, 0.45).name() },
+            { QStringLiteral("muted"), m.muted.name() },
+            { QStringLiteral("dim"), m.dim.name() },
+            { QStringLiteral("table"), theme_base_color().name() },
+            { QStringLiteral("right"), m.right.name() },
+            { QStringLiteral("wrong"), m.wrong.name() },
+            { QStringLiteral("paper_ink"), m.paper_ink.name() },
+            { QStringLiteral("paper"), m.paper.name() },
+            { QStringLiteral("knob_off"),
+              bundled_asset_path(QStringLiteral("brand/kit_switch_knob_off.svg")
+              ) },
+            { QStringLiteral("knob_on"),
+              bundled_asset_path(QStringLiteral("brand/kit_switch_knob_on.svg")
+              ) },
+            { QStringLiteral("chevron"),
+              bundled_asset_path(QStringLiteral("brand/kit_chevron.svg")) },
+            { QStringLiteral("plus"),
+              bundled_asset_path(QStringLiteral("brand/kit_plus.svg")) },
+            { QStringLiteral("minus"),
+              bundled_asset_path(QStringLiteral("brand/kit_minus.svg")) },
+            { QStringLiteral("check"),
+              bundled_asset_path(QStringLiteral("brand/kit_check.svg")) },
+            { QStringLiteral("ui"), m.ui_family },
+            { QStringLiteral("mono"), m.mono_family },
+        }
+    );
 }
 
 QString theme_settings::felt_window_style_sheet() {
@@ -262,7 +251,7 @@ QString theme_settings::felt_hud_style_sheet() {
 QFrame#desktop_status_surface { background: $deep$; border: none; border-top: 1px solid $gold_line_soft$; border-radius: 0px; }
 QFrame#desktop_status_surface QLabel { color: $text$; font-family: "$mono$"; font-size: 12px; background: transparent; }
 QFrame#desktop_status_surface QLabel#pickup_interval_readout { color: $muted$; }
-QFrame#desktop_status_surface QLabel#session_clock { color: $gold$; font-size: 17px; border-left: 1px solid rgba(212, 175, 55, 0.22); padding-left: 14px; }
+QFrame#desktop_status_surface QLabel#session_clock { color: $gold$; font-size: 17px; border-left: 1px solid rgba(212, 175, 55, 0.22); padding-left: 10px; }
 QFrame#desktop_status_surface QSlider::groove:horizontal { height: 4px; background: $line$; border-radius: 2px; }
 QFrame#desktop_status_surface QSlider::sub-page:horizontal { background: $gold$; border-radius: 2px; }
 QFrame#desktop_status_surface QSlider::handle:horizontal { background: $gold$; width: 10px; height: 14px; margin: -5px 0px; border-radius: 3px; }
@@ -321,6 +310,8 @@ QCheckBox:focus { color: $table$; }
 QAbstractSpinBox, QLineEdit, QComboBox { background: #ffffff; color: $paper_ink$; border: 1px solid #cfc9b8; border-radius: 6px; padding: 6px 10px; font-size: 13.5px; selection-background-color: $table$; selection-color: $paper$; }
 QAbstractSpinBox:focus, QLineEdit:focus, QComboBox:focus { border-color: $table$; }
 QComboBox QAbstractItemView { background: #ffffff; color: $paper_ink$; selection-background-color: #e4dfd0; selection-color: $paper_ink$; }
+QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: center right; width: 22px; border: none; background: transparent; }
+QComboBox::down-arrow { image: url("$chevron$"); width: 10px; height: 6px; }
 QFrame#kit_segmented { background: #e4dfd0; border: none; border-radius: 7px; }
 QFrame#kit_segmented QPushButton { background: transparent; color: #5d675f; border: none; border-radius: 5px; padding: 7px 6px; font-size: 13px; }
 QFrame#kit_segmented QPushButton:checked { background: #ffffff; color: $paper_ink$; font-weight: 600; }
@@ -330,6 +321,24 @@ QPushButton:hover { border-color: $table$; }
 QPushButton:focus { border: 1px dashed $table$; }
 QPushButton:default, QPushButton[kit_primary="true"] { background: $table$; color: $paper$; border: 1px solid $table$; font-weight: 600; padding: 10px 14px; }
 QPushButton:disabled { color: #a8afa9; border-color: #e4dfd0; }
+QFrame#kit_settings_header { background: transparent; border: none; border-bottom: 1px solid #ddd8ca; }
+QLabel#kit_settings_heading { font-family: "$mono$"; font-size: 10px; letter-spacing: 2px; color: #6b7a6f; }
+QToolButton#kit_settings_close { background: transparent; border: 1px solid transparent; border-radius: 3px; padding: 0px; }
+QToolButton#kit_settings_close:focus { border: 1px dashed $table$; }
+QFrame#kit_rule { background: #ddd8ca; border: none; }
+QCheckBox#kit_switch { spacing: 0px; }
+QCheckBox#kit_switch::indicator { width: 38px; height: 22px; border: 1px solid transparent; border-radius: 11px; background: #cfc9ba; image: url("$knob_off$"); }
+QCheckBox#kit_switch::indicator:checked { background: $table$; image: url("$knob_on$"); }
+QCheckBox#kit_switch::indicator:disabled { background: #e4dfd2; }
+QCheckBox#kit_switch::indicator:focus { border: 1px dashed $paper_ink$; }
+QAbstractSpinBox#kit_stepper { padding: 0px; min-height: 30px; max-height: 30px; font-family: "$mono$"; font-size: 15px; }
+QAbstractSpinBox#kit_stepper::down-button { subcontrol-origin: padding; subcontrol-position: left; width: 30px; height: 30px; border: none; border-right: 1px solid #cfc9ba; }
+QAbstractSpinBox#kit_stepper::up-button { subcontrol-origin: padding; subcontrol-position: right; width: 30px; height: 30px; border: none; border-left: 1px solid #cfc9ba; }
+QAbstractSpinBox#kit_stepper::down-arrow { image: url("$minus$"); width: 12px; height: 12px; }
+QAbstractSpinBox#kit_stepper::up-arrow { image: url("$plus$"); width: 12px; height: 12px; }
+QAbstractSpinBox#kit_stepper::down-arrow:disabled, QAbstractSpinBox#kit_stepper::up-arrow:disabled { image: none; }
+QPushButton#kit_info_button { background: transparent; color: #42513f; border: 1px solid #cfc9ba; border-radius: 6px; padding: 0px; font-family: "Noto Serif", Georgia, serif; font-size: 14px; font-weight: 700; }
+QPushButton#kit_info_button:focus { border: 1px dashed $table$; }
 )"));
 }
 

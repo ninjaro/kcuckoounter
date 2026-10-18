@@ -298,8 +298,7 @@ void card_widget::paint_piping_frame(
         painter.setPen(color);
         painter.drawText(box, Qt::AlignCenter, shown);
     };
-    if (!gameplay_owner && show_strategy_name_flag
-        && !strategy_name.isEmpty()) {
+    if (show_strategy_name_flag && !strategy_name.isEmpty()) {
         QColor gold = line;
         gold.setAlphaF(0.75f);
         legend(strategy_name.toUpper(), notch_font, gold, true);
@@ -313,6 +312,18 @@ void card_widget::paint_piping_frame(
         legend(index, index_font, paper, false);
     }
     painter.restore();
+}
+
+int card_widget::bottom_legend_clearance() const {
+    if (frame_style != slot_frame_style::piping)
+        return 0;
+    const paint_geometry geometry = layout_geometry();
+    // Legends are not painted below this size (see paint_piping_frame).
+    if (geometry.min_dim < 64.0)
+        return 0;
+    // The legend box is centred on the line: half its height plus a gap.
+    return static_cast<int>(std::ceil(height() - geometry.frame.bottom() + 9.0)
+    );
 }
 
 void card_widget::draw_card_mat(
@@ -386,7 +397,12 @@ void card_widget::paint_deck_content(
         return;
     }
 
-    const auto target_lines = gameplay_extra_lines();
+    auto target_lines = gameplay_extra_lines();
+    // D-SLOT-2 carries the strategy as a bottom legend, never over the card.
+    if (frame_style == slot_frame_style::piping && show_strategy_name_flag
+        && !target_lines.isEmpty()
+        && target_lines.constFirst() == strategy_name)
+        target_lines.removeFirst();
     if (display_hidden()) {
         if (theme_settings::felt_chrome()) {
             // Felt docks the answer panel below the quiz marking instead of
@@ -446,9 +462,6 @@ void card_widget::paint_deck_content(
             rendered_offset, base_card_fill, base_card_border
         );
 
-        const QSize target_size
-            = oriented_card_rect.size().toSize().expandedTo(QSize(1, 1));
-        update_card_faces(target_size);
         const QPixmap& back = card_face_pixmap(back_index);
 
         if (!back.isNull()) {
@@ -495,9 +508,6 @@ void card_widget::paint_deck_content(
         rendered_offset, card_fill_color, card_border_color
     );
 
-    const QSize target_size
-        = oriented_card_rect.size().toSize().expandedTo(QSize(1, 1));
-    update_card_faces(target_size);
     const QPixmap& face = card_face_pixmap(mapped_card_index);
 
     if (!face.isNull()) {
@@ -539,6 +549,7 @@ void card_widget::paint_deck_content(
 
 void card_widget::resizeEvent(QResizeEvent* event) {
     BaseWidget::resizeEvent(event);
+    schedule_card_preparation();
     if (!gameplay_layout_rotation_deg) {
         update_card_jitter();
         update_table_marking();
@@ -564,6 +575,7 @@ void card_widget::update_table_marking() {
     const qreal target_dim
         = std::min(slot_frame_rect.width(), slot_frame_rect.height()) * 0.5;
     const int size = static_cast<int>(std::max(1.0, target_dim));
+    table_marking.set_device_pixel_ratio(devicePixelRatioF());
     table_marking.set_target_size(QSize(size, size));
 }
 
@@ -582,7 +594,12 @@ void card_widget::draw_table_marking(
 ) const {
     if (table_marking.is_ready()) {
         const QPixmap& marking = table_marking.pixmap();
-        const QSizeF marking_size = table_marking.display_size() * scale;
+        const QSizeF marking_size
+            = QSizeF(marking.size())
+                  .scaled(
+                      QSizeF(table_marking.display_size()) * scale,
+                      Qt::KeepAspectRatio
+                  );
         const QPointF marking_top_left(
             slot_frame_rect.center().x() - marking_size.width() / 2.0,
             slot_frame_rect.center().y() - marking_size.height() / 2.0
@@ -713,7 +730,15 @@ void card_widget::draw_card_pixmap(
     apply_card_transform(
         painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
     );
-    painter.drawPixmap(oriented_card_rect.toRect(), pixmap);
+    const auto fit = pixmap.deviceIndependentSize().scaled(
+        oriented_card_rect.size(), Qt::KeepAspectRatio
+    );
+    const QRectF destination(
+        oriented_card_rect.center()
+            - QPointF(fit.width() / 2, fit.height() / 2),
+        fit
+    );
+    painter.drawPixmap(destination, pixmap, QRectF(pixmap.rect()));
     painter.restore();
 }
 

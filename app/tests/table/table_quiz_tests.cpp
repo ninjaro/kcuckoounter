@@ -323,7 +323,7 @@ void table_tests::quiz_variants_preserve_count_semantics() {
     QFETCH(bool, stamp);
     QFETCH(bool, compact);
     table_slot slot;
-    slot.set_shared_card_faces_mode(true);
+    slot.set_presented_image_mode(true);
     slot.resize(compact ? QSize(90, 65) : QSize(800, 600));
     slot.set_quiz_presentation(
         chips ? quiz_answer_style::chips : quiz_answer_style::numeric,

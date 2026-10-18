@@ -2,15 +2,18 @@
 #include "arch/android_ui.hpp"
 #include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
-#include "card_helpers/card_sheet.hpp"
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "table/infinity_spinbox.hpp"
 
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QVBoxLayout>
 
-slot_settings::slot_settings(BaseWidget* parent, bool include_info_button)
+slot_settings::slot_settings(
+    BaseWidget* parent, bool include_info_button, layout style
+)
     : BaseWidget(parent)
     , infinity_check_box_internal(nullptr)
     , deck_count_spin_box_internal(nullptr)
@@ -19,8 +22,7 @@ slot_settings::slot_settings(BaseWidget* parent, bool include_info_button)
     , show_strategy_name_internal(nullptr)
     , training_check_box_internal(nullptr)
     , info_button_internal(nullptr) {
-    preload_card_sheet();
-    setup_ui(include_info_button);
+    setup_ui(include_info_button, style);
 }
 
 slot_settings::~slot_settings() = default;
@@ -39,13 +41,18 @@ QSize slot_settings::build_minimum_settings_size() {
     return size;
 }
 
-void slot_settings::setup_ui(bool include_info_button) {
+void slot_settings::setup_ui(bool include_info_button, layout style) {
+    const bool kit = style == layout::kit;
     auto settings_layout = new BaseVBoxLayout(this);
-    settings_layout->setContentsMargins(8, 8, 8, 4);
-    settings_layout->setSpacing(4);
+    settings_layout->setContentsMargins(
+        kit ? QMargins() : QMargins(8, 8, 8, 4)
+    );
+    // The kit spaces rows 13px; 10px keeps the card inside a 1440×900
+    // four-slot table between the piping's notch and legends.
+    settings_layout->setSpacing(kit ? 10 : 4);
 
     infinity_check_box_internal
-        = new BaseCheckBox(str_label("Infinite deck"), this);
+        = new BaseCheckBox(kit ? QString() : str_label("Infinite deck"), this);
     infinity_check_box_internal->setToolTip(
         str_label("Repeat cards endlessly instead of finishing a deck")
     );
@@ -53,8 +60,21 @@ void slot_settings::setup_ui(bool include_info_button) {
     auto infinity_layout = new QHBoxLayout;
     infinity_layout->setContentsMargins(0, 0, 0, 0);
     infinity_layout->setSpacing(4);
-    infinity_layout->addWidget(infinity_check_box_internal);
-    infinity_layout->addStretch();
+    if (kit) {
+        // The switch carries no text; its label sits at the row's start.
+        infinity_check_box_internal->setObjectName(QStringLiteral("kit_switch")
+        );
+        infinity_check_box_internal->setAccessibleName(str_label("Infinite deck"
+        ));
+        auto* infinity_label = new QLabel(str_label("Infinite deck"), this);
+        infinity_label->setBuddy(infinity_check_box_internal);
+        infinity_layout->addWidget(infinity_label);
+        infinity_layout->addStretch();
+        infinity_layout->addWidget(infinity_check_box_internal);
+    } else {
+        infinity_layout->addWidget(infinity_check_box_internal);
+        infinity_layout->addStretch();
+    }
     settings_layout->addLayout(infinity_layout);
 
     auto decks_layout = new QHBoxLayout;
@@ -74,6 +94,14 @@ void slot_settings::setup_ui(bool include_info_button) {
     decks_label->setBuddy(deck_count_spin_box_internal);
     deck_count_spin_box_internal->setAccessibleName(str_label("Deck count"));
     decks_layout->addWidget(decks_label);
+    if (kit) {
+        // − n + stepper: the spin box's own buttons, drawn at either end.
+        deck_count_spin_box_internal->setObjectName(QStringLiteral("kit_stepper"
+        ));
+        deck_count_spin_box_internal->setAlignment(Qt::AlignCenter);
+        deck_count_spin_box_internal->setFixedWidth(100);
+        decks_layout->addStretch();
+    }
     decks_layout->addWidget(deck_count_spin_box_internal);
     settings_layout->addLayout(decks_layout);
 
@@ -118,7 +146,16 @@ void slot_settings::setup_ui(bool include_info_button) {
             break;
         }
     }
-    strategy_layout->addWidget(strategy_label);
+    // Kit: the label above its row, 6px apart.
+    auto* strategy_block = new QVBoxLayout;
+    strategy_block->setContentsMargins(0, 0, 0, 0);
+    strategy_block->setSpacing(6);
+    if (kit) {
+        strategy_layout->setSpacing(8);
+        strategy_block->addWidget(strategy_label);
+    } else {
+        strategy_layout->addWidget(strategy_label);
+    }
     strategy_layout->addWidget(strategy_combo_box_internal, 1);
 
     if (include_info_button) {
@@ -134,10 +171,18 @@ void slot_settings::setup_ui(bool include_info_button) {
         android_ui::apply_button_style(
             info_button_internal, android_button_profile::inline_info
         );
+        if (kit) {
+            info_button_internal->setObjectName(QStringLiteral("kit_info_button"
+            ));
+            info_button_internal->setText(QStringLiteral("i"));
+            info_button_internal->setIcon(QIcon());
+            info_button_internal->setFixedSize(32, 32);
+        }
         strategy_layout->addWidget(info_button_internal);
     }
 
-    settings_layout->addLayout(strategy_layout);
+    strategy_block->addLayout(strategy_layout);
+    settings_layout->addLayout(strategy_block);
 
     show_card_indexing_internal
         = new BaseCheckBox(str_label("Show card indices"), this);
@@ -161,6 +206,20 @@ void slot_settings::setup_ui(bool include_info_button) {
         QStringLiteral("training_check_box")
     );
 
+    if (kit) {
+        auto* rule = new QFrame(this);
+        rule->setObjectName(QStringLiteral("kit_rule"));
+        rule->setFixedHeight(1);
+        settings_layout->addWidget(rule);
+        auto* options = new QVBoxLayout;
+        options->setContentsMargins(0, 0, 0, 0);
+        options->setSpacing(7);
+        options->addWidget(show_card_indexing_internal);
+        options->addWidget(show_strategy_name_internal);
+        options->addWidget(training_check_box_internal);
+        settings_layout->addLayout(options);
+        return;
+    }
     settings_layout->addWidget(show_card_indexing_internal);
     settings_layout->addWidget(show_strategy_name_internal);
     settings_layout->addWidget(training_check_box_internal);

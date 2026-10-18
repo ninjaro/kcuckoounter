@@ -73,76 +73,27 @@ settings_template_widget::settings_template_widget(
     , theme_carousel(nullptr)
     , theme_suit(0)
     , weights_suit(0)
-    , preview_id(0)
-    , active_preview_source()
-    , active_preview_bucket(0)
-    , active_preview_generation(0)
-    , active_preview_element_ids()
-    , warming_preview_source()
-    , warming_preview_bucket(0)
-    , warming_preview_generation(0)
-    , warming_preview_element_ids()
-    , next_preview_generation(1)
-    , preview_watcher(this)
-    , active_render_keys()
-    , published_preview_results()
-    , pending_preview_queue()
-    , pending_preview_keys()
-    , preview_render_scheduled(false)
+    , preview_images(this)
     , preview_refresh_scheduled(false)
     , theme_preview_needs_refresh(false)
-    , weights_preview_needs_refresh(false)
-    , displayed_theme_entries()
-    , displayed_weights_entries() {
-    preview_id = settings_template_support::next_preview_id();
-    QObject::connect(
-        &settings_template_support::preview_cache(),
-        &raster_cache::result_updated, this,
-        &settings_template_widget::preview_cache_updated
+    , weights_preview_needs_refresh(false) {
+    connect(
+        &preview_images, &card_image_consumer::images_changed, this,
+        &settings_template_widget::preview_images_changed, Qt::QueuedConnection
     );
-    QObject::connect(
-        &preview_watcher, &QFutureWatcher<QImage>::finished, this,
-        &settings_template_widget::preview_render_finished
-    );
-    QObject::connect(
-        &preview_watcher, &QFutureWatcher<QImage>::resultReadyAt, this,
-        &settings_template_widget::preview_result_ready
+    connect(
+        &current_card_sheet_metadata(), &card_sheet_metadata::geometry_changed,
+        this,
+        [this] {
+            update_theme_carousel(theme_suit);
+            update_weights_carousel(weights_suit);
+        },
+        Qt::QueuedConnection
     );
     setup_ui(selected_strategy);
 }
 
-settings_template_widget::~settings_template_widget() {
-    clear_preview_entries(displayed_theme_entries);
-    clear_preview_entries(displayed_weights_entries);
-    QObject::disconnect(&preview_watcher, nullptr, this, nullptr);
-    preview_watcher.cancel();
-    auto& preview_cache = settings_template_support::preview_cache();
-    QSet<raster_cache::entry_key> abandoned_keys = pending_preview_keys;
-    for (const auto& key : std::as_const(active_render_keys)) {
-        abandoned_keys.insert(key);
-    }
-    for (const raster_cache::entry_key& key : abandoned_keys) {
-        const raster_cache::family_key family {
-            .name_space = key.name_space,
-            .kind = key.kind,
-            .source_id = key.source_id,
-            .render_scope = key.render_scope,
-        };
-        preview_cache.clear_in_flight(family);
-        preview_cache.take_pending_latest(family);
-        preview_cache.erase_result(key);
-    }
-    active_render_keys.clear();
-    pending_preview_queue.clear();
-    pending_preview_keys.clear();
-    retire_preview_generation(
-        active_preview_source, active_preview_bucket, active_preview_generation
-    );
-    retire_preview_generation(
-        warming_preview_source, warming_preview_bucket,
-        warming_preview_generation
-    );
-}
+settings_template_widget::~settings_template_widget() = default;
 
 void settings_template_widget::setup_ui(const QString& selected_strategy) {
     if (tab_kind == settings_tab_kind::appearance) {

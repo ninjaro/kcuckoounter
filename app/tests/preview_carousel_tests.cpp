@@ -3,18 +3,26 @@
 // readability-make-member-function-const)
 
 #include "include/preview_carousel_tests.hpp"
-#include "image_lifetime_fixture.hpp"
 
 #include "card_helpers/card_sheet.hpp"
 #include "image/card_preview_carousel.hpp"
 #include "table/settings_template.hpp"
 #include "table/settings_template_support.hpp"
+#include "table/table.hpp"
+#include "table/table_fixture.hpp"
+#include "table/table_slot.hpp"
 
 #include <QtTest/QtTest>
 
+#include <QAbstractButton>
+#include <QButtonGroup>
+#include <QFile>
 #include <QPointer>
 #include <QScopeGuard>
 #include <QSet>
+#include <QTemporaryDir>
+#include <algorithm>
+#include <cmath>
 #include <functional>
 #include <memory>
 #include <utility>
@@ -56,6 +64,7 @@ void preview_carousel_tests::default_prefetch_loads_adjacent_cards() {
         8, std::bind_front(provide_test_card_pixmap, &requested_indices)
     );
 
+    QCOMPARE(carousel.visible_card_indices(), QVector<int>({ 0, 1, 2 }));
     QVERIFY(requested_indices.contains(0));
     QVERIFY(requested_indices.contains(1));
     QVERIFY(requested_indices.contains(2));
@@ -397,827 +406,469 @@ void preview_carousel_tests::visible_cards_expose_domain_accessible_names() {
     QCOMPARE(semantic_label_count, 3);
 }
 
-void preview_carousel_tests::settings_previews_share_one_queued_render_job() {
-    const QString original_source = card_sheet_source_path();
-    const auto restore_source = qScopeGuard([&original_source] {
-        set_card_sheet_source_path(original_source);
-    });
-    set_card_sheet_source_path(
-        QStringLiteral(":/kcuckoounter/sets/cards/cards_4.svg")
-    );
-    settings_template_widget editor(settings_tab_kind::appearance);
-    editor.prune_preview_queue();
-    const auto requests = editor.pending_preview_queue;
-    QVERIFY(requests.size() >= 2);
-    for (const auto& key : requests) {
-        QCOMPARE(key.source_id, requests.front().source_id);
-        QCOMPARE(key.target_bucket_px, requests.front().target_bucket_px);
-        QVERIFY(editor.preview_key_relevant(key));
-    }
+namespace {
+QString copy_theme(QTemporaryDir& directory, int set, const QByteArray& tag) {
+    QFile source(default_card_sheet_source_path());
+    if (set != 0)
+        source.setFileName(
+            QStringLiteral(":/kcuckoounter/sets/cards/cards_%1.svg").arg(set)
+        );
+    if (!source.open(QIODevice::ReadOnly))
+        return {};
+    const auto path
+        = directory.filePath(QStringLiteral("theme_%1.svg").arg(set));
+    QFile destination(path);
+    const auto bytes = source.readAll() + "\n<!-- " + tag + " -->\n";
+    return destination.open(QIODevice::WriteOnly)
+            && destination.write(bytes) == bytes.size()
+        ? path
+        : QString();
+}
+}
 
-    editor.render_next_preview();
-    editor.preview_watcher.future().waitForFinished();
-    editor.preview_render_finished();
-    for (const auto& key : requests) {
-        const auto result
-            = settings_template_support::preview_cache().get_if_ready(key);
-        QVERIFY2(result.has_value(), qPrintable(key.render_scope));
-        QVERIFY(!result->face_images.front().isNull());
-        const auto parsed
-            = settings_template_support::parse_preview_scope(key.render_scope);
+bool preview_carousel_tests::select_source(
+    settings_template_widget& editor, const QString& path
+) {
+    auto* button = editor.theme_button_group
+        ? editor.theme_button_group->checkedButton()
+        : nullptr;
+    if (!button || path.isEmpty())
+        return false;
+    // Select the same real artwork through the production source property.
+    button->setProperty("theme_source", path);
+    editor.on_theme_source_button_clicked(button);
+    return true;
+}
+
+void preview_carousel_tests::settings_previews_share_master_images() {
+    settings_template_widget first(settings_tab_kind::appearance),
+        second(settings_tab_kind::appearance);
+    for (auto* editor : { &first, &second }) {
+        editor->resize(800, 600);
+        editor->show();
+        editor->theme_carousel->set_visible_count(2);
+        editor->theme_carousel->set_prefetch_adjacent_cards(false);
+        editor->update_preview_demands();
+    }
+    QTRY_VERIFY(
+        !first.preview_images.is_pending()
+        && !second.preview_images.is_pending()
+    );
+    QVERIFY(!first.preview_requested_ids.isEmpty());
+    QCOMPARE(first.preview_requested_ids, second.preview_requested_ids);
+    for (const auto& id : first.preview_requested_ids)
         QCOMPARE(
-            result->face_images.front(),
-            rasterize_card_face_with_fallback(
-                key.source_id, parsed.element_id,
-                QSize(key.target_bucket_px, key.target_bucket_px)
-            )
+            first.preview_images.image_for(id).cacheKey(),
+            second.preview_images.image_for(id).cacheKey()
         );
-    }
-}
-
-// Keep producer completion under test control, without running GUI callbacks
-// inside a worker or relying on scheduling delays. Cache admission and
-// publication still use the actual settings widget and its real watcher
-// connections.
-void preview_carousel_tests::hold_preview_batch(
-    settings_template_widget& editor, QPromise<QImage>& promise
-) {
-    editor.prune_preview_queue();
-    editor.active_render_keys = editor.pending_preview_queue;
-    editor.pending_preview_queue.clear();
-    editor.pending_preview_keys.clear();
-    promise.start();
-    editor.preview_watcher.setFuture(promise.future());
-}
-
-static raster_cache::family_key
-preview_family(const raster_cache::entry_key& key) {
-    return {
-        .name_space = key.name_space,
-        .kind = key.kind,
-        .source_id = key.source_id,
-        .render_scope = key.render_scope,
-    };
-}
-
-void preview_carousel_tests::
-    settings_preview_navigation_cancels_obsolete_batch_data() {
-    QTest::addColumn<bool>("weighted");
-    QTest::addColumn<bool>("cached_destination");
-    QTest::newRow("theme-missing") << false << false;
-    QTest::newRow("weights-missing") << true << false;
-    QTest::newRow("theme-cached") << false << true;
-    QTest::newRow("weights-cached") << true << true;
-}
-
-void preview_carousel_tests::settings_preview_navigation_cancels_obsolete_batch(
-) {
-    QFETCH(bool, weighted);
-    QFETCH(bool, cached_destination);
-    settings_template_widget editor(
-        weighted ? settings_tab_kind::strategies : settings_tab_kind::appearance
+    QTRY_COMPARE(
+        first.displayed_preview_images.size(),
+        first.preview_requested_ids.size()
     );
-    QPromise<QImage> promise;
-    hold_preview_batch(editor, promise);
-    const auto old_requests = editor.active_render_keys;
-    auto* carousel = weighted ? editor.weights_carousel : editor.theme_carousel;
-    QVERIFY(carousel != nullptr);
-    const int suit = weighted ? editor.weights_suit : editor.theme_suit;
-    auto& cache = settings_template_support::preview_cache();
-    if (cached_destination) {
-        const QImage face = test_card_pixmap(QSize(32, 32)).toImage();
-        // All later positions hit the lower cache. Cancellation must not rely
-        // on a new missing-face enqueue or dispatch timer.
-        for (int rank = 3; rank < 13; ++rank) {
-            cache.insert_or_update_result({
-                .key = editor.preview_key(
-                    editor.active_preview_source, editor.active_preview_bucket,
-                    editor.active_preview_generation,
-                    settings_template_support::preview_scope(rank, suit)
-                ),
-                .raster_size = face.size(),
-                .generation
-                = static_cast<int>(editor.active_preview_generation),
-                .timestamp_ms = 0,
-                .use_count = 0,
-                .single_image = {},
-                .face_images = { face },
-            });
-        }
-    }
-    auto* next = carousel_button(*carousel, Qt::RightArrow);
-    QVERIFY(next != nullptr);
-    for (int step = 0; step < 10; ++step)
-        next->click();
-    const bool canceled = promise.isCanceled();
-    promise.finish();
-    editor.preview_render_finished();
-    QVERIFY(canceled);
-    for (const auto& key : old_requests) {
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-        QVERIFY(!cache.get_if_ready(key).has_value());
-    }
-    if (cached_destination) {
-        QVERIFY(editor.pending_preview_queue.isEmpty());
-    } else {
-        editor.render_next_preview();
-        QCOMPARE(editor.active_render_keys.size(), 3);
-        editor.preview_watcher.future().waitForFinished();
-        editor.preview_render_finished();
-    }
-    for (int rank = 10; rank < 13; ++rank) {
-        const auto key = editor.preview_key(
-            editor.active_preview_source, editor.active_preview_bucket,
-            editor.active_preview_generation,
-            settings_template_support::preview_scope(rank, suit)
-        );
-        const auto ready = cache.get_if_ready(key);
-        QVERIFY(ready.has_value());
-        QVERIFY(!ready->face_images.front().isNull());
-    }
 }
 
-void preview_carousel_tests::settings_preview_navigation_keeps_useful_batch() {
+void preview_carousel_tests::table_and_preview_share_master_images() {
+    QTemporaryDir directory;
+    const auto source = copy_theme(directory, 4, "field-preview-sharing");
+    QVERIFY(!source.isEmpty());
+    const auto original = card_sheet_source_path();
+    const auto restore
+        = qScopeGuard([&original] { set_card_sheet_source_path(original); });
+    set_card_sheet_source_path(source);
+    card_image_consumer observer;
+    observer.set_source(source);
+    observer.replace_desired({ { card_element_ids().front(), QSize(1, 2) } });
+    table field;
+    field.resize(500, 400);
+    QVERIFY(field.install_gameplay_session(table_test::owned_table_fixture(1)));
+    auto* owner = field.active_gameplay_session();
+    QVERIFY(owner->start());
+    QCOMPARE(
+        owner->deal_step().status, gameplay::dealing_step_status::advanced
+    );
+    field.refresh_gameplay_session();
+    field.show();
+    field.prepare_cards_for_start();
+    QTRY_VERIFY_WITH_TIMEOUT(!field.is_rasterization_busy(), 10000);
+    const auto field_slots = field.findChildren<table_slot*>();
+    QVERIFY(
+        !field_slots.isEmpty()
+        && field_slots.front()->has_presented_card_images()
+    );
+    const auto master = observer.image_for(card_element_ids().front());
+    QVERIFY(!master.isNull());
+    QTRY_COMPARE(
+        application_image_service().observations().scheduling.running_jobs, 0
+    );
+    const auto jobs
+        = application_image_service().observations().scheduling.completed_jobs;
+    settings_template_widget editor(
+        settings_tab_kind::appearance, nullptr, {}, &field
+    );
+    editor.theme_carousel->set_visible_count(13);
+    editor.theme_carousel->set_prefetch_adjacent_cards(false);
+    QVERIFY(select_source(editor, source));
+    editor.show();
+    QTRY_VERIFY(!editor.preview_images.is_pending());
+    QTRY_COMPARE(editor.displayed_preview_images.size(), 13);
+    QCOMPARE(
+        editor.preview_images.image_for(card_element_ids().front()).cacheKey(),
+        master.cacheKey()
+    );
+    QCOMPARE(
+        application_image_service().observations().scheduling.completed_jobs,
+        jobs + 12
+    );
+}
+
+void preview_carousel_tests::settings_preview_window_replaces_desired() {
     settings_template_widget editor(settings_tab_kind::appearance);
-    QPromise<QImage> promise;
-    hold_preview_batch(editor, promise);
-    const auto requests = editor.active_render_keys;
+    editor.resize(800, 600);
+    editor.show();
+    editor.theme_carousel->set_visible_count(2);
+    editor.theme_carousel->set_prefetch_adjacent_cards(true);
     auto* next = carousel_button(*editor.theme_carousel, Qt::RightArrow);
-    QVERIFY(next != nullptr);
-    next->click(); // Two original faces remain in the logical window.
-    QVERIFY(!promise.isCanceled());
-    const QImage face = test_card_pixmap(QSize(32, 32)).toImage();
-    for (qsizetype index = 0; index < requests.size(); ++index)
-        QVERIFY(promise.addResult(face));
-    promise.finish();
-    editor.preview_render_finished();
-    auto& cache = settings_template_support::preview_cache();
-    QVERIFY(!cache.get_if_ready(requests.front()).has_value());
-    for (qsizetype index = 1; index < requests.size(); ++index) {
-        const auto ready = cache.get_if_ready(requests.at(index));
-        QVERIFY(ready.has_value());
-        QCOMPARE(ready->face_images.front(), face);
+    QVERIFY(next);
+    for (int step = 0; step < 15; ++step) {
+        next->click();
+        editor.update_preview_demands();
+        QStringList expected;
+        for (int rank : editor.theme_carousel->requested_card_indices())
+            expected.append(settings_template_support::preview_scope(
+                rank, editor.theme_suit
+            ));
+        expected.sort();
+        QCOMPARE(editor.preview_requested_ids, expected);
+        QVERIFY(editor.preview_requested_ids.size() <= 4);
     }
-    editor.render_next_preview();
-    QCOMPARE(editor.active_render_keys.size(), 1);
-    editor.preview_watcher.future().waitForFinished();
-    editor.preview_render_finished();
+    QTRY_VERIFY(!editor.preview_images.is_pending());
+    QTRY_COMPARE(
+        editor.displayed_preview_images.size(),
+        editor.preview_requested_ids.size()
+    );
+    for (const auto& id : editor.displayed_preview_images.keys())
+        QVERIFY(editor.preview_requested_ids.contains(id));
+    editor.theme_carousel->set_prefetch_adjacent_cards(false);
+    QTRY_VERIFY(editor.preview_requested_ids.size() <= 2);
+}
+
+void preview_carousel_tests::settings_preview_source_cutover_is_atomic() {
+    QTemporaryDir directory;
+    const auto source = copy_theme(directory, 4, "preview-atomic");
+    QVERIFY(!source.isEmpty());
+    const auto game_source = card_sheet_source_path();
+    settings_template_widget editor(settings_tab_kind::appearance);
+    editor.show();
+    editor.update_preview_demands();
+    QTRY_VERIFY(!editor.preview_images.is_pending());
+    QTRY_VERIFY(!editor.displayed_preview_images.isEmpty());
+    const auto previous = editor.displayed_preview_images;
+    const auto previous_source = editor.displayed_preview_source;
+    QVERIFY(select_source(editor, source));
+    QVERIFY(editor.preview_images.is_pending());
+    QCOMPARE(editor.displayed_preview_source, previous_source);
+    QCOMPARE(editor.displayed_preview_images, previous);
+    QTRY_COMPARE(editor.displayed_preview_source, source);
+    for (int rank : editor.theme_carousel->visible_card_indices()) {
+        const auto id
+            = settings_template_support::preview_scope(rank, editor.theme_suit);
+        QVERIFY(!editor.displayed_preview_images.value(id).isNull());
+        QVERIFY(
+            editor.displayed_preview_images.value(id).cacheKey()
+            != previous.value(id).cacheKey()
+        );
+    }
+    // Optional neighbors may finish after the coherent visible cutover.
+    QTRY_VERIFY(!editor.preview_images.is_pending());
+    QTRY_COMPARE(
+        editor.displayed_preview_images.size(),
+        editor.preview_requested_ids.size()
+    );
+    for (const auto& id : editor.preview_requested_ids) {
+        QVERIFY(!editor.displayed_preview_images.value(id).isNull());
+        QVERIFY(
+            editor.displayed_preview_images.value(id).cacheKey()
+            != previous.value(id).cacheKey()
+        );
+    }
+    QCOMPARE(card_sheet_source_path(), game_source);
+}
+
+void preview_carousel_tests::speculative_neighbors_do_not_hold_visible_cutover(
+) {
+    auto& service = application_image_service();
+    const auto restore_limits = qScopeGuard([&] { service.set_limits({}); });
+    QTemporaryDir directory;
+    settings_template_widget editor(settings_tab_kind::appearance);
+    editor.resize(600, 500);
+    editor.theme_carousel->set_visible_count(1);
+    editor.theme_carousel->set_prefetch_adjacent_cards(false);
+    const auto write = [&](const QString& name, const QByteArray& color) {
+        const auto path = directory.filePath(name);
+        QByteArray bytes
+            = "<svg xmlns=\"http://www.w3.org/2000/svg\" "
+              "width=\"20\" height=\"10000\" viewBox=\"0 0 20 10000\">";
+        for (int rank : { 0, 1, 12 }) {
+            const auto id = settings_template_support::preview_scope(
+                rank, editor.theme_suit
+            );
+            bytes += "<rect id=\"" + id.toUtf8() + "\" width=\"20\" height=\""
+                + QByteArray::number(rank == 0 ? 40 : 10000) + "\" fill=\""
+                + color + "\"/>";
+        }
+        bytes += "<desc>" + directory.path().toUtf8().toHex() + "</desc></svg>";
+        QFile file(path);
+        return file.open(QIODevice::WriteOnly)
+                && file.write(bytes) == bytes.size()
+            ? path
+            : QString();
+    };
+    const auto red = write("red.svg", "red");
+    const auto blue = write("blue.svg", "blue");
+    QVERIFY(!red.isEmpty() && !blue.isEmpty());
+    editor.show();
+    QVERIFY(select_source(editor, red));
+    QTRY_COMPARE(editor.displayed_preview_source, red);
+    const auto id
+        = settings_template_support::preview_scope(0, editor.theme_suit);
+    const auto original = editor.displayed_preview_images.value(id);
+    QVERIFY(!original.isNull());
+    const auto logical = editor.theme_carousel->requested_card_size();
+    const qreal dpr = editor.theme_carousel->devicePixelRatioF();
+    QVERIFY(!logical.isEmpty());
+    const auto required = rasterflow::normalized_size(
+        std::ceil(logical.width() * dpr), std::ceil(logical.height() * dpr), 2.0
+    );
+    const auto bytes = rasterflow::pixel_bytes(required);
+    // Normal visible content fits. The two tall neighbors cannot be admitted.
+    service.set_limits({ 1, bytes * 8,
+                         std::max<std::uint64_t>(bytes * 2, 10000) });
+    editor.theme_carousel->set_prefetch_adjacent_cards(true);
+    QVERIFY(select_source(editor, blue));
+    QCOMPARE(editor.displayed_preview_source, red);
+    QTRY_VERIFY(!editor.preview_images.image_for(id).isNull());
+    QTRY_COMPARE(editor.displayed_preview_source, blue);
+    QVERIFY(!editor.preview_images.is_pending_required());
+    QVERIFY(editor.preview_images.is_pending());
+    QCOMPARE(editor.preview_requested_ids.size(), 3);
+    QCOMPARE(editor.theme_carousel->visible_card_indices().size(), 1);
+    QCOMPARE(editor.displayed_preview_images.size(), 1);
+    const auto current = editor.displayed_preview_images.value(id);
+    QCOMPARE(
+        current.pixelColor(current.width() / 2, current.height() / 2),
+        QColor(Qt::blue)
+    );
+    QVERIFY(current.cacheKey() != original.cacheKey());
+    editor.hide();
+    QTRY_VERIFY(editor.preview_requested_ids.isEmpty());
+    QVERIFY(editor.displayed_preview_images.isEmpty());
+    QVERIFY(!editor.preview_images.is_pending());
+    editor.show();
+    QTRY_COMPARE(editor.displayed_preview_source, blue);
+    QVERIFY(!editor.preview_images.is_pending_required());
 }
 
 void preview_carousel_tests::
-    settings_preview_navigation_recovers_canceled_demand() {
+    settings_preview_retirement_preserves_survivor_data() {
+    QTest::addColumn<bool>("ready");
+    QTest::newRow("pending") << false;
+    QTest::newRow("ready") << true;
+}
+
+void preview_carousel_tests::settings_preview_retirement_preserves_survivor() {
+    QFETCH(bool, ready);
+    QTemporaryDir directory;
+    const auto source = copy_theme(
+        directory, 4, ready ? "preview-retire-ready" : "preview-retire-pending"
+    );
+    auto departing = std::make_unique<settings_template_widget>(
+        settings_tab_kind::appearance
+    );
+    settings_template_widget survivor(settings_tab_kind::appearance);
+    for (auto* editor : { departing.get(), &survivor }) {
+        editor->show();
+        editor->theme_carousel->set_visible_count(2);
+        editor->theme_carousel->set_prefetch_adjacent_cards(false);
+        QVERIFY(select_source(*editor, source));
+    }
+    if (ready)
+        QTRY_COMPARE(departing->displayed_preview_source, source);
+    departing.reset();
+    QTRY_COMPARE(survivor.displayed_preview_source, source);
+    QTRY_VERIFY(!survivor.preview_images.is_pending());
+    QTRY_COMPARE(
+        survivor.displayed_preview_images.size(),
+        survivor.preview_requested_ids.size()
+    );
+    for (const auto& id : survivor.preview_requested_ids)
+        QVERIFY(!survivor.preview_images.image_for(id).isNull());
+}
+
+void preview_carousel_tests::settings_preview_returns_to_cached_demand() {
+    QTemporaryDir directory;
+    const auto source = copy_theme(directory, 4, "preview-return");
     settings_template_widget editor(settings_tab_kind::appearance);
-    QPromise<QImage> promise;
-    hold_preview_batch(editor, promise);
-    const auto original = editor.active_render_keys;
+    editor.show();
+    editor.theme_carousel->set_visible_count(1);
+    editor.theme_carousel->set_prefetch_adjacent_cards(false);
+    QVERIFY(select_source(editor, source));
+    QTRY_VERIFY(!editor.preview_images.is_pending());
+    QTRY_COMPARE(editor.displayed_preview_source, source);
+    const auto id = editor.preview_requested_ids.front();
+    const auto key = editor.preview_images.image_for(id).cacheKey();
     auto* next = carousel_button(*editor.theme_carousel, Qt::RightArrow);
     auto* previous = carousel_button(*editor.theme_carousel, Qt::LeftArrow);
-    QVERIFY(next != nullptr);
-    QVERIFY(previous != nullptr);
-    for (int step = 0; step < 3; ++step)
-        next->click();
-    const bool canceled = promise.isCanceled();
-    for (int step = 0; step < 3; ++step)
-        previous->click();
-    const bool result_accepted
-        = promise.addResult(test_card_pixmap(QSize(32, 32)).toImage());
-    promise.finish();
-    editor.preview_render_finished();
-    QVERIFY(canceled);
-    QVERIFY(!result_accepted);
-    editor.render_next_preview();
-    QCOMPARE(editor.active_render_keys, original);
-    editor.preview_watcher.future().waitForFinished();
-    editor.preview_render_finished();
-    auto& cache = settings_template_support::preview_cache();
-    for (const auto& key : original) {
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-        const auto ready = cache.get_if_ready(key);
-        QVERIFY(ready.has_value());
-        QVERIFY(!ready->face_images.front().isNull());
-    }
-}
-
-void preview_carousel_tests::settings_preview_cancellation_is_per_editor() {
-    settings_template_widget first(settings_tab_kind::appearance);
-    settings_template_widget second(settings_tab_kind::strategies);
-    QPromise<QImage> first_promise;
-    QPromise<QImage> second_promise;
-    hold_preview_batch(first, first_promise);
-    hold_preview_batch(second, second_promise);
-    const auto second_requests = second.active_render_keys;
-    auto* next = carousel_button(*first.theme_carousel, Qt::RightArrow);
-    QVERIFY(next != nullptr);
-    for (int step = 0; step < 3; ++step)
-        next->click();
-    const bool first_canceled = first_promise.isCanceled();
-    const bool second_canceled = second_promise.isCanceled();
-    const QImage face = test_card_pixmap(QSize(32, 32)).toImage();
-    for (qsizetype index = 0; index < second_requests.size(); ++index)
-        QVERIFY(second_promise.addResult(face));
-    first_promise.finish();
-    second_promise.finish();
-    first.preview_render_finished();
-    second.preview_render_finished();
-    QVERIFY(first_canceled);
-    QVERIFY(!second_canceled);
-    auto& cache = settings_template_support::preview_cache();
-    for (const auto& key : second_requests) {
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-        const auto ready = cache.get_if_ready(key);
-        QVERIFY(ready.has_value());
-        QCOMPARE(ready->face_images.front(), face);
-    }
-}
-
-static QSet<QString> preview_window_ids(int first, int suit, bool prefetch) {
-    QSet<QString> ids;
-    for (int offset = prefetch ? -1 : 0; offset < (prefetch ? 4 : 3); ++offset)
-        ids.insert(settings_template_support::preview_scope(
-            (first + offset + 13) % 13, suit
-        ));
-    return ids;
-}
-
-void preview_carousel_tests::settings_preview_dispatch_uses_current_window_data(
-) {
-    QTest::addColumn<bool>("weighted");
-    QTest::addColumn<bool>("prefetch");
-    QTest::newRow("theme-visible") << false << false;
-    QTest::newRow("theme-adjacent") << false << true;
-    QTest::newRow("weights-visible") << true << false;
-    QTest::newRow("weights-adjacent") << true << true;
-}
-
-void preview_carousel_tests::settings_preview_dispatch_uses_current_window() {
-    QFETCH(bool, weighted);
-    QFETCH(bool, prefetch);
-    settings_template_widget editor(
-        weighted ? settings_tab_kind::strategies : settings_tab_kind::appearance
-    );
-    auto* carousel = weighted ? editor.weights_carousel : editor.theme_carousel;
-    QVERIFY(carousel != nullptr);
-    carousel->set_visible_count(3);
-    carousel->set_prefetch_adjacent_cards(prefetch);
-    auto* next = carousel_button(*carousel, Qt::RightArrow);
-    auto* previous = carousel_button(*carousel, Qt::LeftArrow);
-    QVERIFY(next != nullptr);
-    QVERIFY(previous != nullptr);
-    // Withhold dispatch while the user moves. This controls ordering without
-    // sleeps, an artificial renderer or a different queue implementation.
-    for (int step = 0; step < 10; ++step)
-        next->click();
-    const auto queued = editor.pending_preview_queue;
-    const int suit = weighted ? editor.weights_suit : editor.theme_suit;
-    const auto wanted = preview_window_ids(10, suit, prefetch);
-    editor.render_next_preview();
-    QSet<QString> dispatched;
-    for (const auto& key : std::as_const(editor.active_render_keys))
-        dispatched.insert(
-            settings_template_support::parse_preview_scope(key.render_scope)
-                .element_id
-        );
-    editor.preview_watcher.future().waitForFinished();
-    editor.preview_render_finished();
-    QCOMPARE(dispatched, wanted);
-    auto& cache = settings_template_support::preview_cache();
-    for (const auto& key : queued) {
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-        const bool needed = wanted.contains(
-            settings_template_support::parse_preview_scope(key.render_scope)
-                .element_id
-        );
-        const auto ready = cache.get_if_ready(key);
-        QCOMPARE(ready.has_value(), needed);
-        if (ready.has_value())
-            QVERIFY(!ready->face_images.front().isNull());
-    }
-    // Returning demand is admitted again; overlapping ready faces are reused.
-    previous->click();
-    editor.render_next_preview();
-    QCOMPARE(editor.active_render_keys.size(), 1);
-    const auto returning = editor.active_render_keys.front();
-    QCOMPARE(
-        settings_template_support::parse_preview_scope(returning.render_scope)
-            .element_id,
-        settings_template_support::preview_scope(prefetch ? 8 : 9, suit)
-    );
-    editor.preview_watcher.future().waitForFinished();
-    editor.preview_render_finished();
-    const auto ready = cache.get_if_ready(returning);
-    QVERIFY(ready.has_value());
-    QVERIFY(!ready->face_images.front().isNull());
-    QVERIFY(!cache.is_in_flight(preview_family(returning)));
-}
-
-void preview_carousel_tests::settings_preview_cutover_ignores_departed_demand(
-) {
-    settings_template_widget editor(settings_tab_kind::appearance);
-    auto* carousel = editor.theme_carousel;
-    QVERIFY(carousel != nullptr);
-    carousel->set_visible_count(3);
-    editor.render_next_preview();
-    editor.preview_watcher.future().waitForFinished();
-    editor.preview_render_finished();
-    editor.flush_preview_refresh();
-    const auto old_requests = editor.displayed_theme_entries;
-    QCOMPARE(old_requests.size(), 3);
-
-    carousel->set_minimum_card_width(128);
-    QVERIFY(editor.warming_preview_generation > 0);
-    const qint64 generation = editor.warming_preview_generation;
-    const QString source = editor.warming_preview_source;
-    const int bucket = editor.warming_preview_bucket;
-    auto* next = carousel_button(*carousel, Qt::RightArrow);
-    QVERIFY(next != nullptr);
+    QVERIFY(next && previous);
     next->click();
-    const auto departed = editor.preview_key(
-        source, bucket, generation,
-        settings_template_support::preview_scope(0, editor.theme_suit)
-    );
-    QVERIFY(editor.warming_preview_element_ids.contains(
-        settings_template_support::preview_scope(0, editor.theme_suit)
-    ));
-    auto& cache = settings_template_support::preview_cache();
-    QImage face(bucket, bucket, QImage::Format_ARGB32_Premultiplied);
-    face.fill(Qt::red);
-    for (int rank = 1; rank <= 3; ++rank) {
-        const auto key = editor.preview_key(
-            source, bucket, generation,
-            settings_template_support::preview_scope(rank, editor.theme_suit)
-        );
-        cache.insert_or_update_result({
-            .key = key,
-            .raster_size = face.size(),
-            .generation = static_cast<int>(generation),
-            .timestamp_ms = 0,
-            .use_count = 0,
-            .single_image = {},
-            .face_images = { face },
-        });
-        if (rank < 3)
-            QCOMPARE(editor.warming_preview_generation, generation);
-    }
-    // Rank zero never completes. Only the current window gates cutover.
-    QCOMPARE(editor.warming_preview_generation, qint64 { 0 });
-    QCOMPARE(editor.active_preview_generation, generation);
-    QVERIFY(!cache.get_if_ready(departed).has_value());
-    for (const auto& key : old_requests)
-        QVERIFY(!cache.get_if_ready(key).has_value());
-    const QPixmap current
-        = editor.theme_card(1, editor.theme_suit, QSize(bucket, bucket));
-    QVERIFY(!current.isNull());
-    QCOMPARE(current.toImage().pixelColor(0, 0), QColor(Qt::red));
-}
-
-void preview_carousel_tests::settings_preview_navigation_rejects_late_results(
-) {
-    settings_template_widget editor(settings_tab_kind::appearance);
-    QPromise<QImage> promise;
-    hold_preview_batch(editor, promise);
-    const auto old_requests = editor.active_render_keys;
-    const QImage face = test_card_pixmap(QSize(32, 32)).toImage();
-    for (qsizetype index = 0; index < old_requests.size(); ++index)
-        QVERIFY(promise.addResult(face));
-    auto* next = carousel_button(*editor.theme_carousel, Qt::RightArrow);
-    QVERIFY(next != nullptr);
-    for (int step = 0; step < 10; ++step)
-        next->click();
-    // Deliver completed results after navigation, before the next dispatch.
-    promise.finish();
-    editor.preview_render_finished();
-    auto& cache = settings_template_support::preview_cache();
-    for (const auto& key : old_requests) {
-        QVERIFY(!cache.get_if_ready(key).has_value());
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-    }
-    editor.render_next_preview();
-    const auto current_requests = editor.active_render_keys;
-    QCOMPARE(current_requests.size(), 3);
-    editor.preview_watcher.future().waitForFinished();
-    editor.preview_render_finished();
-    for (const auto& key : current_requests) {
-        const auto ready = cache.get_if_ready(key);
-        QVERIFY(ready.has_value());
-        QVERIFY(!ready->face_images.front().isNull());
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-    }
-}
-
-void preview_carousel_tests::
-    settings_preview_results_publish_before_batch_finishes() {
-    settings_template_widget editor(settings_tab_kind::appearance);
-    QPromise<QImage> promise;
-    hold_preview_batch(editor, promise);
-    const auto requests = editor.active_render_keys;
-    QVERIFY(requests.size() >= 3);
-    auto& cache = settings_template_support::preview_cache();
-    const QImage face = test_card_pixmap(QSize(32, 32)).toImage();
-    int first_publications = 0;
-    QObject::connect(
-        &cache, &raster_cache::result_updated, &editor,
-        [&first_publications, &requests](const auto& key) {
-            if (key == requests.front()) {
-                ++first_publications;
-            }
-        }
-    );
-
-    QVERIFY(promise.addResult(face));
-    QTRY_VERIFY(cache.get_if_ready(requests.front()).has_value());
-    QCOMPARE(first_publications, 1);
-    QVERIFY(!editor.preview_watcher.isFinished());
-    QVERIFY(!cache.get_if_ready(requests.at(1)).has_value());
-    // A failed face retains its result index rather than shifting later faces.
-    QVERIFY(promise.addResult(QImage()));
-    QVERIFY(promise.addResult(face));
-    promise.finish();
-    QTRY_VERIFY(editor.active_render_keys.isEmpty());
-    QCOMPARE(first_publications, 1);
-    QVERIFY(!cache.get_if_ready(requests.at(1)).has_value());
-    const auto third = cache.get_if_ready(requests.at(2));
-    QVERIFY(third.has_value());
-    QCOMPARE(third->face_images.front(), face);
-    for (const auto& key : requests) {
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-    }
-}
-
-void preview_carousel_tests::settings_preview_cutover_rejects_late_results() {
-    settings_template_widget editor(settings_tab_kind::appearance);
-    QPromise<QImage> promise;
-    hold_preview_batch(editor, promise);
-    const auto requests = editor.active_render_keys;
-    QVERIFY(requests.size() >= 3);
-    const QImage face = test_card_pixmap(QSize(32, 32)).toImage();
-    auto& cache = settings_template_support::preview_cache();
-    QVERIFY(promise.addResult(face));
-    QTRY_VERIFY(cache.get_if_ready(requests.front()).has_value());
-    // Complete the remaining faces before cutover, withholding GUI delivery.
-    for (qsizetype index = 1; index < requests.size(); ++index) {
-        QVERIFY(promise.addResult(face));
-    }
-    editor.warm_preview_generation(
-        editor.active_preview_source, editor.active_preview_bucket + 1
-    );
-    editor.warming_preview_element_ids = editor.active_preview_element_ids;
-    const auto warming_elements = editor.warming_preview_element_ids;
-    for (const auto& id : warming_elements) {
-        cache.insert_or_update_result({
-            .key = editor.preview_key(
-                editor.warming_preview_source, editor.warming_preview_bucket,
-                editor.warming_preview_generation, id
-            ),
-            .raster_size = QSize(32, 32),
-            .generation = static_cast<int>(editor.warming_preview_generation),
-            .timestamp_ms = 0,
-            .use_count = 0,
-            .single_image = {},
-            .face_images = { face },
-        });
-    }
-    QVERIFY(editor.warming_preview_generation == 0); // cache signal cutover
-    QVERIFY(editor.preview_watcher.isCanceled());
-    promise.finish();
-    QTRY_VERIFY(editor.active_render_keys.isEmpty());
-    for (const auto& key : requests) {
-        QVERIFY(!cache.get_if_ready(key).has_value());
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-    }
-    // The accepted generation is usable after stale completion and retirement.
-    const auto current = editor.preview_face(
-        0, 0, QSize(editor.active_preview_bucket, editor.active_preview_bucket),
-        editor.displayed_theme_entries
-    );
-    QVERIFY(current.has_value());
-    QCOMPARE(*current, face);
-}
-
-void preview_carousel_tests::settings_preview_pruning_releases_requests() {
-    auto& cache = settings_template_support::preview_cache();
-    settings_template_widget editor(settings_tab_kind::appearance);
-    const auto requests = editor.pending_preview_queue;
-    QVERIFY(!requests.isEmpty());
-    for (const auto& key : requests) {
-        QVERIFY(cache.is_in_flight(preview_family(key)));
-    }
-    editor.active_preview_element_ids.clear();
-    editor.prune_preview_queue();
-    QVERIFY(editor.pending_preview_queue.isEmpty());
-    for (const auto& key : requests) {
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-    }
-    // An abandoned request must be admissible again, rather than stuck
-    // in-flight.
-    const auto& key = requests.front();
-    const auto outcome = cache.submit_request({
-        .name_space = key.name_space,
-        .kind = key.kind,
-        .source_id = key.source_id,
-        .render_scope = key.render_scope,
-        .target_bucket_px = key.target_bucket_px,
-    });
-    QCOMPARE(outcome.state, raster_cache::request_state::start_async);
-    editor.finish_preview_request(key);
-    QVERIFY(!cache.is_in_flight(preview_family(key)));
-}
-
-void preview_carousel_tests::settings_preview_destruction_cancels_batch() {
-    auto editor = std::make_unique<settings_template_widget>(
-        settings_tab_kind::appearance
-    );
-    QPromise<QImage> promise;
-    hold_preview_batch(*editor, promise);
-    const auto requests = editor->active_render_keys;
-    QVERIFY(!requests.isEmpty());
-    auto future = promise.future();
-    editor.reset();
-    QVERIFY(future.isCanceled());
-    QVERIFY(!promise.addResult(test_card_pixmap(QSize(32, 32)).toImage()));
-    promise.finish();
-    future.waitForFinished();
-    auto& cache = settings_template_support::preview_cache();
-    for (const auto& key : requests) {
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-        QVERIFY(!cache.get_if_ready(key).has_value());
-    }
-}
-
-void preview_carousel_tests::
-    settings_preview_cancellation_recovers_returning_demand() {
-    settings_template_widget editor(settings_tab_kind::appearance);
-    QPromise<QImage> promise;
-    hold_preview_batch(editor, promise);
-    const auto desired = editor.active_preview_element_ids;
-    const auto requests = editor.active_render_keys;
-    QVERIFY(!requests.isEmpty());
-    // No remaining member is useful: stop, without waiting on the GUI thread.
-    editor.active_preview_element_ids.clear();
-    editor.prune_preview_queue();
-    QVERIFY(promise.isCanceled());
-    // Demand returns while the canceled worker's completion is still queued.
-    editor.active_preview_element_ids = desired;
-    promise.finish();
-    editor.preview_render_finished();
-    QCOMPARE(editor.pending_preview_queue.size(), requests.size());
-    editor.render_next_preview();
-    editor.preview_watcher.future().waitForFinished();
-    editor.preview_render_finished();
-    auto& cache = settings_template_support::preview_cache();
-    for (const auto& key : requests) {
-        const auto ready = cache.get_if_ready(key);
-        QVERIFY(ready.has_value());
-        QVERIFY(!ready->face_images.front().isNull());
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-    }
-}
-
-void preview_carousel_tests::settings_preview_worker_outlives_widget() {
-    auto editor = std::make_unique<settings_template_widget>(
-        settings_tab_kind::appearance
-    );
-    const auto requests = editor->pending_preview_queue;
-    QVERIFY(!requests.isEmpty());
-    editor->render_next_preview();
-    auto future = editor->preview_watcher.future();
-    editor.reset();
-    future.waitForFinished();
-    QVERIFY(future.isCanceled());
-    auto& cache = settings_template_support::preview_cache();
-    for (const auto& key : requests) {
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-        QVERIFY(!cache.get_if_ready(key).has_value());
-    }
-}
-
-void preview_carousel_tests::
-    settings_preview_batches_keep_generation_boundaries() {
-    settings_template_widget editor(settings_tab_kind::appearance);
-    const auto first_requests = editor.pending_preview_queue;
-    QVERIFY(!first_requests.isEmpty());
-    editor.warm_preview_generation(
-        editor.active_preview_source, editor.active_preview_bucket + 1
-    );
-    editor.warming_preview_element_ids = editor.active_preview_element_ids;
-    auto& cache = settings_template_support::preview_cache();
-    for (const auto& key : first_requests) {
-        const auto parsed
-            = settings_template_support::parse_preview_scope(key.render_scope);
-        const auto next = editor.preview_key(
-            editor.warming_preview_source, editor.warming_preview_bucket,
-            editor.warming_preview_generation, parsed.element_id
-        );
-        cache.submit_request({
-            .name_space = next.name_space,
-            .kind = next.kind,
-            .source_id = next.source_id,
-            .render_scope = next.render_scope,
-            .target_bucket_px = next.target_bucket_px,
-        });
-        editor.enqueue_preview(next);
-    }
-    const auto second_requests
-        = editor.pending_preview_queue.mid(first_requests.size());
-    QCOMPARE(second_requests.size(), first_requests.size());
-    editor.render_next_preview();
-    QCOMPARE(editor.active_render_keys, first_requests);
-    QCOMPARE(editor.pending_preview_queue, second_requests);
-    // A refresh during the batch must not enqueue its members again.
-    for (const auto& key : first_requests) {
-        editor.enqueue_preview(key);
-    }
-    QCOMPARE(editor.pending_preview_queue, second_requests);
-    editor.preview_watcher.future().waitForFinished();
-    editor.preview_render_finished();
-    editor.render_next_preview();
-    QCOMPARE(editor.active_render_keys, second_requests);
-    editor.preview_watcher.future().waitForFinished();
-    editor.preview_render_finished();
-    QVERIFY(editor.warming_preview_generation == 0);
-    for (const auto& key : first_requests) {
-        QVERIFY(!cache.get_if_ready(key).has_value());
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-    }
-    for (const auto& key : second_requests) {
-        QVERIFY(cache.get_if_ready(key).has_value());
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-    }
-}
-
-void preview_carousel_tests::completed_preview_result_releases_future_data() {
-    QTest::addColumn<int>("mode");
-    QTest::newRow("accepted-then-evicted") << 0;
-    QTest::newRow("obsolete-demand") << 1;
-    QTest::newRow("independent-future-owner") << 2;
-}
-
-void preview_carousel_tests::completed_preview_result_releases_future() {
-    QFETCH(int, mode);
-    const auto totals = std::make_shared<image_lifetime_test::accounting>();
-    settings_template_widget editor(settings_tab_kind::appearance);
-    {
-        QPromise<QImage> producer;
-        hold_preview_batch(editor, producer);
-        for (qsizetype index = 0; index < editor.active_render_keys.size();
-             ++index)
-            QVERIFY(producer.addResult(
-                image_lifetime_test::tracked_image(totals, 32)
-            ));
-        producer.finish();
-    }
-    const auto keys = editor.active_render_keys;
-    QVERIFY(!keys.isEmpty());
-    QFuture<QImage> independent_owner;
-    if (mode == 2)
-        independent_owner = editor.preview_watcher.future();
-    if (mode == 1) {
-        editor.active_preview_element_ids.clear();
-        editor.prune_preview_queue();
-    }
-    editor.preview_render_finished();
-    auto& cache = settings_template_support::preview_cache();
-    for (const auto& key : keys) {
-        const auto ready = cache.get_if_ready(key);
-        QCOMPARE(ready.has_value(), mode != 1);
-        if (ready.has_value())
-            QCOMPARE(
-                ready->face_images.front().pixelColor(0, 0), QColor(Qt::red)
-            );
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-    }
-    for (const auto& key : keys)
-        cache.erase_result(key);
-    if (mode == 2) {
-        QVERIFY(independent_owner.isValid());
-        QCOMPARE(
-            independent_owner.resultCount(), static_cast<int>(keys.size())
-        );
-        QCOMPARE(
-            independent_owner.resultAt(0).pixelColor(0, 0), QColor(Qt::red)
-        );
-        QCOMPARE(totals->live_images.load(), static_cast<int>(keys.size()));
-        independent_owner = QFuture<QImage>();
-    }
-    QCOMPARE(totals->live_bytes.load(), qsizetype { 0 });
-    QCOMPARE(totals->live_images.load(), 0);
-    editor.preview_render_finished();
-}
-
-void preview_carousel_tests::publication_can_retire_preview_owner_data() {
-    QTest::addColumn<bool>("weighted");
-    QTest::addColumn<bool>("queued");
-    QTest::addColumn<int>("position");
-    for (const bool weighted : { false, true }) {
-        for (const bool queued : { false, true }) {
-            for (int position = 0; position < 3; ++position) {
-                const QByteArray name
-                    = QByteArray(weighted ? "weights" : "theme")
-                    + (queued ? "-queued-" : "-drain-")
-                    + QByteArray::number(position);
-                QTest::newRow(name.constData())
-                    << weighted << queued << position;
-            }
-        }
-    }
-}
-
-void preview_carousel_tests::publication_can_retire_preview_owner() {
-    QFETCH(bool, weighted);
-    QFETCH(bool, queued);
-    QFETCH(int, position);
-    const auto live = std::make_shared<image_lifetime_test::accounting>();
-    auto editor = std::make_unique<settings_template_widget>(
-        weighted ? settings_tab_kind::strategies : settings_tab_kind::appearance
-    );
-    const QPointer<settings_template_widget> lifetime(editor.get());
-    {
-        QPromise<QImage> producer;
-        hold_preview_batch(*editor, producer);
-        for (qsizetype index = 0; index < editor->active_render_keys.size();
-             ++index) {
-            QVERIFY(
-                producer.addResult(image_lifetime_test::tracked_image(live, 32))
-            );
-        }
-        producer.finish();
-    }
-    const auto keys = editor->active_render_keys;
-    QVERIFY(keys.size() >= 3);
-    const qsizetype retire_at = position == 0 ? 0
-        : position == 1                       ? keys.size() / 2
-                                              : keys.size() - 1;
-    QFuture<QImage> independent_future = editor->preview_watcher.future();
-
-    settings_template_widget survivor(settings_tab_kind::appearance);
-    QPromise<QImage> survivor_producer;
-    hold_preview_batch(survivor, survivor_producer);
-    const auto survivor_keys = survivor.active_render_keys;
-    auto& cache = settings_template_support::preview_cache();
-    QVector<raster_cache::entry_key> publications;
-    std::optional<raster_cache::result> independent_pixels;
-    int destructions = 0;
-    QObject::connect(editor.get(), &QObject::destroyed, this, [&destructions] {
-        ++destructions;
-    });
-    const auto observer = QObject::connect(
-        &cache, &raster_cache::result_updated, this,
-        [&](const auto& key) {
-            if (!keys.contains(key))
-                return;
-            publications.append(key);
-            if (key == keys.at(retire_at)) {
-                independent_pixels = cache.get_if_ready(key);
-                editor.reset();
-            }
-        }
-    );
-    const auto disconnect
-        = qScopeGuard([&observer] { QObject::disconnect(observer); });
-
-    if (queued) {
-        QTRY_VERIFY_WITH_TIMEOUT(lifetime.isNull(), 4000);
-    } else {
-        editor->preview_render_finished();
-    }
-    QVERIFY(lifetime.isNull());
-    QCOMPARE(destructions, 1);
-    QCOMPARE(publications.size(), retire_at + 1);
-    QVERIFY(independent_pixels.has_value());
+    editor.update_preview_demands();
+    QTRY_VERIFY(!editor.preview_images.is_pending());
+    const auto jobs
+        = application_image_service().observations().scheduling.completed_jobs;
+    previous->click();
+    editor.update_preview_demands();
+    QVERIFY(!editor.preview_images.is_pending());
+    QCOMPARE(editor.preview_images.image_for(id).cacheKey(), key);
     QCOMPARE(
-        independent_pixels->face_images.front().pixelColor(0, 0),
-        QColor(Qt::red)
+        application_image_service().observations().scheduling.completed_jobs,
+        jobs
     );
-    for (const auto& key : keys) {
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
-        QVERIFY(!cache.get_if_ready(key).has_value());
-    }
-    // Canceled future copies still own their stored buffers; never read their
-    // results after cancellation. Independently handed-off pixels remain valid.
-    QVERIFY(independent_future.isCanceled());
-    QCOMPARE(live->live_images.load(), static_cast<int>(keys.size()));
-    independent_future = QFuture<QImage>();
-    QCOMPARE(live->live_images.load(), 1);
-    independent_pixels.reset();
-    QCOMPARE(live->live_images.load(), 0);
-    QCOMPARE(live->live_bytes.load(), qsizetype { 0 });
+}
 
-    QVERIFY(!survivor_producer.isCanceled());
-    for (const auto& key : survivor_keys)
-        QVERIFY(cache.is_in_flight(preview_family(key)));
-    const QImage face = test_card_pixmap(QSize(32, 32)).toImage();
-    for (qsizetype index = 0; index < survivor_keys.size(); ++index)
-        QVERIFY(survivor_producer.addResult(face));
-    survivor_producer.finish();
-    survivor.preview_render_finished();
-    for (const auto& key : survivor_keys) {
-        const auto ready = cache.get_if_ready(key);
-        QVERIFY(ready.has_value());
-        QCOMPARE(ready->face_images.front(), face);
-        QVERIFY(!cache.is_in_flight(preview_family(key)));
+void preview_carousel_tests::settings_preview_geometry_has_physical_quality() {
+    settings_template_widget editor(settings_tab_kind::appearance);
+    editor.resize(900, 700);
+    editor.show();
+    editor.update_preview_demands();
+    QTRY_VERIFY(!editor.preview_images.is_pending());
+    QVERIFY(!editor.preview_requested_ids.isEmpty());
+    const auto logical = editor.theme_carousel->requested_card_size();
+    const qreal dpr = editor.theme_carousel->devicePixelRatioF();
+    QVERIFY(!logical.isEmpty());
+    for (const auto& id : editor.preview_requested_ids) {
+        const auto image = editor.preview_images.image_for(id);
+        QVERIFY(image.width() > std::ceil(logical.width() * dpr));
+        QVERIFY(image.height() > std::ceil(logical.height() * dpr));
     }
-    QCoreApplication::processEvents();
-    QCOMPARE(destructions, 1);
-    QCOMPARE(publications.size(), retire_at + 1);
+}
+
+void preview_carousel_tests::weighted_preview_does_not_mutate_shared_pixels() {
+    settings_template_widget editor(settings_tab_kind::strategies);
+    editor.show();
+    editor.update_preview_demands();
+    QTRY_VERIFY(!editor.preview_images.is_pending());
+    QTRY_VERIFY(!editor.displayed_preview_images.isEmpty());
+    QTRY_COMPARE(
+        editor.displayed_preview_images.size(),
+        editor.preview_requested_ids.size()
+    );
+    const auto id = editor.preview_requested_ids.front();
+    const auto source = editor.preview_images.image_for(id);
+    const auto key = source.cacheKey();
+    const auto pixel
+        = source.pixelColor(source.width() / 2, source.height() / 2);
+    const auto logical = editor.weights_carousel->requested_card_size();
+    for (int rank : editor.weights_carousel->requested_card_indices()) {
+        const auto pixmap
+            = editor.weighted_card(rank, editor.weights_suit, logical);
+        QVERIFY(!pixmap.isNull());
+        QCOMPARE(pixmap.devicePixelRatio(), editor.devicePixelRatioF());
+    }
+    QCOMPARE(editor.preview_images.image_for(id).cacheKey(), key);
+    QCOMPARE(
+        editor.preview_images.image_for(id).pixelColor(
+            source.width() / 2, source.height() / 2
+        ),
+        pixel
+    );
+}
+
+void preview_carousel_tests::preview_publication_can_destroy_owner_data() {
+    QTest::addColumn<bool>("cached");
+    QTest::newRow("asynchronous") << false;
+    QTest::newRow("cached-source-alias") << true;
+}
+
+void preview_carousel_tests::preview_publication_can_destroy_owner() {
+    QFETCH(bool, cached);
+    QTemporaryDir directory;
+    const auto source = copy_theme(directory, 4, "preview-destroy");
+    QPointer<settings_template_widget> editor
+        = new settings_template_widget(settings_tab_kind::appearance);
+    editor->resize(800, 600);
+    editor->theme_carousel->set_visible_count(2);
+    editor->theme_carousel->set_prefetch_adjacent_cards(false);
+    editor->show();
+    QVERIFY(select_source(*editor, source));
+    if (cached) {
+        QTRY_VERIFY(!editor->preview_images.is_pending());
+        const auto alias = directory.filePath("cached-alias.svg");
+        QVERIFY(QFile::copy(source, alias));
+        // Select through the real source property before invoking the update;
+        // do not delete a widget while a selection control is still mutating.
+        auto* button = editor->theme_button_group->checkedButton();
+        QVERIFY(button != nullptr);
+        button->setProperty("theme_source", alias);
+    }
+    connect(
+        &editor->preview_images, &card_image_consumer::images_changed, this,
+        [&editor] {
+            if (editor && !editor->preview_images.is_pending())
+                delete editor.data();
+        }
+    );
+    if (cached) {
+        editor->update_preview_demands();
+        // Exercise deletion during the current cache-hit update, rather than
+        // accidentally repeating only the asynchronous completion case.
+        QVERIFY(editor.isNull());
+    }
+    QTRY_VERIFY(editor.isNull());
+}
+
+void preview_carousel_tests::
+    initial_previews_publish_before_all_requests_finish() {
+    QTemporaryDir directory;
+    const auto source = copy_theme(directory, 4, "preview-partial-publication");
+    settings_template_widget editor(settings_tab_kind::appearance);
+    editor.theme_carousel->set_visible_count(13);
+    editor.theme_carousel->set_prefetch_adjacent_cards(false);
+    editor.show();
+    // Model an initial unpublished presentation even if another test warmed
+    // the application's default artwork. The selected source itself is cold.
+    editor.displayed_preview_images.clear();
+    editor.displayed_preview_source.clear();
+    auto observed = std::make_shared<std::pair<bool, bool>>(false, false);
+    connect(
+        &editor.preview_images, &card_image_consumer::images_changed, this,
+        [&editor, observed] {
+            if (!editor.preview_images.is_pending())
+                return;
+            bool any_ready = false;
+            for (const auto& id : editor.preview_requested_ids)
+                any_ready |= !editor.preview_images.image_for(id).isNull();
+            if (!any_ready)
+                return;
+            // The production queued publisher is registered before this
+            // observer. Await that exact event boundary, without sleeping or
+            // fake workers.
+            QMetaObject::invokeMethod(
+                &editor,
+                [&editor, observed] {
+                    if (editor.preview_images.is_pending()) {
+                        observed->first = true;
+                        observed->second
+                            |= !editor.displayed_preview_images.isEmpty();
+                    }
+                },
+                Qt::QueuedConnection
+            );
+        }
+    );
+    QVERIFY(select_source(editor, source));
+    QCOMPARE(editor.preview_requested_ids.size(), 13);
+    QTRY_VERIFY(!editor.preview_images.is_pending());
+    QVERIFY(observed->first);
+    QVERIFY(observed->second);
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

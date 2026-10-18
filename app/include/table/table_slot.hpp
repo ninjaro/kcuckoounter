@@ -8,6 +8,7 @@
 #include "table/table.hpp"
 
 #include <QBoxLayout>
+#include <QHash>
 #include <QImage>
 #include <QPointer>
 #include <QSize>
@@ -59,12 +60,10 @@ public:
     void tick_highlight(int delta_ms);
     void prepare_card_faces();
     [[nodiscard]] int card_face_need_short_px() const;
-    void set_shared_card_faces(
-        const QVector<QImage>& face_images, const QSize& raster_size
-    );
-    void clear_shared_card_faces();
-    [[nodiscard]] bool has_shared_card_faces() const;
-    void set_shared_card_faces_mode(bool enabled);
+    void set_presented_card_images(const QHash<QString, QImage>& images);
+    void clear_presented_card_images();
+    [[nodiscard]] bool has_presented_card_images() const;
+    void set_presented_image_mode(bool enabled);
     void apply_theme();
     void apply_settings_from(const table_slot& source);
     enum class copy_action { copy, cancel, apply };
@@ -191,6 +190,7 @@ private:
     void update_quiz_figure_size();
     void update_feedback_stamp();
     void update_overlay_layout();
+    void update_overlay_margins();
     void update_action_presentation();
     void update_compact_controls();
     void show_compact_controls();
