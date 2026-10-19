@@ -7,6 +7,7 @@ class card_sheet_tests : public QObject {
     Q_OBJECT
 
 private slots:
+    void rasterflow_metadata_follows_current_aliases_and_frame();
     void rasterflow_aliases_resolve_explicit_demands();
     void rasterflow_fallback_and_missing_elements();
     void rasterflow_base_frame_preserves_aspect();

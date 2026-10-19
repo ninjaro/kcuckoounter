@@ -30,7 +30,7 @@ private:
     qreal device_pixel_ratio = 1.0;
     QPixmap cached_pixmap;
     qint64 displayed_image_key = 0;
-    rasterflow::qt::source_handle source;
+    image_source_request acquisition;
     rasterflow::qt::image_consumer* consumer;
     rasterflow::qt::image_request request;
     QString source_error;

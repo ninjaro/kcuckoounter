@@ -177,13 +177,9 @@ const QPixmap& card_widget::card_face_pixmap(int index) {
     }
     if (selected_card_face_index != index) {
         const qreal dpr = devicePixelRatioF();
-        const QSize physical(
-            static_cast<int>(std::ceil(card_face_size.width() * dpr)),
-            static_cast<int>(std::ceil(card_face_size.height() * dpr))
-        );
-        selected_card_face = QPixmap::fromImage(image).scaled(
-            physical, Qt::KeepAspectRatio, Qt::FastTransformation
-        );
+        // Preserve the shared master's detail. Final sizing and arbitrary
+        // rotation are one smooth painter transform, not two resampling steps.
+        selected_card_face = QPixmap::fromImage(image);
         selected_card_face.setDevicePixelRatio(dpr);
         selected_card_face_index = index;
     }

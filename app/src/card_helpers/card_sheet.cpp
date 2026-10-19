@@ -416,10 +416,19 @@ static QString& active_card_sheet_source() {
 }
 
 card_sheet_metadata::card_sheet_metadata(QObject* parent)
-    : QObject(parent) {
+    : QObject(parent)
+    , consumer(application_image_service().create_consumer(this)) {
+    connect(
+        &acquisition, &image_source_request::finished, this,
+        &card_sheet_metadata::publish_metadata
+    );
+    connect(
+        consumer, &rasterflow::qt::image_consumer::images_changed, this,
+        &card_sheet_metadata::publish_metadata
+    );
     auto& service = application_image_service();
     const auto changed = [this](const QString& id) {
-        if (source.content_id() == id.toStdString())
+        if (acquisition.source().content_id() == id.toStdString())
             publish_metadata();
     };
     connect(
@@ -438,7 +447,10 @@ void card_sheet_metadata::refresh() {
         return;
     selected_path = path;
     metadata_published = false;
-    source = load_image_source(path);
+    inspection_requests.clear();
+    pending_element.clear();
+    consumer->replace_desired({});
+    acquisition.load(path);
     // Warm sources and I/O failures must notify through the same queued path.
     QTimer::singleShot(0, this, &card_sheet_metadata::publish_metadata);
 }
@@ -446,21 +458,33 @@ void card_sheet_metadata::refresh() {
 bool card_sheet_metadata::is_pending() const { return !metadata_published; }
 
 bool card_sheet_metadata::is_valid() const {
-    return metadata_published && source.is_ready();
+    return metadata_published && acquisition.source().is_ready();
 }
 
 std::pair<int, int> card_sheet_metadata::ratio() const { return current_ratio; }
 
 void card_sheet_metadata::publish_metadata() {
-    if (metadata_published
+    const auto source = acquisition.source();
+    if (metadata_published || acquisition.is_pending()
         || (source.is_valid() && !source.is_ready() && source.error().isEmpty()
         ))
         return;
-    metadata_published = true;
-    current_ratio = { 88, 63 };
+    std::pair<int, int> resolved_ratio { 88, 63 };
     for (const auto& logical : required_card_ids_with_back()) {
         bool found = false;
         for (const auto& id : candidate_card_element_ids(logical)) {
+            if (source.is_ready() && !source.is_inspected(id)) {
+                const rasterflow::qt::metadata_request query { source, id };
+                if (consumer->status_for(query).state
+                    == rasterflow::qt::image_state::failed)
+                    continue;
+                if (pending_element != id) {
+                    pending_element = id;
+                    inspection_requests.push_back(query);
+                    consumer->replace_desired({}, inspection_requests, false);
+                }
+                return;
+            }
             const auto bounds = source.bounds(id);
             if (bounds.isEmpty())
                 continue;
@@ -468,7 +492,7 @@ void card_sheet_metadata::publish_metadata() {
             const auto height = static_cast<int>(std::lround(bounds.height()));
             if (width <= 0 || height <= 0)
                 continue;
-            current_ratio
+            resolved_ratio
                 = { std::max(width, height), std::min(width, height) };
             found = true;
             break;
@@ -476,6 +500,11 @@ void card_sheet_metadata::publish_metadata() {
         if (found)
             break;
     }
+    metadata_published = true;
+    current_ratio = resolved_ratio;
+    inspection_requests.clear();
+    pending_element.clear();
+    consumer->replace_desired({}, {}, false);
     emit geometry_changed(); // Observers read only the current selection.
 }
 

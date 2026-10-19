@@ -1,12 +1,15 @@
 #ifndef KCUCKOOUNTER_CARD_HELPERS_CARD_SHEET_HPP
 #define KCUCKOOUNTER_CARD_HELPERS_CARD_SHEET_HPP
 
+#include "image/image_sources.hpp"
+
 #include <QSize>
 #include <QString>
 #include <QStringList>
 #include <QVector>
 #include <rasterflow/qt/image_service.hpp>
 #include <utility>
+#include <vector>
 
 struct card_theme_option {
     QString label;
@@ -49,9 +52,12 @@ signals:
 
 private:
     void publish_metadata();
+    rasterflow::qt::image_consumer* consumer;
+    std::vector<rasterflow::qt::metadata_request> inspection_requests;
+    QString pending_element;
     bool metadata_published = false;
     QString selected_path;
-    rasterflow::qt::source_handle source;
+    image_source_request acquisition;
     std::pair<int, int> current_ratio { 88, 63 };
 };
 

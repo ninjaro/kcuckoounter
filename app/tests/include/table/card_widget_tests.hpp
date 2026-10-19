@@ -19,6 +19,9 @@ private slots:
     void local_withdrawal_preserves_other_subscribers_data();
     void local_withdrawal_preserves_other_subscribers();
     void selected_presentation_reuses_and_invalidates();
+    void selected_presentation_preserves_master_pixels();
+    void rotated_master_uses_smooth_single_transform_data();
+    void rotated_master_uses_smooth_single_transform();
     void theme_source_change_invalidates_stale_raster_result();
     void visible_face_does_not_wait_for_unrelated_elements();
     void completion_observer_can_destroy_widget();

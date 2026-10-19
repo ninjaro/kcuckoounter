@@ -40,16 +40,17 @@ private:
     rasterflow::qt::image_consumer* consumer;
     QString preferred_path;
     QString fallback_path;
-    rasterflow::qt::source_handle preferred_source;
-    rasterflow::qt::source_handle fallback_source;
+    image_source_request preferred_source;
+    image_source_request fallback_source;
     bool preferred_loaded = false;
     bool fallback_loaded = false;
     bool unresolved = false;
     bool unresolved_required = false;
     std::vector<card_image_demand> demands;
     QHash<QString, rasterflow::qt::image_request> requests;
+    std::vector<rasterflow::qt::metadata_request> submitted_inspections;
     card_sheet_fallback_resolution resolution;
-    void resolve_requests();
+    void resolve_requests(bool retry_failed = false);
 };
 
 #endif

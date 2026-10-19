@@ -16,6 +16,94 @@
 
 using namespace card_test;
 
+namespace {
+QImage detailed_face() {
+    QImage image(240, 360, QImage::Format_ARGB32_Premultiplied);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(QPen(Qt::black, 1.0));
+    painter.setBrush(Qt::white);
+    painter.drawRoundedRect(QRectF(1, 1, 238, 358), 12, 12);
+    painter.setPen(QPen(Qt::red, 1.0));
+    for (int index = 10; index < 225; index += 7)
+        painter.drawLine(QPointF(index, 18), QPointF(225, index + 90));
+    painter.setPen(QPen(Qt::blue, 1.0));
+    painter.drawRect(QRectF(15, 16, 31, 49));
+    return image;
+}
+}
+
+void card_widget_tests::selected_presentation_preserves_master_pixels() {
+    card_widget widget;
+    auto master = detailed_face();
+    widget.set_presented_card_images({ { card_element_ids().front(), master } }
+    );
+    widget.update_card_faces(QSize(32, 48));
+    master.setDevicePixelRatio(widget.devicePixelRatioF());
+    QCOMPARE(widget.card_face_pixmap(0).toImage(), master);
+    widget.update_card_faces(QSize(100, 150));
+    QCOMPARE(widget.card_face_pixmap(0).toImage(), master);
+}
+
+void card_widget_tests::rotated_master_uses_smooth_single_transform_data() {
+    QTest::addColumn<qreal>("angle");
+    QTest::addColumn<QSize>("display");
+    for (const auto& display : { QSize(32, 48), QSize(100, 150) })
+        for (const qreal angle : { 0.0, 2.0, 3.5, 15.0, 90.0 })
+            QTest::newRow(qPrintable(QStringLiteral("%1x%2-%3deg")
+                                         .arg(display.width())
+                                         .arg(display.height())
+                                         .arg(angle))
+            ) << angle
+              << display;
+}
+
+void card_widget_tests::rotated_master_uses_smooth_single_transform() {
+    QFETCH(qreal, angle);
+    QFETCH(QSize, display);
+    const card_widget widget;
+    const qreal dpr = widget.devicePixelRatioF();
+    auto master = QPixmap::fromImage(detailed_face());
+    master.setDevicePixelRatio(dpr);
+    const auto canvas = [&] {
+        QImage result(
+            QSize(240, 240) * dpr, QImage::Format_ARGB32_Premultiplied
+        );
+        result.setDevicePixelRatio(dpr);
+        result.fill(Qt::transparent);
+        return result;
+    };
+    auto actual = canvas();
+    auto expected = canvas();
+    const QRectF destination(
+        QPointF(120 - display.width() / 2.0, 120 - display.height() / 2.0),
+        display
+    );
+    const QPointF offset(0.4, -0.2);
+    {
+        QPainter painter(&actual);
+        painter.setRenderHint(QPainter::Antialiasing);
+        card_widget::draw_card_pixmap(
+            painter, destination, 0, angle, offset, master
+        );
+        QVERIFY(!painter.testRenderHint(QPainter::SmoothPixmapTransform));
+    }
+    {
+        QPainter painter(&expected);
+        painter.setRenderHints(
+            QPainter::Antialiasing | QPainter::SmoothPixmapTransform
+        );
+        painter.translate(destination.center() + offset);
+        painter.rotate(angle);
+        painter.translate(-destination.center());
+        // One final scaling/rotation from the complete 2:3 master, with no
+        // display-sized intermediate and no angle-dependent image identity.
+        painter.drawPixmap(destination, master, QRectF(master.rect()));
+    }
+    QCOMPARE(actual, expected);
+}
+
 void card_widget_tests::accumulated_count_survives_presentation_changes() {
     card_widget widget;
     card_session_state state;

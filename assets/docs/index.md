@@ -92,12 +92,31 @@ SVG bytes, decode SVGZ containers and replace lifetime-owned subscriptions.
 Rasterflow owns asynchronous preparation and shared image masters; widgets retain
 display pixmaps, include device pixel ratio in physical demand and fit artwork
 without stretching. Removing a display withdraws only its own demand.
+Selected card pixmaps retain the complete master; final sizing and arbitrary
+display rotation use one smooth painter transform. There is no intermediate
+display-sized downscale or angle-specific raster identity. Presentation still
+fits the original aspect ratio and preserves the requested orientation.
 
 Source discovery enumerates readable bundled and installed files without parsing
 SVG on the GUI thread. Selected-source validity, element bounds and aliases use
-Rasterflow's asynchronously prepared metadata. Layouts retain usable base/last
-geometry until the current selection is ready, then update through one geometry
+Rasterflow's asynchronously prepared metadata. Document readiness does not
+require a complete element catalogue. Alias and base-frame queries inspect only
+the candidates needed by current image demands, preserving their existing order.
+Layouts find the first valid card geometry incrementally and retain usable
+base/last geometry until the current selection is ready, then update through one geometry
 notification; superseded source completion has no authority.
+
+Source acquisition reads regular files/QRC inputs, decodes SVGZ and constructs
+immutable Rasterflow content on one application-owned file worker. Queued path
+replacements occupy only one slot per current subscription; canceled or retired
+completion cannot register or publish obsolete content. Source layouts, cards
+and standalone SVG images await acquisition before submitting metadata/image
+demand. No file read, decoding, full-byte copy or hash runs in their GUI callbacks.
+Only document selection and card semantics belong to this acquisition layer;
+all SVG inspection, raster scheduling and image storage remain in Rasterflow.
+Rasterflow derives content identity once; the game keeps no path/hash aliases.
+Equal decoded SVG/SVGZ contents share a snapshot, and changed bytes at the same
+path create a distinct snapshot without invalidating existing holders.
 
 Card aliases, fallback selection and base-frame trimming belong to the client.
 Standalone widgets request only their displayed face or back; empty and hidden

@@ -727,6 +727,7 @@ void card_widget::draw_card_pixmap(
     const QPixmap& pixmap
 ) {
     painter.save();
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
     apply_card_transform(
         painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
     );

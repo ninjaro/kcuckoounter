@@ -3,24 +3,14 @@
 #include <QSet>
 #include <algorithm>
 #include <stdexcept>
+#include <utility>
 
 namespace {
-QString resolve_element(
-    const rasterflow::qt::source_handle& source, const QString& logical
-) {
-    if (!source.is_ready())
-        return {};
-    for (const auto& candidate : candidate_card_element_ids(logical))
-        if (source.contains(candidate))
-            return candidate;
-    return {};
-}
-
 QRectF card_viewport(
-    const rasterflow::qt::source_handle& source, const QString& element
+    const rasterflow::qt::source_handle& source, const QString& element,
+    const QString& base_id
 ) {
     const auto bounds = source.bounds(element);
-    const auto base_id = resolve_element(source, QStringLiteral("base"));
     if (base_id.isEmpty())
         return {};
     const auto base = source.bounds(base_id);
@@ -44,14 +34,25 @@ card_image_consumer::card_image_consumer(QObject* parent)
     , consumer(application_image_service().create_consumer(this))
     , preferred_path(card_sheet_source_path())
     , fallback_path(default_card_sheet_source_path()) {
+    const auto acquired = [this] {
+        if (!demands.empty())
+            resolve_requests();
+    };
+    connect(&preferred_source, &image_source_request::finished, this, acquired);
+    connect(&fallback_source, &image_source_request::finished, this, acquired);
     connect(
         consumer, &rasterflow::qt::image_consumer::images_changed, this,
-        &card_image_consumer::images_changed
+        [this] {
+            if (unresolved)
+                resolve_requests();
+            else
+                emit images_changed();
+        }
     );
     const auto source_changed = [this](const QString& id) {
         if (!demands.empty()
-            && (preferred_source.content_id() == id.toStdString()
-                || fallback_source.content_id() == id.toStdString()))
+            && (preferred_source.source().content_id() == id.toStdString()
+                || fallback_source.source().content_id() == id.toStdString()))
             resolve_requests();
     };
     auto& service = application_image_service();
@@ -75,11 +76,11 @@ void card_image_consumer::set_source(
         return;
     preferred_path = selected;
     fallback_path = fallback;
-    preferred_source = {};
-    fallback_source = {};
+    preferred_source.clear();
+    fallback_source.clear();
     preferred_loaded = false;
     fallback_loaded = false;
-    resolve_requests();
+    resolve_requests(true);
 }
 
 void card_image_consumer::replace_desired(std::vector<card_image_demand> desired
@@ -98,62 +99,124 @@ void card_image_consumer::replace_desired(std::vector<card_image_demand> desired
     if (demands == desired)
         return;
     demands = std::move(desired);
-    resolve_requests();
+    resolve_requests(true);
 }
 
 void card_image_consumer::clear() {
     demands.clear();
     requests.clear();
+    submitted_inspections.clear();
     resolution = {};
     unresolved = false;
     unresolved_required = false;
-    preferred_source = {};
-    fallback_source = {};
+    preferred_source.clear();
+    fallback_source.clear();
     preferred_loaded = false;
     fallback_loaded = false;
     consumer->replace_desired({});
 }
 
-void card_image_consumer::resolve_requests() {
-    requests.clear();
+void card_image_consumer::resolve_requests(bool retry_failed) {
+    const auto previous = std::exchange(requests, {});
     resolution = {};
     unresolved = false;
     unresolved_required = false;
     std::vector<rasterflow::qt::image_request> desired;
+    std::vector<rasterflow::qt::metadata_request> inspections;
+    const auto resolve_element =
+        [&](const rasterflow::qt::source_handle& source, const QString& logical,
+            const card_image_demand& demand, bool& waiting) -> QString {
+        if (!source.is_ready())
+            return {};
+        for (const auto& candidate : candidate_card_element_ids(logical)) {
+            rasterflow::qt::metadata_request query {
+                source,
+                candidate,
+                rasterflow::job_operation::inspect_element,
+                demand.required,
+                demand.priority,
+                demand.deadline_us
+            };
+            inspections.push_back(query);
+            if (!source.is_inspected(candidate)) {
+                if (consumer->status_for(query).state
+                    == rasterflow::qt::image_state::failed)
+                    continue;
+                waiting = true;
+                return {};
+            }
+            if (source.contains(candidate))
+                return candidate;
+        }
+        return {};
+    };
+    const auto wait_for = [this](const card_image_demand& demand) {
+        unresolved = true;
+        unresolved_required = unresolved_required || demand.required;
+    };
+    if (demands.empty()) {
+        if (preferred_source.is_pending()) {
+            preferred_source.clear();
+            preferred_loaded = false;
+        }
+        if (fallback_source.is_pending()) {
+            fallback_source.clear();
+            fallback_loaded = false;
+        }
+    }
     if (!demands.empty() && !preferred_loaded) {
-        preferred_source = load_image_source(preferred_path);
+        preferred_source.load(preferred_path);
         preferred_loaded = true;
     }
-    const bool preferred_pending = preferred_source.is_valid()
-        && !preferred_source.is_ready() && preferred_source.error().isEmpty();
+    const auto prepared = preferred_source.source();
+    const bool preferred_pending = preferred_source.is_pending()
+        || (prepared.is_valid() && !prepared.is_ready()
+            && prepared.error().isEmpty());
     for (const auto& demand : demands) {
         if (preferred_pending) {
-            unresolved = true;
-            unresolved_required = unresolved_required || demand.required;
+            wait_for(demand);
             continue;
         }
-        auto source = preferred_source;
-        auto element = resolve_element(source, demand.logical_id);
+        auto source = prepared;
+        bool waiting = false;
+        auto element
+            = resolve_element(source, demand.logical_id, demand, waiting);
+        if (waiting) {
+            wait_for(demand);
+            continue;
+        }
         if (!element.isEmpty()) {
             ++resolution.active_theme_keys;
         } else if (preferred_path != fallback_path) {
             if (!fallback_loaded) {
-                fallback_source = load_image_source(fallback_path);
+                fallback_source.load(fallback_path);
                 fallback_loaded = true;
             }
-            if (fallback_source.is_valid() && !fallback_source.is_ready()
-                && fallback_source.error().isEmpty()) {
-                unresolved = true;
-                unresolved_required = unresolved_required || demand.required;
+            const auto fallback = fallback_source.source();
+            if (fallback_source.is_pending()
+                || (fallback.is_valid() && !fallback.is_ready()
+                    && fallback.error().isEmpty())) {
+                wait_for(demand);
                 continue;
             }
-            source = fallback_source;
-            element = resolve_element(source, demand.logical_id);
+            source = fallback;
+            element
+                = resolve_element(source, demand.logical_id, demand, waiting);
+            if (waiting) {
+                wait_for(demand);
+                continue;
+            }
             if (!element.isEmpty())
                 ++resolution.default_theme_keys;
         }
         if (element.isEmpty()) {
             ++resolution.placeholder_keys;
+            continue;
+        }
+        const auto base_id
+            = resolve_element(source, QStringLiteral("base"), demand, waiting);
+        if (waiting) {
+            wait_for(demand);
             continue;
         }
         rasterflow::qt::image_request request {
@@ -163,12 +226,18 @@ void card_image_consumer::resolve_requests() {
             .required = demand.required,
             .priority = demand.priority,
             .deadline_us = demand.deadline_us,
-            .viewport = card_viewport(source, element)
+            .viewport = card_viewport(source, element, base_id)
         };
         requests.insert(demand.logical_id, request);
         desired.push_back(std::move(request));
     }
-    consumer->replace_desired(std::move(desired));
+    if (retry_failed || previous != requests
+        || submitted_inspections != inspections) {
+        submitted_inspections = inspections;
+        consumer->replace_desired(
+            std::move(desired), std::move(inspections), retry_failed
+        );
+    }
     emit images_changed(
     ); // Clients may destroy this adapter; state is settled.
 }
@@ -188,9 +257,9 @@ bool card_image_consumer::is_pending_required() const {
 }
 
 bool card_image_consumer::preferred_source_failed() const {
-    return preferred_loaded
-        && (!preferred_source.is_valid() || !preferred_source.error().isEmpty()
-        );
+    return preferred_loaded && !preferred_source.is_pending()
+        && (!preferred_source.source().is_valid()
+            || !preferred_source.error().isEmpty());
 }
 
 card_sheet_fallback_resolution card_image_consumer::source_resolution() const {

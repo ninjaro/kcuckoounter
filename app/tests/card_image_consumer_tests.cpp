@@ -4,6 +4,7 @@
 
 #include "image/card_images.hpp"
 #include "include/card_sheet_tests.hpp"
+#include "include/image_source_helpers.hpp"
 #include <QFile>
 #include <QPointer>
 #include <QScopeGuard>
@@ -24,6 +25,43 @@ const QByteArray red_face
     = "<rect id=\"1_club\" width=\"40\" height=\"80\" fill=\"red\"/>";
 const QByteArray blue_back
     = "<rect id=\"card_back\" width=\"40\" height=\"80\" fill=\"blue\"/>";
+}
+
+void card_sheet_tests::rasterflow_metadata_follows_current_aliases_and_frame() {
+    QTemporaryDir directory;
+    const auto path = directory.filePath("large-atlas.svg");
+    QByteArray elements = red_face + blue_back
+        + R"(<rect id="card_base" width="40" height="80"/>)";
+    for (int index = 0; index < 2048; ++index)
+        elements += R"(<rect id="unrelated-)" + QByteArray::number(index)
+            + R"(" width="5" height="5"/>)";
+    QVERIFY(write_source(path, elements));
+    const auto previous = card_sheet_source_path();
+    const auto restore
+        = qScopeGuard([&] { set_card_sheet_source_path(previous); });
+    set_card_sheet_source_path(path);
+    auto& layout = current_card_sheet_metadata();
+    QTRY_VERIFY(!layout.is_pending());
+    QVERIFY(layout.is_valid());
+    QCOMPARE(layout.ratio(), (std::pair<int, int> { 80, 40 }));
+    const auto snapshot = await_image_source(path);
+    QVERIFY(snapshot.is_ready());
+    QVERIFY(!snapshot.is_catalog_ready());
+    QVERIFY(!snapshot.is_inspected(QStringLiteral("unrelated-0")));
+    QVERIFY(!snapshot.is_inspected(QStringLiteral("unrelated-2047")));
+    card_image_consumer consumer;
+    consumer.set_source(path, path);
+    consumer.replace_desired({ { "club_1", { 20, 30 } } });
+    QTRY_VERIFY(!consumer.is_pending());
+    QVERIFY(snapshot.is_inspected(QStringLiteral("1_club")));
+    QVERIFY(snapshot.is_inspected(QStringLiteral("card_base")));
+    QCOMPARE(consumer.image_for("club_1").pixelColor(10, 10), QColor(Qt::red));
+    consumer.replace_desired({ { "back", { 20, 30 } } });
+    QTRY_VERIFY(!consumer.is_pending());
+    QVERIFY(consumer.image_for("club_1").isNull());
+    QCOMPARE(consumer.image_for("back").pixelColor(10, 10), QColor(Qt::blue));
+    QVERIFY(snapshot.list_element_ids().isEmpty());
+    QVERIFY(!snapshot.is_inspected(QStringLiteral("unrelated-0")));
 }
 
 void card_sheet_tests::rasterflow_aliases_resolve_explicit_demands() {

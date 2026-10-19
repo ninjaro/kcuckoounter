@@ -678,6 +678,13 @@ void card_sheet_tests::fallback_loads_on_first_missing_face() {
 
     // The fallback did not exist at construction or during the active hit.
     QVERIFY(write_alternate_id_card_svg(fallback));
+    // Keep this fixture independent of earlier, larger demands for the same
+    // authored atlas. A shared oversized master may legitimately downsize.
+    QFile fallback_file(fallback);
+    QVERIFY(fallback_file.open(QIODevice::WriteOnly | QIODevice::Append));
+    const QByteArray identity = "<!-- lazy-fallback-loading-contract -->";
+    QCOMPARE(fallback_file.write(identity), identity.size());
+    fallback_file.close();
     const QImage back = context.face(card_back_element_id(), size, &resolution);
     QVERIFY(!back.isNull());
     QCOMPARE(resolution.default_theme_keys, 1);

@@ -136,9 +136,7 @@ void card_widget_tests::shared_faces_disable_local_rasterization() {
             .constBits(),
         images.value(card_element_ids().front()).constBits()
     );
-    QCOMPARE(
-        widget.card_face_pixmap(0).size(), physical_size(widget, QSize(20, 30))
-    );
+    QCOMPARE(widget.card_face_pixmap(0).size(), images.cbegin()->size());
 }
 
 void card_widget_tests::shared_faces_outlive_source_file() {
@@ -287,7 +285,8 @@ void card_widget_tests::selected_presentation_reuses_and_invalidates() {
     first.update_card_faces(QSize(24, 36));
     QVERIFY(first.selected_card_face.isNull());
     QCOMPARE(
-        first.card_face_pixmap(0).size(), physical_size(first, QSize(24, 36))
+        first.card_face_pixmap(0).size(),
+        images.value(card_element_ids().front()).size()
     );
     first.set_presented_card_images(images);
     QVERIFY(first.selected_card_face.isNull());

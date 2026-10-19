@@ -24,6 +24,10 @@ image_cacher::image_cacher(const QString& source_path_value, QObject* parent)
     : QObject(parent)
     , consumer(application_image_service().create_consumer(this)) {
     connect(
+        &acquisition, &image_source_request::finished, this,
+        &image_cacher::update_desired
+    );
+    connect(
         consumer, &rasterflow::qt::image_consumer::images_changed, this,
         &image_cacher::publish_image
     );
@@ -38,7 +42,8 @@ void image_cacher::set_source(const QString& new_source_path) {
     if (source_path == new_source_path)
         return;
     source_path = new_source_path;
-    source = load_image_source(source_path, &source_error);
+    source_error.clear();
+    acquisition.load(source_path);
     cached_pixmap = {};
     displayed_image_key = 0;
     update_desired();
@@ -69,14 +74,15 @@ const QPixmap& image_cacher::pixmap() const { return cached_pixmap; }
 bool image_cacher::is_ready() const { return !cached_pixmap.isNull(); }
 
 bool image_cacher::has_source() const {
-    return source.is_valid() && source.error().isEmpty();
+    return acquisition.source().is_valid() && acquisition.error().isEmpty();
 }
 
 QString image_cacher::error() const {
-    return source_error.isEmpty() ? source.error() : source_error;
+    return source_error.isEmpty() ? acquisition.error() : source_error;
 }
 
 void image_cacher::update_desired() {
+    const auto source = acquisition.source();
     if (!source.is_valid() || !source.error().isEmpty()
         || target_size.isEmpty()) {
         consumer->replace_desired({});

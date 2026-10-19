@@ -808,6 +808,12 @@ void preview_carousel_tests::preview_publication_can_destroy_owner() {
         auto* button = editor->theme_button_group->checkedButton();
         QVERIFY(button != nullptr);
         button->setProperty("theme_source", alias);
+        // A new path is acquired asynchronously even when its bytes match a
+        // resident source. Establish that real precondition, then withdraw
+        // image intent without retiring the prepared source or cached pixels.
+        editor->update_preview_demands();
+        QTRY_VERIFY(!editor->preview_images.is_pending());
+        editor->preview_images.replace_desired({});
     }
     connect(
         &editor->preview_images, &card_image_consumer::images_changed, this,
