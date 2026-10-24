@@ -112,7 +112,7 @@ class desktop_shell_state_service {
 public:
     explicit desktop_shell_state_service(QSettings& settings);
 
-    desktop_shell_state load() const;
+    [[nodiscard]] desktop_shell_state load() const;
     void save(const desktop_shell_state& state);
 
 private:
