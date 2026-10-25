@@ -10,8 +10,12 @@
 #include "settings/training_progress.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
+#include "table/settings_template.hpp"
 
+#include <QComboBox>
 #include <QMap>
+#include <QPushButton>
+#include <QScopeGuard>
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QtTest/QtTest>
@@ -19,6 +23,195 @@
 #include "settings/preferences_fixture.hpp"
 
 using namespace preferences_test;
+
+void preferences_tests::
+    desktop_form_preserves_unknown_choices_and_unrelated_preferences() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop settings form; not Android device acceptance");
+#else
+    QSettings settings(
+        "ninjaro", "kcuckoounter"
+    ); // main_tests isolates both settings formats
+    QMap<QString, QVariant> original;
+    for (const auto& key : settings.allKeys())
+        original.insert(key, settings.value(key));
+    const auto restore = qScopeGuard([&] {
+        settings.clear();
+        for (auto it = original.cbegin(); it != original.cend(); ++it)
+            settings.setValue(it.key(), it.value());
+        settings.sync();
+    });
+    settings.remove("desktop_ui");
+    settings.setValue("desktop_ui/preset", "future-preset");
+    settings.setValue("desktop_ui/overrides/frame", "");
+    settings.setValue("desktop_ui/overrides/feedback", "future-feedback");
+    settings.setValue("desktop_ui/overrides/future_component", "future-value");
+    settings.sync();
+    settings_shared_state shared;
+    settings_template_widget editor(
+        settings_tab_kind::appearance, nullptr, {}, nullptr, &shared
+    );
+    editor.resize(900, 700);
+    editor.show();
+    QCoreApplication::processEvents();
+    auto* preset = editor.findChild<QComboBox*>("desktop_ui_preset");
+    auto* frame = editor.findChild<QComboBox*>("desktop_ui_frame");
+    auto* actions = editor.findChild<QComboBox*>("desktop_ui_slot_actions");
+    QVERIFY(preset && frame && actions);
+    QCOMPARE(preset->currentData().toString(), QStringLiteral("future-preset"));
+    QVERIFY(
+        !(preset->model()->flags(
+              preset->model()->index(preset->currentIndex(), 0)
+          )
+          & Qt::ItemIsEnabled)
+    );
+    QVERIFY(frame->currentIndex() > 0); // explicit empty is not inheritance
+    settings.setValue("trainer_preferences/future", QByteArray("keep trainer"));
+    settings.setValue("trainer_session/payload", QByteArray("keep session"));
+    settings.setValue("desktop_shell/geometry", QByteArray("keep geometry"));
+    QMap<QString, QVariant> unrelated;
+    for (const auto& key : settings.allKeys())
+        if (!key.startsWith("desktop_ui/"))
+            unrelated.insert(key, settings.value(key));
+    actions->setCurrentIndex(actions->findData("rail"));
+    QVERIFY(editor.apply_theme_settings());
+    settings.sync();
+    QCOMPARE(
+        settings.value("desktop_ui/preset").toString(),
+        QStringLiteral("future-preset")
+    );
+    QCOMPARE(
+        settings.value("desktop_ui/overrides/feedback").toString(),
+        QStringLiteral("future-feedback")
+    );
+    QVERIFY(settings.contains("desktop_ui/overrides/frame"));
+    QCOMPARE(
+        settings.value("desktop_ui/overrides/slot_actions").toString(),
+        QStringLiteral("rail")
+    );
+    for (auto it = unrelated.cbegin(); it != unrelated.cend(); ++it)
+        QCOMPARE(settings.value(it.key()), it.value());
+    frame->setCurrentIndex(0);
+    editor
+        .reset_theme_selection(); // cancel draft; saved empty remains explicit
+    QVERIFY(frame->currentIndex() > 0);
+    frame->setCurrentIndex(0);
+    QVERIFY(editor.apply_theme_settings());
+    QVERIFY(!settings.contains("desktop_ui/overrides/frame"));
+    const int classic = preset->findData("classic");
+    preset->setCurrentIndex(classic);
+    QVERIFY(
+        QMetaObject::invokeMethod(preset, "activated", Q_ARG(int, classic))
+    );
+    QVERIFY(editor.apply_theme_settings());
+    QCOMPARE(
+        settings.value("desktop_ui/overrides/feedback").toString(),
+        QStringLiteral("future-feedback")
+    );
+    QVERIFY(settings.contains("desktop_ui/overrides/future_component"));
+    QVERIFY(!settings.contains("desktop_ui/overrides/slot_actions"));
+    auto* reset = editor.findChild<QPushButton*>("desktop_ui_reset");
+    QVERIFY(reset);
+    reset->click();
+    QVERIFY(editor.apply_theme_settings());
+    for (const auto& key : settings.allKeys())
+        QVERIFY(!key.startsWith("desktop_ui/overrides/"));
+#endif
+}
+
+void preferences_tests::desktop_unknown_choices_survive_unrelated_saves() {
+    QTemporaryDir directory;
+    auto settings = temporary_settings(directory);
+    settings.setValue("desktop_ui/preset", "future-preset");
+    const QStringList families { "frame",        "speed_readout",
+                                 "answer_entry", "feedback",
+                                 "slot_actions", "settings_surface",
+                                 "toolbar",      "hud",
+                                 "chrome",       "future_component" };
+    for (const auto& family : families)
+        settings.setValue("desktop_ui/overrides/" + family, "future-" + family);
+    settings.setValue(
+        "desktop_ui/overrides/future_typed", QStringList { "one", "two" }
+    );
+    const QMap<QString, QVariant> unrelated {
+        { "trainer_preferences/future", QByteArray("trainer") },
+        { "appearance/card_source", "artwork" },
+        { "trainer_session/payload", QByteArray("session") },
+        { "desktop_shell/geometry", QByteArray("geometry") },
+        { "desktop_ui/future_metadata", 42 }
+    };
+    for (auto it = unrelated.cbegin(); it != unrelated.cend(); ++it)
+        settings.setValue(it.key(), it.value());
+    auto preferences = load_desktop_ui_preferences(settings);
+    QCOMPARE(preferences.preset, desktop_ui_preset::classic);
+    QCOMPARE(preferences.appearance().preset, QStringLiteral("future-preset"));
+    QVERIFY(!preferences.frame_override);
+    preferences.toolbar_override = desktop_toolbar_style::compact;
+    QVERIFY(save_desktop_ui_preferences(settings, preferences));
+    for (const auto& family : families) {
+        QCOMPARE(
+            settings.value("desktop_ui/overrides/" + family).toString(),
+            family == "toolbar" ? QStringLiteral("compact") : "future-" + family
+        );
+    }
+    QCOMPARE(
+        settings.value("desktop_ui/preset").toString(),
+        QStringLiteral("future-preset")
+    );
+    QCOMPARE(
+        settings.value("desktop_ui/overrides/future_typed").toStringList(),
+        QStringList({ "one", "two" })
+    );
+    auto state = load_desktop_ui_preferences(settings).appearance();
+    state.overrides.remove("frame"); // explicit per-setting inheritance/reset
+    state.overrides.insert("feedback", "classic"); // explicit, not inherited
+    preferences = desktop_ui_preferences::from_appearance(state);
+    QVERIFY(save_desktop_ui_preferences(settings, preferences));
+    QVERIFY(!settings.contains("desktop_ui/overrides/frame"));
+    QVERIFY(
+        load_desktop_ui_preferences(settings).feedback_override.has_value()
+    );
+    QCOMPARE(
+        settings.value("desktop_ui/overrides/feedback").toString(),
+        QStringLiteral("classic")
+    );
+    preferences.set_preset(desktop_ui_preset::classic);
+    QVERIFY(save_desktop_ui_preferences(settings, preferences));
+    QCOMPARE(
+        settings.value("desktop_ui/preset").toString(),
+        QStringLiteral("classic")
+    );
+    preferences.reset_overrides();
+    QVERIFY(save_desktop_ui_preferences(settings, preferences));
+    for (const auto& key : settings.allKeys())
+        QVERIFY(!key.startsWith("desktop_ui/overrides/"));
+    for (auto it = unrelated.cbegin(); it != unrelated.cend(); ++it)
+        QCOMPARE(settings.value(it.key()), it.value());
+
+    // Editing a trainer appearance field must not canonicalize unrelated
+    // setup fields or a future value of the other appearance field.
+    settings.setValue("trainer_preferences/setup/slot_count", 1234);
+    settings.setValue(
+        "trainer_preferences/appearance/card_orientation", "future-orientation"
+    );
+    preferences_service service(settings);
+    const auto before = service.load(test_catalog());
+    auto after = before;
+    after.palette = theme_palette_id::blue;
+    service.save_appearance(before, after);
+    QCOMPARE(
+        settings.value("trainer_preferences/setup/slot_count").toInt(), 1234
+    );
+    QCOMPARE(
+        settings.value("trainer_preferences/appearance/card_orientation")
+            .toString(),
+        QStringLiteral("future-orientation")
+    );
+    QCOMPARE(
+        settings.value("trainer_preferences/appearance/palette").toString(),
+        QStringLiteral("blue")
+    );
+}
 
 void preferences_tests::default_suit_is_independent_persistent_appearance() {
     QTemporaryDir directory;
@@ -59,8 +252,8 @@ void preferences_tests::default_suit_is_independent_persistent_appearance() {
         QCOMPARE(settings.value(it.key()), it.value());
 }
 
-void preferences_tests::default_suit_rejects_invalid_storage_without_rewriting(
-) {
+void preferences_tests::
+    default_suit_rejects_invalid_storage_without_rewriting() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     auto settings = temporary_settings(directory);
@@ -170,8 +363,9 @@ void preferences_tests::strategy_identity_is_current_slug_only() {
         QStringLiteral("old_strategy_slug")
     );
     service.save(current, test_catalog());
-    QVERIFY(!settings.contains(QStringLiteral("trainer_preferences/strategy/id")
-    ));
+    QVERIFY(
+        !settings.contains(QStringLiteral("trainer_preferences/strategy/id"))
+    );
 }
 
 void preferences_tests::shell_round_trip_preserves_qt_state() {
@@ -280,7 +474,8 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
     QVERIFY(
         !settings.contains(QStringLiteral("desktop_ui/overrides/answer_entry"))
     );
-    QVERIFY(!settings.contains(QStringLiteral("desktop_ui/overrides/feedback"))
+    QVERIFY(
+        !settings.contains(QStringLiteral("desktop_ui/overrides/feedback"))
     );
     QVERIFY(
         !settings.contains(QStringLiteral("desktop_ui/overrides/speed_readout"))
@@ -328,7 +523,10 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
         QStringLiteral("desktop_ui/overrides/speed_readout"),
         QStringLiteral("invalid")
     );
-    QCOMPARE(load_desktop_ui_preferences(settings), desktop_ui_preferences {});
+    const auto unsupported = load_desktop_ui_preferences(settings);
+    QCOMPARE(unsupported.preset, desktop_ui_preset::classic);
+    QVERIFY(!unsupported.frame_override);
+    QCOMPARE(unsupported.appearance().preset, QStringLiteral("future"));
     for (const auto& key : unrelated) {
         QCOMPARE(settings.value(key).toByteArray(), QByteArray("unchanged"));
     }

@@ -348,9 +348,10 @@ void table_tests::toolbar_styles_preserve_terminal_routes_data() {
     QTest::addColumn<bool>("physical_jokers");
     for (const bool compact : { false, true })
         for (const bool physical : { false, true })
-            QTest::newRow(qPrintable(QStringLiteral("compact=%1/physical=%2")
-                                         .arg(compact)
-                                         .arg(physical))
+            QTest::newRow(
+                qPrintable(QStringLiteral("compact=%1/physical=%2")
+                               .arg(compact)
+                               .arg(physical))
             ) << compact
               << physical;
 }
@@ -488,7 +489,8 @@ void table_tests::toolbar_styles_preserve_terminal_routes() {
     QTest::keyClick(new_button, Qt::Key_Space);
     QVERIFY(!view->active_gameplay_session());
     QVERIFY(!view->gameplay_timer.isActive());
-    QVERIFY(!window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
+    QVERIFY(
+        !window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
     );
     QCOMPARE(toolbar->actions(), actions);
     QCOMPARE(start->text(), str_label("Start"));
@@ -503,10 +505,6 @@ void table_tests::felt_shell_round_trips_one_bar() {
 #endif
     launcher_preferences_guard preferences;
     shell_state_guard shell;
-
-    struct felt_reset {
-        ~felt_reset() { theme_settings::set_felt_chrome(false); }
-    } felt_guard;
 
     desktop_ui_preferences ui;
     ui.preset = desktop_ui_preset::felt;
@@ -560,11 +558,20 @@ void table_tests::felt_shell_round_trips_one_bar() {
     QVERIFY(status);
     QVERIFY(status->property("instrument_paint").toBool());
     QVERIFY(status->text().startsWith(str_label("Status: ")));
+    auto* clock = window.findChild<QLabel*>(QStringLiteral("session_clock"));
+    QVERIFY(clock);
+    QCOMPARE(clock->font().pixelSize(), 17);
+    QCOMPARE(
+        clock->palette().color(QPalette::WindowText),
+        theme_settings::felt(clock).accent
+    );
 
     // Back to Classic: the native shell is exactly what it was.
-    QVERIFY(QMetaObject::invokeMethod(
-        &window, "on_settings_triggered", Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &window, "on_settings_triggered", Qt::DirectConnection
+        )
+    );
     auto* editor = appearance_editor(window);
     QVERIFY(editor);
     editor->window()->hide();
@@ -583,7 +590,7 @@ void table_tests::felt_shell_round_trips_one_bar() {
     QVERIFY(tracks.constFirst()->isHidden());
     QVERIFY(!quiz_mode->isHidden());
     QVERIFY(!status->property("instrument_paint").toBool());
-    QVERIFY(!theme_settings::felt_chrome());
+    QVERIFY(!theme_settings::felt_chrome(&window));
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

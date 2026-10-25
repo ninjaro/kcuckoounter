@@ -1,4 +1,5 @@
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/editor_panel.hpp>
 
 #include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
@@ -110,9 +111,11 @@ void table_slot::open_settings_editor() {
         if (gameplay_owner->phase() != gameplay::session_phase::setup
             && gameplay_owner->phase() != gameplay::session_phase::paused)
             return;
-    } else if (quiz_prompt_active
-               || (current_phase == slot_phase::running
-                   && card_widget_internal->has_cards())) {
+    } else if (
+        quiz_prompt_active
+        || (current_phase == slot_phase::running
+            && card_widget_internal->has_cards())
+    ) {
         return;
     }
     if (controls_dialog)
@@ -121,74 +124,75 @@ void table_slot::open_settings_editor() {
     // edits require setup/manual Pause already; neither path auto-resumes.
     if (!gameplay_owner)
         emit dialog_opened();
-    auto* panel = new QFrame(this);
+    auto* panel = new shared_ui::qt::editor_panel(this);
     settings_editor_panel = panel;
     panel->setObjectName(QStringLiteral("slot_settings_editor"));
     panel->setAccessibleName(str_label("Card settings"));
+    panel->setWindowTitle(str_label("Card settings"));
     panel->installEventFilter(this);
-    auto* layout = new QVBoxLayout(panel);
-    auto* heading
-        = new QLabel(str_label("Card settings — changes apply with OK"), panel);
-    if (gameplay_owner)
-        heading->setToolTip(str_label(
-            "Cancel or Escape discards this draft. Gameplay settings are "
-            "editable "
-            "only before Start; Training Show Count is also editable during "
-            "manual "
-            "Pause. Phase changes, external edits or roster replacement "
-            "discard it."
-        ));
-    else
-        heading->setToolTip(str_label(
-            "Cancel or Escape discards this draft. Resuming play, restarting, "
-            "restoring a session or copying settings here also discards "
-            "unapplied "
-            "edits."
-        ));
-    heading->setWordWrap(true);
-    // D-SET-1 on the felt: a `SLOT nn` header with a close mark over a rule;
-    // the staged-edit notice moves to the panel's accessible description.
-    const bool kit_card = theme_settings::felt_chrome()
+    const auto notice = str_label("Card settings — changes apply with OK");
+    const auto help = gameplay_owner
+        ? str_label(
+              "Cancel or Escape discards this draft. Gameplay settings are "
+              "editable only before Start; Training Show Count is also "
+              "editable during "
+              "manual Pause. Phase changes, external edits or roster "
+              "replacement "
+              "discard it."
+          )
+        : str_label(
+              "Cancel or Escape discards this draft. Resuming play, "
+              "restarting, "
+              "restoring a session or copying settings here also discards "
+              "unapplied edits."
+          );
+    panel->set_heading(notice, help);
+    const bool kit_card = theme_settings::felt_chrome(this)
         && settings_style == slot_settings_style::card;
     if (kit_card && card_widget_internal->displayed_slot_number() > 0) {
-        panel->setAccessibleDescription(heading->text());
-        heading->setText(str_label("SLOT %1").arg(
-            card_widget_internal->displayed_slot_number(), 2, 10,
-            QLatin1Char('0')
-        ));
-        heading->setObjectName(QStringLiteral("kit_settings_heading"));
-        heading->setWordWrap(false);
-        auto* header = new QFrame(panel);
-        header->setObjectName(QStringLiteral("kit_settings_header"));
-        auto* header_layout = new QHBoxLayout(header);
-        header_layout->setContentsMargins(0, 0, 0, 8);
-        header_layout->addWidget(heading);
-        header_layout->addStretch();
-        auto* close = new QToolButton(header);
-        close->setObjectName(QStringLiteral("kit_settings_close"));
-        close->setAccessibleName(str_label("Cancel"));
-        close->setToolTip(str_label("Discard these changes"));
-        close->setIcon(
-            QIcon(bundled_asset_path(QStringLiteral("brand/kit_close.svg")))
+        panel->setAccessibleDescription(notice);
+        panel->set_heading(
+            str_label("SLOT %1").arg(
+                card_widget_internal->displayed_slot_number(), 2, 10,
+                QLatin1Char('0')
+            ),
+            help
         );
-        close->setIconSize(QSize(15, 15));
-        close->setAutoRaise(true);
-        connect(close, &QToolButton::clicked, this, [this] {
-            finish_settings_editor(false);
-        });
-        header_layout->addWidget(close);
-        layout->addWidget(header);
-        layout->setContentsMargins(0, 0, 0, 0);
-        layout->setSpacing(10);
-    } else {
-        layout->addWidget(heading);
+        panel->set_header_style(shared_ui::qt::editor_header::closable);
+        // Stable host identifiers are retained for tests and accessibility
+        // tools.
+        panel->heading_label()->setObjectName(
+            QStringLiteral("kit_settings_heading")
+        );
+        panel->header_widget()->setObjectName(
+            QStringLiteral("kit_settings_header")
+        );
+        panel->close_button()->setObjectName(
+            QStringLiteral("kit_settings_close")
+        );
+        panel->close_button()->setAccessibleName(str_label("Cancel"));
+        panel->close_button()->setToolTip(str_label("Discard these changes"));
     }
+    connect(
+        panel, &shared_ui::qt::editor_panel::accept_requested, this,
+        [this] { finish_settings_editor(true); }
+    );
+    connect(
+        panel, &shared_ui::qt::editor_panel::cancel_requested, this,
+        [this] { finish_settings_editor(false); }
+    );
+    connect(
+        panel, &shared_ui::qt::editor_panel::detached, this,
+        [](QDialog* window) {
+            window->setObjectName(QStringLiteral("slot_settings_host"));
+        }
+    );
     if (gameplay_owner) {
         gameplay_editor_fields = new gameplay::deck_setup_widget(
             *gameplay_owner, gameplay_id, strategy_repository(), panel,
             gameplay::deck_setup_widget::edit_mode::staged
         );
-        layout->addWidget(gameplay_editor_fields);
+        panel->set_content(gameplay_editor_fields);
         connect(
             gameplay_editor_fields,
             &gameplay::deck_setup_widget::configuration_changed, this,
@@ -206,11 +210,10 @@ void table_slot::open_settings_editor() {
                      : slot_settings::layout::classic
         );
         populate_settings_editor(settings_editor_fields);
-        layout->addWidget(settings_editor_fields);
+        panel->set_content(settings_editor_fields);
         connect(
             settings_editor_fields->info_button(), &BasePushButton::clicked,
-            this,
-            [this] {
+            this, [this] {
                 if (settings_editor_fields)
                     show_template_dialog(
                         str_label("Strategy details"),
@@ -220,21 +223,7 @@ void table_slot::open_settings_editor() {
             }
         );
     }
-    auto* buttons = new QDialogButtonBox(
-        QDialogButtonBox::Ok | QDialogButtonBox::Cancel, panel
-    );
-    layout->addWidget(buttons);
-    connect(buttons, &QDialogButtonBox::accepted, this, [this] {
-        finish_settings_editor(true);
-    });
-    connect(buttons, &QDialogButtonBox::rejected, this, [this] {
-        finish_settings_editor(false);
-    });
-    auto* escape = new QShortcut(QKeySequence(Qt::Key_Escape), panel);
-    escape->setContext(Qt::WidgetWithChildrenShortcut);
-    connect(escape, &QShortcut::activated, this, [this] {
-        finish_settings_editor(false);
-    });
+    auto* buttons = panel->buttons();
     update_overlay_palette();
     update_settings_button_state();
     update_compact_controls();
@@ -260,7 +249,8 @@ void table_slot::open_settings_editor() {
          { static_cast<QWidget*>(settings_editor_fields->infinity_check_box()),
            static_cast<QWidget*>(settings_editor_fields->deck_count_spin_box()),
            static_cast<QWidget*>(settings_editor_fields->strategy_combo_box()),
-           static_cast<QWidget*>(settings_editor_fields->show_card_indexing()
+           static_cast<QWidget*>(
+               settings_editor_fields->show_card_indexing()
            ) }) {
         if (field->isEnabled()) {
             field->setFocus(Qt::OtherFocusReason);
@@ -270,44 +260,21 @@ void table_slot::open_settings_editor() {
 }
 
 void table_slot::place_settings_editor() {
-    if (!settings_editor_panel || settings_editor_host)
+    if (!settings_editor_panel)
         return;
-    auto* panel = settings_editor_panel.data();
-    panel->ensurePolished();
-    const QSize needed = panel->sizeHint().expandedTo(panel->minimumSizeHint());
-    // Under piping the top notch and the bottom legends sit equally far in;
-    // the panel stays between them.
+    // Card/legend clearance and the chosen overlay edge remain host policy.
     const int clear
         = std::max(8, card_widget_internal->bottom_legend_clearance());
     const QRect available = rect().adjusted(8, clear, -8, -clear);
-    if (needed.width() > available.width()
-        || needed.height() > available.height()) {
-        QPointer<QWidget> focused = panel->focusWidget();
-        auto* host = new QDialog(this);
-        settings_editor_host = host;
-        host->setObjectName(QStringLiteral("slot_settings_host"));
-        host->setWindowTitle(str_label("Card settings"));
-        auto* layout = new QVBoxLayout(host);
-        // Move the draft, never recreate it on resize.
-        layout->addWidget(panel);
-        connect(host, &QDialog::rejected, this, [this] {
-            finish_settings_editor(false);
-        });
-        panel->show();
-        host->show();
-        if (focused)
-            focused->setFocus(Qt::OtherFocusReason);
-        return;
-    }
-    const int x = settings_style == slot_settings_style::drawer
-        ? available.right() - needed.width() + 1
-        : available.x() + (available.width() - needed.width()) / 2;
-    const int y = settings_style == slot_settings_style::sill
-        ? available.bottom() - needed.height() + 1
-        : available.y() + (available.height() - needed.height()) / 2;
-    panel->setGeometry(QRect(QPoint(x, y), needed));
-    panel->show();
-    panel->raise();
+    const Qt::Alignment horizontal
+        = settings_style == slot_settings_style::drawer ? Qt::AlignRight
+                                                        : Qt::AlignHCenter;
+    const Qt::Alignment vertical = settings_style == slot_settings_style::sill
+        ? Qt::AlignBottom
+        : Qt::AlignVCenter;
+    settings_editor_panel->place_in(
+        available, horizontal | vertical | Qt::AlignAbsolute
+    );
 }
 
 void table_slot::finish_settings_editor(bool apply) {
@@ -316,18 +283,13 @@ void table_slot::finish_settings_editor(bool apply) {
     auto* panel = settings_editor_panel.data();
     auto* fields = settings_editor_fields;
     auto* target_fields = gameplay_editor_fields;
-    auto* host = settings_editor_host.data();
     settings_editor_panel = nullptr;
     settings_editor_fields = nullptr;
     gameplay_editor_fields = nullptr;
-    settings_editor_host = nullptr;
-    panel->hide();
-    if (host) {
-        disconnect(host, nullptr, this, nullptr);
-        host->close();
-        host->deleteLater();
-    }
     QPointer<table_slot> lifetime(this);
+    panel->dismiss();
+    if (!lifetime)
+        return;
     if (apply && target_fields)
         (void)target_fields->apply_pending_changes();
     else if (apply)
@@ -341,8 +303,8 @@ void table_slot::finish_settings_editor(bool apply) {
         set_paused(current_phase == slot_phase::paused);
     if (compact_controls_button && compact_controls_button->isVisible()) {
         compact_controls_button->setFocus(Qt::OtherFocusReason);
-    } else if (settings_button->isVisible()) {
-        settings_button->setFocus(Qt::OtherFocusReason);
+    } else {
+        (void)focus_details_action();
     }
 }
 
@@ -541,7 +503,8 @@ void table_slot::sync_card_display_settings() {
         return;
     }
     if (training_check_box != nullptr) {
-        card_widget_internal->set_training_mode(training_check_box->isChecked()
+        card_widget_internal->set_training_mode(
+            training_check_box->isChecked()
         );
     }
     if (strategy_combo_box != nullptr) {

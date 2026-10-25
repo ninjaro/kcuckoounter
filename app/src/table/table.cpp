@@ -115,8 +115,7 @@ std::unique_ptr<table_slot> table::create_slot_widget() {
         slot.get(), &table_slot::score_adjusted, this, &table::score_adjusted
     );
     connect(
-        slot.get(), &table_slot::gameplay_configuration_changed, this,
-        [this] {
+        slot.get(), &table_slot::gameplay_configuration_changed, this, [this] {
             refresh_gameplay_session();
             emit gameplay_preparation_required();
         }
@@ -428,8 +427,7 @@ bool table::restore_session_state(const table_session_state& state) {
         return false;
     }
     if (std::ranges::any_of(
-            state.slot_states,
-            [](const table_slot_session_state& slot_state) {
+            state.slot_states, [](const table_slot_session_state& slot_state) {
                 return !table_slot::is_session_state_valid(slot_state);
             }
         )) {
@@ -443,7 +441,8 @@ bool table::restore_session_state(const table_session_state& state) {
     for (qsizetype index = 0; index < state.slot_states.size(); ++index) {
         table_slot* slot_widget = slot_widgets[static_cast<std::size_t>(index)];
         if (slot_widget == nullptr
-            || !slot_widget->restore_session_state(state.slot_states.at(index)
+            || !slot_widget->restore_session_state(
+                state.slot_states.at(index)
             )) {
             clear_quiz();
             return false;
@@ -473,7 +472,7 @@ void table::paintEvent(QPaintEvent* event) {
     BaseWidget::paintEvent(event);
 
     QPainter painter(this);
-    painter.fillRect(rect(), theme_settings::table_color());
+    painter.fillRect(rect(), theme_settings::table_color(this));
 }
 
 bool table::event(QEvent* event) {

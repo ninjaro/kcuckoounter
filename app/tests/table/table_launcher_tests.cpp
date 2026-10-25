@@ -224,7 +224,7 @@ void table_tests::gameplay_launcher_start_rejects_drafts_and_budgets() {
     count->setValue(1);
     owner = view->active_gameplay_session();
     auto* slot = view->slot_widgets.front();
-    slot->findChild<QPushButton*>(QStringLiteral("slot_details_button"))
+    slot->findChild<QAbstractButton*>(QStringLiteral("slot_details_button"))
         ->click();
     QVERIFY(view->has_open_gameplay_settings());
     start->trigger();

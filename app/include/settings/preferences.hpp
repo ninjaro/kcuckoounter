@@ -3,6 +3,8 @@
 
 #include "settings/theme_palette.hpp"
 
+#include <shared_ui/qt/appearance_model.hpp>
+
 #include <QByteArray>
 #include <QString>
 #include <QVector>
@@ -53,8 +55,18 @@ struct desktop_ui_preferences {
     [[nodiscard]] desktop_toolbar_style toolbar() const;
     [[nodiscard]] desktop_hud_style hud() const;
     [[nodiscard]] desktop_chrome_style chrome() const;
+    // Existing typed host choices are a view of current presentation IDs.
+    // Unknown IDs survive until explicitly replaced/reset, in the same keys.
+    [[nodiscard]] shared_ui::qt::appearance_state appearance() const;
+    [[nodiscard]] static desktop_ui_preferences
+    from_appearance(const shared_ui::qt::appearance_state& state);
+    void set_preset(desktop_ui_preset value);
     void reset_overrides();
     bool operator==(const desktop_ui_preferences&) const = default;
+
+private:
+    std::optional<QString> unknown_preset_;
+    QHash<QString, QString> unknown_overrides_;
 };
 
 [[nodiscard]] desktop_ui_preferences
@@ -101,6 +113,9 @@ public:
     void save(
         const trainer_preferences& preferences, const strategy_catalog& catalog
     );
+    void save_appearance(
+        const trainer_preferences& before, const trainer_preferences& after
+    );
 
     static trainer_preferences defaults(const strategy_catalog& catalog);
 
@@ -121,6 +136,9 @@ private:
 
 trainer_preferences load_trainer_preferences();
 void save_trainer_preferences(const trainer_preferences& preferences);
+void save_trainer_appearance_preferences(
+    const trainer_preferences& before, const trainer_preferences& after
+);
 desktop_shell_state load_desktop_shell_state();
 void save_desktop_shell_state(const desktop_shell_state& state);
 

@@ -19,6 +19,8 @@
 #include "settings/training_progress.hpp"
 #include "shell/gameplay_reservation.hpp"
 
+#include <shared_ui/qt/icons.hpp>
+
 #include <QButtonGroup>
 #include <QComboBox>
 #include <QDialog>
@@ -47,27 +49,6 @@
 
 namespace {
 
-// Play triangle or pause bars, drawn so the glyph matches the kit on every
-// icon theme.
-QIcon kit_transport_icon(bool pause, const QColor& color) {
-    QPixmap pixmap(QSize(22, 22));
-    pixmap.fill(Qt::transparent);
-    QPainter painter(&pixmap);
-    painter.setRenderHint(QPainter::Antialiasing, true);
-    painter.setPen(Qt::NoPen);
-    painter.setBrush(color);
-    if (pause) {
-        painter.drawRect(QRectF(5.0, 3.0, 4.5, 16.0));
-        painter.drawRect(QRectF(12.5, 3.0, 4.5, 16.0));
-    } else {
-        const QPointF triangle[]
-            = { { 4.0, 2.0 }, { 20.0, 11.0 }, { 4.0, 20.0 } };
-        painter.drawPolygon(triangle, 3);
-    }
-    painter.end();
-    return QIcon(pixmap);
-}
-
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
 // D-NEW-1 segmented control: a view of an existing combo box, which stays
 // the model (and the only object other code reads or persists).
@@ -80,6 +61,7 @@ QWidget* kit_segmented_field(QComboBox* combo, QWidget* parent) {
     stack->addWidget(combo);
     auto* track = new QFrame(field);
     track->setObjectName(QStringLiteral("kit_segmented"));
+    shared_ui::qt::set_presentation_role(*track, QStringLiteral("segmented"));
     auto* row = new QHBoxLayout(track);
     row->setContentsMargins(3, 3, 3, 3);
     row->setSpacing(2);
@@ -98,8 +80,7 @@ QWidget* kit_segmented_field(QComboBox* combo, QWidget* parent) {
         group, &QButtonGroup::idClicked, combo, &QComboBox::setCurrentIndex
     );
     QObject::connect(
-        combo, &QComboBox::currentIndexChanged, group,
-        [group](int index) {
+        combo, &QComboBox::currentIndexChanged, group, [group](int index) {
             if (auto* option = group->button(index))
                 option->setChecked(true);
         }
@@ -130,7 +111,12 @@ QString pickup_interval_text(int interval_ms) {
 }
 
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
-QString gameplay_lives_text(
+struct lives_presentation {
+    QString text;
+    QList<shared_ui::qt::status_field> fields;
+};
+
+lives_presentation gameplay_lives_text(
     const gameplay::session& owner, desktop_hud_style style, int default_suit
 ) {
     if (owner.configuration().failure != gameplay::failure_policy::lives)
@@ -154,17 +140,26 @@ QString gameplay_lives_text(
         = (classic ? QStringLiteral("♠") : outlined.at(default_suit))
               .repeated(lost);
 #ifdef KC_KDE
-    return i18n(
+    const auto text = i18n(
         "Remaining lives: %1 %2  Lost lives: %3 %4", remaining, live_symbols,
         lost, lost_symbols
     );
 #else
-    return str_label("Remaining lives: %1 %2  Lost lives: %3 %4")
-        .arg(remaining)
-        .arg(live_symbols)
-        .arg(lost)
-        .arg(lost_symbols);
+    const auto text = str_label("Remaining lives: %1 %2  Lost lives: %3 %4")
+                          .arg(remaining)
+                          .arg(live_symbols)
+                          .arg(lost)
+                          .arg(lost_symbols);
 #endif
+    return { text,
+             { { str_label("Remaining lives"),
+                 QString::number(remaining) + u' ' + live_symbols,
+                 {},
+                 {} },
+               { str_label("Lost lives"),
+                 QString::number(lost) + u' ' + lost_symbols,
+                 {},
+                 {} } } };
 }
 #endif
 
@@ -172,11 +167,11 @@ QString gameplay_lives_text(
 
 BaseWidget* main_window::create_desktop_status_surface() {
     desktop_status = new desktop_status_strip(this);
-    status_label = desktop_status->status;
-    pickup_interval_label = desktop_status->readout;
-    speed_slider = desktop_status->slider;
-    raster_progress = desktop_status->progress;
-    clock_label = desktop_status->clock;
+    status_label = desktop_status->status_label();
+    pickup_interval_label = desktop_status->readout_label();
+    speed_slider = desktop_status->control_slider();
+    raster_progress = desktop_status->progress_bar();
+    clock_label = desktop_status->trailing_label();
     return desktop_status;
 }
 
@@ -248,27 +243,33 @@ void main_window::update_start_pause_action(bool paused) const {
 
     if (paused) {
         start_pause_action->setText(str_label("Resume"));
-        start_pause_action->setIcon(icon_loader::themed(
-            { "media-playback-start", "media-playback-play", "play" },
-            QStyle::SP_MediaPlay
-        ));
+        start_pause_action->setIcon(
+            icon_loader::themed(
+                { "media-playback-start", "media-playback-play", "play" },
+                QStyle::SP_MediaPlay
+            )
+        );
         return;
     }
 
     start_pause_action->setText(str_label("Pause"));
-    start_pause_action->setIcon(icon_loader::themed(
-        { "media-playback-pause", "media-playback-stop", "pause" },
-        QStyle::SP_MediaPause
-    ));
+    start_pause_action->setIcon(
+        icon_loader::themed(
+            { "media-playback-pause", "media-playback-stop", "pause" },
+            QStyle::SP_MediaPause
+        )
+    );
 }
 
 void main_window::setup_game_actions() {
     new_game_action = new BaseAction(str_label("New game"), this);
     new_game_action->setShortcut(QKeySequence::New);
     register_shell_action(new_game_action, QStringLiteral("game_new"));
-    new_game_action->setIcon(icon_loader::themed(
-        { "document-new", "list-add", "folder-new" }, QStyle::SP_FileIcon
-    ));
+    new_game_action->setIcon(
+        icon_loader::themed(
+            { "document-new", "list-add", "folder-new" }, QStyle::SP_FileIcon
+        )
+    );
     QObject::connect(
         new_game_action, &BaseAction::triggered, this,
         &main_window::on_new_game_triggered
@@ -278,10 +279,12 @@ void main_window::setup_game_actions() {
     register_shell_action(
         start_pause_action, QStringLiteral("game_start_pause")
     );
-    start_pause_action->setIcon(icon_loader::themed(
-        { "media-playback-start", "media-playback-play", "play" },
-        QStyle::SP_MediaPlay
-    ));
+    start_pause_action->setIcon(
+        icon_loader::themed(
+            { "media-playback-start", "media-playback-play", "play" },
+            QStyle::SP_MediaPlay
+        )
+    );
     start_pause_action->setEnabled(false);
     start_pause_action->setShortcut(QKeySequence(Qt::Key_P));
     QObject::connect(
@@ -291,11 +294,13 @@ void main_window::setup_game_actions() {
 
     finish_action = new BaseAction(str_label("Finish"), this);
     register_shell_action(finish_action, QStringLiteral("game_finish"));
-    finish_action->setIcon(icon_loader::themed(
-        { "process-stop-symbolic", "process-stop", "dialog-close-symbolic",
-          "dialog-close", "window-close" },
-        QStyle::SP_DialogCloseButton
-    ));
+    finish_action->setIcon(
+        icon_loader::themed(
+            { "process-stop-symbolic", "process-stop", "dialog-close-symbolic",
+              "dialog-close", "window-close" },
+            QStyle::SP_DialogCloseButton
+        )
+    );
     finish_action->setEnabled(false);
     QObject::connect(
         finish_action, &BaseAction::triggered, this,
@@ -305,11 +310,13 @@ void main_window::setup_game_actions() {
     settings_action = new BaseAction(str_label("Settings"), this);
     settings_action->setShortcut(QKeySequence::Preferences);
     register_shell_action(settings_action, QStringLiteral("game_settings"));
-    settings_action->setIcon(icon_loader::themed(
-        { "preferences-system-symbolic", "settings-symbolic",
-          "preferences-system", "configure", "settings" },
-        QStyle::SP_FileDialogDetailedView
-    ));
+    settings_action->setIcon(
+        icon_loader::themed(
+            { "preferences-system-symbolic", "settings-symbolic",
+              "preferences-system", "configure", "settings" },
+            QStyle::SP_FileDialogDetailedView
+        )
+    );
     QObject::connect(
         settings_action, &BaseAction::triggered, this,
         &main_window::on_settings_triggered
@@ -382,10 +389,12 @@ void main_window::setup_game_actions() {
     progress_action->setToolTip(
         str_label("Show completed games and training accuracy")
     );
-    progress_action->setIcon(icon_loader::themed(
-        { "view-statistics", "office-chart-line", "games-highscores" },
-        QStyle::SP_FileDialogInfoView
-    ));
+    progress_action->setIcon(
+        icon_loader::themed(
+            { "view-statistics", "office-chart-line", "games-highscores" },
+            QStyle::SP_FileDialogInfoView
+        )
+    );
     QObject::connect(
         progress_action, &BaseAction::triggered, this,
         &main_window::on_progress_triggered
@@ -416,6 +425,9 @@ void main_window::setup_ui() {
     // D-NEW-1 card heading; the native title bar keeps the window title.
     setup_heading = new QLabel(str_label("New game"), setup_widget);
     setup_heading->setObjectName(QStringLiteral("kit_card_heading"));
+    shared_ui::qt::set_presentation_role(
+        *setup_heading, QStringLiteral("heading")
+    );
     setup_heading->hide();
     setup_layout->addWidget(setup_heading);
 #endif
@@ -447,8 +459,9 @@ void main_window::setup_ui() {
     allow_skipping
         = new BaseCheckBox(str_label("Allow skipping questions"), setup_widget);
     allow_skipping->setChecked(preferences.allow_skipping);
-    allow_skipping->setToolTip(str_label("Enable the skip button during quizzes"
-    ));
+    allow_skipping->setToolTip(
+        str_label("Enable the skip button during quizzes")
+    );
     android_ui::apply_check_box_style(allow_skipping);
 
     dealing_mode = new BaseComboBox(setup_widget);
@@ -493,6 +506,9 @@ void main_window::setup_ui() {
     continue_button = android_ui::create_button(setup_widget);
     continue_button->setText(str_label("Continue"));
     continue_button->setProperty("kit_primary", true);
+    shared_ui::qt::set_presentation_role(
+        *continue_button, QStringLiteral("primary")
+    );
     android_ui::apply_button_style(
         continue_button, android_button_profile::primary
     );
@@ -552,6 +568,9 @@ void main_window::setup_ui() {
     pickup_interval_label->setObjectName(
         QStringLiteral("pickup_interval_readout")
     );
+    shared_ui::qt::set_presentation_role(
+        *pickup_interval_label, QStringLiteral("muted-value")
+    );
     speed_slider->setObjectName(QStringLiteral("pickup_interval_slider"));
     raster_progress->setObjectName(QStringLiteral("raster_progress"));
     restore_desktop_shell_state();
@@ -581,9 +600,11 @@ void main_window::setup_ui() {
             if (gameplay_binding->completion()) {
                 if (!gameplay_completion_attempted)
                     (void)complete_gameplay_from_ui();
-            } else if (gameplay_binding->sequence()
-                       && !gameplay_binding->acknowledged()
-                       && !gameplay_binding->owns(*table_widget)) {
+            } else if (
+                gameplay_binding->sequence()
+                && !gameplay_binding->acknowledged()
+                && !gameplay_binding->owns(*table_widget)
+            ) {
                 report_gameplay_storage(str_label(
                     "The identified scene was retired. Its checkpoint is "
                     "preserved for recovery."
@@ -600,17 +621,13 @@ void main_window::setup_ui() {
                     );
                 }
                 if (pickup_interval_label)
-                    pickup_interval_label->setText(
-                        pickup_interval_text(owner->pick_interval_ms())
-                    );
+                    set_pickup_readout(owner->pick_interval_ms());
             } else if (speed_slider) {
                 const QSignalBlocker blocker(speed_slider);
                 speed_slider->setValue(table_widget->pick_interval());
                 speed_slider->setEnabled(true);
                 if (pickup_interval_label)
-                    pickup_interval_label->setText(
-                        pickup_interval_text(speed_slider->value())
-                    );
+                    set_pickup_readout(speed_slider->value());
             }
             refresh_clock_label();
             update_status_text();
@@ -741,8 +758,7 @@ void main_window::setup_ui() {
     }
 
     if (pickup_interval_label != nullptr && speed_slider != nullptr) {
-        pickup_interval_label->setText(pickup_interval_text(speed_slider->value(
-        )));
+        set_pickup_readout(speed_slider->value());
     }
     refresh_clock_label();
 
@@ -780,10 +796,7 @@ void main_window::apply_desktop_presentation() {
     gameplay_default_suit = load_default_suit_preference();
     // Material first: slots read it while restyling their overlays below.
     felt_chrome = value.chrome() == desktop_chrome_style::felt;
-    theme_settings::set_felt_chrome(felt_chrome);
-    setStyleSheet(
-        felt_chrome ? theme_settings::felt_window_style_sheet() : QString()
-    );
+    theme_settings::apply_chrome(*this, felt_chrome);
     if (table_widget != nullptr) {
         table_widget->set_frame_style(value.frame());
         table_widget->set_action_style(value.actions());
@@ -846,12 +859,18 @@ void main_window::apply_kit_one_bar() {
         row->setSpacing(0);
         auto* icon = new QLabel(brand);
         icon->setObjectName(QStringLiteral("kit_wordmark_icon"));
+        shared_ui::qt::set_presentation_role(
+            *icon, QStringLiteral("brand-icon")
+        );
         const QString cuckoo
             = bundled_asset_path(QStringLiteral("brand/cuckoo.svg"));
         if (!cuckoo.isEmpty())
             icon->setPixmap(QIcon(cuckoo).pixmap(QSize(20, 20)));
         kit_wordmark = new QLabel(str_label("KCUCKOOUNTER"), brand);
         kit_wordmark->setObjectName(QStringLiteral("kit_wordmark"));
+        shared_ui::qt::set_presentation_role(
+            *kit_wordmark, QStringLiteral("wordmark")
+        );
         kit_wordmark->setAccessibleName(str_label("kcuckoounter"));
         row->addWidget(icon);
         row->addWidget(kit_wordmark);
@@ -888,6 +907,9 @@ void main_window::apply_kit_one_bar() {
                     primary_toolbar->widgetForAction(menu->menuAction())
                 )) {
                 button->setObjectName(QStringLiteral("kit_menu_button"));
+                shared_ui::qt::set_presentation_role(
+                    *button, QStringLiteral("quiet-command")
+                );
                 button->setPopupMode(QToolButton::InstantPopup);
             }
         }
@@ -925,8 +947,9 @@ void main_window::refresh_slot_preview() {
         if (combo != nullptr)
             show_kit_segmented(combo, felt_chrome);
     if (setup_dialog != nullptr) {
-        setup_dialog->setStyleSheet(
-            felt_chrome ? theme_settings::felt_paper_style_sheet() : QString()
+        theme_settings::apply_chrome(
+            *setup_dialog, felt_chrome,
+            shared_ui::qt::presentation_surface::paper
         );
         // The kit's card is ~350px wide with 20px of paper around the form.
         setup_dialog->setMinimumWidth(felt_chrome ? 352 : 0);
@@ -954,9 +977,9 @@ void main_window::refresh_slot_preview() {
     painter.setRenderHint(QPainter::Antialiasing, true);
     // On the paper card: a pale tray with the packed slots in table green.
     painter.setPen(Qt::NoPen);
-    painter.setBrush(QColor(0xe4, 0xdf, 0xd0));
+    painter.setBrush(theme_settings::felt(this).card_recess);
     painter.drawRoundedRect(QRectF(QPointF(), box), 6.0, 6.0);
-    painter.setBrush(theme_settings::table_color());
+    painter.setBrush(theme_settings::table_color(this));
     const auto packed
         = table_widget->preview_slot_layout(table_slots_count->value());
     for (const QRectF& slot : packed) {
@@ -988,11 +1011,11 @@ void main_window::update_toolbar_buttons() {
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     if (primary_toolbar == nullptr)
         return;
-    const QColor icon_color = theme_settings::felt().text;
+    const QColor icon_color = theme_settings::felt(this).text;
     for (auto* action : primary_toolbar->actions()) {
-        auto* button
-            = qobject_cast<QToolButton*>(primary_toolbar->widgetForAction(action
-            ));
+        auto* button = qobject_cast<QToolButton*>(
+            primary_toolbar->widgetForAction(action)
+        );
         if (button == nullptr)
             continue;
         const bool icon_only = compact_toolbar && action != start_pause_action
@@ -1004,18 +1027,24 @@ void main_window::update_toolbar_buttons() {
                 : felt_chrome ? Qt::ToolButtonTextOnly
                               : Qt::ToolButtonTextBesideIcon
         );
-        if (action == start_pause_action)
+        if (action == start_pause_action) {
             button->setObjectName(QStringLiteral("game_start_pause_button"));
+            shared_ui::qt::set_presentation_role(
+                *button, QStringLiteral("primary")
+            );
+        }
         if (felt_chrome && action == start_pause_action) {
             // D-TOP-1: the gold primary keeps a drawn transport glyph.
             button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-            button->setIcon(kit_transport_icon(
-                action->text() == str_label("Pause"),
-                theme_settings::felt().deep
-            ));
+            button->setIcon(
+                shared_ui::qt::transport_icon(
+                    action->text() == str_label("Pause"),
+                    theme_settings::felt(this).panel
+                )
+            );
         } else if (felt_chrome && icon_only)
             button->setIcon(
-                theme_settings::tinted_icon(action->icon(), icon_color)
+                shared_ui::qt::tinted_icon(action->icon(), icon_color)
             );
         else if (button->icon().cacheKey() != action->icon().cacheKey())
             button->setIcon(action->icon());
@@ -1109,9 +1138,7 @@ void main_window::on_speed_slider_value_changed(int value) {
             speed_slider->setValue(owner->pick_interval_ms());
         }
         if (pickup_interval_label)
-            pickup_interval_label->setText(
-                pickup_interval_text(owner->pick_interval_ms())
-            );
+            set_pickup_readout(owner->pick_interval_ms());
         update_status_text();
         return;
     }
@@ -1119,7 +1146,7 @@ void main_window::on_speed_slider_value_changed(int value) {
         table_widget->set_pick_interval(value);
     }
     if (pickup_interval_label != nullptr) {
-        pickup_interval_label->setText(pickup_interval_text(value));
+        set_pickup_readout(value);
     }
 }
 
@@ -1159,12 +1186,39 @@ void main_window::on_table_slot_count_changed(int value) {
     table_widget->schedule_card_preload();
 }
 
+void main_window::set_pickup_readout(int interval_ms) const {
+    if (!pickup_interval_label)
+        return;
+    const auto text = pickup_interval_text(interval_ms);
+    if (desktop_status) {
+#ifdef KC_KDE
+        const auto value = i18n("%1 ms", interval_ms);
+#else
+        const auto value = str_label("%1 ms").arg(interval_ms);
+#endif
+        desktop_status->set_readout(
+            text, { { str_label("Pickup"), value, {}, {} } }
+        );
+    } else {
+        pickup_interval_label->setText(text);
+    }
+}
+
 void main_window::update_status_text() {
     if (status_label == nullptr) {
         return;
     }
+    const auto present = [this](
+                             const QString& text,
+                             const QList<shared_ui::qt::status_field>& fields
+                         ) {
+        if (desktop_status)
+            desktop_status->set_status(text, fields);
+        else
+            status_label->setText(text);
+    };
     if (!gameplay_storage_error.isEmpty()) {
-        status_label->setText(gameplay_storage_error);
+        present(gameplay_storage_error, {});
         return;
     }
     if (table_widget && table_widget->active_gameplay_session()) {
@@ -1174,12 +1228,71 @@ void main_window::update_status_text() {
             *table_widget->active_gameplay_session(), gameplay_hud_style,
             gameplay_default_suit
         );
-        if (!lives.isEmpty())
-            text += QStringLiteral("  ") + lives;
+        if (!lives.text.isEmpty())
+            text += QStringLiteral("  ") + lives.text;
 #endif
         if (rasterization_busy)
             text.prepend(str_label("Processing") + QStringLiteral(" / "));
-        status_label->setText(text);
+        const auto& owner = *table_widget->active_gameplay_session();
+        QString phase;
+        switch (owner.phase()) {
+        case gameplay::session_phase::setup:
+            phase = str_label("Ready");
+            break;
+        case gameplay::session_phase::running:
+            phase = str_label("Running");
+            break;
+        case gameplay::session_phase::paused:
+            phase = str_label("Paused");
+            break;
+        case gameplay::session_phase::finished:
+            phase = str_label("Finished");
+            break;
+        }
+        if (rasterization_busy)
+            phase.prepend(str_label("Processing") + str_label(" / "));
+        const auto number = [](auto value) {
+            return QString::number(static_cast<qulonglong>(value));
+        };
+        const auto& stats = owner.statistics();
+        QList<shared_ui::qt::status_field> fields {
+            { str_label("Status"),
+              phase,
+              {},
+              shared_ui::qt::status_kind::live },
+            { str_label("Verified"), number(stats.verified_cards), {}, {} },
+            { str_label("Errors"), number(stats.errors), {}, {} },
+            { str_label("Skips"), number(stats.skips), {}, {} },
+            { str_label("Questions"),
+              number(owner.unresolved_quizzes().size()),
+              {},
+              {} }
+        };
+#ifdef KC_KDE
+        fields.append(
+            { str_label("Time"), table_widget->gameplay_clock_text(), {}, {} }
+        );
+#endif
+        if (owner.configuration().failure == gameplay::failure_policy::lives)
+            fields.append(
+                { str_label("Lives"), number(owner.remaining_lives()), {}, {} }
+            );
+        const auto& batch = owner.current_quiz_batch();
+        if (batch && batch->remaining_ms
+            && owner.phase() != gameplay::session_phase::finished) {
+            const auto seconds = *batch->remaining_ms / 1000
+                + (*batch->remaining_ms % 1000 != 0);
+#ifdef KC_KDE
+            const auto remaining = i18n("%1 s", seconds);
+#else
+            const auto remaining = str_label("%1 s").arg(seconds);
+#endif
+            fields.append({ str_label("Quiz remaining"), remaining, {}, {} });
+        }
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+        fields.append(lives.fields);
+#endif
+        present(text, fields);
         return;
     }
 
@@ -1209,25 +1322,46 @@ void main_window::update_status_text() {
         time_label = clock_timer->time_string_mm_ss();
     }
 
+    QList<shared_ui::qt::status_field> fields {
+        { str_label("Status"),
+          status_value,
+          {},
+          shared_ui::qt::status_kind::live }
+    };
     if (!quiz_started && !quiz_finished) {
 #ifdef KC_KDE
-        status_label->setText(i18n("Status: %1", status_value));
+        present(i18n("Status: %1", status_value), fields);
 #else
-        status_label->setText(str_label("Status: %1").arg(status_value));
+        present(str_label("Status: %1").arg(status_value), fields);
 #endif
         return;
     }
+    fields.append(
+        { str_label("Score"),
+          QString::number(score_correct),
+          QStringLiteral("/") + QString::number(score_total),
+          {} }
+    );
+#ifdef KC_KDE
+    fields.append({ str_label("Time"), time_label, {}, {} });
+#endif
 
 #ifdef KC_KDE
-    status_label->setText(i18n(
-        "Status: %1  Score: %2/%3  Time: %4", status_value, score_correct,
-        score_total, time_label
-    ));
+    present(
+        i18n(
+            "Status: %1  Score: %2/%3  Time: %4", status_value, score_correct,
+            score_total, time_label
+        ),
+        fields
+    );
 #else
-    status_label->setText(str_label("Status: %1  Score: %2/%3  Time: %4")
-                              .arg(status_value)
-                              .arg(score_correct)
-                              .arg(score_total)
-                              .arg(time_label));
+    present(
+        str_label("Status: %1  Score: %2/%3  Time: %4")
+            .arg(status_value)
+            .arg(score_correct)
+            .arg(score_total)
+            .arg(time_label),
+        fields
+    );
 #endif
 }

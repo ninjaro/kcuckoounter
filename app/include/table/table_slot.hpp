@@ -16,6 +16,7 @@
 #include <QVector>
 #include <optional>
 
+class QAction;
 class QStackedLayout;
 class QResizeEvent;
 class QLabel;
@@ -28,6 +29,11 @@ class slot_settings;
 
 namespace gameplay {
 class deck_setup_widget;
+}
+
+namespace shared_ui::qt {
+class action_group;
+class editor_panel;
 }
 
 class table_slot : public BaseWidget {
@@ -141,8 +147,7 @@ private:
     slot_action_style action_style = slot_action_style::classic;
     copy_action current_copy_action = copy_action::copy;
     slot_settings_style settings_style = slot_settings_style::classic;
-    QPointer<BaseWidget> settings_editor_panel;
-    QPointer<QDialog> settings_editor_host;
+    QPointer<shared_ui::qt::editor_panel> settings_editor_panel;
     slot_settings* settings_editor_fields = nullptr;
     gameplay::deck_setup_widget* gameplay_editor_fields = nullptr;
     BaseCheckBox* infinity_check_box;
@@ -152,10 +157,13 @@ private:
     BaseCheckBox* show_card_indexing;
     BaseCheckBox* show_strategy_name;
     BaseCheckBox* training_check_box;
-    BasePushButton* swap_button;
-    BasePushButton* settings_button;
-    BasePushButton* copy_button;
-    BasePushButton* copy_all_button;
+    // The slot's commands. The slot owns their meaning, availability and
+    // checked state; slot_actions (Appearance) only presents them.
+    QAction* details_action = nullptr;
+    QAction* swap_action = nullptr;
+    QAction* copy_settings_action = nullptr;
+    QAction* copy_all_action = nullptr;
+    shared_ui::qt::action_group* slot_actions = nullptr;
     BaseWidget* quiz_bar_widget;
     QStackedLayout* quiz_layout;
     BaseWidget* quiz_prompt_widget;
@@ -192,6 +200,8 @@ private:
     void update_overlay_layout();
     void update_overlay_margins();
     void update_action_presentation();
+    // Keyboard focus to the Details command, if it is shown.
+    bool focus_details_action();
     void update_compact_controls();
     void show_compact_controls();
     void update_settings_button_state(bool dialog_open = false);

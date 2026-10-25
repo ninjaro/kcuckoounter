@@ -159,7 +159,7 @@ QByteArray bounded_byte_array(const QVariant& value) {
     if (value.metaType().id() != QMetaType::QByteArray) {
         return {};
     }
-    const QByteArray bytes = value.toByteArray();
+    QByteArray bytes = value.toByteArray();
     if (bytes.size() > maximum_shell_state_bytes) {
         return {};
     }
@@ -268,6 +268,32 @@ void preferences_service::save(
     settings.sync();
 }
 
+void preferences_service::save_appearance(
+    const trainer_preferences& before, const trainer_preferences& after
+) {
+    settings.beginGroup(preferences_group);
+    if (before.palette != after.palette)
+        settings.setValue(
+            QStringLiteral("appearance/palette"), palette_key(after.palette)
+        );
+    if (before.card_orientation != after.card_orientation)
+        settings.setValue(
+            QStringLiteral("appearance/card_orientation"),
+            card_orientation_key(after.card_orientation)
+        );
+    settings.endGroup();
+    settings.sync();
+}
+
+void save_trainer_appearance_preferences(
+    const trainer_preferences& before, const trainer_preferences& after
+) {
+    QSettings settings(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    preferences_service(settings).save_appearance(before, after);
+}
+
 desktop_shell_state_service::desktop_shell_state_service(
     QSettings& settings_value
 )
@@ -278,9 +304,9 @@ desktop_shell_state desktop_shell_state_service::load() const {
     desktop_shell_state result;
     result.geometry
         = bounded_byte_array(settings.value(QStringLiteral("window/geometry")));
-    result.main_window_state
-        = bounded_byte_array(settings.value(QStringLiteral("window/main_state"))
-        );
+    result.main_window_state = bounded_byte_array(
+        settings.value(QStringLiteral("window/main_state"))
+    );
     settings.endGroup();
     return result;
 }
@@ -384,6 +410,7 @@ desktop_chrome_style desktop_ui_preferences::chrome() const {
 }
 
 void desktop_ui_preferences::reset_overrides() {
+    unknown_overrides_.clear();
     frame_override.reset();
     speed_readout_override.reset();
     answer_override.reset();
@@ -395,17 +422,23 @@ void desktop_ui_preferences::reset_overrides() {
     chrome_override.reset();
 }
 
-desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
+desktop_ui_preferences desktop_ui_preferences::from_appearance(
+    const shared_ui::qt::appearance_state& state
+) {
     desktop_ui_preferences result;
-    settings.beginGroup(QStringLiteral("desktop_ui"));
-    const QString preset = settings.value(QStringLiteral("preset")).toString();
-    if (preset == QStringLiteral("quiet")) {
+    result.unknown_preset_ = state.preset;
+    result.unknown_overrides_ = state.overrides;
+    const QString preset = state.preset;
+    if (preset == QStringLiteral("classic")) {
+        result.unknown_preset_.reset();
+    } else if (preset == QStringLiteral("quiet")) {
+        result.unknown_preset_.reset();
         result.preset = desktop_ui_preset::quiet;
     } else if (preset == QStringLiteral("felt")) {
+        result.unknown_preset_.reset();
         result.preset = desktop_ui_preset::felt;
     }
-    const QString frame
-        = settings.value(QStringLiteral("overrides/frame")).toString();
+    const QString frame = state.overrides.value(QStringLiteral("frame"));
     if (frame == QStringLiteral("classic")) {
         result.frame_override = slot_frame_style::classic;
     } else if (frame == QStringLiteral("thin")) {
@@ -414,28 +447,27 @@ desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
         result.frame_override = slot_frame_style::piping;
     }
     const QString speed
-        = settings.value(QStringLiteral("overrides/speed_readout")).toString();
+        = state.overrides.value(QStringLiteral("speed_readout"));
     if (speed == QStringLiteral("shown")) {
         result.speed_readout_override = true;
     } else if (speed == QStringLiteral("hidden")) {
         result.speed_readout_override = false;
     }
     const QString answer
-        = settings.value(QStringLiteral("overrides/answer_entry")).toString();
+        = state.overrides.value(QStringLiteral("answer_entry"));
     if (answer == QStringLiteral("numeric")) {
         result.answer_override = quiz_answer_style::numeric;
     } else if (answer == QStringLiteral("chips")) {
         result.answer_override = quiz_answer_style::chips;
     }
-    const QString feedback
-        = settings.value(QStringLiteral("overrides/feedback")).toString();
+    const QString feedback = state.overrides.value(QStringLiteral("feedback"));
     if (feedback == QStringLiteral("classic")) {
         result.feedback_override = quiz_feedback_style::classic;
     } else if (feedback == QStringLiteral("stamp")) {
         result.feedback_override = quiz_feedback_style::stamp;
     }
     const QString actions
-        = settings.value(QStringLiteral("overrides/slot_actions")).toString();
+        = state.overrides.value(QStringLiteral("slot_actions"));
     if (actions == QStringLiteral("classic")) {
         result.actions_override = slot_action_style::classic;
     } else if (actions == QStringLiteral("rail")) {
@@ -444,8 +476,7 @@ desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
         result.actions_override = slot_action_style::pills;
     }
     const auto surface
-        = settings.value(QStringLiteral("overrides/settings_surface"))
-              .toString();
+        = state.overrides.value(QStringLiteral("settings_surface"));
     if (surface == QStringLiteral("classic"))
         result.settings_override = slot_settings_style::classic;
     else if (surface == QStringLiteral("card"))
@@ -454,132 +485,180 @@ desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
         result.settings_override = slot_settings_style::drawer;
     else if (surface == QStringLiteral("sill"))
         result.settings_override = slot_settings_style::sill;
-    const auto toolbar
-        = settings.value(QStringLiteral("overrides/toolbar")).toString();
+    const auto toolbar = state.overrides.value(QStringLiteral("toolbar"));
     if (toolbar == QStringLiteral("classic"))
         result.toolbar_override = desktop_toolbar_style::classic;
     else if (toolbar == QStringLiteral("compact"))
         result.toolbar_override = desktop_toolbar_style::compact;
-    const auto hud = settings.value(QStringLiteral("overrides/hud")).toString();
+    const auto hud = state.overrides.value(QStringLiteral("hud"));
     if (hud == QStringLiteral("classic"))
         result.hud_override = desktop_hud_style::classic;
     else if (hud == QStringLiteral("instruments"))
         result.hud_override = desktop_hud_style::instruments;
-    const auto chrome
-        = settings.value(QStringLiteral("overrides/chrome")).toString();
+    const auto chrome = state.overrides.value(QStringLiteral("chrome"));
     if (chrome == QStringLiteral("native"))
         result.chrome_override = desktop_chrome_style::native;
     else if (chrome == QStringLiteral("felt"))
         result.chrome_override = desktop_chrome_style::felt;
-    settings.endGroup();
+    const auto recognized = [&](const QString& key, bool known) {
+        if (known)
+            result.unknown_overrides_.remove(key);
+    };
+    recognized(QStringLiteral("frame"), result.frame_override.has_value());
+    recognized(
+        QStringLiteral("speed_readout"),
+        result.speed_readout_override.has_value()
+    );
+    recognized(
+        QStringLiteral("answer_entry"), result.answer_override.has_value()
+    );
+    recognized(
+        QStringLiteral("feedback"), result.feedback_override.has_value()
+    );
+    recognized(
+        QStringLiteral("slot_actions"), result.actions_override.has_value()
+    );
+    recognized(
+        QStringLiteral("settings_surface"), result.settings_override.has_value()
+    );
+    recognized(QStringLiteral("toolbar"), result.toolbar_override.has_value());
+    recognized(QStringLiteral("hud"), result.hud_override.has_value());
+    recognized(QStringLiteral("chrome"), result.chrome_override.has_value());
     return result;
 }
 
-bool save_desktop_ui_preferences(
-    QSettings& settings, const desktop_ui_preferences& preferences
-) {
-    settings.beginGroup(QStringLiteral("desktop_ui"));
-    settings.setValue(
-        QStringLiteral("preset"),
-        preferences.preset == desktop_ui_preset::quiet ? QStringLiteral("quiet")
-            : preferences.preset == desktop_ui_preset::felt
-            ? QStringLiteral("felt")
-            : QStringLiteral("classic")
-    );
-    if (preferences.frame_override) {
-        const auto style = *preferences.frame_override;
-        settings.setValue(
-            QStringLiteral("overrides/frame"),
+shared_ui::qt::appearance_state desktop_ui_preferences::appearance() const {
+    shared_ui::qt::appearance_state result { {}, unknown_overrides_ };
+    result.preset = preset == desktop_ui_preset::classic && unknown_preset_
+        ? *unknown_preset_
+        : (preset == desktop_ui_preset::quiet      ? QStringLiteral("quiet")
+               : preset == desktop_ui_preset::felt ? QStringLiteral("felt")
+                                                   : QStringLiteral("classic"));
+    if (frame_override) {
+        const auto style = *frame_override;
+        result.overrides.insert(
+            QStringLiteral("frame"),
             style == slot_frame_style::thin         ? QStringLiteral("thin")
                 : style == slot_frame_style::piping ? QStringLiteral("piping")
                                                     : QStringLiteral("classic")
         );
-    } else {
-        settings.remove(QStringLiteral("overrides/frame"));
     }
-    if (preferences.speed_readout_override) {
-        settings.setValue(
-            QStringLiteral("overrides/speed_readout"),
-            *preferences.speed_readout_override ? QStringLiteral("shown")
-                                                : QStringLiteral("hidden")
+    if (speed_readout_override) {
+        result.overrides.insert(
+            QStringLiteral("speed_readout"),
+            *speed_readout_override ? QStringLiteral("shown")
+                                    : QStringLiteral("hidden")
         );
-    } else {
-        settings.remove(QStringLiteral("overrides/speed_readout"));
     }
-    if (preferences.answer_override) {
-        settings.setValue(
-            QStringLiteral("overrides/answer_entry"),
-            *preferences.answer_override == quiz_answer_style::chips
+    if (answer_override) {
+        result.overrides.insert(
+            QStringLiteral("answer_entry"),
+            *answer_override == quiz_answer_style::chips
                 ? QStringLiteral("chips")
                 : QStringLiteral("numeric")
         );
-    } else {
-        settings.remove(QStringLiteral("overrides/answer_entry"));
     }
-    if (preferences.feedback_override) {
-        settings.setValue(
-            QStringLiteral("overrides/feedback"),
-            *preferences.feedback_override == quiz_feedback_style::stamp
+    if (feedback_override) {
+        result.overrides.insert(
+            QStringLiteral("feedback"),
+            *feedback_override == quiz_feedback_style::stamp
                 ? QStringLiteral("stamp")
                 : QStringLiteral("classic")
         );
-    } else {
-        settings.remove(QStringLiteral("overrides/feedback"));
     }
-    if (preferences.actions_override) {
-        const auto style = *preferences.actions_override;
-        settings.setValue(
-            QStringLiteral("overrides/slot_actions"),
+    if (actions_override) {
+        const auto style = *actions_override;
+        result.overrides.insert(
+            QStringLiteral("slot_actions"),
             style == slot_action_style::rail        ? QStringLiteral("rail")
                 : style == slot_action_style::pills ? QStringLiteral("pills")
                                                     : QStringLiteral("classic")
         );
-    } else {
-        settings.remove(QStringLiteral("overrides/slot_actions"));
     }
-    if (preferences.settings_override) {
-        const auto style = *preferences.settings_override;
-        settings.setValue(
-            QStringLiteral("overrides/settings_surface"),
+    if (settings_override) {
+        const auto style = *settings_override;
+        result.overrides.insert(
+            QStringLiteral("settings_surface"),
             style == slot_settings_style::card ? QStringLiteral("card")
                 : style == slot_settings_style::drawer
                 ? QStringLiteral("drawer")
                 : style == slot_settings_style::sill ? QStringLiteral("sill")
                                                      : QStringLiteral("classic")
         );
-    } else {
-        settings.remove(QStringLiteral("overrides/settings_surface"));
     }
-    if (preferences.toolbar_override) {
-        settings.setValue(
-            QStringLiteral("overrides/toolbar"),
-            *preferences.toolbar_override == desktop_toolbar_style::compact
+    if (toolbar_override) {
+        result.overrides.insert(
+            QStringLiteral("toolbar"),
+            *toolbar_override == desktop_toolbar_style::compact
                 ? QStringLiteral("compact")
                 : QStringLiteral("classic")
         );
-    } else {
-        settings.remove(QStringLiteral("overrides/toolbar"));
     }
-    if (preferences.hud_override) {
-        settings.setValue(
-            QStringLiteral("overrides/hud"),
-            *preferences.hud_override == desktop_hud_style::instruments
+    if (hud_override) {
+        result.overrides.insert(
+            QStringLiteral("hud"),
+            *hud_override == desktop_hud_style::instruments
                 ? QStringLiteral("instruments")
                 : QStringLiteral("classic")
         );
-    } else {
-        settings.remove(QStringLiteral("overrides/hud"));
     }
-    if (preferences.chrome_override) {
-        settings.setValue(
-            QStringLiteral("overrides/chrome"),
-            *preferences.chrome_override == desktop_chrome_style::felt
+    if (chrome_override) {
+        result.overrides.insert(
+            QStringLiteral("chrome"),
+            *chrome_override == desktop_chrome_style::felt
                 ? QStringLiteral("felt")
                 : QStringLiteral("native")
         );
-    } else {
-        settings.remove(QStringLiteral("overrides/chrome"));
     }
+    return result;
+}
+
+void desktop_ui_preferences::set_preset(desktop_ui_preset value) {
+    preset = value;
+    unknown_preset_.reset();
+}
+
+desktop_ui_preferences load_desktop_ui_preferences(QSettings& settings) {
+    shared_ui::qt::appearance_state state;
+    settings.beginGroup(QStringLiteral("desktop_ui"));
+    state.preset
+        = settings.value(QStringLiteral("preset"), QStringLiteral("classic"))
+              .toString();
+    settings.beginGroup(QStringLiteral("overrides"));
+    for (const auto& key : settings.allKeys())
+        state.overrides.insert(key, settings.value(key).toString());
+    settings.endGroup();
+    settings.endGroup();
+    return desktop_ui_preferences::from_appearance(state);
+}
+
+bool save_desktop_ui_preferences(
+    QSettings& settings, const desktop_ui_preferences& preferences
+) {
+    const auto state = preferences.appearance();
+    settings.beginGroup(QStringLiteral("desktop_ui"));
+    if (!settings.contains(QStringLiteral("preset"))
+        || settings.value(QStringLiteral("preset")).toString() != state.preset)
+        settings.setValue(QStringLiteral("preset"), state.preset);
+    settings.beginGroup(QStringLiteral("overrides"));
+    // Keep the exact existing QVariant for retained choices, including future
+    // types and nested keys. This is the existing store, not a second schema.
+    QHash<QString, QVariant> existing;
+    for (const auto& key : settings.allKeys())
+        existing.insert(key, settings.value(key));
+    for (const auto& key : existing.keys())
+        if (!state.overrides.contains(key))
+            settings.remove(key);
+    for (auto it = state.overrides.cbegin(); it != state.overrides.cend();
+         ++it) {
+        const QVariant value = existing.contains(it.key())
+                && existing.value(it.key()).toString() == it.value()
+            ? existing.value(it.key())
+            : QVariant(it.value());
+        if (!settings.contains(it.key()) || settings.value(it.key()) != value)
+            settings.setValue(it.key(), value);
+    }
+    settings.endGroup();
     settings.endGroup();
     settings.sync();
     return settings.status() == QSettings::NoError;

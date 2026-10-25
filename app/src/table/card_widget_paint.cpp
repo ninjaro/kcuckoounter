@@ -41,8 +41,8 @@ card_widget::blend_color(const QColor& from, const QColor& to, qreal strength) {
     return blended;
 }
 
-QPointF card_widget::paint_geometry::bounded_offset(const QPointF& offset
-) const {
+QPointF
+card_widget::paint_geometry::bounded_offset(const QPointF& offset) const {
     return { std::clamp(offset.x(), -jitter_limit, jitter_limit),
              std::clamp(offset.y(), -jitter_limit, jitter_limit) };
 }
@@ -51,8 +51,8 @@ card_widget::paint_geometry card_widget::layout_geometry() const {
     return layout_geometry(QSizeF(size()));
 }
 
-card_widget::paint_geometry card_widget::layout_geometry(const QSizeF& size
-) const {
+card_widget::paint_geometry
+card_widget::layout_geometry(const QSizeF& size) const {
     paint_geometry result;
     const qreal outer_margin
         = std::min(3.0, std::min(size.width(), size.height()) / 8.0);
@@ -155,7 +155,7 @@ void card_widget::paint_slot_frame(
     const bool completed
         = target && target->status == gameplay::deck_status::completed;
     const QColor slot_fill_color
-        = failed ? QColor(70, 70, 70) : theme_settings::slot_fill_color();
+        = failed ? QColor(70, 70, 70) : theme_settings::slot_fill_color(this);
     const QColor slot_border_color = swap_selected_flag
         ? theme_settings::slot_border_selected_color()
         : (failed ? QColor(35, 35, 35)
@@ -183,9 +183,9 @@ void card_widget::paint_piping_frame(
     // position as legends on the bottom line. Nothing occupies the card's
     // safe area, so card size, jitter and history are unchanged.
     const QRectF& frame = geometry.frame;
-    const felt_material material = theme_settings::felt();
+    const shared_ui::qt::material_tokens material = theme_settings::felt(this);
     const qreal radius = std::clamp(geometry.min_dim * 0.045, 6.0, 16.0);
-    const QColor line = verdict_glow ? material.wrong : border;
+    const QColor line = verdict_glow ? material.negative_fill : border;
     painter.save();
     painter.setBrush(Qt::NoBrush);
     // Outer bloom; a correction glows wider and stronger (D-FEED-2's edge).
@@ -238,7 +238,7 @@ void card_widget::paint_piping_frame(
     notch_font.setPixelSize(static_cast<int>(font_px));
     notch_font.setLetterSpacing(QFont::AbsoluteSpacing, font_px * 0.14);
     const QFontMetricsF metrics(notch_font);
-    const QColor table_fill = theme_settings::table_color();
+    const QColor table_fill = theme_settings::table_color(this);
     if (slot_number > 0) {
         const QString number
             = QStringLiteral("%1").arg(slot_number, 2, 10, QLatin1Char('0'));
@@ -307,7 +307,7 @@ void card_widget::paint_piping_frame(
     if (!index.isEmpty()) {
         QFont index_font(material.mono_family);
         index_font.setPixelSize(static_cast<int>(font_px) + 1);
-        QColor paper = material.paper;
+        QColor paper = material.card;
         paper.setAlphaF(0.75f);
         legend(index, index_font, paper, false);
     }
@@ -322,7 +322,8 @@ int card_widget::bottom_legend_clearance() const {
     if (geometry.min_dim < 64.0)
         return 0;
     // The legend box is centred on the line: half its height plus a gap.
-    return static_cast<int>(std::ceil(height() - geometry.frame.bottom() + 9.0)
+    return static_cast<int>(
+        std::ceil(height() - geometry.frame.bottom() + 9.0)
     );
 }
 
@@ -331,7 +332,7 @@ void card_widget::draw_card_mat(
     qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
     bool top_card
 ) const {
-    if (!theme_settings::felt_chrome())
+    if (!theme_settings::felt_chrome(this))
         return;
     const qreal short_side
         = std::min(oriented_card_rect.width(), oriented_card_rect.height());
@@ -364,7 +365,7 @@ void card_widget::draw_card_mat(
         painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
     );
     painter.setPen(Qt::NoPen);
-    painter.setBrush(theme_settings::felt().paper);
+    painter.setBrush(theme_settings::felt(this).card);
     painter.drawRoundedRect(
         oriented_card_rect.adjusted(-mat, -mat, mat, mat), 9.0 + mat, 9.0 + mat
     );
@@ -404,7 +405,7 @@ void card_widget::paint_deck_content(
         && target_lines.constFirst() == strategy_name)
         target_lines.removeFirst();
     if (display_hidden()) {
-        if (theme_settings::felt_chrome()) {
+        if (theme_settings::felt_chrome(this)) {
             // Felt docks the answer panel below the quiz marking instead of
             // covering its middle; the marking keeps its raster size.
             draw_table_marking(
@@ -794,9 +795,11 @@ void card_widget::draw_card_extra_lines(
 ) const {
     QFont extra_font = painter.font();
     extra_font.setBold(false);
-    extra_font.setPointSizeF(std::clamp(
-        compute_font_point_size(oriented_card_rect) * 0.75, 7.0, 14.0
-    ));
+    extra_font.setPointSizeF(
+        std::clamp(
+            compute_font_point_size(oriented_card_rect) * 0.75, 7.0, 14.0
+        )
+    );
     painter.setFont(extra_font);
     painter.setPen(QColor(30, 70, 40));
 

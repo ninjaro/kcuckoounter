@@ -5,6 +5,7 @@
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "table/infinity_spinbox.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 #include <QFrame>
 #include <QHBoxLayout>
@@ -62,10 +63,15 @@ void slot_settings::setup_ui(bool include_info_button, layout style) {
     infinity_layout->setSpacing(4);
     if (kit) {
         // The switch carries no text; its label sits at the row's start.
-        infinity_check_box_internal->setObjectName(QStringLiteral("kit_switch")
+        infinity_check_box_internal->setObjectName(
+            QStringLiteral("kit_switch")
         );
-        infinity_check_box_internal->setAccessibleName(str_label("Infinite deck"
-        ));
+        shared_ui::qt::set_presentation_role(
+            *infinity_check_box_internal, QStringLiteral("switch")
+        );
+        infinity_check_box_internal->setAccessibleName(
+            str_label("Infinite deck")
+        );
         auto* infinity_label = new QLabel(str_label("Infinite deck"), this);
         infinity_label->setBuddy(infinity_check_box_internal);
         infinity_layout->addWidget(infinity_label);
@@ -96,8 +102,12 @@ void slot_settings::setup_ui(bool include_info_button, layout style) {
     decks_layout->addWidget(decks_label);
     if (kit) {
         // − n + stepper: the spin box's own buttons, drawn at either end.
-        deck_count_spin_box_internal->setObjectName(QStringLiteral("kit_stepper"
-        ));
+        deck_count_spin_box_internal->setObjectName(
+            QStringLiteral("kit_stepper")
+        );
+        shared_ui::qt::set_presentation_role(
+            *deck_count_spin_box_internal, QStringLiteral("stepper")
+        );
         deck_count_spin_box_internal->setAlignment(Qt::AlignCenter);
         deck_count_spin_box_internal->setFixedWidth(100);
         decks_layout->addStretch();
@@ -113,13 +123,15 @@ void slot_settings::setup_ui(bool include_info_button, layout style) {
     strategy_label->setToolTip(strategy_tooltip);
     strategy_combo_box_internal = new BaseComboBox(this);
     strategy_combo_box_internal->setToolTip(strategy_tooltip);
-    strategy_combo_box_internal->setAccessibleName(str_label("Weight strategy")
+    strategy_combo_box_internal->setAccessibleName(
+        str_label("Weight strategy")
     );
     strategy_label->setBuddy(strategy_combo_box_internal);
     android_ui::apply_combo_box_style(strategy_combo_box_internal);
     const strategy_catalog& repository = strategy_repository();
     if (!repository.is_valid()) {
-        strategy_combo_box_internal->addItem(str_label("Strategies unavailable")
+        strategy_combo_box_internal->addItem(
+            str_label("Strategies unavailable")
         );
         strategy_combo_box_internal->setEnabled(false);
         strategy_combo_box_internal->setToolTip(
@@ -161,19 +173,26 @@ void slot_settings::setup_ui(bool include_info_button, layout style) {
     if (include_info_button) {
         info_button_internal = android_ui::create_button(this);
         info_button_internal->setText(str_label("Info"));
-        info_button_internal->setAccessibleName(str_label("Strategy information"
-        ));
-        info_button_internal->setIcon(icon_loader::themed(
-            { "info-symbolic", "dialog-information-symbolic",
-              "dialog-information", "help-about", "info" },
-            QStyle::SP_MessageBoxInformation
-        ));
+        info_button_internal->setAccessibleName(
+            str_label("Strategy information")
+        );
+        info_button_internal->setIcon(
+            icon_loader::themed(
+                { "info-symbolic", "dialog-information-symbolic",
+                  "dialog-information", "help-about", "info" },
+                QStyle::SP_MessageBoxInformation
+            )
+        );
         android_ui::apply_button_style(
             info_button_internal, android_button_profile::inline_info
         );
         if (kit) {
-            info_button_internal->setObjectName(QStringLiteral("kit_info_button"
-            ));
+            info_button_internal->setObjectName(
+                QStringLiteral("kit_info_button")
+            );
+            shared_ui::qt::set_presentation_role(
+                *info_button_internal, QStringLiteral("info")
+            );
             info_button_internal->setText(QStringLiteral("i"));
             info_button_internal->setIcon(QIcon());
             info_button_internal->setFixedSize(32, 32);
@@ -209,6 +228,7 @@ void slot_settings::setup_ui(bool include_info_button, layout style) {
     if (kit) {
         auto* rule = new QFrame(this);
         rule->setObjectName(QStringLiteral("kit_rule"));
+        shared_ui::qt::set_presentation_role(*rule, QStringLiteral("rule"));
         rule->setFixedHeight(1);
         settings_layout->addWidget(rule);
         auto* options = new QVBoxLayout;

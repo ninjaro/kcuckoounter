@@ -1,3 +1,4 @@
+#include <shared_ui/qt/editor_panel.hpp>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
@@ -27,6 +28,7 @@
 #include <QLineEdit>
 #include <QPointer>
 #include <QSettings>
+#include <QStyle>
 #include <QTimer>
 #include <QToolButton>
 #include <QtTest/QtTest>
@@ -87,9 +89,9 @@ void table_tests::settings_surfaces_stage_changes() {
     QVERIFY(live && live->isHidden());
     auto* trigger
         = slot.findChild<QToolButton*>(QStringLiteral("compact_slot_controls"));
-    auto* details
-        = slot.findChild<BasePushButton*>(QStringLiteral("slot_details_button")
-        );
+    auto* details = slot.findChild<QAbstractButton*>(
+        QStringLiteral("slot_details_button")
+    );
     QVERIFY(trigger && details);
     QSignalSpy paused(&slot, &table_slot::dialog_opened);
     if (trigger->isVisible())
@@ -102,6 +104,9 @@ void table_tests::settings_surfaces_stage_changes() {
     auto* draft = panel->findChild<slot_settings*>();
     auto* buttons = panel->findChild<QDialogButtonBox*>();
     QVERIFY(draft && buttons);
+    auto* shared_panel = qobject_cast<shared_ui::qt::editor_panel*>(panel);
+    QVERIFY(shared_panel);
+    QCOMPARE(shared_panel->content(), draft);
     for (int i = 0; i < 4; ++i)
         QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
     QCOMPARE(slot.capture_session_state(), original);
@@ -205,12 +210,9 @@ void table_tests::felt_settings_card_follows_kit_layout() {
 #if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     QSKIP("Desktop settings surfaces");
 #endif
-    struct restore_chrome {
-        ~restore_chrome() { theme_settings::set_felt_chrome(false); }
-    } guard;
 
-    theme_settings::set_felt_chrome(true);
     table_slot slot;
+    theme_settings::apply_chrome(slot, true);
     slot.set_presented_image_mode(true);
     slot.resize(800, 600);
     slot.set_frame_style(slot_frame_style::piping);
@@ -223,9 +225,9 @@ void table_tests::felt_settings_card_follows_kit_layout() {
     slot.advance_card();
     slot.set_paused(true);
     const auto original = slot.capture_session_state();
-    auto* details
-        = slot.findChild<BasePushButton*>(QStringLiteral("slot_details_button")
-        );
+    auto* details = slot.findChild<QAbstractButton*>(
+        QStringLiteral("slot_details_button")
+    );
     QVERIFY(details);
     QTest::mouseClick(details, Qt::LeftButton);
     QPointer<QFrame> panel
@@ -241,6 +243,12 @@ void table_tests::felt_settings_card_follows_kit_layout() {
     QVERIFY(draft);
     auto* infinite = draft->infinity_check_box();
     QCOMPARE(infinite->objectName(), QStringLiteral("kit_switch"));
+    QCOMPARE(
+        infinite->style()->pixelMetric(
+            QStyle::PM_IndicatorWidth, nullptr, infinite
+        ),
+        40 // 38px indicator body plus its two 1px borders
+    );
     QVERIFY(infinite->text().isEmpty());
     QCOMPARE(infinite->accessibleName(), str_label("Infinite deck"));
     QCOMPARE(
@@ -267,7 +275,7 @@ void table_tests::felt_settings_card_follows_kit_layout() {
     QTRY_VERIFY(panel.isNull()); // deleted after closing
     QCOMPARE(slot.capture_session_state(), original);
     // Other chrome keeps the original arrangement and heading.
-    theme_settings::set_felt_chrome(false);
+    theme_settings::apply_chrome(slot, false);
     QTest::mouseClick(details, Qt::LeftButton);
     panel = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
     QVERIFY(panel && panel->isVisible());
@@ -363,9 +371,11 @@ void table_tests::classic_settings_dialog_preserves_transaction() {
                 editor->show_card_indexing()->toggle();
             dialog->done(accept ? QDialog::Accepted : QDialog::Rejected);
         });
-        QVERIFY(QMetaObject::invokeMethod(
-            &slot, "on_settings_button_clicked", Qt::DirectConnection
-        ));
+        QVERIFY(
+            QMetaObject::invokeMethod(
+                &slot, "on_settings_button_clicked", Qt::DirectConnection
+            )
+        );
         QVERIFY(inspected);
         auto expected = original;
         if (accept)
@@ -420,12 +430,12 @@ void table_tests::gameplay_settings_surfaces_stage_changes() {
     auto& game = *view.active_gameplay_session();
     auto* slot = view.slot_widgets.front();
     slot->set_rotated(rotated);
-    auto* trigger
-        = slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls")
-        );
-    auto* details
-        = slot->findChild<BasePushButton*>(QStringLiteral("slot_details_button")
-        );
+    auto* trigger = slot->findChild<QToolButton*>(
+        QStringLiteral("compact_slot_controls")
+    );
+    auto* details = slot->findChild<QAbstractButton*>(
+        QStringLiteral("slot_details_button")
+    );
     QVERIFY(trigger && details);
     QSignalSpy legacy_pause(&view, &table::dialog_opened);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
@@ -515,8 +525,10 @@ void table_tests::gameplay_settings_surfaces_stage_changes() {
     QVERIFY(
         !slot->findChild<QWidget*>(QStringLiteral("quiz_spin_box"))->isEnabled()
     );
-    QVERIFY(slot->findChild<BasePushButton*>(QStringLiteral("slot_copy_button"))
-                ->isHidden());
+    QVERIFY(
+        slot->findChild<QAbstractButton*>(QStringLiteral("slot_copy_button"))
+            ->isHidden()
+    );
     QVERIFY(slot->findChild<QFrame*>(QStringLiteral("settings_bar_frame"))
                 ->isHidden());
 }
@@ -545,16 +557,16 @@ void table_tests::count_visibility_keeps_preparation_and_cache() {
     for (const auto& key : preferences.allKeys())
         stored.insert(key, preferences.value(key));
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
-    auto* details
-        = slot->findChild<BasePushButton*>(QStringLiteral("slot_details_button")
-        );
+    auto* details = slot->findChild<QAbstractButton*>(
+        QStringLiteral("slot_details_button")
+    );
     QTest::mouseClick(details, Qt::LeftButton);
     auto* panel
         = slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
     QVERIFY(panel && panel->isVisible());
-    auto* show
-        = panel->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
-        ));
+    auto* show = panel->findChild<QCheckBox*>(
+        QStringLiteral("gameplay_deck_show_count")
+    );
     QVERIFY(show && show->isChecked());
     QTest::keyClick(show, Qt::Key_Space);
     QCOMPARE(*game.deck({ 0 }), original);
@@ -622,9 +634,9 @@ void table_tests::gameplay_settings_follow_deck_swap_and_repack() {
         = slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
     QVERIFY(panel && panel->isVisible());
     auto* draft = panel->findChild<gameplay::deck_setup_widget*>();
-    auto* show
-        = draft->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
-        ));
+    auto* show = draft->findChild<QCheckBox*>(
+        QStringLiteral("gameplay_deck_show_count")
+    );
     QVERIFY(show && show->isEnabled());
     show->setChecked(false);
     const auto original = *game.deck({ 0 });
@@ -701,8 +713,8 @@ void table_tests::gameplay_settings_discard_stale_and_replaced_views() {
     QVERIFY(draft.isNull());
 }
 
-void table_tests::gameplay_settings_pause_locks_and_preparation_notifications(
-) {
+void table_tests::
+    gameplay_settings_pause_locks_and_preparation_notifications() {
     table view;
     view.resize(1200, 900);
     view.set_settings_style(slot_settings_style::card);
@@ -737,9 +749,9 @@ void table_tests::gameplay_settings_pause_locks_and_preparation_notifications(
     QVERIFY(panel && panel->isVisible());
     auto* count
         = panel->findChild<QSpinBox*>(QStringLiteral("gameplay_deck_count"));
-    auto* show
-        = panel->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
-        ));
+    auto* show = panel->findChild<QCheckBox*>(
+        QStringLiteral("gameplay_deck_show_count")
+    );
     QVERIFY(count && !count->isEnabled() && show && show->isEnabled());
     count->setValue(17);
     QCOMPARE(count->value(), 1);
@@ -759,9 +771,9 @@ void table_tests::gameplay_settings_pause_locks_and_preparation_notifications(
     QMetaObject::invokeMethod(
         pending_slot, "on_settings_button_clicked", Qt::DirectConnection
     );
-    panel
-        = pending_slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"
-        ));
+    panel = pending_slot->findChild<QFrame*>(
+        QStringLiteral("slot_settings_editor")
+    );
     QVERIFY(panel && panel->isVisible());
     QVERIFY(
         panel->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"))
@@ -832,9 +844,11 @@ void table_tests::gameplay_lives_suit_settings_preserve_domain() {
     QVERIFY(view->install_gameplay_session(std::move(fixture)));
     QVERIFY(view->start_gameplay_runtime(107));
     view->stop_gameplay_clock();
-    QVERIFY(QMetaObject::invokeMethod(
-        &window, "on_settings_triggered", Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &window, "on_settings_triggered", Qt::DirectConnection
+        )
+    );
     QCOMPARE(view->gameplay_owner->phase(), gameplay::session_phase::paused);
     const auto configuration = view->gameplay_owner->configuration();
     const auto timing = view->gameplay_owner->timing();
@@ -897,15 +911,57 @@ void table_tests::gameplay_lives_suit_settings_preserve_domain() {
     dialog->close();
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
     QVERIFY(previous.isNull());
-    QVERIFY(QMetaObject::invokeMethod(
-        &window, "on_settings_triggered", Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &window, "on_settings_triggered", Qt::DirectConnection
+        )
+    );
     auto* reopened_shared = window.findChild<settings_shared_state*>();
     QVERIFY(reopened_shared);
     QCOMPARE(reopened_shared->default_suit(), 3);
     for (auto* selector :
          window.findChildren<QComboBox*>(QStringLiteral("default_suit")))
         QCOMPARE(selector->currentIndex(), 3);
+}
+
+void table_tests::material_contexts_are_window_local() {
+    table first;
+    table second;
+    first.set_slot_count(1);
+    second.set_slot_count(1);
+    const auto before = first.findChild<table_slot*>()->capture_session_state();
+    shared_ui::qt::apply_presentation(
+        first,
+        { shared_ui::qt::material::felt,
+          shared_ui::qt::platform_profile::desktop_qt,
+          { QColor("#74182e") } }
+    );
+    shared_ui::qt::apply_presentation(
+        second,
+        { shared_ui::qt::material::system,
+          shared_ui::qt::platform_profile::desktop_qt,
+          {} }
+    );
+    first.show();
+    second.show();
+    first.refresh_material();
+    second.refresh_material();
+    auto* slot = first.findChild<table_slot*>();
+    QVERIFY(theme_settings::felt_chrome(slot));
+    QVERIFY(!theme_settings::felt_chrome(&second));
+    QCOMPARE(theme_settings::felt(slot).surface, QColor("#74182e"));
+    shared_ui::qt::apply_presentation(
+        second,
+        { shared_ui::qt::material::felt,
+          shared_ui::qt::platform_profile::desktop_qt,
+          { QColor("#163c71") } }
+    );
+    second.refresh_material();
+    QCOMPARE(theme_settings::felt(slot).surface, QColor("#74182e"));
+    QCOMPARE(theme_settings::felt(&second).surface, QColor("#163c71"));
+    QCOMPARE(theme_settings::table_color(slot), QColor("#74182e"));
+    QCOMPARE(theme_settings::table_color(&second), QColor("#163c71"));
+    QCOMPARE(slot->capture_session_state(), before);
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

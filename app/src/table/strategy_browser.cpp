@@ -1,5 +1,6 @@
 #include "table/strategy_browser.hpp"
 #include "table/settings_template_support.hpp"
+#include <shared_ui/qt/status_badge.hpp>
 
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
@@ -54,8 +55,9 @@ class kit_strategy_delegate final : public QStyledItemDelegate {
 public:
     using QStyledItemDelegate::QStyledItemDelegate;
 
-    QSize sizeHint(const QStyleOptionViewItem& option, const QModelIndex& index)
-        const override {
+    QSize sizeHint(
+        const QStyleOptionViewItem& option, const QModelIndex& index
+    ) const override {
         QSize size = QStyledItemDelegate::sizeHint(option, index);
         size.setHeight(std::max(size.height(), 30));
         return size;
@@ -69,12 +71,15 @@ public:
         const int level = index.data(level_role).toInt();
         if (level == 0)
             return;
-        const felt_material m = theme_settings::felt();
+        const shared_ui::qt::material_tokens m
+            = theme_settings::felt(qobject_cast<QWidget*>(parent()));
         QFont tag(m.mono_family);
         tag.setPixelSize(10);
         painter->save();
         painter->setFont(tag);
-        painter->setPen(option.state & QStyle::State_Selected ? m.gold : m.dim);
+        painter->setPen(
+            option.state & QStyle::State_Selected ? m.accent : m.quiet
+        );
         painter->drawText(
             option.rect.adjusted(0, 0, -14, 0),
             Qt::AlignRight | Qt::AlignVCenter,
@@ -126,10 +131,12 @@ protected:
 // D-STRAT-1 detail page on the felt: title, tags and provenance, the
 // thirteen-rank tag strip as tiles, then description, notes and sources
 // beside the catalogue metrics (values only; Phase 3.6 keeps them unscaled).
-QString strategy_detail_kit_html(const strategy_data& strategy) {
+QString strategy_detail_kit_html(
+    const strategy_data& strategy, const QWidget* context
+) {
     const auto text
         = [](const QString& value) { return value.toHtmlEscaped(); };
-    const felt_material m = theme_settings::felt();
+    const shared_ui::qt::material_tokens m = theme_settings::felt(context);
     const QString mono = m.mono_family;
     const auto label = [&](const QString& title) {
         return QStringLiteral(
@@ -137,29 +144,35 @@ QString strategy_detail_kit_html(const strategy_data& strategy) {
                    "letter-spacing:2px; color:%2; margin:14px 0 6px 0;\">%3"
                    "</p>"
         )
-            .arg(mono, m.dim.name(), text(title.toUpper()));
+            .arg(mono, m.quiet.name(), text(title.toUpper()));
     };
     QStringList pills;
     const auto pill = [&](const QString& value, const QColor& fg,
                           const QColor& bg) {
-        pills.append(
-            QStringLiteral("<td bgcolor=\"%1\" style=\"font-family:'%2'; "
-                           "font-size:10px; letter-spacing:1px; color:%3;\">"
-                           "&nbsp;%4&nbsp;</td>")
-                .arg(bg.name(), mono, fg.name(), text(value))
-        );
+        pills.append(QStringLiteral(
+                         "<td bgcolor=\"%1\" style=\"font-family:'%2'; "
+                         "font-size:10px; letter-spacing:1px; color:%3;\">"
+                         "&nbsp;%4&nbsp;</td>"
+        )
+                         .arg(bg.name(), mono, fg.name(), text(value)));
     };
-    const QColor teal_bg = QColor(0x12, 0x3d, 0x33);
-    const QColor gold_bg = QColor(0x3a, 0x33, 0x14);
-    const QColor grey_bg = QColor(0x1d, 0x26, 0x20);
+    const auto positive = shared_ui::qt::status_colors_for(
+        shared_ui::qt::status_kind::positive, m
+    );
+    const auto warning = shared_ui::qt::status_colors_for(
+        shared_ui::qt::status_kind::warning, m
+    );
+    const auto neutral = shared_ui::qt::status_colors_for(
+        shared_ui::qt::status_kind::neutral, m
+    );
     pill(
         strategy.balance ? str_label("BALANCED") : str_label("UNBALANCED"),
-        m.right.lighter(135), teal_bg
+        positive.ink, positive.fill
     );
     if (strategy.ace_neutral)
-        pill(str_label("ACE-NEUTRAL"), m.gold, gold_bg);
+        pill(str_label("ACE-NEUTRAL"), warning.ink, warning.fill);
     if (const int level = strategy_level(strategy); level > 0)
-        pill(str_label("LEVEL %1").arg(level), m.muted, grey_bg);
+        pill(str_label("LEVEL %1").arg(level), neutral.ink, neutral.fill);
     QStringList games;
     for (QString game : strategy.games) {
         game.remove(QStringLiteral("blackjack_"));
@@ -192,18 +205,20 @@ QString strategy_detail_kit_html(const strategy_data& strategy) {
               "color:%5;\">%6<br>%7</td></tr></table>"
         )
               .arg(
-                  m.paper.name(), text(strategy.name),
+                  m.card.name(), text(strategy.name),
                   pills.join(QStringLiteral("<td>&nbsp;</td>")), mono,
-                  m.dim.name(), text(provenance.join(QStringLiteral(" · "))),
+                  m.quiet.name(), text(provenance.join(QStringLiteral(" · "))),
                   text(scope.join(QStringLiteral(" · ")))
               );
     // Qt rich text gives an empty cell a full line, so a `height="1"` row on
     // a coloured table paints a band; a cell border is the kit's 1px rule.
-    html += QStringLiteral("<table width=\"100%\" cellspacing=\"0\" "
-                           "cellpadding=\"0\" style=\"margin-top:14px; "
-                           "border-collapse:collapse;\"><tr><td "
-                           "style=\"border-bottom:1px solid %1; "
-                           "font-size:1px;\"></td></tr></table>")
+    html += QStringLiteral(
+                "<table width=\"100%\" cellspacing=\"0\" "
+                "cellpadding=\"0\" style=\"margin-top:14px; "
+                "border-collapse:collapse;\"><tr><td "
+                "style=\"border-bottom:1px solid %1; "
+                "font-size:1px;\"></td></tr></table>"
+    )
                 .arg(m.line.name());
     html += label(str_label("Tag per rank"));
     const QStringList ranks { QStringLiteral("A"), QStringLiteral("2"),
@@ -213,8 +228,10 @@ QString strategy_detail_kit_html(const strategy_data& strategy) {
                               QStringLiteral("9"), QStringLiteral("10"),
                               QStringLiteral("J"), QStringLiteral("Q"),
                               QStringLiteral("K") };
-    html += QStringLiteral("<table width=\"100%\" cellspacing=\"4\" "
-                           "cellpadding=\"7\"><tr>");
+    html += QStringLiteral(
+        "<table width=\"100%\" cellspacing=\"4\" "
+        "cellpadding=\"7\"><tr>"
+    );
     for (const auto& rank : ranks)
         html += QStringLiteral(
                     "<td align=\"center\" style=\"font-family:'Noto Serif', "
@@ -232,13 +249,15 @@ QString strategy_detail_kit_html(const strategy_data& strategy) {
             : weight < 0 ? QStringLiteral("\u2212%1").arg(-weight)
                          : QStringLiteral("0");
         html
-            += QStringLiteral("<td align=\"center\" bgcolor=\"%1\" "
-                              "style=\"font-family:'%2'; font-size:13px; "
-                              "font-weight:600; color:%3;\">%4</td>")
+            += QStringLiteral(
+                   "<td align=\"center\" bgcolor=\"%1\" "
+                   "style=\"font-family:'%2'; font-size:13px; "
+                   "font-weight:600; color:%3;\">%4</td>"
+            )
                    .arg(
-                       (weight > 0       ? m.right
-                            : weight < 0 ? m.wrong
-                                         : QColor(0x24, 0x2c, 0x26))
+                       (weight > 0       ? m.success_fill
+                            : weight < 0 ? m.negative_fill
+                                         : neutral.fill)
                            .name(),
                        mono, (weight == 0 ? m.muted : QColor(Qt::white)).name(),
                        value
@@ -253,13 +272,17 @@ QString strategy_detail_kit_html(const strategy_data& strategy) {
         left += label(str_label("Notes"));
         for (auto it = strategy.unique_fields.cbegin();
              it != strategy.unique_fields.cend(); ++it)
-            left += QStringLiteral("<p style=\"font-size:12.5px; color:%1;\">"
-                                   "<b>%2:</b> %3</p>")
+            left += QStringLiteral(
+                        "<p style=\"font-size:12.5px; color:%1;\">"
+                        "<b>%2:</b> %3</p>"
+            )
                         .arg(
                             m.muted.name(),
-                            text(settings_template_support::format_key_label(
-                                it.key()
-                            )),
+                            text(
+                                settings_template_support::format_key_label(
+                                    it.key()
+                                )
+                            ),
                             text(it.value())
                         );
     }
@@ -277,20 +300,24 @@ QString strategy_detail_kit_html(const strategy_data& strategy) {
                 || url.scheme() == QStringLiteral("http")))
             line += QStringLiteral(" <a style=\"color:%1;\" href=\"%2\">%3</a>")
                         .arg(
-                            m.gold.name(),
+                            m.accent.name(),
                             text(url.toString(QUrl::FullyEncoded)),
                             text(url.host())
                         );
         if (!ref.accessed.isEmpty())
             line += QStringLiteral(" (%1 %2)")
                         .arg(text(str_label("accessed")), text(ref.accessed));
-        left += QStringLiteral("<p style=\"font-size:12.5px; color:%1; "
-                               "margin:0 0 4px 0;\">%2</p>")
+        left += QStringLiteral(
+                    "<p style=\"font-size:12.5px; color:%1; "
+                    "margin:0 0 4px 0;\">%2</p>"
+        )
                     .arg(m.muted.name(), line);
     }
     QString right = label(str_label("Effectiveness"))
-        + QStringLiteral("<table width=\"100%\" cellspacing=\"0\" "
-                         "cellpadding=\"5\">");
+        + QStringLiteral(
+                        "<table width=\"100%\" cellspacing=\"0\" "
+                        "cellpadding=\"5\">"
+        );
     for (const auto& key : comparison_metric_keys()) {
         const auto value = strategy.metrics.constFind(key);
         const bool known
@@ -298,16 +325,18 @@ QString strategy_detail_kit_html(const strategy_data& strategy) {
         const QString shown = !known ? str_label("not provided")
             : key == QStringLiteral("ease_of_use")
             ? QStringLiteral("%1<span style=\"color:%2;\">/10</span>")
-                  .arg(QString::number(value.value()), m.dim.name())
+                  .arg(QString::number(value.value()), m.quiet.name())
             : QString::number(value.value(), 'f', 2);
-        right += QStringLiteral("<tr><td style=\"font-size:13px; color:%1; "
-                                "border-bottom:1px solid %2;\">%3</td>"
-                                "<td align=\"right\" style=\"font-family:'%4'; "
-                                "font-size:13px; color:%5;\">%6</td></tr>")
+        right += QStringLiteral(
+                     "<tr><td style=\"font-size:13px; color:%1; "
+                     "border-bottom:1px solid %2;\">%3</td>"
+                     "<td align=\"right\" style=\"font-family:'%4'; "
+                     "font-size:13px; color:%5;\">%6</td></tr>"
+        )
                      .arg(
                          m.text.name(), m.line.name(),
                          text(settings_template_support::format_key_label(key)),
-                         mono, known ? m.paper.name() : m.dim.name(), shown
+                         mono, known ? m.card.name() : m.quiet.name(), shown
                      );
     }
     right += QStringLiteral("</table>");
@@ -322,19 +351,23 @@ QString strategy_detail_kit_html(const strategy_data& strategy) {
     return html;
 }
 
-QString strategy_detail_html(const strategy_data& strategy) {
-    if (theme_settings::felt_chrome())
-        return strategy_detail_kit_html(strategy);
+QString
+strategy_detail_html(const strategy_data& strategy, const QWidget* context) {
+    if (theme_settings::felt_chrome(context))
+        return strategy_detail_kit_html(strategy, context);
     const auto text
         = [](const QString& value) { return value.toHtmlEscaped(); };
     const auto absent = str_label("Not provided");
     // D-STRAT-1 on the felt: gold section labels and a coloured weight strip.
-    const bool felt = theme_settings::felt_chrome();
-    const felt_material material = theme_settings::felt();
+    const bool felt = theme_settings::felt_chrome(context);
+    const shared_ui::qt::material_tokens material
+        = theme_settings::felt(context);
     const QString heading = felt
-        ? QStringLiteral("<h3 style='color:%1; font-family:\"%2\"; "
-                         "font-size:small; font-weight:600'>%3</h3>")
-              .arg(material.gold.name(), material.mono_family)
+        ? QStringLiteral(
+              "<h3 style='color:%1; font-family:\"%2\"; "
+              "font-size:small; font-weight:600'>%3</h3>"
+          )
+              .arg(material.accent.name(), material.mono_family)
         : QStringLiteral("<h3>%1</h3>");
     const auto section = [&](const QString& title) {
         return felt ? heading.arg(text(title))
@@ -343,10 +376,14 @@ QString strategy_detail_html(const strategy_data& strategy) {
     QString html = QStringLiteral("<h2>%1</h2><p>%2</p>")
                        .arg(text(strategy.name), text(strategy.description));
     html += section(str_label("Count value by rank"));
-    html += felt ? QStringLiteral("<table border='0' cellspacing='3' "
-                                  "cellpadding='6'><tr>")
-                 : QStringLiteral("<table border='1' cellspacing='0' "
-                                  "cellpadding='4'><tr>");
+    html += felt ? QStringLiteral(
+                       "<table border='0' cellspacing='3' "
+                       "cellpadding='6'><tr>"
+                   )
+                 : QStringLiteral(
+                       "<table border='1' cellspacing='0' "
+                       "cellpadding='4'><tr>"
+                   );
     const QStringList ranks { QStringLiteral("A"), QStringLiteral("2"),
                               QStringLiteral("3"), QStringLiteral("4"),
                               QStringLiteral("5"), QStringLiteral("6"),
@@ -368,18 +405,20 @@ QString strategy_detail_html(const strategy_data& strategy) {
         QString cell = QStringLiteral("<td align='center'>");
         if (felt && i < strategy.weights.size()) {
             const int weight = strategy.weights[i];
-            cell = QStringLiteral("<td align='center' bgcolor='%1' "
-                                  "style='color:%2; font-family:\"%3\"; "
-                                  "font-weight:600'>")
-                       .arg(
-                           (weight > 0       ? material.right
-                                : weight < 0 ? material.wrong
-                                             : material.inset)
-                               .name(),
-                           (weight == 0 ? material.muted : material.paper)
-                               .name(),
-                           material.mono_family
-                       );
+            cell
+                = QStringLiteral(
+                      "<td align='center' bgcolor='%1' "
+                      "style='color:%2; font-family:\"%3\"; "
+                      "font-weight:600'>"
+                )
+                      .arg(
+                          (weight > 0       ? material.success_fill
+                               : weight < 0 ? material.negative_fill
+                                            : material.inset)
+                              .name(),
+                          (weight == 0 ? material.muted : material.card).name(),
+                          material.mono_family
+                      );
         }
         html += cell
             + QStringLiteral("<p style='white-space:pre; margin:0'>%1</p></td>")
@@ -423,12 +462,14 @@ QString strategy_detail_html(const strategy_data& strategy) {
         html += QStringLiteral("<p>%1</p>").arg(text(absent));
     for (auto it = strategy.unique_fields.cbegin();
          it != strategy.unique_fields.cend(); ++it)
-        html += QStringLiteral("<p><b>%1:</b> %2</p>")
-                    .arg(
-                        text(settings_template_support::format_key_label(it.key(
-                        ))),
-                        text(it.value())
-                    );
+        html
+            += QStringLiteral("<p><b>%1:</b> %2</p>")
+                   .arg(
+                       text(
+                           settings_template_support::format_key_label(it.key())
+                       ),
+                       text(it.value())
+                   );
     html += section(str_label("References"));
     if (strategy.references.isEmpty())
         html += QStringLiteral("<p>%1</p>").arg(text(absent));
@@ -465,6 +506,7 @@ QWidget* create_strategy_browser(
     auto* layout = new QVBoxLayout(browser);
     auto* search = new QLineEdit(browser);
     search->setObjectName(QStringLiteral("strategy_search"));
+    shared_ui::qt::set_presentation_role(*search, QStringLiteral("search"));
     search->setClearButtonEnabled(true);
     search->setAccessibleName(str_label("Search strategies"));
     search->setPlaceholderText(str_label("Name, author, game or description"));
@@ -483,11 +525,13 @@ QWidget* create_strategy_browser(
     split->setChildrenCollapsible(false);
     auto* list = new QListView(split);
     list->setObjectName(QStringLiteral("strategy_browser_list"));
+    shared_ui::qt::set_presentation_role(*list, QStringLiteral("navigation"));
     list->setAccessibleName(str_label("Available strategies"));
     list->setMinimumWidth(90);
     list->setEditTriggers(QAbstractItemView::NoEditTriggers);
     auto* details = new QTextBrowser(split);
     details->setObjectName(QStringLiteral("strategy_browser_details"));
+    shared_ui::qt::set_presentation_role(*details, QStringLiteral("document"));
     details->setAccessibleName(str_label("Strategy details and rank weights"));
     details->setMinimumWidth(100);
     details->setOpenExternalLinks(true);
@@ -532,9 +576,10 @@ QWidget* create_strategy_browser(
     layout->addWidget(note);
 
     auto* model = new QStandardItemModel(browser);
-    model->setHorizontalHeaderLabels({ str_label("Strategy"), str_label("BC"),
-                                       str_label("PE"), str_label("IC"),
-                                       str_label("Ease") });
+    model->setHorizontalHeaderLabels(
+        { str_label("Strategy"), str_label("BC"), str_label("PE"),
+          str_label("IC"), str_label("Ease") }
+    );
     for (int column = 1; column <= comparison_metric_keys().size(); ++column) {
         const QString label = settings_template_support::format_key_label(
             comparison_metric_keys().at(column - 1)
@@ -556,7 +601,7 @@ QWidget* create_strategy_browser(
                     .join(QLatin1Char(' ')),
                 search_role
             );
-            name->setData(strategy_detail_html(strategy), detail_role);
+            name->setData(strategy_detail_html(strategy, browser), detail_role);
             name->setData(strategy_level(strategy), level_role);
             name->setToolTip(strategy.name);
             QList<QStandardItem*> row { name };
@@ -600,8 +645,7 @@ QWidget* create_strategy_browser(
     );
     QObject::connect(
         comparison->horizontalHeader(), &QHeaderView::sortIndicatorChanged,
-        browser,
-        [=](int column, Qt::SortOrder order) {
+        browser, [=](int column, Qt::SortOrder order) {
             const QSignalBlocker field_blocker(sort_field);
             const QSignalBlocker order_blocker(sort_order);
             sort_field->setCurrentIndex(column);
@@ -654,8 +698,7 @@ QWidget* create_strategy_browser(
         );
     };
     QObject::connect(
-        search, &QLineEdit::textChanged, browser,
-        [=](const QString& query) {
+        search, &QLineEdit::textChanged, browser, [=](const QString& query) {
             const QString slug = list->currentIndex()
                                      .siblingAtColumn(0)
                                      .data(slug_role)
@@ -675,7 +718,7 @@ QWidget* create_strategy_browser(
         else
             comparison->scrollTo(comparison->currentIndex());
     });
-    if (theme_settings::felt_chrome()) {
+    if (theme_settings::felt_chrome(browser)) {
         // D-STRAT-1: search inside the list's column, level tags on rows.
         search_label->hide();
         search->setPlaceholderText(str_label("Search"));
@@ -683,7 +726,9 @@ QWidget* create_strategy_browser(
         details->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         state->setObjectName(QStringLiteral("strategy_search_status"));
         state->setProperty("kit_caption", true);
+        shared_ui::qt::set_presentation_role(*state, QStringLiteral("caption"));
         note->setProperty("kit_note", true);
+        shared_ui::qt::set_presentation_role(*note, QStringLiteral("note"));
         split->setSizes({ 230, 620 });
     }
     select_slug(selected_slug);

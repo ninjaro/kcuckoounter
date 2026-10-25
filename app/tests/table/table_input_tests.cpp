@@ -123,7 +123,8 @@ void table_tests::gameplay_controls_numeric_and_chips() {
     if (opener->isVisible())
         opener->click();
     auto* details
-        = slot->findChild<QPushButton*>(QStringLiteral("slot_details_button"));
+        = slot->findChild<QAbstractButton*>(QStringLiteral("slot_details_button"
+        ));
     QVERIFY(details && details->isVisible() && details->isEnabled());
     QVERIFY(view.resume_gameplay_runtime());
     view.stop_gameplay_clock();

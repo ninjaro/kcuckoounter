@@ -39,10 +39,6 @@ table_slot::table_slot(BaseWidget* parent)
     , show_card_indexing(nullptr)
     , show_strategy_name(nullptr)
     , training_check_box(nullptr)
-    , swap_button(nullptr)
-    , settings_button(nullptr)
-    , copy_button(nullptr)
-    , copy_all_button(nullptr)
     , quiz_bar_widget(nullptr)
     , quiz_layout(nullptr)
     , quiz_prompt_widget(nullptr)
@@ -221,8 +217,8 @@ void table_slot::set_paused(bool paused) {
         quiz_bar_widget->setVisible(show_overlay && quiz_prompt_active);
     }
 
-    if (swap_button != nullptr) {
-        swap_button->setEnabled(show_overlay);
+    if (swap_action != nullptr) {
+        swap_action->setEnabled(show_overlay);
     }
 
     update_action_presentation();
@@ -394,6 +390,8 @@ void table_slot::apply_theme() {
         card_widget_internal->update();
     }
     update_overlay_palette();
+    // Felt's actions follow the table colour too.
+    update_action_presentation();
     update();
 }
 

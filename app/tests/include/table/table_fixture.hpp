@@ -6,6 +6,7 @@
 
 #include <QMessageBox>
 #include <QRect>
+#include <QToolButton>
 #include <QVariant>
 
 class QAction;
@@ -44,6 +45,14 @@ void answer_launcher_finish(
     main_window& window, QMessageBox::StandardButton answer
 );
 void set_gameplay_motion_style(table& view, int duration);
+
+// Whether a slot action shows its label; the Icon rail draws icons only
+// (its text stays the accessible name).
+inline bool shows_label(const QAbstractButton* button) {
+    const auto* tool = qobject_cast<const QToolButton*>(button);
+    return tool != nullptr ? tool->toolButtonStyle() != Qt::ToolButtonIconOnly
+                           : !button->text().isEmpty();
+}
 
 } // namespace table_test
 

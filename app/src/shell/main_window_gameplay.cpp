@@ -1,3 +1,4 @@
+#include "shell/desktop_status_strip.hpp"
 #include "shell/main_window.hpp"
 
 #include "card_helpers/card_sheet.hpp"
@@ -73,13 +74,13 @@ void main_window::rebuild_gameplay_setup_fields() {
         return;
     gameplay_setup_fields
         = new gameplay::setup_widget(*owner, gameplay_setup_dialog);
-    gameplay_setup_fields->setObjectName(QStringLiteral("gameplay_global_setup")
+    gameplay_setup_fields->setObjectName(
+        QStringLiteral("gameplay_global_setup")
     );
     gameplay_setup_layout->addWidget(gameplay_setup_fields);
     connect(
         gameplay_setup_fields, &gameplay::setup_widget::configuration_changed,
-        this,
-        [this] {
+        this, [this] {
             table_widget->refresh_gameplay_session();
             refresh_gameplay_setup();
         }
@@ -141,9 +142,11 @@ void main_window::open_gameplay_setup_dialog() {
         gameplay_setup_layout->addWidget(notice);
         auto* count_row = new QFormLayout;
         gameplay_slot_count = new BaseSpinBox(content);
-        gameplay_slot_count->setObjectName(QStringLiteral("gameplay_slot_count")
+        gameplay_slot_count->setObjectName(
+            QStringLiteral("gameplay_slot_count")
         );
-        gameplay_slot_count->setAccessibleName(str_label("Gameplay table slots")
+        gameplay_slot_count->setAccessibleName(
+            str_label("Gameplay table slots")
         );
         gameplay_slot_count->setRange(
             1, static_cast<int>(gameplay::desktop_slot_technical_cap)
@@ -207,9 +210,10 @@ void main_window::report_gameplay_error(const QString& message) {
         return;
     }
 #endif
-    if (status_label) {
+    if (desktop_status)
+        desktop_status->set_status(message);
+    else if (status_label)
         status_label->setText(message);
-    }
 }
 
 void main_window::refresh_gameplay_actions() {
@@ -241,10 +245,12 @@ void main_window::refresh_gameplay_actions() {
     const auto phase = owner->phase();
     if (phase == gameplay::session_phase::setup) {
         start_pause_action->setText(str_label("Start"));
-        start_pause_action->setIcon(icon_loader::themed(
-            { "media-playback-start", "media-playback-play", "play" },
-            QStyle::SP_MediaPlay
-        ));
+        start_pause_action->setIcon(
+            icon_loader::themed(
+                { "media-playback-start", "media-playback-play", "play" },
+                QStyle::SP_MediaPlay
+            )
+        );
     } else {
         update_start_pause_action(phase == gameplay::session_phase::paused);
     }

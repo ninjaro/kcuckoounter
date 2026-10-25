@@ -330,15 +330,15 @@ void table_tests::action_variants_reuse_controls() {
     auto* settings
         = slot.findChild<QFrame*>(QStringLiteral("settings_bar_frame"));
     auto* details
-        = slot.findChild<BasePushButton*>(QStringLiteral("slot_details_button")
+        = slot.findChild<QAbstractButton*>(QStringLiteral("slot_details_button")
         );
     auto* swap
-        = slot.findChild<BasePushButton*>(QStringLiteral("slot_swap_button"));
+        = slot.findChild<QAbstractButton*>(QStringLiteral("slot_swap_button"));
     auto* copy
-        = slot.findChild<BasePushButton*>(QStringLiteral("slot_copy_button"));
+        = slot.findChild<QAbstractButton*>(QStringLiteral("slot_copy_button"));
     auto* copy_all
-        = slot.findChild<BasePushButton*>(QStringLiteral("slot_copy_all_button")
-        );
+        = slot.findChild<QAbstractButton*>(QStringLiteral("slot_copy_all_button"
+        ));
     auto* trigger
         = slot.findChild<QToolButton*>(QStringLiteral("compact_slot_controls"));
     QVERIFY(
@@ -364,7 +364,7 @@ void table_tests::action_variants_reuse_controls() {
         QVERIFY(!button->accessibleName().isEmpty());
         QVERIFY(!button->toolTip().isEmpty());
         QCOMPARE(
-            button->text().isEmpty(),
+            !shows_label(button),
             style == slot_action_style::rail && button != copy_all
         );
         QVERIFY(!button->icon().isNull());
@@ -448,7 +448,8 @@ void table_tests::action_variants_reuse_controls() {
     QVERIFY(!details->text().isEmpty());
     QVERIFY(swap->isChecked());
     QCOMPARE(
-        slot.findChild<BasePushButton*>(QStringLiteral("slot_copy_all_button")),
+        slot.findChild<QAbstractButton*>(QStringLiteral("slot_copy_all_button")
+        ),
         copy_all
     );
     QCOMPARE(slot.capture_session_state(), state);
@@ -496,7 +497,7 @@ void table_tests::action_variants_preserve_copy_and_swap_workflows() {
         auto* target = slot_widgets[1];
         auto* other = slot_widgets[2];
         const auto button = [](table_slot* slot, const QString& name) {
-            return slot->findChild<BasePushButton*>(name);
+            return slot->findChild<QAbstractButton*>(name);
         };
         auto* source_copy = button(source, QStringLiteral("slot_copy_button"));
         auto* target_copy = button(target, QStringLiteral("slot_copy_button"));
@@ -507,7 +508,7 @@ void table_tests::action_variants_preserve_copy_and_swap_workflows() {
             source_copy && target_copy && source_swap && target_swap && copy_all
         );
         QCOMPARE(
-            source_copy->text().isEmpty(), style == slot_action_style::rail
+            !shows_label(source_copy), style == slot_action_style::rail
         ); // Newly created slot inherits style.
         auto original = source->capture_session_state();
         auto different = original;
@@ -518,13 +519,11 @@ void table_tests::action_variants_preserve_copy_and_swap_workflows() {
         QVERIFY(!source_swap->isChecked());
         QCOMPARE(source_copy->accessibleName(), str_label("Cancel"));
         QCOMPARE(target_copy->accessibleName(), str_label("Set"));
-        QCOMPARE(
-            source_copy->text().isEmpty(), style == slot_action_style::rail
-        );
+        QCOMPARE(!shows_label(source_copy), style == slot_action_style::rail);
         view.set_action_style(slot_action_style::rail);
         QVERIFY(source_copy->isChecked());
         QCOMPARE(source_copy->accessibleName(), str_label("Cancel"));
-        QVERIFY(target_copy->text().isEmpty());
+        QVERIFY(!shows_label(target_copy));
         target_copy->click();
         QCOMPARE(
             target->capture_session_state().show_card_indexing,

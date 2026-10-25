@@ -33,8 +33,8 @@ bool table_slot::bind_gameplay_deck(
     setup_gameplay_input();
     settings_bar_widget->setEnabled(false);
     quiz_bar_widget->setEnabled(false);
-    copy_button->setEnabled(false);
-    copy_all_button->setEnabled(false);
+    copy_settings_action->setEnabled(false);
+    copy_all_action->setEnabled(false);
     refresh_gameplay_deck();
     return true;
 }
@@ -65,6 +65,9 @@ void table_slot::refresh_gameplay_deck() {
 void table_slot::setup_gameplay_input() {
     gameplay_input = new QLineEdit(quiz_prompt_widget);
     gameplay_input->setObjectName(QStringLiteral("gameplay_quiz_input"));
+    shared_ui::qt::set_presentation_role(
+        *gameplay_input, QStringLiteral("figure")
+    );
     gameplay_input->setAccessibleName(str_label("Accumulated-count answer"));
     gameplay_input->setToolTip(
         str_label("Enter a signed 64-bit accumulated count")
@@ -86,8 +89,8 @@ void table_slot::setup_gameplay_input() {
     quiz_spin_box->hide();
     quiz_spin_box->setEnabled(false);
     quiz_weight_label->setText(
-        theme_settings::felt_chrome() ? str_label("YOUR COUNT")
-                                      : str_label("Count")
+        theme_settings::felt_chrome(this) ? str_label("YOUR COUNT")
+                                          : str_label("Count")
     );
     quiz_weight_label->setBuddy(gameplay_input);
     gameplay_input->installEventFilter(this);

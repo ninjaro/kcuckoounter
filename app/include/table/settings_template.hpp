@@ -71,6 +71,8 @@ private:
     void setup_desktop_components(QFormLayout* layout);
     void reset_desktop_component_selection();
     [[nodiscard]] desktop_ui_preferences selected_desktop_components() const;
+    [[nodiscard]] QList<QPair<QString, QComboBox*>>
+    desktop_component_boxes() const;
     void sync_theme_combo_shared_state(int index);
     void on_theme_source_button_clicked(QAbstractButton* button);
     void update_strategy_details(int index);
@@ -114,6 +116,7 @@ private:
     BaseComboBox* theme_combo_box;
     BaseComboBox* orientation_combo_box;
     BaseComboBox* ui_preset_combo = nullptr;
+    shared_ui::qt::appearance_state desktop_appearance_;
     BaseComboBox* ui_frame_combo = nullptr;
     BaseComboBox* ui_speed_combo = nullptr;
     BaseComboBox* ui_answer_combo = nullptr;

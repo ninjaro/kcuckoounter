@@ -3,6 +3,8 @@
 #include <QTemporaryDir>
 #include <QtTest/QtTest>
 
+#include <cstdio>
+
 #include "include/asset_locator_tests.hpp"
 #include "include/card_sheet_tests.hpp"
 #include "include/image_cacher_tests.hpp"
@@ -44,80 +46,96 @@ int main(int argc, char** argv) {
     );
 
     int status = 0;
+    const QString selected_suite
+        = qEnvironmentVariable("KCUCKOOUNTER_TEST_SUITE");
+    bool matched = false;
+    const auto run = [&](auto& suite) {
+        if (!selected_suite.isEmpty()
+            && selected_suite != QLatin1String(suite.metaObject()->className()))
+            return 0;
+        matched = true;
+        return QTest::qExec(&suite, argc, argv);
+    };
 
     {
         gameplay_session_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         gameplay_checkpoint_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         gameplay_progress_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         gameplay_recovery_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
 
     {
         asset_locator_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         card_sheet_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         card_widget_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         preview_carousel_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         preferences_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         infinity_spinbox_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         image_cacher_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         strategy_data_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         table_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         gameplay_start_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         gameplay_restore_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         gameplay_completion_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         gameplay_host_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
     {
         gameplay_mobile_tests t;
-        status |= QTest::qExec(&t, argc, argv);
+        status |= run(t);
     }
 
+    if (!matched) {
+        std::fprintf(
+            stderr, "Unknown test suite: %s\n", qPrintable(selected_suite)
+        );
+        return 1;
+    }
     return status;
 }

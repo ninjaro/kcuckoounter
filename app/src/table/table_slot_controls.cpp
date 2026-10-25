@@ -1,4 +1,5 @@
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/editor_panel.hpp>
 
 #include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
@@ -15,6 +16,9 @@
 #include "table/slot_settings.hpp"
 #include <QToolButton>
 
+#include <shared_ui/qt/action_group.hpp>
+
+#include <QAction>
 #include <QApplication>
 #include <QBoxLayout>
 #include <QDialog>
@@ -35,108 +39,62 @@
 #include <utility>
 
 void table_slot::update_action_presentation() {
-    if (settings_button == nullptr || copy_all_button == nullptr) {
+    if (slot_actions == nullptr) {
         return;
     }
     const bool running_with_deck = current_phase == slot_phase::running
         && card_widget_internal->has_cards();
-    const QString copy_label = current_copy_action == copy_action::cancel
-        ? str_label("Cancel")
-        : current_copy_action == copy_action::apply ? str_label("Set")
-                                                    : str_label("Copy");
-    const std::array<std::pair<BasePushButton*, QString>, 4> actions {
-        { { settings_button,
-            running_with_deck ? str_label("Info") : str_label("Details") },
-          { swap_button, str_label("Swap") },
-          { copy_button, copy_label },
-          { copy_all_button, str_label("Copy all") } }
-    };
-    const bool felt = theme_settings::felt_chrome();
-    const felt_material material = theme_settings::felt();
-    copy_button->setToolTip(
+    details_action->setText(
+        running_with_deck ? str_label("Info") : str_label("Details")
+    );
+    copy_settings_action->setText(
+        current_copy_action == copy_action::cancel      ? str_label("Cancel")
+            : current_copy_action == copy_action::apply ? str_label("Set")
+                                                        : str_label("Copy")
+    );
+    copy_settings_action->setToolTip(
         current_copy_action == copy_action::cancel
             ? str_label("Cancel copying settings")
             : current_copy_action == copy_action::apply
             ? str_label("Apply the selected slot's settings to this slot")
             : str_label("Copy settings from this slot")
     );
-    for (const auto& [button, label] : actions) {
-        button->setAccessibleName(label);
-        // Native themes may supply the same glyph for Copy and Copy all.
-        // Keep the scope explicit even in the otherwise icon-only rail.
-        button->setText(
-            action_style == slot_action_style::rail
-                ? (button == copy_all_button ? str_label("All") : QString())
-                : label
-        );
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
-        // Keep the native icon so leaving the felt chrome restores it.
-        if (!button->property("native_icon").isValid())
-            button->setProperty("native_icon", button->icon());
-        const auto native_icon = button->property("native_icon").value<QIcon>();
-        if (felt) {
-            button->setIcon(
-                action_style == slot_action_style::pills
-                    ? QIcon()
-                    : theme_settings::tinted_icon(native_icon, material.text)
-            );
-        } else {
-            button->setIcon(native_icon);
-        }
-        button->setStyleSheet(
-            action_style == slot_action_style::rail
-                ? (felt ? theme_settings::felt_style(QStringLiteral(
-                              "QPushButton { min-width: 26px; min-height: "
-                              "26px; padding: 4px; border-radius: 6px; } "
-                              "QPushButton:checked { background: $gold$; "
-                              "border-color: $gold$; }"
-                          ))
-                        : QStringLiteral(
-                              "QPushButton { min-width: 24px; min-height: "
-                              "24px; padding: 4px; } QPushButton:focus { "
-                              "border-style: dashed; }"
-                          ))
-                : action_style == slot_action_style::pills
-                ? (felt ? theme_settings::felt_style(
-                              // D-BAR-2: the leading action is a paper pill,
-                              // the rest are translucent outlined pills.
-                              button == settings_button
-                                  ? QStringLiteral(
-                                        "QPushButton { border-radius: 15px; "
-                                        "padding: 7px 13px; background: "
-                                        "$paper$; color: #12261a; border: "
-                                        "1px solid $paper$; font-size: 13px; "
-                                        "font-weight: 600; } "
-                                        "QPushButton:checked { background: "
-                                        "$gold$; border-color: $gold$; } "
-                                        "QPushButton:focus { border: 1px "
-                                        "dashed $deep$; }"
-                                    )
-                                  : QStringLiteral(
-                                        "QPushButton { border-radius: 15px; "
-                                        "padding: 7px 13px; background: "
-                                        "rgba(243, 239, 228, 0.12); color: "
-                                        "$paper$; border: 1px solid "
-                                        "rgba(243, 239, 228, 0.35); "
-                                        "font-size: 13px; } "
-                                        "QPushButton:hover { border-color: "
-                                        "$paper$; } "
-                                        "QPushButton:checked { background: "
-                                        "$gold$; color: $deep$; border-color: "
-                                        "$gold$; } "
-                                        "QPushButton:focus { border: 1px "
-                                        "dashed $gold_light$; }"
-                                    )
-                          )
-                        : QStringLiteral(
-                              "QPushButton { border-radius: 12px; padding: 6px "
-                              "12px; } QPushButton:focus { border-style: "
-                              "dashed; }"
-                          ))
-                : QString()
-        );
+    // Slot action style → Appearance form: Classic labelled buttons, the
+    // Icon rail as a compact column, Labelled pills (D-BAR-2: Details is the
+    // paper pill). Native chrome has no pill form; it keeps labelled buttons.
+    slot_actions->set_variant(
+        action_style == slot_action_style::rail
+            ? shared_ui::qt::action_variant::compact
+            : action_style == slot_action_style::pills
+            ? shared_ui::qt::action_variant::pills
+            : shared_ui::qt::action_variant::labelled
+    );
+    slot_actions->set_primary(
+        action_style == slot_action_style::pills ? details_action : nullptr
+    );
+    const bool felt = theme_settings::felt_chrome(this);
+    slot_actions->set_presentation(
+        felt ? shared_ui::qt::material::felt : shared_ui::qt::material::system,
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+        shared_ui::qt::platform_profile::android,
+#elif defined(KC_KDE)
+        shared_ui::qt::platform_profile::desktop_kde,
+#else
+        shared_ui::qt::platform_profile::desktop_qt,
 #endif
-    }
+        // Felt follows the selected table colour, as the rest of the chrome.
+        shared_ui::qt::presentation_for(*this).context
+    );
+}
+
+bool table_slot::focus_details_action() {
+    auto* button = slot_actions != nullptr
+        ? slot_actions->button_for(details_action)
+        : nullptr;
+    if (button == nullptr || !button->isVisible())
+        return false;
+    button->setFocus(Qt::OtherFocusReason);
+    return true;
 }
 
 void table_slot::setup_quiz_chips() {
@@ -222,7 +180,7 @@ void table_slot::update_quiz_presentation() {
     const bool controls_had_focus
         = focused != nullptr && overlay_widget->isAncestorOf(focused);
     quiz_chip_widget->setVisible(chips);
-    const bool felt = theme_settings::felt_chrome();
+    const bool felt = theme_settings::felt_chrome(this);
     // D-COUNT-1 keeps a plain figure; arrow keys still nudge the value.
     quiz_spin_box->setButtonSymbols(
         chips || felt ? QAbstractSpinBox::NoButtons
@@ -315,34 +273,7 @@ void table_slot::update_quiz_presentation() {
     }
     for (auto* chip : quiz_chip_widget->findChildren<QPushButton*>()) {
         const int step = chip->property("chip_step").toInt();
-        // D-COUNT-2: casino chips, red below zero and teal above it.
-        // Kit chip colours: deeper for the outer steps, lighter edges.
-        const char* chip_colour = step == -2 ? "#b4503f"
-            : step == -1                     ? "#8d4234"
-            : step == 1                      ? "#2a7a66"
-                                             : "#2f8f78";
-        chip->setStyleSheet(
-            felt ? theme_settings::felt_style(
-                       QStringLiteral(
-                           "QPushButton { border-radius: 22px; min-width: "
-                           "38px; max-width: 38px; min-height: 38px; "
-                           "max-height: 38px; padding: 0px; font-family: "
-                           "\"$mono$\"; font-size: 14px; color: #ffffff; "
-                           "background: %1; border: 3px dashed "
-                           "rgba(243, 239, 228, %2); } "
-                           "QPushButton:hover { border-style: solid; } "
-                           "QPushButton:focus { border: 3px solid $gold$; } "
-                           "QPushButton:disabled { background: transparent; "
-                           "color: $muted_dim$; border-color: $line$; }"
-                       )
-                           .arg(QLatin1String(chip_colour))
-                           .arg(std::abs(step) == 2 ? 0.55 : 0.45)
-                   )
-                 : QStringLiteral(
-                       "QPushButton { border-radius: 18px; min-width: 36px; "
-                       "min-height: 36px; padding: 0px; font-weight: 600; }"
-                   )
-        );
+        shared_ui::qt::decorate_step_button(*chip, step, std::abs(step) == 2);
     }
     if (quiz_weight_label != nullptr) {
         quiz_weight_label->setText(
@@ -384,53 +315,33 @@ void table_slot::update_quiz_presentation() {
 void table_slot::update_quiz_figure_size() {
     if (quiz_spin_box == nullptr)
         return;
-    QString sheet;
-    if (theme_settings::felt_chrome()
-        && answer_style == quiz_answer_style::chips) {
-        // D-COUNT-2's 88px gold ring with a 6px halo, scaled for small slots.
-        const int ring = std::clamp(
-            static_cast<int>(std::min(width(), height()) * 0.26), 56, 88
-        );
-        sheet = QStringLiteral(
-                    "background: #04240f; color: #d4af37; font-size: %1px; "
-                    "border: 2px solid #d4af37; border-radius: %2px; "
-                    "min-width: %3px; max-width: %3px; min-height: %3px; "
-                    "max-height: %3px; padding: 0px;"
-        )
-                    .arg(ring * 34 / 88)
-                    .arg(ring / 2)
-                    .arg(ring - 4);
-    } else if (theme_settings::felt_chrome()) {
-        // 54px in the kit's 290px slot; scaled down for crowded tables.
-        const int size = std::clamp(
-            static_cast<int>(std::min(width(), height()) * 0.15), 22, 54
-        );
-        // The kit's figure is a short ruled field, not a full-width input.
-        sheet = QStringLiteral("font-size: %1px; min-width: %2px; "
-                               "max-width: %3px;")
-                    .arg(size)
-                    .arg(size * 5 / 2)
-                    .arg(size * 3);
-    }
+    const bool circular = answer_style == quiz_answer_style::chips;
+    const int extent = circular
+        ? std::clamp(
+              static_cast<int>(std::min(width(), height()) * 0.26), 56, 88
+          )
+        : std::clamp(
+              static_cast<int>(std::min(width(), height()) * 0.15), 22, 54
+          );
     for (QWidget* figure : { static_cast<QWidget*>(quiz_spin_box),
                              static_cast<QWidget*>(gameplay_input) })
-        if (figure != nullptr && figure->styleSheet() != sheet)
-            figure->setStyleSheet(sheet);
+        if (figure != nullptr)
+            shared_ui::qt::decorate_numeric_figure(*figure, extent, circular);
 }
 
 void table_slot::update_compact_controls() {
     if (gameplay_owner) {
         settings_bar_widget->hide();
         quiz_bar_widget->setVisible(quiz_prompt_active);
-        copy_button->hide();
-        copy_all_button->hide();
+        copy_settings_action->setVisible(false);
+        copy_all_action->setVisible(false);
         const auto phase = gameplay_owner->phase();
-        settings_button->setEnabled(
+        details_action->setEnabled(
             phase == gameplay::session_phase::setup
             || phase == gameplay::session_phase::paused
         );
-        swap_button->setEnabled(phase == gameplay::session_phase::paused);
-        swap_bar_widget->setVisible(settings_button->isEnabled());
+        swap_action->setEnabled(phase == gameplay::session_phase::paused);
+        swap_bar_widget->setVisible(details_action->isEnabled());
         update_settings_button_state();
     }
     if (compact_controls_button == nullptr || overlay_layout == nullptr
@@ -443,7 +354,7 @@ void table_slot::update_compact_controls() {
         return;
     }
     const bool controls_visible = gameplay_owner
-        ? settings_button->isEnabled() || quiz_prompt_active
+        ? details_action->isEnabled() || quiz_prompt_active
         : current_phase == slot_phase::paused
             || !card_widget_internal->has_cards() || quiz_prompt_active;
     if (quiz_prompt_active) {
@@ -454,10 +365,12 @@ void table_slot::update_compact_controls() {
         QSize quiz_size = quiz_bar_widget->sizeHint().expandedTo(
             quiz_bar_widget->minimumSizeHint()
         );
-        quiz_size.setHeight(std::max(
-            quiz_size.height(),
-            quiz_bar_widget->heightForWidth(quiz_size.width())
-        ));
+        quiz_size.setHeight(
+            std::max(
+                quiz_size.height(),
+                quiz_bar_widget->heightForWidth(quiz_size.width())
+            )
+        );
         quiz_bar_widget->setMinimumSize(quiz_size);
     }
     // Read the active surfaces, not the outer layout's QWidgetItem cache:
@@ -580,28 +493,28 @@ void table_slot::show_compact_controls() {
         close_buttons->button(QDialogButtonBox::Close)
             ->setFocus(Qt::OtherFocusReason);
     } else {
-        settings_button->setFocus(Qt::OtherFocusReason);
+        (void)focus_details_action();
     }
 }
 
 void table_slot::update_settings_button_state(bool dialog_open) {
-    if (settings_button == nullptr) {
+    if (details_action == nullptr) {
         return;
     }
     if (gameplay_owner) {
-        settings_button->setChecked(settings_editor_panel != nullptr);
+        details_action->setChecked(settings_editor_panel != nullptr);
         return;
     }
     if (settings_editor_panel
         || settings_style != slot_settings_style::classic) {
-        settings_button->setChecked(settings_editor_panel != nullptr);
+        details_action->setChecked(settings_editor_panel != nullptr);
         return;
     }
     if (use_dialog_for_settings) {
-        settings_button->setChecked(dialog_open);
+        details_action->setChecked(dialog_open);
         return;
     }
-    settings_button->setChecked(settings_overlay_visible);
+    details_action->setChecked(settings_overlay_visible);
 }
 
 void table_slot::update_lockable_settings() {
@@ -689,17 +602,17 @@ void table_slot::resizeEvent(QResizeEvent* event) {
 }
 
 void table_slot::update_action_button_state() {
-    if (swap_button == nullptr || copy_button == nullptr) {
+    if (swap_action == nullptr || copy_settings_action == nullptr) {
         return;
     }
 
     if (!swap_selected()) {
-        swap_button->setChecked(false);
-        copy_button->setChecked(false);
+        swap_action->setChecked(false);
+        copy_settings_action->setChecked(false);
         return;
     }
 
     const bool is_copy_mode = current_copy_action == copy_action::cancel;
-    swap_button->setChecked(!is_copy_mode);
-    copy_button->setChecked(is_copy_mode);
+    swap_action->setChecked(!is_copy_mode);
+    copy_settings_action->setChecked(is_copy_mode);
 }

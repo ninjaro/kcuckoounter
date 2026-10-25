@@ -298,7 +298,7 @@ void table_slot::update_feedback_stamp() {
     } else if (quiz_feedback_active) {
         counts = legacy_feedback_counts;
     }
-    const bool felt = theme_settings::felt_chrome();
+    const bool felt = theme_settings::felt_chrome(this);
     if (card_widget_internal != nullptr)
         card_widget_internal->set_verdict_glow(felt && counts.has_value());
     if (quiz_feedback_band == nullptr)
@@ -308,7 +308,7 @@ void table_slot::update_feedback_stamp() {
     quiz_feedback_band->setVisible(show);
     if (!show)
         return;
-    const felt_material m = theme_settings::felt();
+    const shared_ui::qt::material_tokens m = theme_settings::felt(this);
     const auto signed_text = [](qint64 value) {
         return value < 0 ? QStringLiteral("\u2212%1").arg(-value)
                          : QString::number(value);

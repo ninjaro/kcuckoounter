@@ -10,6 +10,57 @@ actions, Classic/card/drawer/sill settings, Classic/compact toolbar and
 Classic/Instrument HUD. These choices project the same gameplay state; selecting
 a presentation does not replace a session, change its rules or rewrite scores.
 
+## Material ownership
+
+Appearance supplies Felt/Slate tokens, typography and scoped window/control
+styling. The host selects table colour, artwork and component variants. Window
+and preview contexts remain independent; material changes do not change a
+session. Native mode retains the platform Qt/KDE style. Provider fonts and
+control assets are installed under `share/shared_ui/assets`, separately from
+host artwork; a custom SDK prefix must expose its shared data to Qt.
+
+## Desktop HUD ownership
+
+Both Classic and Instrument HUDs use Appearance's `status_strip`. The host
+projects the live trainer/session into explicit captions, values, score
+continuations and status indicators, alongside the unchanged readable status
+text. No localized status string is split to recover fields. Errors explicitly
+replace the fields with plain text.
+
+Appearance measures and places the status, progress, pickup readout/slider and
+clock before committing geometry. Narrow layouts and long fields wrap; hidden
+readouts take no space. The host retains pickup limits, accepted speed changes,
+phase restrictions, clock/score/progress values and disclosure decisions.
+Switching materials or HUD variants changes no game state. Desktop Qt and KDE
+have regression coverage; this extraction does not establish Android acceptance.
+
+## Secondary settings presentation
+
+Staged card, drawer and sill editors use Appearance's `editor_panel` for the
+header, close button, native OK/Cancel footer, Escape and measured promotion
+into a separate window. Promotion retains the same draft widget and focus.
+The host supplies card/legend clearance, alignment, labels and stable object
+names. It decides eligibility and alone applies or rejects edits.
+
+The existing Classic modal/inline path, infinity spinbox, strategy controls and
+legal field values remain host-owned. The shared panel introduces no second
+transaction model and changes no commit boundary or gameplay phase rule.
+
+## Appearance preference ownership
+
+The host stores presentation in the existing `desktop_ui/preset` and
+`desktop_ui/overrides/*` keys. Its typed preferences adapt to the shared
+`appearance_state`; unknown preset, component and option IDs are retained while
+the current UI uses its established fallback. An explicit override remains
+distinct from inheritance even when it equals the preset default.
+
+The settings form displays unsupported saved choices as unavailable. Unrelated
+edits preserve them, including retained storage types. Choosing a known preset
+clears recognized component selections while keeping unsupported choices;
+explicitly replacing a setting or resetting components removes the corresponding
+retained choices. Appearance Apply updates only changed trainer palette/orientation
+keys and never replaces the trainer preference group, session or window state.
+
 ## Diagnostic boundary
 
 Kcuckoounter does not publish application telemetry or a JSON metrics catalog.

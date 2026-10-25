@@ -10,6 +10,8 @@
 #include "shell/main_window.hpp"
 #include "table/table_fixture.hpp"
 
+#include <shared_ui/qt/status_strip.hpp>
+
 #include <QDialog>
 #include <QJsonDocument>
 #include <QLabel>
@@ -132,8 +134,8 @@ void gameplay_host_tests::startup_retries_pending() {
         storage.setValue(
             storage_key, *encode_gameplay_recovery(exact, { 64, 64 })
         );
-        storage.sync(
-        ); // simulate a successful stage before interrupted admission
+        storage
+            .sync(); // simulate a successful stage before interrupted admission
     }
     main_window window;
     window.show();
@@ -205,8 +207,27 @@ void gameplay_host_tests::startup_protects_records() {
     QVERIFY(
         window.quiz_started && !window.table_widget->active_gameplay_session()
     );
-    QVERIFY(window.close()
+    QVERIFY(
+        window.close()
     ); // protected records are still durable, not discarded
+}
+
+void gameplay_host_tests::plain_errors_replace_hud_fields() {
+    launcher_preferences_guard preferences;
+    main_window window;
+    window.resize(1200, 800);
+    window.show();
+    QCoreApplication::processEvents();
+    auto* strip = window.findChild<shared_ui::qt::status_strip*>();
+    QVERIFY(strip);
+    QVERIFY(!window.table_widget->active_gameplay_session());
+    QVERIFY(!strip->status_fields().isEmpty());
+    const auto message = QStringLiteral("Error:  keep this exact text");
+    window.report_gameplay_error(message);
+    QCOMPARE(strip->status_label()->text(), message);
+    QVERIFY(strip->status_fields().isEmpty());
+    window.update_status_text();
+    QVERIFY(!strip->status_fields().isEmpty());
 }
 
 void gameplay_host_tests::start_rejection_keeps_choices() {

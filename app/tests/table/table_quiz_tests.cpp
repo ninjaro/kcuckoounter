@@ -139,9 +139,9 @@ void table_tests::quiz_wrong_answer_shows_continue_in_training() {
         = slot.findChild<BasePushButton*>(QStringLiteral("quiz_answer_button"));
     auto feedback_label
         = slot.findChild<QLabel*>(QStringLiteral("quiz_feedback_label"));
-    auto continue_button
-        = slot.findChild<BasePushButton*>(QStringLiteral("quiz_continue_button")
-        );
+    auto continue_button = slot.findChild<BasePushButton*>(
+        QStringLiteral("quiz_continue_button")
+    );
     QVERIFY(spin_box != nullptr);
     QVERIFY(answer_button != nullptr);
     QVERIFY(feedback_label != nullptr);
@@ -209,9 +209,9 @@ void table_tests::quiz_skip_shows_continue_feedback() {
         = slot.findChild<BasePushButton*>(QStringLiteral("quiz_skip_button"));
     auto feedback_label
         = slot.findChild<QLabel*>(QStringLiteral("quiz_feedback_label"));
-    auto continue_button
-        = slot.findChild<BasePushButton*>(QStringLiteral("quiz_continue_button")
-        );
+    auto continue_button = slot.findChild<BasePushButton*>(
+        QStringLiteral("quiz_continue_button")
+    );
     QVERIFY(spin_box != nullptr);
     QVERIFY(skip_button != nullptr);
     QVERIFY(feedback_label != nullptr);
@@ -279,9 +279,9 @@ void table_tests::quiz_spin_box_remembers_last_input() {
         = slot.findChild<BaseSpinBox*>(QStringLiteral("quiz_spin_box"));
     auto skip_button
         = slot.findChild<BasePushButton*>(QStringLiteral("quiz_skip_button"));
-    auto continue_button
-        = slot.findChild<BasePushButton*>(QStringLiteral("quiz_continue_button")
-        );
+    auto continue_button = slot.findChild<BasePushButton*>(
+        QStringLiteral("quiz_continue_button")
+    );
     QVERIFY(spin_box != nullptr);
     QVERIFY(skip_button != nullptr);
     QVERIFY(continue_button != nullptr);
@@ -353,9 +353,9 @@ void table_tests::quiz_variants_preserve_count_semantics() {
         = slot.findChild<QLabel*>(QStringLiteral("quiz_feedback_stamp"));
     auto* feedback
         = slot.findChild<QLabel*>(QStringLiteral("quiz_feedback_label"));
-    auto* resume
-        = slot.findChild<BasePushButton*>(QStringLiteral("quiz_continue_button")
-        );
+    auto* resume = slot.findChild<BasePushButton*>(
+        QStringLiteral("quiz_continue_button")
+    );
     auto* skip
         = slot.findChild<BasePushButton*>(QStringLiteral("quiz_skip_button"));
     QVERIFY(
@@ -381,7 +381,8 @@ void table_tests::quiz_variants_preserve_count_semantics() {
     open_controls();
     QVERIFY(input->isVisible());
     QCOMPARE(stepper->isVisible(), chips);
-    QVERIFY(!stamp_heading->isVisible()
+    QVERIFY(
+        !stamp_heading->isVisible()
     ); // No answer/result leakage during input.
     QSignalSpy scores(&slot, &table_slot::score_adjusted);
     if (chips) {
@@ -478,9 +479,11 @@ void table_tests::quiz_variants_preserve_count_semantics() {
     QCOMPARE(stamp_heading->isVisible(), stamp);
     QVERIFY(scores.isEmpty());
     // A queued/repeated submit cannot reinterpret already displayed feedback.
-    QVERIFY(QMetaObject::invokeMethod(
-        &slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
+        )
+    );
     QCOMPARE(
         feedback->text(),
         str_label("You've set %1 while the correct answer is %2.")
@@ -491,17 +494,21 @@ void table_tests::quiz_variants_preserve_count_semantics() {
     QVERIFY(restore_question(false));
     slot.set_allow_skipping(false);
     QVERIFY(!skip->isVisible());
-    QVERIFY(QMetaObject::invokeMethod(
-        &slot, "on_quiz_skip_button_clicked", Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &slot, "on_quiz_skip_button_clicked", Qt::DirectConnection
+        )
+    );
     QVERIFY(!slot.capture_session_state().quiz_feedback_active);
     slot.set_allow_skipping(true);
     QTest::mouseClick(skip, Qt::LeftButton);
     QVERIFY(resume->isVisible());
     const auto skipped = slot.capture_session_state();
-    QVERIFY(QMetaObject::invokeMethod(
-        &slot, "on_quiz_skip_button_clicked", Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &slot, "on_quiz_skip_button_clicked", Qt::DirectConnection
+        )
+    );
     QCOMPARE(slot.capture_session_state(), skipped);
     QCOMPARE(scores.count(), 1);
 }
@@ -609,23 +616,23 @@ void table_tests::quiz_presentation_editor_applies_and_resets() {
     settings_template_widget editor(
         settings_tab_kind::appearance, nullptr, QString(), &view, &shared
     );
-    auto* answer
-        = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_answer_entry")
-        );
+    auto* answer = editor.findChild<QComboBox*>(
+        QStringLiteral("desktop_ui_answer_entry")
+    );
     auto* feedback
         = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_feedback"));
-    auto* actions
-        = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_slot_actions")
-        );
+    auto* actions = editor.findChild<QComboBox*>(
+        QStringLiteral("desktop_ui_slot_actions")
+    );
     auto* surfaces = editor.findChild<QComboBox*>(
         QStringLiteral("desktop_ui_settings_surface")
     );
     auto* toolbar
         = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar"));
     auto* hud = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_hud"));
-    auto* details
-        = slot->findChild<BasePushButton*>(QStringLiteral("slot_details_button")
-        );
+    auto* details = slot->findChild<QAbstractButton*>(
+        QStringLiteral("slot_details_button")
+    );
     auto* reset
         = editor.findChild<QPushButton*>(QStringLiteral("desktop_ui_reset"));
     QVERIFY(
@@ -659,7 +666,7 @@ void table_tests::quiz_presentation_editor_applies_and_resets() {
         load_desktop_ui_preferences().feedback(), quiz_feedback_style::stamp
     );
     QVERIFY(!chips->isHidden());
-    QVERIFY(details->text().isEmpty());
+    QVERIFY(!shows_label(details));
     QCOMPARE(load_desktop_ui_preferences().actions(), slot_action_style::rail);
     QCOMPARE(
         load_desktop_ui_preferences().settings_surface(),
@@ -720,7 +727,6 @@ void table_tests::felt_presentation_restyles_without_session_changes() {
             save_trainer_preferences(trainer);
             theme_settings::set_base_color(color);
             set_card_sheet_source_path(source);
-            theme_settings::set_felt_chrome(false);
         }
     } guard;
 
@@ -760,14 +766,14 @@ void table_tests::felt_presentation_restyles_without_session_changes() {
     QCOMPARE(chrome->accessibleName(), str_label("Window chrome"));
 
     preset->setCurrentIndex(2);
-    QVERIFY(!theme_settings::felt_chrome()); // Pending until Save.
+    QVERIFY(!theme_settings::felt_chrome(&view)); // Pending until Save.
     QVERIFY(editor.apply_theme_settings());
     const auto felt = load_desktop_ui_preferences();
     QCOMPARE(felt.preset, desktop_ui_preset::felt);
     QCOMPARE(felt.frame(), slot_frame_style::piping);
     QCOMPARE(felt.chrome(), desktop_chrome_style::felt);
     QVERIFY(!felt.chrome_override);
-    QVERIFY(theme_settings::felt_chrome());
+    QVERIFY(theme_settings::felt_chrome(&view));
     QVERIFY(quiz_bar->styleSheet() != native_sheet);
     QCOMPARE(answer->buttonSymbols(), QAbstractSpinBox::NoButtons);
     QCOMPARE(slot->capture_session_state(), state);
@@ -776,7 +782,7 @@ void table_tests::felt_presentation_restyles_without_session_changes() {
     // Chrome is an independent override; the preset keeps its frame.
     chrome->setCurrentIndex(1);
     QVERIFY(editor.apply_theme_settings());
-    QVERIFY(!theme_settings::felt_chrome());
+    QVERIFY(!theme_settings::felt_chrome(&view));
     QCOMPARE(quiz_bar->styleSheet(), native_sheet);
     QCOMPARE(answer->buttonSymbols(), QAbstractSpinBox::UpDownArrows);
     QCOMPARE(load_desktop_ui_preferences().frame(), slot_frame_style::piping);
@@ -791,11 +797,11 @@ void table_tests::felt_presentation_restyles_without_session_changes() {
     reset->click();
     QCOMPARE(chrome->currentIndex(), 0);
     QVERIFY(editor.apply_theme_settings());
-    QVERIFY(theme_settings::felt_chrome());
+    QVERIFY(theme_settings::felt_chrome(&view));
     QVERIFY(!load_desktop_ui_preferences().chrome_override);
     preset->setCurrentIndex(0);
     QVERIFY(editor.apply_theme_settings());
-    QVERIFY(!theme_settings::felt_chrome());
+    QVERIFY(!theme_settings::felt_chrome(&view));
     QCOMPARE(quiz_bar->styleSheet(), native_sheet);
     QCOMPARE(slot->capture_session_state(), state);
     QCOMPARE(slot->geometry(), geometry);

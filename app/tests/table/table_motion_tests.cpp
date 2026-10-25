@@ -807,8 +807,9 @@ void table_tests::swap_paints_moving_content_below_controls() {
                     ->to
             )
         );
-        auto* button
-            = slot->findChild<QPushButton*>(QStringLiteral("slot_swap_button"));
+        auto* button = slot->findChild<QAbstractButton*>(
+            QStringLiteral("slot_swap_button")
+        );
         QVERIFY(button);
         QVERIFY(button->isVisible());
         const auto global = button->mapToGlobal(button->rect().center());

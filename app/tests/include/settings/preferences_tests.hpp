@@ -34,6 +34,8 @@ private slots:
     void training_progress_rejects_huge_history_values();
     void desktop_components_preserve_domain_settings();
     void desktop_felt_preset_and_chrome_round_trip();
+    void desktop_unknown_choices_survive_unrelated_saves();
+    void desktop_form_preserves_unknown_choices_and_unrelated_preferences();
     void gameplay_setup_defaults_and_accessible_controls();
     void gameplay_setup_loads_without_normalizing_configuration();
     void gameplay_setup_enforces_lives_pause_and_bounds();

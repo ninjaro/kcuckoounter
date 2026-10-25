@@ -32,7 +32,8 @@ QFrame* open_settings(table_slot* slot) {
     if (opener && opener->isVisible())
         QTest::mouseClick(opener, Qt::LeftButton);
     auto* details
-        = slot->findChild<QPushButton*>(QStringLiteral("slot_details_button"));
+        = slot->findChild<QAbstractButton*>(QStringLiteral("slot_details_button"
+        ));
     if (!details || !details->isVisible() || !details->isEnabled())
         return nullptr;
     QTest::keyClick(details, Qt::Key_Space);

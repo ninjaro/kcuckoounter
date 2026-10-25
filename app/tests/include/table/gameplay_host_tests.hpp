@@ -13,6 +13,7 @@ class gameplay_host_tests : public QObject {
 private slots:
     void initTestCase();
     void menu_start_pause_finish();
+    void plain_errors_replace_hud_fields();
     void startup_restores_paused();
     void startup_retries_pending();
     void startup_protects_records_data();

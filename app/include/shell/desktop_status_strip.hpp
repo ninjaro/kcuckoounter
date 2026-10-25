@@ -1,30 +1,14 @@
-#ifndef KCUCKOOUNTER_SHELL_DESKTOP_STATUS_STRIP_HPP
-#define KCUCKOOUNTER_SHELL_DESKTOP_STATUS_STRIP_HPP
+#ifndef KCUCKOOUNTER_DESKTOP_STATUS_STRIP_HPP
+#define KCUCKOOUNTER_DESKTOP_STATUS_STRIP_HPP
 
-#include <QFrame>
+#include <shared_ui/qt/status_strip.hpp>
 
-class QLabel;
-class QProgressBar;
-class QSlider;
-
-namespace status_strip_support {
-class desktop_status_layout;
-}
-
-// Shared Qt/KDE composition; the shell owns the values and their handlers.
-class desktop_status_strip : public QFrame {
+// Host policy only: pickup limits, accessible control names, the platform's
+// clock visibility and the selected HUD/material combination.
+class desktop_status_strip final : public shared_ui::qt::status_strip {
 public:
     explicit desktop_status_strip(QWidget* parent);
     void set_instruments(bool enabled);
-
-    QLabel* status = nullptr;
-    QLabel* readout = nullptr;
-    QLabel* clock = nullptr;
-    QSlider* slider = nullptr;
-    QProgressBar* progress = nullptr;
-
-private:
-    status_strip_support::desktop_status_layout* row = nullptr;
 };
 
-#endif // KCUCKOOUNTER_SHELL_DESKTOP_STATUS_STRIP_HPP
+#endif

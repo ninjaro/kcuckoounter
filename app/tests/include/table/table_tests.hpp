@@ -110,6 +110,7 @@ private slots:
     void action_styles_preserve_owned_quiz();
     void action_styles_preserve_terminal_swaps_data();
     void action_styles_preserve_terminal_swaps();
+    void slot_actions_present_host_commands();
     void strategy_browser_preserves_identity_and_reference_values();
     void strategy_browser_handles_missing_and_filtered_metadata();
     void strategy_browser_routes_do_not_change_gameplay();
@@ -165,6 +166,7 @@ private slots:
     void settings_surfaces_stage_changes_data();
     void settings_surfaces_stage_changes();
     void felt_settings_card_follows_kit_layout();
+    void material_contexts_are_window_local();
     void settings_editor_lifecycle_cancels_stale_drafts();
     void classic_settings_dialog_preserves_transaction();
     void desktop_toolbar_preserves_table_and_commands_data();

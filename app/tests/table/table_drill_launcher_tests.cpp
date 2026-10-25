@@ -93,7 +93,7 @@ void table_tests::drill_setup_loads_exact_choices() {
         );
     QVERIFY(saved_button);
     auto* slot = view->slot_widgets.front();
-    slot->findChild<QPushButton*>(QStringLiteral("slot_details_button"))
+    slot->findChild<QAbstractButton*>(QStringLiteral("slot_details_button"))
         ->click();
     QVERIFY(view->has_open_gameplay_settings());
     visit_drill_picker(window, [&](QDialog& picker) {

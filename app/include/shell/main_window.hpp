@@ -161,6 +161,7 @@ private:
     void register_shell_action(BaseAction* action, const QString& action_name);
     void insert_shell_separator();
     void update_status_text();
+    void set_pickup_readout(int interval_ms) const;
     void refresh_clock_label() const;
     void record_platform_score();
     void show_platform_highscores();
