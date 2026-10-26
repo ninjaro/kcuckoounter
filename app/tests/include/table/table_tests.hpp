@@ -7,6 +7,7 @@ class table_tests : public QObject {
     Q_OBJECT
 
 private slots:
+    static void appearance_previews_are_real_and_sample_only();
     void gameplay_table_owns_roster_without_legacy_state();
     void gameplay_table_installation_preflight_preserves_current_scene();
     void gameplay_table_replacement_destroys_views_before_owner();
@@ -160,6 +161,7 @@ private slots:
     void quiz_presentation_editor_applies_and_resets();
     void felt_presentation_restyles_without_session_changes();
     void felt_shell_round_trips_one_bar();
+    void native_toolbar_follows_felt_commands_and_late_actions();
     void action_variants_reuse_controls_data();
     void action_variants_reuse_controls();
     void action_variants_preserve_copy_and_swap_workflows();
@@ -167,6 +169,7 @@ private slots:
     void settings_surfaces_stage_changes();
     void felt_settings_card_follows_kit_layout();
     void material_contexts_are_window_local();
+    void table_palette_preferences_are_window_local();
     void settings_editor_lifecycle_cancels_stale_drafts();
     void classic_settings_dialog_preserves_transaction();
     void desktop_toolbar_preserves_table_and_commands_data();

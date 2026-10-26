@@ -7,7 +7,6 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
@@ -25,6 +24,7 @@
 #include <QLineEdit>
 #include <QToolButton>
 #include <QtTest/QtTest>
+#include <shared_ui/qt/presentation.hpp>
 
 #include <array>
 #include <limits>
@@ -108,7 +108,8 @@ void table_tests::gameplay_controls_numeric_and_chips() {
             = slot->findChild<QDialog*>(QStringLiteral("slot_controls_dialog"));
         QVERIFY(dialog && dialog->isVisible());
         QCOMPARE(
-            dialog->findChild<QLineEdit*>(QStringLiteral("gameplay_quiz_input")
+            dialog->findChild<QLineEdit*>(
+                QStringLiteral("gameplay_quiz_input")
             ),
             input
         );
@@ -117,14 +118,14 @@ void table_tests::gameplay_controls_numeric_and_chips() {
     QVERIFY(input->isEnabled());
     QVERIFY(view.pause_gameplay_runtime());
     QVERIFY(!input->isEnabled());
-    auto* opener
-        = slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls")
-        );
+    auto* opener = slot->findChild<QToolButton*>(
+        QStringLiteral("compact_slot_controls")
+    );
     if (opener->isVisible())
         opener->click();
-    auto* details
-        = slot->findChild<QAbstractButton*>(QStringLiteral("slot_details_button"
-        ));
+    auto* details = slot->findChild<QAbstractButton*>(
+        QStringLiteral("slot_details_button")
+    );
     QVERIFY(details && details->isVisible() && details->isEnabled());
     QVERIFY(view.resume_gameplay_runtime());
     view.stop_gameplay_clock();
@@ -272,6 +273,32 @@ void table_tests::gameplay_controls_invalid_drafts_and_signed_boundaries() {
     enter_owned_count(input, QString::number(last_valid));
     QVERIFY(check->isEnabled());
     QCOMPARE(view.gameplay_owner->deck({ 0 })->latest_input, last_valid);
+    // Presentation changes preserve every integral bit and selection; the
+    // stamp must format INT64_MIN without negating it or converting to double.
+    input->selectAll();
+    const auto selection = input->selectedText();
+    shared_ui::qt::apply_presentation(
+        view,
+        { shared_ui::qt::material::felt,
+#ifdef KC_KDE
+          shared_ui::qt::platform_profile::desktop_kde,
+#else
+          shared_ui::qt::platform_profile::desktop_qt,
+#endif
+          {} }
+    );
+    view.set_quiz_presentation(
+        quiz_answer_style::chips, quiz_feedback_style::stamp
+    );
+    view.apply_theme();
+    QCOMPARE(input->text(), QString::number(last_valid));
+    QCOMPARE(input->selectedText(), selection);
+    check->click();
+    QCoreApplication::processEvents();
+    auto* band = slot->findChild<QLabel*>(QStringLiteral("quiz_feedback_band"));
+    QVERIFY(band && !band->isHidden());
+    QVERIFY(band->text().contains(QStringLiteral("−9223372036854775808")));
+    QVERIFY(!view.gameplay_owner->deck({ 0 })->quiz);
 }
 
 void table_tests::gameplay_controls_pause_skip_and_timeout() {
@@ -438,9 +465,9 @@ void table_tests::gameplay_controls_compact_host_and_replacement() {
     QVERIFY(view.advance_gameplay_runtime(300, answers));
     view.publish_gameplay_runtime(answers);
     auto* slot = view.slot_widgets[0];
-    auto* opener
-        = slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls")
-        );
+    auto* opener = slot->findChild<QToolButton*>(
+        QStringLiteral("compact_slot_controls")
+    );
     QVERIFY(opener->isVisible());
     opener->click();
     QPointer<QDialog> host
@@ -465,9 +492,11 @@ void table_tests::gameplay_controls_compact_host_and_replacement() {
         replaced = view.install_gameplay_session(owned_clock_fixture(1));
     });
     QPointer<table_slot> old_slot = slot;
-    QVERIFY(QMetaObject::invokeMethod(
-        slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
+        )
+    );
     QVERIFY(replaced);
     QVERIFY(old_slot.isNull());
     QVERIFY(input.isNull());

@@ -1,5 +1,8 @@
-#include "shell/desktop_status_strip.hpp"
 #include "shell/main_window.hpp"
+#include <shared_ui/qt/editor_panel.hpp>
+#include <shared_ui/qt/settings_section.hpp>
+#include <shared_ui/qt/status_strip.hpp>
+#include <shared_ui/qt/toolbar_presentation.hpp>
 
 #include "card_helpers/card_sheet.hpp"
 #include "table/gameplay_setup.hpp"
@@ -16,7 +19,6 @@
 #include "settings/session_checkpoint.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 #include "shell/gameplay_reservation.hpp"
 
@@ -25,7 +27,6 @@
 #include <QLabel>
 #include <QPointer>
 #include <QRandomGenerator>
-#include <QScrollArea>
 #include <QSettings>
 #include <QSignalBlocker>
 #include <QTimer>
@@ -117,9 +118,11 @@ void main_window::open_gameplay_setup_dialog() {
         dialog->setWindowTitle(str_label("New gameplay session"));
         dialog->setModal(false);
         auto* layout = new QVBoxLayout(dialog);
-        auto* scroll = new QScrollArea(dialog);
-        scroll->setWidgetResizable(true);
-        auto* content = new QWidget(scroll);
+        auto* panel = new shared_ui::qt::editor_panel(dialog);
+        panel->set_heading(dialog->windowTitle());
+        panel->set_scrollable(true);
+        layout->addWidget(panel);
+        auto* content = new QWidget(panel);
         gameplay_setup_layout = new QVBoxLayout(content);
         // Spare dialog height stays below the form, not inside an empty
         // status label between the slot count and the global settings.
@@ -140,7 +143,8 @@ void main_window::open_gameplay_setup_dialog() {
         );
         notice->setWordWrap(true);
         gameplay_setup_layout->addWidget(notice);
-        auto* count_row = new QFormLayout;
+        auto* count_row = new shared_ui::qt::settings_section({}, content);
+        gameplay_setup_layout->addWidget(count_row);
         gameplay_slot_count = new BaseSpinBox(content);
         gameplay_slot_count->setObjectName(
             QStringLiteral("gameplay_slot_count")
@@ -152,18 +156,14 @@ void main_window::open_gameplay_setup_dialog() {
             1, static_cast<int>(gameplay::desktop_slot_technical_cap)
         );
         gameplay_slot_count->setKeyboardTracking(false);
-        count_row->addRow(str_label("Table slots"), gameplay_slot_count);
-        gameplay_setup_layout->addLayout(count_row);
-        gameplay_setup_error = new QLabel(content);
+        count_row->add_row(str_label("Table slots"), gameplay_slot_count);
+        gameplay_setup_error = count_row->add_message();
         gameplay_setup_error->setObjectName(
             QStringLiteral("gameplay_setup_error")
         );
-        gameplay_setup_error->setWordWrap(true);
-        gameplay_setup_error->setTextFormat(Qt::PlainText);
-        gameplay_setup_layout->addWidget(gameplay_setup_error);
-        scroll->setWidget(content);
-        layout->addWidget(scroll);
-        auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, dialog);
+        panel->set_content(content);
+        auto* buttons = panel->buttons();
+        buttons->setStandardButtons(QDialogButtonBox::Close);
         auto* drills = buttons->addButton(
             str_label("Saved drills…"), QDialogButtonBox::ActionRole
         );
@@ -178,8 +178,10 @@ void main_window::open_gameplay_setup_dialog() {
         );
         proceed->setObjectName(QStringLiteral("gameplay_setup_continue"));
         connect(proceed, &QPushButton::clicked, dialog, &QDialog::accept);
-        connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
-        layout->addWidget(buttons);
+        connect(
+            panel, &shared_ui::qt::editor_panel::cancel_requested, dialog,
+            &QDialog::reject
+        );
         connect(
             gameplay_slot_count, &QSpinBox::valueChanged, this,
             &main_window::on_gameplay_roster_changed
@@ -244,6 +246,9 @@ void main_window::refresh_gameplay_actions() {
         return;
     const auto phase = owner->phase();
     if (phase == gameplay::session_phase::setup) {
+        shared_ui::qt::set_toolbar_icon(
+            *start_pause_action, shared_ui::qt::toolbar_icon::play
+        );
         start_pause_action->setText(str_label("Start"));
         start_pause_action->setIcon(
             icon_loader::themed(

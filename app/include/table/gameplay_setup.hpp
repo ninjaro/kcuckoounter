@@ -5,6 +5,7 @@
 #include "table/gameplay_layout.hpp"
 #include "table/gameplay_session.hpp"
 #include <optional>
+#include <shared_ui/qt/settings_section.hpp>
 
 class QLabel;
 struct strategy_catalog;
@@ -14,7 +15,7 @@ namespace gameplay {
 // Native setup view, not another preferences/drill model. The host must keep
 // the session alive at the same address and refresh after external mutations.
 // Only setup edits are accepted; Pause never unlocks gameplay configuration.
-class setup_widget : public BaseWidget {
+class setup_widget : public shared_ui::qt::settings_section {
     Q_OBJECT
 
 public:
@@ -39,19 +40,17 @@ private:
 
     session& owner;
     QLabel* recommendation_label;
-    BaseCheckBox* allow_extra_slots;
+    BaseCheckBox* allow_extra_slots = nullptr;
     QLabel* slot_limit_warning;
-    BaseComboBox* failure;
-    BaseSpinBox* lives;
-    QLabel* lives_label;
+    BaseComboBox* failure = nullptr;
+    BaseSpinBox* lives = nullptr;
     QLabel* pause_explanation;
-    BaseComboBox* source;
-    BaseComboBox* scope;
-    BaseCheckBox* global_pause;
-    BaseCheckBox* allow_skip;
-    BaseComboBox* dealing;
+    BaseComboBox* source = nullptr;
+    BaseComboBox* scope = nullptr;
+    BaseCheckBox* global_pause = nullptr;
+    BaseCheckBox* allow_skip = nullptr;
+    BaseComboBox* dealing = nullptr;
     BaseSpinBox* sequential_count;
-    QLabel* sequential_label;
     BaseWidget* sequential_row;
     QLabel* roster_count;
     bool refreshing = false;
@@ -63,7 +62,7 @@ private:
 // must outlive this view at stable addresses. Construction/refresh NEVER apply
 // recommendations to an existing choice; use create_fresh_session explicitly
 // for new preset defaults before constructing the view.
-class deck_setup_widget : public BaseWidget {
+class deck_setup_widget : public shared_ui::qt::settings_section {
     Q_OBJECT
 
 public:
@@ -102,11 +101,11 @@ private:
     deck_id id;
     const strategy_catalog& catalog;
     std::optional<pending_edit> pending;
-    BaseComboBox* strategy;
-    BaseSpinBox* deck_count;
-    BaseCheckBox* infinite;
-    BaseCheckBox* training;
-    BaseCheckBox* show_count;
+    BaseComboBox* strategy = nullptr;
+    BaseSpinBox* deck_count = nullptr;
+    BaseCheckBox* infinite = nullptr;
+    BaseCheckBox* training = nullptr;
+    BaseCheckBox* show_count = nullptr;
     QLabel* recommendation;
     bool refreshing = false;
 };

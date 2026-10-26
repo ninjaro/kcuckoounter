@@ -13,7 +13,6 @@
 #include "settings/session_checkpoint.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 
 #include <QDialog>

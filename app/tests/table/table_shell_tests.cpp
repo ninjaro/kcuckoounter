@@ -1,3 +1,5 @@
+#include <shared_ui/qt/appearance_editor.hpp>
+#include <shared_ui/qt/presentation.hpp>
 #include <shared_ui/qt/status_strip.hpp>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
@@ -8,7 +10,6 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
@@ -143,14 +144,11 @@ void table_tests::desktop_toolbar_preserves_table_and_commands() {
     QCOMPARE(start->text(), str_label("Resume"));
     settings_template_widget* editor = nullptr;
     for (auto* candidate : window.findChildren<settings_template_widget*>()) {
-        if (candidate->findChild<QComboBox*>(
-                QStringLiteral("desktop_ui_toolbar")
-            ))
+        if (candidate->desktop_model())
             editor = candidate;
     }
     QVERIFY(editor);
-    auto* combo
-        = editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar"));
+    auto* combo = editor->desktop_model();
     const auto state = view->capture_session_state();
     QVERIFY(state.quiz_running && state.quiz_paused);
     const auto interval = slider->value();
@@ -165,7 +163,7 @@ void table_tests::desktop_toolbar_preserves_table_and_commands() {
         raster.append(slot->card_face_need_short_px());
     }
     for (const bool compact : { true, false, true }) {
-        combo->setCurrentIndex(compact ? 2 : 1);
+        combo->set_override("toolbar", compact ? "compact" : "classic");
         QVERIFY(editor->apply_theme_settings());
         QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
         QCOMPARE(toolbar->actions(), actions);
@@ -244,11 +242,11 @@ void table_tests::desktop_toolbar_preserves_table_and_commands() {
             );
         QTest::mouseClick(extension, Qt::LeftButton);
     }
-    combo->setCurrentIndex(1);
+    combo->set_override("toolbar", "classic");
     QVERIFY(editor->apply_theme_settings());
     QCOMPARE(window.toolBarArea(toolbar), Qt::BottomToolBarArea);
     toolbar->hide();
-    combo->setCurrentIndex(2);
+    combo->set_override("toolbar", "compact");
     QVERIFY(editor->apply_theme_settings());
     QVERIFY(
         toolbar->isHidden()
@@ -493,17 +491,14 @@ void table_tests::desktop_hud_fits_without_changing_policy() {
     );
     settings_template_widget* editor = nullptr;
     for (auto* candidate : window.findChildren<settings_template_widget*>())
-        if (candidate->findChild<QComboBox*>(QStringLiteral("desktop_ui_hud")))
+        if (candidate->desktop_model())
             editor = candidate;
     QVERIFY(editor);
     editor->window()->hide();
     const auto state = view->capture_session_state();
     QVERIFY(state.quiz_paused && state.quiz_running);
-    auto* choice
-        = editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_hud"));
-    auto* speed_choice = editor->findChild<QComboBox*>(
-        QStringLiteral("desktop_ui_speed_readout")
-    );
+    auto* choice = editor->desktop_model();
+    auto* speed_choice = editor->desktop_model();
     const auto settle = [] {
         for (int i = 0; i < 12; ++i)
             QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
@@ -511,10 +506,23 @@ void table_tests::desktop_hud_fits_without_changing_policy() {
     for (const bool show_speed : { true, false }) {
         // Presentation must not grant/revoke permission to edit speed.
         slider->setEnabled(show_speed);
-        speed_choice->setCurrentIndex(show_speed ? 1 : 2);
+        speed_choice->set_override(
+            "speed_readout", show_speed ? "shown" : "hidden"
+        );
         for (const int style_index : { 1, 2 }) {
-            choice->setCurrentIndex(style_index);
+            choice->set_override(
+                "hud", style_index == 2 ? "instruments" : "classic"
+            );
             QVERIFY(editor->apply_theme_settings());
+            QCOMPARE(
+                shared_ui::qt::presentation_for(window).value,
+                shared_ui::qt::material::system
+            );
+            QCOMPARE(
+                shared_ui::qt::presentation_for(*surface).value,
+                style_index == 2 ? shared_ui::qt::material::felt
+                                 : shared_ui::qt::material::system
+            );
             QCOMPARE(slider->isEnabled(), show_speed);
             QCOMPARE(readout->isHidden(), !show_speed);
             QCOMPARE(slider->value(), 300);
@@ -601,7 +609,7 @@ void table_tests::desktop_hud_fits_without_changing_policy() {
     QVERIFY(visibility->isChecked());
     visibility->trigger();
     QVERIFY(window.statusBar()->isHidden());
-    choice->setCurrentIndex(1);
+    choice->set_override("hud", "classic");
     QVERIFY(editor->apply_theme_settings());
     QVERIFY(window.statusBar()->isHidden());
     visibility->trigger();

@@ -1,4 +1,7 @@
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/adaptive_surface.hpp>
+#include <shared_ui/qt/answer_panel.hpp>
+#include <shared_ui/qt/presentation.hpp>
 
 #include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
@@ -7,7 +10,6 @@
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/card_widget.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/infinity_spinbox.hpp"
@@ -40,9 +42,6 @@ table_slot::table_slot(BaseWidget* parent)
     , show_strategy_name(nullptr)
     , training_check_box(nullptr)
     , quiz_bar_widget(nullptr)
-    , quiz_layout(nullptr)
-    , quiz_prompt_widget(nullptr)
-    , quiz_feedback_widget(nullptr)
     , quiz_weight_label(nullptr)
     , quiz_spin_box(nullptr)
     , quiz_answer_button(nullptr)
@@ -58,6 +57,13 @@ table_slot::table_slot(BaseWidget* parent)
     , quiz_continue_visible(false)
     , allow_skipping_flag(true)
     , last_quiz_input_value(0) {
+    auto presentation = shared_ui::qt::presentation_for(*this);
+    if (!presentation.context.felt_surface.isValid()) {
+        presentation.context.felt_surface
+            = theme_palette_registry::option(load_trainer_preferences().palette)
+                  .base_color();
+        shared_ui::qt::apply_presentation(*this, presentation);
+    }
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     card_widget_internal->setSizePolicy(
         QSizePolicy::Expanding, QSizePolicy::Expanding
@@ -287,7 +293,8 @@ int table_slot::card_face_need_short_px() const {
     return card_widget_internal->card_face_target_short_px();
 }
 
-void table_slot::set_presented_card_images(const QHash<QString, QImage>& images
+void table_slot::set_presented_card_images(
+    const QHash<QString, QImage>& images
 ) {
     if (card_widget_internal == nullptr) {
         return;
@@ -357,16 +364,10 @@ void table_slot::set_action_style(slot_action_style style) {
     if (action_style == style) {
         return;
     }
-    const auto* focused = QApplication::focusWidget();
-    const bool had_focus
-        = focused != nullptr && swap_bar_widget->isAncestorOf(focused);
     action_style = style;
     QToolTip::hideText();
     update_action_presentation();
     update_overlay_layout();
-    if (had_focus && !controls_dialog && compact_controls_button->isVisible()) {
-        compact_controls_button->setFocus(Qt::OtherFocusReason);
-    }
 #else
     Q_UNUSED(style);
 #endif

@@ -1,13 +1,14 @@
+#include <shared_ui/qt/appearance_editor.hpp>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
 
 #include "table/table_tests.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
@@ -588,13 +589,11 @@ void table_tests::quiz_presentation_editor_applies_and_resets() {
     struct restore_preferences {
         desktop_ui_preferences ui = load_desktop_ui_preferences();
         trainer_preferences trainer = load_trainer_preferences();
-        QColor color = theme_settings::base_color();
         QString source = card_sheet_source_path();
 
         ~restore_preferences() {
             static_cast<void>(save_desktop_ui_preferences(ui));
             save_trainer_preferences(trainer);
-            theme_settings::set_base_color(color);
             set_card_sheet_source_path(source);
         }
     } guard;
@@ -616,50 +615,35 @@ void table_tests::quiz_presentation_editor_applies_and_resets() {
     settings_template_widget editor(
         settings_tab_kind::appearance, nullptr, QString(), &view, &shared
     );
-    auto* answer = editor.findChild<QComboBox*>(
-        QStringLiteral("desktop_ui_answer_entry")
-    );
-    auto* feedback
-        = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_feedback"));
-    auto* actions = editor.findChild<QComboBox*>(
-        QStringLiteral("desktop_ui_slot_actions")
-    );
-    auto* surfaces = editor.findChild<QComboBox*>(
-        QStringLiteral("desktop_ui_settings_surface")
-    );
-    auto* toolbar
-        = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar"));
-    auto* hud = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_hud"));
+    auto* model = editor.desktop_model();
     auto* details = slot->findChild<QAbstractButton*>(
         QStringLiteral("slot_details_button")
     );
-    auto* reset
-        = editor.findChild<QPushButton*>(QStringLiteral("desktop_ui_reset"));
-    QVERIFY(
-        answer && feedback && reset && actions && details && surfaces && toolbar
-        && hud
+    auto* reset = editor.desktop_editor()->command(
+        shared_ui::qt::editor_command::reset
     );
-    answer->setCurrentIndex(2);
-    feedback->setCurrentIndex(2);
-    actions->setCurrentIndex(2);
-    surfaces->setCurrentIndex(3);
-    toolbar->setCurrentIndex(2);
-    hud->setCurrentIndex(2);
+    QVERIFY(model && reset && details);
+    model->set_override("answer_entry", "chips");
+    model->set_override("feedback", "stamp");
+    model->set_override("slot_actions", "rail");
+    model->set_override("settings_surface", "drawer");
+    model->set_override("toolbar", "compact");
+    model->set_override("hud", "instruments");
     QVERIFY(!details->text().isEmpty());
     QVERIFY(chips->isHidden()); // Pending editor selection is not applied.
     editor.reset_theme_selection();
-    QCOMPARE(answer->currentIndex(), 0);
-    QCOMPARE(feedback->currentIndex(), 0);
-    QCOMPARE(actions->currentIndex(), 0);
-    QCOMPARE(surfaces->currentIndex(), 0);
-    QCOMPARE(toolbar->currentIndex(), 0);
-    QCOMPARE(hud->currentIndex(), 0);
-    answer->setCurrentIndex(2);
-    feedback->setCurrentIndex(2);
-    actions->setCurrentIndex(2);
-    surfaces->setCurrentIndex(3);
-    toolbar->setCurrentIndex(2);
-    hud->setCurrentIndex(2);
+    QVERIFY(!model->is_override("answer_entry"));
+    QVERIFY(!model->is_override("feedback"));
+    QVERIFY(!model->is_override("slot_actions"));
+    QVERIFY(!model->is_override("settings_surface"));
+    QVERIFY(!model->is_override("toolbar"));
+    QVERIFY(!model->is_override("hud"));
+    model->set_override("answer_entry", "chips");
+    model->set_override("feedback", "stamp");
+    model->set_override("slot_actions", "rail");
+    model->set_override("settings_surface", "drawer");
+    model->set_override("toolbar", "compact");
+    model->set_override("hud", "instruments");
     QVERIFY(editor.apply_theme_settings());
     QCOMPARE(load_desktop_ui_preferences().answer(), quiz_answer_style::chips);
     QCOMPARE(
@@ -679,26 +663,39 @@ void table_tests::quiz_presentation_editor_applies_and_resets() {
         load_desktop_ui_preferences().hud(), desktop_hud_style::instruments
     );
     QCOMPARE(slot->capture_session_state(), state);
-    answer->setCurrentIndex(1);
-    feedback->setCurrentIndex(1);
-    actions->setCurrentIndex(3);
-    surfaces->setCurrentIndex(4);
-    toolbar->setCurrentIndex(1);
-    hud->setCurrentIndex(1);
+    model->set_override("answer_entry", "numeric");
+    model->set_override("feedback", "classic");
+    model->set_override("slot_actions", "pills");
+    model->set_override("settings_surface", "sill");
+    model->set_override("toolbar", "classic");
+    model->set_override("hud", "classic");
     editor.reset_theme_selection();
-    QCOMPARE(answer->currentIndex(), 2);
-    QCOMPARE(feedback->currentIndex(), 2);
-    QCOMPARE(actions->currentIndex(), 2);
-    QCOMPARE(surfaces->currentIndex(), 3);
-    QCOMPARE(toolbar->currentIndex(), 2);
-    QCOMPARE(hud->currentIndex(), 2);
+    QCOMPARE(
+        model->state().overrides.value("answer_entry"), QStringLiteral("chips")
+    );
+    QCOMPARE(
+        model->state().overrides.value("feedback"), QStringLiteral("stamp")
+    );
+    QCOMPARE(
+        model->state().overrides.value("slot_actions"), QStringLiteral("rail")
+    );
+    QCOMPARE(
+        model->state().overrides.value("settings_surface"),
+        QStringLiteral("drawer")
+    );
+    QCOMPARE(
+        model->state().overrides.value("toolbar"), QStringLiteral("compact")
+    );
+    QCOMPARE(
+        model->state().overrides.value("hud"), QStringLiteral("instruments")
+    );
     reset->click();
-    QCOMPARE(answer->currentIndex(), 0);
-    QCOMPARE(feedback->currentIndex(), 0);
-    QCOMPARE(actions->currentIndex(), 0);
-    QCOMPARE(surfaces->currentIndex(), 0);
-    QCOMPARE(toolbar->currentIndex(), 0);
-    QCOMPARE(hud->currentIndex(), 0);
+    QVERIFY(!model->is_override("answer_entry"));
+    QVERIFY(!model->is_override("feedback"));
+    QVERIFY(!model->is_override("slot_actions"));
+    QVERIFY(!model->is_override("settings_surface"));
+    QVERIFY(!model->is_override("toolbar"));
+    QVERIFY(!model->is_override("hud"));
     QVERIFY(!chips->isHidden()); // Reset remains pending until Save.
     QVERIFY(editor.apply_theme_settings());
     QVERIFY(chips->isHidden());
@@ -719,13 +716,11 @@ void table_tests::felt_presentation_restyles_without_session_changes() {
     struct restore_preferences {
         desktop_ui_preferences ui = load_desktop_ui_preferences();
         trainer_preferences trainer = load_trainer_preferences();
-        QColor color = theme_settings::base_color();
         QString source = card_sheet_source_path();
 
         ~restore_preferences() {
             static_cast<void>(save_desktop_ui_preferences(ui));
             save_trainer_preferences(trainer);
-            theme_settings::set_base_color(color);
             set_card_sheet_source_path(source);
         }
     } guard;
@@ -751,38 +746,43 @@ void table_tests::felt_presentation_restyles_without_session_changes() {
     settings_template_widget editor(
         settings_tab_kind::appearance, nullptr, QString(), &view, &shared
     );
-    auto* preset
-        = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_preset"));
-    auto* frame
-        = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_frame"));
-    auto* chrome
-        = editor.findChild<QComboBox*>(QStringLiteral("desktop_ui_chrome"));
-    auto* reset
-        = editor.findChild<QPushButton*>(QStringLiteral("desktop_ui_reset"));
-    QVERIFY(preset && frame && chrome && reset);
-    QCOMPARE(preset->count(), 3);
-    QCOMPARE(frame->count(), 4);
-    QCOMPARE(chrome->count(), 3);
-    QCOMPARE(chrome->accessibleName(), str_label("Window chrome"));
+    auto* model = editor.desktop_model();
+    auto* reset = editor.desktop_editor()->command(
+        shared_ui::qt::editor_command::reset
+    );
+    QVERIFY(model && reset);
+    QCOMPARE(model->presets().size(), 3);
+    QVERIFY(model->option_available("frame", "piping"));
+    QVERIFY(model->option_available("chrome", "native"));
+    QCOMPARE(model->family("chrome")->label, str_label("Window chrome"));
 
-    preset->setCurrentIndex(2);
-    QVERIFY(!theme_settings::felt_chrome(&view)); // Pending until Save.
+    model->choose_preset("felt");
+    QVERIFY(
+        shared_ui::qt::presentation_for(view).value
+        != shared_ui::qt::material::felt
+    ); // Pending until Save.
     QVERIFY(editor.apply_theme_settings());
     const auto felt = load_desktop_ui_preferences();
     QCOMPARE(felt.preset, desktop_ui_preset::felt);
     QCOMPARE(felt.frame(), slot_frame_style::piping);
     QCOMPARE(felt.chrome(), desktop_chrome_style::felt);
     QVERIFY(!felt.chrome_override);
-    QVERIFY(theme_settings::felt_chrome(&view));
+    QVERIFY(
+        shared_ui::qt::presentation_for(view).value
+        == shared_ui::qt::material::felt
+    );
     QVERIFY(quiz_bar->styleSheet() != native_sheet);
     QCOMPARE(answer->buttonSymbols(), QAbstractSpinBox::NoButtons);
     QCOMPARE(slot->capture_session_state(), state);
     QCOMPARE(slot->geometry(), geometry);
 
     // Chrome is an independent override; the preset keeps its frame.
-    chrome->setCurrentIndex(1);
+    model->set_override("chrome", "native");
     QVERIFY(editor.apply_theme_settings());
-    QVERIFY(!theme_settings::felt_chrome(&view));
+    QVERIFY(
+        shared_ui::qt::presentation_for(view).value
+        != shared_ui::qt::material::felt
+    );
     QCOMPARE(quiz_bar->styleSheet(), native_sheet);
     QCOMPARE(answer->buttonSymbols(), QAbstractSpinBox::UpDownArrows);
     QCOMPARE(load_desktop_ui_preferences().frame(), slot_frame_style::piping);
@@ -790,18 +790,26 @@ void table_tests::felt_presentation_restyles_without_session_changes() {
         load_desktop_ui_preferences().chrome_override,
         std::optional(desktop_chrome_style::native)
     );
-    chrome->setCurrentIndex(0);
+    model->clear_override("chrome");
     editor.reset_theme_selection();
-    QCOMPARE(chrome->currentIndex(), 1);
-    QCOMPARE(preset->currentIndex(), 2);
+    QCOMPARE(
+        model->state().overrides.value("chrome"), QStringLiteral("native")
+    );
+    QCOMPARE(model->state().preset, QStringLiteral("felt"));
     reset->click();
-    QCOMPARE(chrome->currentIndex(), 0);
+    QVERIFY(!model->is_override("chrome"));
     QVERIFY(editor.apply_theme_settings());
-    QVERIFY(theme_settings::felt_chrome(&view));
+    QVERIFY(
+        shared_ui::qt::presentation_for(view).value
+        == shared_ui::qt::material::felt
+    );
     QVERIFY(!load_desktop_ui_preferences().chrome_override);
-    preset->setCurrentIndex(0);
+    model->choose_preset("classic");
     QVERIFY(editor.apply_theme_settings());
-    QVERIFY(!theme_settings::felt_chrome(&view));
+    QVERIFY(
+        shared_ui::qt::presentation_for(view).value
+        != shared_ui::qt::material::felt
+    );
     QCOMPARE(quiz_bar->styleSheet(), native_sheet);
     QCOMPARE(slot->capture_session_state(), state);
     QCOMPARE(slot->geometry(), geometry);

@@ -5,7 +5,6 @@
 #include "image/card_preview_carousel.hpp"
 #include "settings/preferences.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/table.hpp"
 
 #include <QAbstractItemView>

@@ -5,18 +5,14 @@
 #include "image/card_preview_carousel.hpp"
 #include "settings/preferences.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/table.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 #include <QButtonGroup>
 #include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QMessageBox>
-#include <QPushButton>
 #include <QRadioButton>
-#include <QSignalBlocker>
-#include <QStandardItemModel>
 
 #include "table/settings_template_support.hpp"
 
@@ -84,7 +80,6 @@ void settings_template_widget::setup_appearance_ui() {
     theme_layout->addRow(str_label("Palette"), theme_palette_preview);
     theme_layout->addRow(str_label("Default suit"), suit_combo_box);
     theme_layout->addRow(str_label("Orientation"), orientation_combo_box);
-    setup_desktop_components(theme_layout);
     main_layout->addWidget(theme_widget);
 
     auto theme_section = new BaseWidget(this);
@@ -208,255 +203,34 @@ void settings_template_widget::on_theme_source_button_clicked(
     flush_preview_refresh();
 }
 
-void settings_template_widget::setup_desktop_components(QFormLayout* layout) {
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
-    ui_preset_combo = new BaseComboBox(this);
-    ui_preset_combo->setObjectName(QStringLiteral("desktop_ui_preset"));
-    ui_preset_combo->setAccessibleName(str_label("Desktop UI preset"));
-    ui_preset_combo->addItems(
-        { str_label("Classic"), str_label("Quiet"), str_label("Felt") }
-    );
-    ui_preset_combo->setToolTip(str_label(
-        "Presentation only; does not change game rules, palette or card "
-        "artwork."
-    ));
-    layout->addRow(str_label("Desktop UI preset"), ui_preset_combo);
-    ui_frame_combo = new BaseComboBox(this);
-    ui_frame_combo->setObjectName(QStringLiteral("desktop_ui_frame"));
-    ui_frame_combo->setAccessibleName(str_label("Slot frame"));
-    ui_frame_combo->addItems(
-        { str_label("Preset default"), str_label("Classic"),
-          str_label("Thin outline"), str_label("Gold piping") }
-    );
-    layout->addRow(str_label("Slot frame"), ui_frame_combo);
-    ui_speed_combo = new BaseComboBox(this);
-    ui_speed_combo->setObjectName(QStringLiteral("desktop_ui_speed_readout"));
-    ui_speed_combo->setAccessibleName(str_label("Pickup interval text"));
-    ui_speed_combo->addItems(
-        { str_label("Preset default"), str_label("Shown"), str_label("Hidden") }
-    );
-    ui_speed_combo->setToolTip(str_label(
-        "Only changes the numeric readout. The speed slider and gameplay speed "
-        "policy are unchanged."
-    ));
-    layout->addRow(str_label("Pickup interval text"), ui_speed_combo);
-    ui_answer_combo = new BaseComboBox(this);
-    ui_answer_combo->setObjectName(QStringLiteral("desktop_ui_answer_entry"));
-    ui_answer_combo->setAccessibleName(str_label("Answer entry"));
-    ui_answer_combo->addItems(
-        { str_label("Preset default"), str_label("Numeric"),
-          str_label("Chip stepper") }
-    );
-    ui_answer_combo->setToolTip(str_label(
-        "Chips adjust the same accumulated count; Check submits it. Typed "
-        "entry remains available."
-    ));
-    layout->addRow(str_label("Answer entry"), ui_answer_combo);
-    ui_feedback_combo = new BaseComboBox(this);
-    ui_feedback_combo->setObjectName(QStringLiteral("desktop_ui_feedback"));
-    ui_feedback_combo->setAccessibleName(str_label("Answer feedback"));
-    ui_feedback_combo->addItems(
-        { str_label("Preset default"), str_label("Classic text"),
-          str_label("Count stamp") }
-    );
-    layout->addRow(str_label("Answer feedback"), ui_feedback_combo);
-    ui_actions_combo = new BaseComboBox(this);
-    ui_actions_combo->setObjectName(QStringLiteral("desktop_ui_slot_actions"));
-    ui_actions_combo->setAccessibleName(str_label("Slot actions"));
-    ui_actions_combo->addItems(
-        { str_label("Preset default"), str_label("Classic"),
-          str_label("Icon rail"), str_label("Labelled pills") }
-    );
-    ui_actions_combo->setToolTip(str_label(
-        "Same Details, Swap, Copy and Copy all actions. Small slots use the "
-        "Card controls window."
-    ));
-    layout->addRow(str_label("Slot actions"), ui_actions_combo);
-    ui_settings_combo = new BaseComboBox(this);
-    ui_settings_combo->setObjectName(
-        QStringLiteral("desktop_ui_settings_surface")
-    );
-    ui_settings_combo->setAccessibleName(str_label("Slot settings"));
-    ui_settings_combo->addItems(
-        { str_label("Preset default"), str_label("Classic"),
-          str_label("Settings card"), str_label("Edge drawer"),
-          str_label("Bottom sill") }
-    );
-    ui_settings_combo->setToolTip(str_label(
-        "Alternatives open on Details and apply only with OK. Small slots host "
-        "the same draft in a window."
-    ));
-    layout->addRow(str_label("Slot settings"), ui_settings_combo);
-    ui_toolbar_combo = new BaseComboBox(this);
-    ui_toolbar_combo->setObjectName(QStringLiteral("desktop_ui_toolbar"));
-    ui_toolbar_combo->setAccessibleName(str_label("Main toolbar"));
-    ui_toolbar_combo->addItems(
-        { str_label("Preset default"), str_label("Classic"),
-          str_label("Compact") }
-    );
-    ui_toolbar_combo->setToolTip(str_label(
-        "Compact keeps Start/Pause/Resume labelled and uses icons for other "
-        "actions. Native menus, shortcuts and toolbar placement are unchanged."
-    ));
-    layout->addRow(str_label("Main toolbar"), ui_toolbar_combo);
-    ui_hud_combo = new BaseComboBox(this);
-    ui_hud_combo->setObjectName(QStringLiteral("desktop_ui_hud"));
-    ui_hud_combo->setAccessibleName(str_label("Session HUD"));
-    ui_hud_combo->addItems(
-        { str_label("Preset default"), str_label("Classic"),
-          str_label("Instrument strip") }
-    );
-    ui_hud_combo->setToolTip(str_label(
-        "Same status, score, time and pickup controls. Instrument strip adds "
-        "emphasis and slider ticks, not new scoring or speed rules."
-    ));
-    layout->addRow(str_label("Session HUD"), ui_hud_combo);
-    ui_chrome_combo = new BaseComboBox(this);
-    ui_chrome_combo->setObjectName(QStringLiteral("desktop_ui_chrome"));
-    ui_chrome_combo->setAccessibleName(str_label("Window chrome"));
-    ui_chrome_combo->addItems(
-        { str_label("Preset default"), str_label("Native"), str_label("Felt") }
-    );
-    ui_chrome_combo->setToolTip(str_label(
-        "Material of the menus, toolbar, status strip and slot controls. "
-        "Table palette, card artwork and game rules are unchanged."
-    ));
-    layout->addRow(str_label("Window chrome"), ui_chrome_combo);
-    auto* reset
-        = new QPushButton(str_label("Reset components to preset"), this);
-    reset->setObjectName(QStringLiteral("desktop_ui_reset"));
-    layout->addRow(reset);
-    const auto bind =
-        [this](QComboBox* box, const QStringList& ids, const QString& family) {
-            for (qsizetype index = 0; index < ids.size(); ++index)
-                box->setItemData(static_cast<int>(index), ids[index]);
-            connect(
-                box, &QComboBox::currentIndexChanged, this,
-                [this, box, family](int index) {
-                    if (index < 0)
-                        return;
-                    const auto id = box->currentData().toString();
-                    if (family.isEmpty())
-                        desktop_appearance_.preset = id;
-                    else if (index == 0)
-                        desktop_appearance_.overrides.remove(family);
-                    else
-                        desktop_appearance_.overrides.insert(family, id);
-                }
-            );
-        };
-    bind(ui_preset_combo, { "classic", "quiet", "felt" }, {});
-    const QList<QStringList> ids { { "", "classic", "thin", "piping" },
-                                   { "", "shown", "hidden" },
-                                   { "", "numeric", "chips" },
-                                   { "", "classic", "stamp" },
-                                   { "", "classic", "rail", "pills" },
-                                   { "", "classic", "card", "drawer", "sill" },
-                                   { "", "classic", "compact" },
-                                   { "", "classic", "instruments" },
-                                   { "", "native", "felt" } };
-    const auto boxes = desktop_component_boxes();
-    for (qsizetype index = 0; index < boxes.size(); ++index)
-        bind(boxes[index].second, ids[index], boxes[index].first);
-    connect(ui_preset_combo, &QComboBox::activated, this, [this] {
-        // Preset changes reset recognized choices only. An unsupported saved
-        // choice is retained until explicitly replaced or reset by the user.
-        for (const auto& [family, box] : desktop_component_boxes()) {
-            Q_UNUSED(family);
-            if (!box->currentData(Qt::UserRole + 1).toBool())
-                box->setCurrentIndex(0);
-        }
-    });
-    connect(reset, &QPushButton::clicked, this, [this] {
-        desktop_appearance_.overrides.clear();
-        for (const auto& [family, box] : desktop_component_boxes()) {
-            Q_UNUSED(family);
-            box->setCurrentIndex(0);
-        }
-    });
-    reset_desktop_component_selection();
-#else
-    Q_UNUSED(layout);
-#endif
-}
-
-QList<QPair<QString, QComboBox*>>
-settings_template_widget::desktop_component_boxes() const {
-    return { { "frame", ui_frame_combo },
-             { "speed_readout", ui_speed_combo },
-             { "answer_entry", ui_answer_combo },
-             { "feedback", ui_feedback_combo },
-             { "slot_actions", ui_actions_combo },
-             { "settings_surface", ui_settings_combo },
-             { "toolbar", ui_toolbar_combo },
-             { "hud", ui_hud_combo },
-             { "chrome", ui_chrome_combo } };
-}
-
-void settings_template_widget::reset_desktop_component_selection() {
-    if (!ui_preset_combo)
-        return;
-    desktop_appearance_ = load_desktop_ui_preferences().appearance();
-    const auto show_choice = [](QComboBox* box, const QString& id,
-                                bool explicit_value, bool is_preset = false) {
-        const QSignalBlocker block(box);
-        for (int index = box->count() - 1; index >= 0; --index)
-            if (box->itemData(index, Qt::UserRole + 1).toBool())
-                box->removeItem(index);
-        int index = explicit_value ? box->findData(id) : 0;
-        if (explicit_value && !is_preset && index == 0)
-            index
-                = -1; // An explicit empty/unsupported value is not inheritance.
-        if (index < 0) {
-            index = box->count();
-            box->addItem(tr("Unavailable saved choice: %1").arg(id), id);
-            box->setItemData(index, true, Qt::UserRole + 1);
-            if (auto* model = qobject_cast<QStandardItemModel*>(box->model()))
-                model->item(index)->setEnabled(false);
-        }
-        box->setCurrentIndex(index);
-    };
-    show_choice(ui_preset_combo, desktop_appearance_.preset, true, true);
-    for (const auto& [family, box] : desktop_component_boxes())
-        show_choice(
-            box, desktop_appearance_.overrides.value(family),
-            desktop_appearance_.overrides.contains(family)
-        );
-}
-
-desktop_ui_preferences
-settings_template_widget::selected_desktop_components() const {
-    return desktop_ui_preferences::from_appearance(desktop_appearance_);
-}
-
-bool settings_template_widget::apply_theme_settings() {
+bool settings_template_widget::commit_theme_settings(
+    const shared_ui::qt::appearance_state* submitted
+) {
     if (theme_combo_box == nullptr || shared_state == nullptr) {
         return false;
     }
 
-    if (ui_preset_combo != nullptr
-        && !save_desktop_ui_preferences(selected_desktop_components())) {
-        QMessageBox::warning(
-            this, str_label("Desktop presentation"),
-            str_label("Could not save the desktop presentation settings.")
-        );
+    if (submitted != nullptr
+        && !save_desktop_ui_preferences(
+            desktop_ui_preferences::from_appearance(*submitted)
+        ))
         return false;
-    }
 
     const QColor base_color = settings_template_support::theme_color_from_label(
         theme_combo_box->currentText()
     );
     const QString selected_theme_source = selected_theme_source_id();
-    const bool color_changed = theme_settings::base_color() != base_color;
+    const trainer_preferences previous = load_trainer_preferences();
+    const QColor previous_color = table_widget != nullptr
+        ? shared_ui::qt::presentation_for(*table_widget).context.felt_surface
+        : theme_palette_registry::option(previous.palette).base_color();
+    const bool color_changed = previous_color != base_color;
     const bool source_changed
         = card_sheet_source_path() != selected_theme_source;
     const bool theme_changed = color_changed || source_changed;
-    if (color_changed)
-        theme_settings::set_base_color(base_color);
     if (source_changed)
         set_card_sheet_source_path(selected_theme_source);
     shared_state->set_table_color_index(theme_combo_box->currentIndex());
-    const trainer_preferences previous = load_trainer_preferences();
     trainer_preferences preferences = previous;
     preferences.palette = theme_palette_registry::id_from_color(base_color);
     preferences.card_orientation
@@ -467,15 +241,22 @@ bool settings_template_widget::apply_theme_settings() {
         );
     save_trainer_appearance_preferences(previous, preferences);
     if (table_widget != nullptr) {
+        auto presentation = shared_ui::qt::presentation_for(*table_widget);
+        presentation.context.felt_surface = base_color;
+        if (submitted != nullptr)
+            presentation.value
+                = desktop_ui_preferences::from_appearance(*submitted).chrome()
+                    == desktop_chrome_style::felt
+                ? shared_ui::qt::material::felt
+                : shared_ui::qt::material::system;
+        shared_ui::qt::apply_presentation(*table_widget, presentation);
         table_widget->set_card_orientation(preferences.card_orientation);
         if (theme_changed) {
             table_widget->apply_theme();
         }
-        if (ui_preset_combo != nullptr) {
-            const auto components = selected_desktop_components();
-            theme_settings::apply_chrome(
-                *table_widget, components.chrome() == desktop_chrome_style::felt
-            );
+        if (submitted != nullptr) {
+            const auto components
+                = desktop_ui_preferences::from_appearance(*submitted);
             table_widget->set_frame_style(components.frame());
             table_widget->set_action_style(components.actions());
             table_widget->set_settings_style(components.settings_surface());
@@ -490,7 +271,8 @@ bool settings_template_widget::apply_theme_settings() {
 }
 
 void settings_template_widget::reset_theme_selection() {
-    reset_desktop_component_selection();
+    if (appearance_model_)
+        appearance_model_->revert();
     if (theme_combo_box == nullptr || shared_state == nullptr) {
         return;
     }

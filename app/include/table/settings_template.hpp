@@ -9,6 +9,7 @@
 
 #include <QImage>
 #include <QObject>
+#include <QPointer>
 #include <QSet>
 #include <QString>
 #include <QtGlobal>
@@ -36,6 +37,10 @@ private:
     int table_color_index_value;
 };
 
+namespace shared_ui::qt {
+class appearance_editor;
+}
+
 class QLabel;
 class QListWidget;
 class QButtonGroup;
@@ -59,6 +64,9 @@ public:
     );
     ~settings_template_widget() override;
     bool apply_theme_settings();
+    // The editor can be reparented into the owning settings dialog's tabs.
+    [[nodiscard]] shared_ui::qt::appearance_editor* desktop_editor() const;
+    [[nodiscard]] shared_ui::qt::appearance_model* desktop_model() const;
     void reset_theme_selection();
 
 signals:
@@ -68,11 +76,9 @@ private:
     void setup_ui(const QString& selected_strategy);
     void setup_strategy_ui(const QString& selected_strategy);
     void setup_appearance_ui();
-    void setup_desktop_components(QFormLayout* layout);
-    void reset_desktop_component_selection();
-    [[nodiscard]] desktop_ui_preferences selected_desktop_components() const;
-    [[nodiscard]] QList<QPair<QString, QComboBox*>>
-    desktop_component_boxes() const;
+    void setup_appearance_editor();
+    bool
+    commit_theme_settings(const shared_ui::qt::appearance_state* submitted);
     void sync_theme_combo_shared_state(int index);
     void on_theme_source_button_clicked(QAbstractButton* button);
     void update_strategy_details(int index);
@@ -115,17 +121,8 @@ private:
     BaseComboBox* suit_combo_box;
     BaseComboBox* theme_combo_box;
     BaseComboBox* orientation_combo_box;
-    BaseComboBox* ui_preset_combo = nullptr;
-    shared_ui::qt::appearance_state desktop_appearance_;
-    BaseComboBox* ui_frame_combo = nullptr;
-    BaseComboBox* ui_speed_combo = nullptr;
-    BaseComboBox* ui_answer_combo = nullptr;
-    BaseComboBox* ui_feedback_combo = nullptr;
-    BaseComboBox* ui_actions_combo = nullptr;
-    BaseComboBox* ui_settings_combo = nullptr;
-    BaseComboBox* ui_toolbar_combo = nullptr;
-    BaseComboBox* ui_hud_combo = nullptr;
-    BaseComboBox* ui_chrome_combo = nullptr;
+    QPointer<shared_ui::qt::appearance_model> appearance_model_;
+    QPointer<shared_ui::qt::appearance_editor> appearance_editor_;
     BaseWidget* theme_palette_preview;
     QButtonGroup* theme_button_group;
     card_preview_carousel* theme_carousel;

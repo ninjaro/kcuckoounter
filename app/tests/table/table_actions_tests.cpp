@@ -3,9 +3,9 @@
 // readability-make-member-function-const)
 
 #include "table/table_tests.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 #include "arch/str_label.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/card_widget.hpp"
 #include "table/table_fixture.hpp"
 #include "table/table_slot.hpp"
@@ -522,7 +522,10 @@ void table_tests::slot_actions_present_host_commands() {
     const auto state = slot->capture_session_state();
     const auto geometry = slot->geometry();
     for (const bool felt : { false, true }) {
-        theme_settings::apply_chrome(view, felt);
+        auto presentation = shared_ui::qt::presentation_for(view);
+        presentation.value = felt ? shared_ui::qt::material::felt
+                                  : shared_ui::qt::material::system;
+        shared_ui::qt::apply_presentation(view, presentation);
         view.refresh_material();
         const auto material = felt ? shared_ui::qt::material::felt
                                    : shared_ui::qt::material::system;

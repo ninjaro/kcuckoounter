@@ -1,3 +1,4 @@
+#include <shared_ui/qt/appearance_editor.hpp>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
@@ -44,7 +45,7 @@ struct hud_preferences_guard {
 
 settings_template_widget* hud_editor(main_window& window) {
     for (auto* editor : window.findChildren<settings_template_widget*>())
-        if (editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_hud")))
+        if (editor->desktop_model())
             return editor;
     return nullptr;
 }
@@ -160,11 +161,8 @@ void table_tests::hud_styles_preserve_owned_quiz() {
     QCOMPARE(owner.phase(), gameplay::session_phase::paused);
     auto* editor = hud_editor(window);
     QVERIFY(editor);
-    auto* hud_choice
-        = editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_hud"));
-    auto* readout_choice = editor->findChild<QComboBox*>(
-        QStringLiteral("desktop_ui_speed_readout")
-    );
+    auto* hud_choice = editor->desktop_model();
+    auto* readout_choice = editor->desktop_model();
     QVERIFY(hud_choice && readout_choice);
     editor->window()->hide();
     window.activateWindow();
@@ -193,8 +191,12 @@ void table_tests::hud_styles_preserve_owned_quiz() {
     QCOMPARE(status->text(), original_status);
     for (const bool instruments : { !initial_instruments, initial_instruments })
         for (const bool show_readout : { false, true }) {
-            hud_choice->setCurrentIndex(instruments ? 2 : 1);
-            readout_choice->setCurrentIndex(show_readout ? 1 : 2);
+            hud_choice->set_override(
+                "hud", instruments ? "instruments" : "classic"
+            );
+            readout_choice->set_override(
+                "speed_readout", show_readout ? "shown" : "hidden"
+            );
             QVERIFY(editor->apply_theme_settings());
             QCOMPARE(
                 surface->frameShape(),
@@ -361,8 +363,7 @@ void table_tests::hud_styles_preserve_finished_result() {
     auto* editor = hud_editor(window);
     QVERIFY(editor);
     editor->window()->hide();
-    auto* choice
-        = editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_hud"));
+    auto* choice = editor->desktop_model();
     auto* view = window.findChild<table*>();
     auto* status = window.findChild<QLabel*>(QStringLiteral("session_status"));
     auto* speed
@@ -399,7 +400,7 @@ void table_tests::hud_styles_preserve_finished_result() {
         QCOMPARE(owner.remaining_lives(), 0);
     for (const bool instruments :
          { !initial_instruments, initial_instruments }) {
-        choice->setCurrentIndex(instruments ? 2 : 1);
+        choice->set_override("hud", instruments ? "instruments" : "classic");
         QVERIFY(editor->apply_theme_settings());
         // A skipped/answered question can reveal a previously undemanded face.
         // Compare the settled HUD, preserving its separate Processing state.
@@ -441,7 +442,7 @@ void table_tests::hud_styles_preserve_finished_result() {
     auto* cache = table::shared_image_service();
     for (const bool instruments :
          { !initial_instruments, initial_instruments }) {
-        choice->setCurrentIndex(instruments ? 2 : 1);
+        choice->set_override("hud", instruments ? "instruments" : "classic");
         QVERIFY(editor->apply_theme_settings());
         settle_hud();
         QVERIFY(status->text().contains(str_label("Finished")));

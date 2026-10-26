@@ -2,10 +2,12 @@
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
 #include "packing/layout/equal_rectangles.hpp"
+#include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
-#include "settings/theme_settings.hpp"
+#include "settings/theme_palette.hpp"
 #include "table/card_widget.hpp"
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 #include <QEvent>
 #include <QPaintEvent>
@@ -37,6 +39,13 @@ table::table(BaseWidget* parent)
     , rasterization_busy(false)
     , random_gen()
     , card_images(this) {
+    auto presentation = shared_ui::qt::presentation_for(*this);
+    if (!presentation.context.felt_surface.isValid()) {
+        presentation.context.felt_surface
+            = theme_palette_registry::option(load_trainer_preferences().palette)
+                  .base_color();
+        shared_ui::qt::apply_presentation(*this, presentation);
+    }
     connect(
         &current_card_sheet_metadata(), &card_sheet_metadata::geometry_changed,
         this,
@@ -472,7 +481,15 @@ void table::paintEvent(QPaintEvent* event) {
     BaseWidget::paintEvent(event);
 
     QPainter painter(this);
-    painter.fillRect(rect(), theme_settings::table_color(this));
+    const auto color
+        = shared_ui::qt::presentation_for(*this).context.felt_surface;
+    painter.fillRect(
+        rect(),
+        color.isValid()
+            ? color
+            : theme_palette_registry::option(load_trainer_preferences().palette)
+                  .base_color()
+    );
 }
 
 bool table::event(QEvent* event) {

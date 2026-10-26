@@ -1,4 +1,5 @@
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/answer_panel.hpp>
 
 #include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
@@ -7,7 +8,6 @@
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/card_widget.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/infinity_spinbox.hpp"

@@ -1,9 +1,11 @@
 #include "table/card_widget.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 #include "arch/asset_locator.hpp"
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
-#include "settings/theme_settings.hpp"
+#include "settings/preferences.hpp"
+#include "settings/theme_palette.hpp"
 #include <QColor>
 #include <QFontMetricsF>
 #include <QPaintEvent>
@@ -154,13 +156,25 @@ void card_widget::paint_slot_frame(
         = target && target->status == gameplay::deck_status::failed;
     const bool completed
         = target && target->status == gameplay::deck_status::completed;
+    const auto contextual
+        = shared_ui::qt::presentation_for(*this).context.felt_surface;
+    const QColor table_color = contextual.isValid()
+        ? contextual
+        : theme_palette_registry::option(load_trainer_preferences().palette)
+              .base_color();
     const QColor slot_fill_color
-        = failed ? QColor(70, 70, 70) : theme_settings::slot_fill_color(this);
+        = failed ? QColor(70, 70, 70) : table_color.darker(125);
+    // Native edges keep the decorative gold, independent of surface contrast.
+    const auto accent
+        = shared_ui::qt::tokens_for(
+              shared_ui::qt::material::felt,
+              shared_ui::qt::presentation_for(*this).profile, palette()
+        )
+              .accent;
     const QColor slot_border_color = swap_selected_flag
-        ? theme_settings::slot_border_selected_color()
+        ? accent
         : (failed ? QColor(35, 35, 35)
-                  : (completed ? QColor(40, 110, 70)
-                               : theme_settings::slot_border_color()));
+                  : (completed ? QColor(40, 110, 70) : accent));
     if (frame_style == slot_frame_style::piping) {
         paint_piping_frame(
             painter, geometry, slot_fill_color, slot_border_color
@@ -183,7 +197,8 @@ void card_widget::paint_piping_frame(
     // position as legends on the bottom line. Nothing occupies the card's
     // safe area, so card size, jitter and history are unchanged.
     const QRectF& frame = geometry.frame;
-    const shared_ui::qt::material_tokens material = theme_settings::felt(this);
+    const shared_ui::qt::material_tokens material
+        = shared_ui::qt::material_for(*this, shared_ui::qt::material::felt);
     const qreal radius = std::clamp(geometry.min_dim * 0.045, 6.0, 16.0);
     const QColor line = verdict_glow ? material.negative_fill : border;
     painter.save();
@@ -238,7 +253,12 @@ void card_widget::paint_piping_frame(
     notch_font.setPixelSize(static_cast<int>(font_px));
     notch_font.setLetterSpacing(QFont::AbsoluteSpacing, font_px * 0.14);
     const QFontMetricsF metrics(notch_font);
-    const QColor table_fill = theme_settings::table_color(this);
+    const auto contextual
+        = shared_ui::qt::presentation_for(*this).context.felt_surface;
+    const QColor table_fill = contextual.isValid()
+        ? contextual
+        : theme_palette_registry::option(load_trainer_preferences().palette)
+              .base_color();
     if (slot_number > 0) {
         const QString number
             = QStringLiteral("%1").arg(slot_number, 2, 10, QLatin1Char('0'));
@@ -332,7 +352,8 @@ void card_widget::draw_card_mat(
     qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
     bool top_card
 ) const {
-    if (!theme_settings::felt_chrome(this))
+    if (shared_ui::qt::presentation_for(*this).value
+        != shared_ui::qt::material::felt)
         return;
     const qreal short_side
         = std::min(oriented_card_rect.width(), oriented_card_rect.height());
@@ -365,7 +386,9 @@ void card_widget::draw_card_mat(
         painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
     );
     painter.setPen(Qt::NoPen);
-    painter.setBrush(theme_settings::felt(this).card);
+    painter.setBrush(
+        shared_ui::qt::material_for(*this, shared_ui::qt::material::felt).card
+    );
     painter.drawRoundedRect(
         oriented_card_rect.adjusted(-mat, -mat, mat, mat), 9.0 + mat, 9.0 + mat
     );
@@ -405,7 +428,8 @@ void card_widget::paint_deck_content(
         && target_lines.constFirst() == strategy_name)
         target_lines.removeFirst();
     if (display_hidden()) {
-        if (theme_settings::felt_chrome(this)) {
+        if (shared_ui::qt::presentation_for(*this).value
+            == shared_ui::qt::material::felt) {
             // Felt docks the answer panel below the quiz marking instead of
             // covering its middle; the marking keeps its raster size.
             draw_table_marking(

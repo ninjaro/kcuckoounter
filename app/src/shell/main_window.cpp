@@ -1,5 +1,5 @@
 #include "shell/main_window.hpp"
-#include "shell/desktop_status_strip.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 #include "card_helpers/card_sheet.hpp"
 #include "table/gameplay_setup.hpp"
@@ -15,11 +15,11 @@
 #include "settings/session_checkpoint.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 #include "shell/gameplay_reservation.hpp"
 
-#include <shared_ui/qt/icons.hpp>
+#include <shared_ui/qt/status_strip.hpp>
+#include <shared_ui/qt/toolbar_presentation.hpp>
 
 #include <QButtonGroup>
 #include <QComboBox>
@@ -43,7 +43,6 @@
 #include <QSlider>
 #include <QStringList>
 #include <QToolButton>
-#include <QToolTip>
 
 #include <algorithm>
 
@@ -166,12 +165,33 @@ lives_presentation gameplay_lives_text(
 } // namespace
 
 BaseWidget* main_window::create_desktop_status_surface() {
-    desktop_status = new desktop_status_strip(this);
+    desktop_status = new shared_ui::qt::status_strip(this);
+    desktop_status->setObjectName(QStringLiteral("desktop_status_surface"));
     status_label = desktop_status->status_label();
     pickup_interval_label = desktop_status->readout_label();
     speed_slider = desktop_status->control_slider();
     raster_progress = desktop_status->progress_bar();
     clock_label = desktop_status->trailing_label();
+    raster_progress->setRange(0, 0);
+    raster_progress->setAccessibleName(str_label("Preparing card images"));
+    speed_slider->setRange(
+        trainer_preferences::minimum_pickup_interval_ms,
+        trainer_preferences::maximum_pickup_interval_ms
+    );
+    speed_slider->setValue(300);
+    speed_slider->setTickInterval(100);
+#ifdef KC_KDE
+    speed_slider->setMaximumWidth(160);
+#else
+    speed_slider->setMaximumWidth(180);
+#endif
+    speed_slider->setAccessibleName(str_label("Card pickup interval (ms)"));
+    speed_slider->setToolTip(str_label("Card pickup interval (ms)"));
+    clock_label->setText(str_label("00:00:00"));
+    clock_label->setObjectName(QStringLiteral("session_clock"));
+#ifndef KC_KDE
+    clock_label->hide();
+#endif
     return desktop_status;
 }
 
@@ -241,6 +261,11 @@ void main_window::update_start_pause_action(bool paused) const {
         return;
     }
 
+    shared_ui::qt::set_toolbar_icon(
+        *start_pause_action,
+        paused ? shared_ui::qt::toolbar_icon::play
+               : shared_ui::qt::toolbar_icon::pause
+    );
     if (paused) {
         start_pause_action->setText(str_label("Resume"));
         start_pause_action->setIcon(
@@ -276,6 +301,9 @@ void main_window::setup_game_actions() {
     );
 
     start_pause_action = new BaseAction(str_label("Start"), this);
+    shared_ui::qt::set_toolbar_icon(
+        *start_pause_action, shared_ui::qt::toolbar_icon::play
+    );
     register_shell_action(
         start_pause_action, QStringLiteral("game_start_pause")
     );
@@ -404,9 +432,15 @@ void main_window::setup_game_actions() {
 
 void main_window::setup_ui() {
     const trainer_preferences preferences = load_trainer_preferences();
-    theme_settings::set_base_color(
-        theme_palette_registry::option(preferences.palette).base_color()
-    );
+    auto presentation = shared_ui::qt::presentation_for(*this);
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    presentation.profile = shared_ui::qt::platform_profile::android;
+#elif defined(KC_KDE)
+    presentation.profile = shared_ui::qt::platform_profile::desktop_kde;
+#endif
+    presentation.context.felt_surface
+        = theme_palette_registry::option(preferences.palette).base_color();
+    shared_ui::qt::apply_presentation(*this, presentation);
 
     setup_platform_shell();
 
@@ -552,16 +586,10 @@ void main_window::setup_ui() {
 
     finalize_platform_shell();
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
-    // KDE has replaced its Settings action by this point. Observe the final
-    // native actions, without creating a second command or shortcut model.
-    if (primary_toolbar != nullptr) {
-        for (auto* action : primary_toolbar->actions()) {
-            connect(
-                action, &QAction::changed, this,
-                &main_window::update_toolbar_buttons
-            );
-        }
-    }
+    // Stable host identity after KDE has finalized the native actions.
+    if (primary_toolbar)
+        if (auto* button = primary_toolbar->widgetForAction(start_pause_action))
+            button->setObjectName(QStringLiteral("game_start_pause_button"));
 #endif
     setup_status_surface(main_layout);
     status_label->setObjectName(QStringLiteral("session_status"));
@@ -790,14 +818,21 @@ void main_window::setup_ui() {
 }
 
 void main_window::apply_desktop_presentation() {
+    auto window_presentation = shared_ui::qt::presentation_for(*this);
+    window_presentation.context.felt_surface
+        = theme_palette_registry::option(load_trainer_preferences().palette)
+              .base_color();
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     const auto value = load_desktop_ui_preferences();
     gameplay_hud_style = value.hud();
     gameplay_default_suit = load_default_suit_preference();
     // Material first: slots read it while restyling their overlays below.
     felt_chrome = value.chrome() == desktop_chrome_style::felt;
-    theme_settings::apply_chrome(*this, felt_chrome);
+    window_presentation.value = felt_chrome ? shared_ui::qt::material::felt
+                                            : shared_ui::qt::material::system;
+    shared_ui::qt::apply_presentation(*this, window_presentation);
     if (table_widget != nullptr) {
+        shared_ui::qt::apply_presentation(*table_widget, window_presentation);
         table_widget->set_frame_style(value.frame());
         table_widget->set_action_style(value.actions());
         table_widget->set_settings_style(value.settings_surface());
@@ -807,21 +842,41 @@ void main_window::apply_desktop_presentation() {
     if (pickup_interval_label != nullptr) {
         pickup_interval_label->setVisible(value.show_speed_readout());
     }
-    if (desktop_status != nullptr)
-        desktop_status->set_instruments(
-            value.hud() == desktop_hud_style::instruments
+    if (desktop_status != nullptr) {
+        const bool instruments = value.hud() == desktop_hud_style::instruments;
+        auto presentation
+            = shared_ui::qt::presentation_for(*desktop_status->parentWidget());
+        if (instruments)
+            presentation.value = shared_ui::qt::material::felt;
+        shared_ui::qt::apply_presentation(
+            *desktop_status, presentation,
+            instruments ? shared_ui::qt::presentation_surface::instruments
+                        : shared_ui::qt::presentation_surface::window
         );
-    compact_toolbar = value.toolbar() == desktop_toolbar_style::compact;
+        desktop_status->set_variant(
+            instruments ? shared_ui::qt::status_strip_variant::instruments
+                        : shared_ui::qt::status_strip_variant::classic
+        );
+#ifndef KC_KDE
+        clock_label->setVisible(instruments);
+#endif
+    }
     apply_kit_one_bar();
     refresh_slot_preview();
     if (primary_toolbar != nullptr) {
-        primary_toolbar->setToolButtonStyle(
-            compact_toolbar ? Qt::ToolButtonIconOnly
-                            : Qt::ToolButtonTextBesideIcon
+        shared_ui::qt::set_toolbar_presentation(
+            *primary_toolbar,
+            value.toolbar() == desktop_toolbar_style::compact
+                ? shared_ui::qt::toolbar_variant::compact
+                : shared_ui::qt::toolbar_variant::labelled,
+            start_pause_action
         );
-        update_toolbar_buttons();
     }
     update_status_text();
+#else
+    shared_ui::qt::apply_presentation(*this, window_presentation);
+    if (table_widget != nullptr)
+        shared_ui::qt::apply_presentation(*table_widget, window_presentation);
 #endif
 }
 
@@ -879,15 +934,6 @@ void main_window::apply_kit_one_bar() {
             ? primary_toolbar->addWidget(brand)
             : primary_toolbar->insertWidget(actions.constFirst(), brand);
     }
-    // Text-only commands in a 46px bar; the theme's large icons would set
-    // the bar's height through the play/pause glyph.
-    if (!classic_toolbar_icon_size)
-        classic_toolbar_icon_size = primary_toolbar->iconSize();
-    primary_toolbar->setIconSize(
-        !felt_chrome          ? *classic_toolbar_icon_size
-            : compact_toolbar ? QSize(20, 20)
-                              : QSize(12, 12)
-    );
 #ifndef KC_KDE
     // One bar where the menus are drawn inside the window: the same menus
     // move to the toolbar's end and keep their actions and shortcuts. KDE's
@@ -947,8 +993,8 @@ void main_window::refresh_slot_preview() {
         if (combo != nullptr)
             show_kit_segmented(combo, felt_chrome);
     if (setup_dialog != nullptr) {
-        theme_settings::apply_chrome(
-            *setup_dialog, felt_chrome,
+        shared_ui::qt::apply_presentation(
+            *setup_dialog, shared_ui::qt::presentation_for(*this),
             shared_ui::qt::presentation_surface::paper
         );
         // The kit's card is ~350px wide with 20px of paper around the form.
@@ -977,9 +1023,14 @@ void main_window::refresh_slot_preview() {
     painter.setRenderHint(QPainter::Antialiasing, true);
     // On the paper card: a pale tray with the packed slots in table green.
     painter.setPen(Qt::NoPen);
-    painter.setBrush(theme_settings::felt(this).card_recess);
+    painter.setBrush(
+        shared_ui::qt::material_for(*this, shared_ui::qt::material::felt)
+            .card_recess
+    );
     painter.drawRoundedRect(QRectF(QPointF(), box), 6.0, 6.0);
-    painter.setBrush(theme_settings::table_color(this));
+    painter.setBrush(
+        shared_ui::qt::presentation_for(*this).context.felt_surface
+    );
     const auto packed
         = table_widget->preview_slot_layout(table_slots_count->value());
     for (const QRectF& slot : packed) {
@@ -1007,73 +1058,10 @@ void main_window::refresh_slot_preview() {
 #endif
 }
 
-void main_window::update_toolbar_buttons() {
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
-    if (primary_toolbar == nullptr)
-        return;
-    const QColor icon_color = theme_settings::felt(this).text;
-    for (auto* action : primary_toolbar->actions()) {
-        auto* button = qobject_cast<QToolButton*>(
-            primary_toolbar->widgetForAction(action)
-        );
-        if (button == nullptr)
-            continue;
-        const bool icon_only = compact_toolbar && action != start_pause_action
-            && !action->icon().isNull();
-        // Felt keeps labels for the one-bar look; Compact remains icon-only
-        // with icons recoloured for the dark material.
-        button->setToolButtonStyle(
-            icon_only         ? Qt::ToolButtonIconOnly
-                : felt_chrome ? Qt::ToolButtonTextOnly
-                              : Qt::ToolButtonTextBesideIcon
-        );
-        if (action == start_pause_action) {
-            button->setObjectName(QStringLiteral("game_start_pause_button"));
-            shared_ui::qt::set_presentation_role(
-                *button, QStringLiteral("primary")
-            );
-        }
-        if (felt_chrome && action == start_pause_action) {
-            // D-TOP-1: the gold primary keeps a drawn transport glyph.
-            button->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-            button->setIcon(
-                shared_ui::qt::transport_icon(
-                    action->text() == str_label("Pause"),
-                    theme_settings::felt(this).panel
-                )
-            );
-        } else if (felt_chrome && icon_only)
-            button->setIcon(
-                shared_ui::qt::tinted_icon(action->icon(), icon_color)
-            );
-        else if (button->icon().cacheKey() != action->icon().cacheKey())
-            button->setIcon(action->icon());
-        button->setFocusPolicy(Qt::StrongFocus);
-        button->installEventFilter(this);
-    }
-#endif
-}
-
 bool main_window::eventFilter(QObject* watched, QEvent* event) {
     if (watched == table_widget && event->type() == QEvent::Resize
         && gameplay_geometry_timer)
         gameplay_geometry_timer->start();
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
-    auto* button = qobject_cast<QToolButton*>(watched);
-    if (compact_toolbar && button != nullptr
-        && button->parentWidget() == primary_toolbar) {
-        if (event->type() == QEvent::FocusIn) {
-            // Descriptions must be available without hover, outside the strip
-            // so revealing a label never changes its footprint or overflow.
-            QToolTip::showText(
-                button->mapToGlobal(QPoint(0, button->height())),
-                button->toolTip(), button
-            );
-        } else if (event->type() == QEvent::FocusOut) {
-            QToolTip::hideText();
-        }
-    }
-#endif
     return BaseMainWindow::eventFilter(watched, event);
 }
 

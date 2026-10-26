@@ -1,4 +1,9 @@
+#include <QToolBar>
+#include <shared_ui/qt/answer_panel.hpp>
+#include <shared_ui/qt/appearance_editor.hpp>
 #include <shared_ui/qt/editor_panel.hpp>
+#include <shared_ui/qt/presentation.hpp>
+#include <shared_ui/qt/status_strip.hpp>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
@@ -8,7 +13,6 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
@@ -29,6 +33,7 @@
 #include <QPointer>
 #include <QSettings>
 #include <QStyle>
+#include <QTabWidget>
 #include <QTimer>
 #include <QToolButton>
 #include <QtTest/QtTest>
@@ -212,7 +217,9 @@ void table_tests::felt_settings_card_follows_kit_layout() {
 #endif
 
     table_slot slot;
-    theme_settings::apply_chrome(slot, true);
+    auto presentation = shared_ui::qt::presentation_for(slot);
+    presentation.value = shared_ui::qt::material::felt;
+    shared_ui::qt::apply_presentation(slot, presentation);
     slot.set_presented_image_mode(true);
     slot.resize(800, 600);
     slot.set_frame_style(slot_frame_style::piping);
@@ -275,7 +282,8 @@ void table_tests::felt_settings_card_follows_kit_layout() {
     QTRY_VERIFY(panel.isNull()); // deleted after closing
     QCOMPARE(slot.capture_session_state(), original);
     // Other chrome keeps the original arrangement and heading.
-    theme_settings::apply_chrome(slot, false);
+    presentation.value = shared_ui::qt::material::system;
+    shared_ui::qt::apply_presentation(slot, presentation);
     QTest::mouseClick(details, Qt::LeftButton);
     panel = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
     QVERIFY(panel && panel->isVisible());
@@ -897,7 +905,7 @@ void table_tests::gameplay_lives_suit_settings_preserve_domain() {
     QVERIFY(save_desktop_ui_preferences(desktop_ui_preferences {}));
     settings_template_widget* appearance = nullptr;
     for (auto* editor : window.findChildren<settings_template_widget*>())
-        if (editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_hud")))
+        if (editor->desktop_model())
             appearance = editor;
     QVERIFY(appearance);
     appearance->desktop_presentation_applied(); // the real shell connection
@@ -947,9 +955,19 @@ void table_tests::material_contexts_are_window_local() {
     first.refresh_material();
     second.refresh_material();
     auto* slot = first.findChild<table_slot*>();
-    QVERIFY(theme_settings::felt_chrome(slot));
-    QVERIFY(!theme_settings::felt_chrome(&second));
-    QCOMPARE(theme_settings::felt(slot).surface, QColor("#74182e"));
+    QVERIFY(
+        shared_ui::qt::presentation_for(*slot).value
+        == shared_ui::qt::material::felt
+    );
+    QVERIFY(
+        shared_ui::qt::presentation_for(second).value
+        != shared_ui::qt::material::felt
+    );
+    QCOMPARE(
+        shared_ui::qt::material_for(*slot, shared_ui::qt::material::felt)
+            .surface,
+        QColor("#74182e")
+    );
     shared_ui::qt::apply_presentation(
         second,
         { shared_ui::qt::material::felt,
@@ -957,12 +975,197 @@ void table_tests::material_contexts_are_window_local() {
           { QColor("#163c71") } }
     );
     second.refresh_material();
-    QCOMPARE(theme_settings::felt(slot).surface, QColor("#74182e"));
-    QCOMPARE(theme_settings::felt(&second).surface, QColor("#163c71"));
-    QCOMPARE(theme_settings::table_color(slot), QColor("#74182e"));
-    QCOMPARE(theme_settings::table_color(&second), QColor("#163c71"));
+    QCOMPARE(
+        shared_ui::qt::material_for(*slot, shared_ui::qt::material::felt)
+            .surface,
+        QColor("#74182e")
+    );
+    QCOMPARE(
+        shared_ui::qt::material_for(second, shared_ui::qt::material::felt)
+            .surface,
+        QColor("#163c71")
+    );
+    QCOMPARE(
+        shared_ui::qt::presentation_for(*slot).context.felt_surface,
+        QColor("#74182e")
+    );
+    QCOMPARE(
+        shared_ui::qt::presentation_for(second).context.felt_surface,
+        QColor("#163c71")
+    );
     QCOMPARE(slot->capture_session_state(), before);
+}
+
+void table_tests::table_palette_preferences_are_window_local() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop windows and settings previews");
+#endif
+    struct restore_preferences {
+        trainer_preferences trainer = load_trainer_preferences();
+        desktop_ui_preferences ui = load_desktop_ui_preferences();
+        desktop_shell_state shell = load_desktop_shell_state();
+
+        ~restore_preferences() {
+            save_trainer_preferences(trainer);
+            static_cast<void>(save_desktop_ui_preferences(ui));
+            save_desktop_shell_state(shell);
+        }
+    } guard;
+
+    auto trainer = guard.trainer;
+    trainer.palette = theme_palette_id::red;
+    save_trainer_preferences(trainer);
+    QVERIFY(save_desktop_ui_preferences({}));
+    main_window first;
+    first.show();
+    auto* first_table = first.findChild<table*>();
+    QVERIFY(first_table);
+    const auto red
+        = theme_palette_registry::option(theme_palette_id::red).base_color();
+    const auto blue
+        = theme_palette_registry::option(theme_palette_id::blue).base_color();
+    const auto green
+        = theme_palette_registry::option(theme_palette_id::green).base_color();
+    QCOMPARE(
+        shared_ui::qt::presentation_for(*first_table).context.felt_surface, red
+    );
+    trainer.palette = theme_palette_id::blue;
+    save_trainer_preferences(trainer);
+    main_window second;
+    second.show();
+    auto* second_table = second.findChild<table*>();
+    QVERIFY(second_table);
+    QCOMPARE(
+        shared_ui::qt::presentation_for(*second_table).context.felt_surface,
+        blue
+    );
+    QCOMPARE(
+        shared_ui::qt::presentation_for(*first_table).context.felt_surface, red
+    );
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &first, "on_settings_triggered", Qt::DirectConnection
+        )
+    );
+    auto* draft = first.findChild<settings_shared_state*>();
+    QVERIFY(draft);
+    QCOMPARE(
+        draft->table_color_index(),
+        theme_palette_registry::index(theme_palette_id::red)
+    );
+    draft->set_table_color_index(
+        theme_palette_registry::index(theme_palette_id::green)
+    );
+    // Editing a draft neither changes the live table nor the saved selection.
+    QCOMPARE(
+        shared_ui::qt::presentation_for(*first_table).context.felt_surface, red
+    );
+    QCOMPARE(load_trainer_preferences().palette, theme_palette_id::blue);
+    settings_template_widget* editor = nullptr;
+    for (auto* candidate : first.findChildren<settings_template_widget*>())
+        if (candidate->desktop_model())
+            editor = candidate;
+    QVERIFY(editor);
+    auto* pages = editor->window()->findChild<QTabWidget*>(
+        QString(), Qt::FindDirectChildrenOnly
+    );
+    QVERIFY(pages);
+    QCOMPARE(pages->count(), 3);
+    QTRY_COMPARE(editor->window()->size(), QSize(820, 620));
+    QCOMPARE(pages->tabText(1), str_label("Table and cards"));
+    pages->setCurrentIndex(1);
+    QCoreApplication::processEvents();
+    QVERIFY(
+        editor->findChild<QComboBox*>("orientation_combo_box")->isVisible()
+    );
+    QVERIFY(editor->findChild<QComboBox*>("default_suit")->isVisible());
+    QVERIFY(editor->apply_theme_settings());
+    QCOMPARE(load_trainer_preferences().palette, theme_palette_id::green);
+    QCOMPARE(
+        shared_ui::qt::presentation_for(*first_table).context.felt_surface,
+        green
+    );
+    QCOMPARE(
+        shared_ui::qt::presentation_for(*second_table).context.felt_surface,
+        blue
+    );
+    QCOMPARE(
+        shared_ui::qt::presentation_for(first).value,
+        shared_ui::qt::material::system
+    );
+    QCOMPARE(
+        shared_ui::qt::presentation_for(second).value,
+        shared_ui::qt::material::system
+    );
+    QCOMPARE(
+        load_trainer_preferences().pickup_interval_ms,
+        trainer.pickup_interval_ms
+    );
+    QCOMPARE(load_trainer_preferences().slot_count, trainer.slot_count);
+    QWidget preview_root;
+    auto preview_presentation = shared_ui::qt::presentation_for(first);
+    preview_presentation.value = shared_ui::qt::material::felt;
+    preview_presentation.context.felt_surface = red;
+    shared_ui::qt::apply_presentation(preview_root, preview_presentation);
+    settings_template_widget preview(
+        settings_tab_kind::appearance, &preview_root
+    );
+    auto* preview_draft = preview.findChild<settings_shared_state*>();
+    QVERIFY(preview_draft);
+    QCOMPARE(
+        preview_draft->table_color_index(),
+        theme_palette_registry::index(theme_palette_id::red)
+    );
+    QCOMPARE(load_trainer_preferences().palette, theme_palette_id::green);
+    QCOMPARE(
+        shared_ui::qt::presentation_for(*first_table).context.felt_surface,
+        green
+    );
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
+
+void table_tests::appearance_previews_are_real_and_sample_only() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop Appearance editor");
+#else
+    const auto saved = load_desktop_ui_preferences();
+    settings_template_widget form(settings_tab_kind::appearance);
+    auto* editor = form.desktop_editor();
+    auto* model = form.desktop_model();
+    QVERIFY(editor && model);
+    form.show();
+    for (const QString& preset :
+         { QStringLiteral("classic"), QStringLiteral("felt") }) {
+        QVERIFY(model->choose_preset(preset));
+        for (const auto& family : model->families()) {
+            editor->select_family(family.id);
+            QCoreApplication::processEvents();
+            for (const auto& option : family.options) {
+                QVERIFY(model->set_override(family.id, option.id));
+                QCoreApplication::processEvents();
+                if (family.id == "answer_entry" || family.id == "feedback") {
+                    auto* sample
+                        = editor->findChild<shared_ui::qt::answer_panel*>();
+                    QVERIFY(sample);
+                    for (auto* button :
+                         sample->findChildren<QAbstractButton*>())
+                        if (button->isEnabled())
+                            button->click();
+                    QVERIFY(!editor->findChild<shared_ui::qt::status_strip*>());
+                } else if (family.id == "toolbar") {
+                    QVERIFY(editor->findChild<QToolBar*>());
+                } else if (family.id == "settings_surface") {
+                    QVERIFY(editor->findChild<shared_ui::qt::editor_panel*>());
+                } else if (family.id == "frame") {
+                    QVERIFY(editor->findChild<card_widget*>());
+                } else if (family.id == "hud" || family.id == "speed_readout") {
+                    QVERIFY(editor->findChild<shared_ui::qt::status_strip*>());
+                }
+            }
+        }
+    }
+    QCOMPARE(load_desktop_ui_preferences().appearance(), saved.appearance());
+#endif
+}

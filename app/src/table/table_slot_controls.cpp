@@ -1,5 +1,8 @@
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/adaptive_surface.hpp>
+#include <shared_ui/qt/answer_panel.hpp>
 #include <shared_ui/qt/editor_panel.hpp>
+#include <shared_ui/qt/presentation.hpp>
 
 #include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
@@ -8,7 +11,6 @@
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/card_widget.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/infinity_spinbox.hpp"
@@ -19,21 +21,14 @@
 #include <shared_ui/qt/action_group.hpp>
 
 #include <QAction>
-#include <QApplication>
 #include <QBoxLayout>
-#include <QDialog>
-#include <QDialogButtonBox>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QResizeEvent>
-#include <QStackedLayout>
 #include <QString>
-#include <QVBoxLayout>
 #include <QtGlobal>
 
 #include <algorithm>
-#include <array>
 #include <cstdlib>
 #include <limits>
 #include <utility>
@@ -72,7 +67,8 @@ void table_slot::update_action_presentation() {
     slot_actions->set_primary(
         action_style == slot_action_style::pills ? details_action : nullptr
     );
-    const bool felt = theme_settings::felt_chrome(this);
+    const bool felt = shared_ui::qt::presentation_for(*this).value
+        == shared_ui::qt::material::felt;
     slot_actions->set_presentation(
         felt ? shared_ui::qt::material::felt : shared_ui::qt::material::system,
 #if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
@@ -101,13 +97,7 @@ void table_slot::setup_quiz_chips() {
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     quiz_spin_box->installEventFilter(this);
     quiz_spin_box->findChild<QLineEdit*>()->installEventFilter(this);
-    quiz_chip_widget = new BaseWidget(quiz_prompt_widget);
-    quiz_chip_widget->setObjectName(QStringLiteral("quiz_chip_stepper"));
-    auto* row = new QHBoxLayout(quiz_chip_widget);
-    row->setContentsMargins(0, 0, 0, 0);
-    row->setSpacing(6);
-    row->addStretch();
-    QWidget* previous = quiz_spin_box;
+    QList<shared_ui::qt::answer_step> steps;
     for (const int step : { -2, -1, 1, 2 }) {
 #ifdef KC_KDE
         const QString text = step > 0 ? i18n("+%1", step) : i18n("−%1", -step);
@@ -123,14 +113,11 @@ void table_slot::setup_quiz_chips() {
 #endif
         auto* button = new QPushButton(text, quiz_chip_widget);
         button->setObjectName(QStringLiteral("quiz_chip_%1").arg(step));
-        button->setAutoDefault(false);
         button->setAccessibleName(description);
         button->setToolTip(button->accessibleName());
         button->setProperty("chip_step", step);
         button->installEventFilter(this);
-        row->addWidget(button);
-        QWidget::setTabOrder(previous, button);
-        previous = button;
+        steps.append({ button, step, std::abs(step) == 2 });
         connect(button, &QPushButton::clicked, this, [this, step] {
             if (!quiz_prompt_active || quiz_feedback_active) {
                 return;
@@ -162,171 +149,30 @@ void table_slot::setup_quiz_chips() {
             }
         );
     }
-    QWidget::setTabOrder(previous, quiz_answer_button);
-    QWidget::setTabOrder(quiz_answer_button, quiz_skip_button);
-    QWidget::setTabOrder(quiz_skip_button, quiz_continue_button);
-    row->addStretch();
+    quiz_bar_widget->set_steps(steps);
 #endif
 }
 
 void table_slot::update_quiz_presentation() {
-    if (quiz_chip_widget == nullptr || quiz_feedback_heading == nullptr) {
-        return;
-    }
-    const bool chips = answer_style == quiz_answer_style::chips;
-    const auto* focused = QApplication::focusWidget();
-    const bool chip_had_focus
-        = focused != nullptr && quiz_chip_widget->isAncestorOf(focused);
-    const bool controls_had_focus
-        = focused != nullptr && overlay_widget->isAncestorOf(focused);
-    quiz_chip_widget->setVisible(chips);
-    const bool felt = theme_settings::felt_chrome(this);
-    // D-COUNT-1 keeps a plain figure; arrow keys still nudge the value.
-    quiz_spin_box->setButtonSymbols(
-        chips || felt ? QAbstractSpinBox::NoButtons
-                      : QAbstractSpinBox::UpDownArrows
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    const bool felt = shared_ui::qt::presentation_for(*this).value
+        == shared_ui::qt::material::felt;
+    quiz_weight_label->setText(
+        felt                 ? str_label("YOUR COUNT")
+            : gameplay_owner ? str_label("Count")
+                             : str_label("Weight")
     );
-    // D-COUNT-1 sets the figure beside its buttons; the chip stepper keeps
-    // the stacked composition so its chips stay centred under the figure.
-    const bool felt_typed = felt && !chips;
-    if (auto* prompt
-        = qobject_cast<QBoxLayout*>(quiz_prompt_widget->layout())) {
-        prompt->setDirection(
-            felt_typed ? QBoxLayout::LeftToRight : QBoxLayout::TopToBottom
-        );
-        prompt->setSpacing(felt_typed ? 20 : (felt ? 12 : 2));
-        if (auto* row
-            = qobject_cast<QBoxLayout*>(prompt->itemAt(0)->layout())) {
-            row->setDirection(
-                felt ? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight
-            );
-            row->setSpacing(felt ? 8 : 2);
-            const Qt::Alignment figure
-                = felt_typed ? Qt::AlignLeft : Qt::AlignHCenter;
-            row->setAlignment(
-                quiz_weight_label, felt ? figure : Qt::Alignment()
-            );
-            row->setAlignment(quiz_spin_box, felt ? figure : Qt::Alignment());
-            if (gameplay_input != nullptr)
-                row->setAlignment(
-                    gameplay_input, felt ? figure : Qt::Alignment()
-                );
-        }
-        if (auto* buttons = qobject_cast<QBoxLayout*>(
-                prompt->itemAt(prompt->count() - 1)->layout()
-            )) {
-            buttons->setSpacing(felt ? 8 : 2);
-            buttons->setContentsMargins(0, 0, 0, felt_typed ? 12 : 0);
-            prompt->setAlignment(
-                buttons, felt_typed ? Qt::AlignBottom : Qt::Alignment()
-            );
-        }
-    }
-    // D-COUNT-2 sets the figure in a gold ring between the chips; every other
-    // composition keeps it in the prompt row under its label.
-    if (auto* prompt
-        = qobject_cast<QBoxLayout*>(quiz_prompt_widget->layout())) {
-        auto* row = qobject_cast<QBoxLayout*>(prompt->itemAt(0)->layout());
-        auto* chip_row = qobject_cast<QBoxLayout*>(quiz_chip_widget->layout());
-        const bool ring = felt && chips;
-        for (QWidget* figure : { static_cast<QWidget*>(quiz_spin_box),
-                                 static_cast<QWidget*>(gameplay_input) }) {
-            if (figure == nullptr || row == nullptr || chip_row == nullptr)
-                continue;
-            if (ring && chip_row->indexOf(figure) < 0) {
-                row->removeWidget(figure);
-                // stretch, -2, -1 | figure | +1, +2, stretch
-                chip_row->insertWidget(3, figure);
-            } else if (!ring && chip_row->indexOf(figure) >= 0) {
-                chip_row->removeWidget(figure);
-                row->addWidget(figure);
-            }
-        }
-        if (quiz_spin_box != nullptr)
-            quiz_spin_box->setAlignment(
-                ring ? Qt::AlignCenter : Qt::AlignLeft | Qt::AlignVCenter
-            );
-        if (gameplay_input != nullptr)
-            gameplay_input->setAlignment(
-                ring ? Qt::AlignCenter : Qt::AlignLeft | Qt::AlignVCenter
-            );
-        if (chip_row != nullptr)
-            chip_row->setSpacing(ring ? 8 : 6);
-        // The ring is the label; collapse rather than hide so prompt
-        // visibility stays owned by update_quiz_controls_visibility().
-        if (quiz_weight_label != nullptr)
-            quiz_weight_label->setMaximumHeight(ring ? 0 : QWIDGETSIZE_MAX);
-    }
-    // QStackedLayout ignores margins; pad the pages themselves.
-    for (auto* page : { quiz_prompt_widget, quiz_feedback_widget })
-        if (page->layout() != nullptr)
-            page->layout()->setContentsMargins(
-                felt ? QMargins(20, 14, 20, 14) : QMargins()
-            );
-    update_quiz_figure_size();
-    if (!chips && chip_had_focus && quiz_prompt_active
-        && !quiz_feedback_active) {
-        if (gameplay_owner)
-            focus_gameplay_input();
-        else
-            quiz_spin_box->setFocus(Qt::OtherFocusReason);
-    }
-    for (auto* chip : quiz_chip_widget->findChildren<QPushButton*>()) {
-        const int step = chip->property("chip_step").toInt();
-        shared_ui::qt::decorate_step_button(*chip, step, std::abs(step) == 2);
-    }
-    if (quiz_weight_label != nullptr) {
-        quiz_weight_label->setText(
-            felt                 ? str_label("YOUR COUNT")
-                : gameplay_owner ? str_label("Count")
-                                 : str_label("Weight")
-        );
-    }
-    const bool stamp = feedback_style == quiz_feedback_style::stamp;
-    quiz_feedback_heading->setVisible(stamp);
-    quiz_feedback_heading->setStyleSheet(
-        felt ? QString() : QStringLiteral("font-weight: 700;")
+    quiz_bar_widget->set_available_area(size());
+    quiz_bar_widget->set_variants(
+        answer_style == quiz_answer_style::chips
+            ? shared_ui::qt::answer_variant::chips
+            : shared_ui::qt::answer_variant::numeric,
+        feedback_style == quiz_feedback_style::stamp
+            ? shared_ui::qt::answer_feedback_variant::stamp
+            : shared_ui::qt::answer_feedback_variant::classic
     );
-    // Felt: the stamp band carries both figures; the sentence stays as a
-    // quiet, readable restatement under it.
-    quiz_feedback_label->setStyleSheet(
-        stamp ? (felt ? QString()
-                      : QStringLiteral(
-                            "QLabel { font-weight: 600; border: 2px solid %1; "
-                            "border-radius: 4px; padding: 8px; }"
-                        )
-                            .arg(theme_settings::slot_border_color().name()))
-              : QString()
-    );
-    // Only presentation hints change. Invalidate them before checking whether
-    // the controls still fit inline; neither table packing nor card demand
-    // changes.
-    quiz_prompt_widget->updateGeometry();
-    quiz_feedback_widget->updateGeometry();
-    quiz_bar_widget->updateGeometry();
     update_compact_controls();
-    if (controls_had_focus && !controls_dialog
-        && compact_controls_button != nullptr
-        && compact_controls_button->isVisible() && quiz_prompt_active) {
-        compact_controls_button->setFocus(Qt::OtherFocusReason);
-    }
-}
-
-void table_slot::update_quiz_figure_size() {
-    if (quiz_spin_box == nullptr)
-        return;
-    const bool circular = answer_style == quiz_answer_style::chips;
-    const int extent = circular
-        ? std::clamp(
-              static_cast<int>(std::min(width(), height()) * 0.26), 56, 88
-          )
-        : std::clamp(
-              static_cast<int>(std::min(width(), height()) * 0.15), 22, 54
-          );
-    for (QWidget* figure : { static_cast<QWidget*>(quiz_spin_box),
-                             static_cast<QWidget*>(gameplay_input) })
-        if (figure != nullptr)
-            shared_ui::qt::decorate_numeric_figure(*figure, extent, circular);
+#endif
 }
 
 void table_slot::update_compact_controls() {
@@ -344,157 +190,29 @@ void table_slot::update_compact_controls() {
         swap_bar_widget->setVisible(details_action->isEnabled());
         update_settings_button_state();
     }
-    if (compact_controls_button == nullptr || overlay_layout == nullptr
-        || quiz_bar_widget == nullptr || swap_bar_widget == nullptr) {
-        return;
-    }
-    if (settings_editor_panel) {
-        compact_controls_button->hide();
-        overlay_widget->hide();
-        return;
-    }
-    const bool controls_visible = gameplay_owner
-        ? details_action->isEnabled() || quiz_prompt_active
-        : current_phase == slot_phase::paused
-            || !card_widget_internal->has_cards() || quiz_prompt_active;
-    if (quiz_prompt_active) {
-        // A stacked page's minimum hint allows wrapped text to be clipped.
-        // Reserve its natural height-for-width before either centering it or
-        // deciding to host it. Derive this from layout hints, never the old
-        // explicit minimum, so shorter feedback/styles can shrink again.
-        QSize quiz_size = quiz_bar_widget->sizeHint().expandedTo(
-            quiz_bar_widget->minimumSizeHint()
-        );
-        quiz_size.setHeight(
-            std::max(
-                quiz_size.height(),
-                quiz_bar_widget->heightForWidth(quiz_size.width())
-            )
-        );
-        quiz_bar_widget->setMinimumSize(quiz_size);
-    }
-    // Read the active surfaces, not the outer layout's QWidgetItem cache:
-    // that cache can still describe a hidden bar while restoring a question.
-    const auto minimum = [](const QWidget* widget) {
-        return widget->minimumSizeHint().expandedTo(widget->minimumSize());
-    };
-    QSize required
-        = minimum(quiz_prompt_active ? quiz_bar_widget : swap_bar_widget);
-    if (gameplay_owner && quiz_prompt_active
-        && gameplay_owner->phase() == gameplay::session_phase::paused) {
-        const auto actions = minimum(swap_bar_widget);
-        required = overlay_layout->direction() == QBoxLayout::LeftToRight
-            ? QSize(
-                  required.width() + actions.width()
-                      + overlay_layout->spacing(),
-                  std::max(required.height(), actions.height())
-              )
-            : QSize(
-                  std::max(required.width(), actions.width()),
-                  required.height() + actions.height()
-                      + overlay_layout->spacing()
-              );
-    }
-    if (!gameplay_owner && !quiz_prompt_active && settings_overlay_visible
-        && !use_dialog_for_settings
-        && settings_style == slot_settings_style::classic) {
-        const QSize settings = minimum(settings_bar_widget);
-        required = overlay_layout->direction() == QBoxLayout::LeftToRight
-            ? QSize(
-                  required.width() + settings.width()
-                      + overlay_layout->spacing(),
-                  std::max(required.height(), settings.height())
-              )
-            : QSize(
-                  std::max(required.width(), settings.width()),
-                  required.height() + settings.height()
-                      + overlay_layout->spacing()
-              );
-    }
-    const auto margins = overlay_layout->contentsMargins();
-    required += QSize(
-        margins.left() + margins.right(), margins.top() + margins.bottom()
+    if (!controls_surface)
+        return; // The Android branch retains its existing inline controls.
+    const bool visible = !settings_editor_panel
+        && (gameplay_owner ? details_action->isEnabled() || quiz_prompt_active
+                           : current_phase == slot_phase::paused
+                    || !card_widget_internal->has_cards()
+                    || quiz_prompt_active);
+    controls_surface->set_description(
+        quiz_prompt_active ? QStringLiteral("?") : QStringLiteral("…"),
+        quiz_prompt_active
+            ? (quiz_feedback_active
+                   ? str_label("Show answer feedback")
+                   : str_label("Answer accumulated-count question"))
+            : str_label("Show slot actions")
     );
-    const bool compact
-        = required.width() > width() || required.height() > height();
-    compact_controls_button->setText(
-        quiz_prompt_active ? QStringLiteral("?") : QStringLiteral("…")
-    );
-    const QString description = quiz_prompt_active
-        ? (quiz_feedback_active
-               ? str_label("Show answer feedback")
-               : str_label("Answer accumulated-count question"))
-        : str_label("Show slot actions");
-    compact_controls_button->setAccessibleName(description);
-    compact_controls_button->setToolTip(description);
-    const QSize button_size
-        = compact_controls_button->sizeHint().boundedTo(size());
-    compact_controls_button->resize(button_size);
-    compact_controls_button->move(
-        std::max(0, (width() - button_size.width()) / 2),
-        std::max(0, height() - button_size.height() - 2)
-    );
-    compact_controls_button->setVisible(
-        controls_visible && (compact || controls_dialog)
-    );
-    compact_controls_button->raise();
-    if (controls_dialog) {
-        if (!controls_visible) {
-            controls_dialog->close();
-        }
-        return;
-    }
-    overlay_widget->setVisible(controls_visible && !compact);
-}
-
-void table_slot::show_compact_controls() {
-    if (gameplay_owner
-        && gameplay_owner->phase() != gameplay::session_phase::setup
-        && gameplay_owner->phase() != gameplay::session_phase::paused
-        && !quiz_prompt_active)
-        return;
-    if (controls_dialog) {
-        controls_dialog->raise();
-        controls_dialog->activateWindow();
-        return;
-    }
-    auto* dialog = new QDialog(this);
-    controls_dialog = dialog;
-    dialog->setObjectName(QStringLiteral("slot_controls_dialog"));
-    dialog->setWindowTitle(str_label("Card controls"));
-    auto* layout = new QVBoxLayout(dialog);
-    layout->addWidget(overlay_widget);
-    overlay_widget->show();
-    auto* close_buttons = new QDialogButtonBox(QDialogButtonBox::Close, dialog);
-    connect(
-        close_buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject
-    );
-    layout->addWidget(close_buttons);
-    connect(dialog, &QDialog::finished, this, [this, dialog] {
-        dialog->layout()->removeWidget(overlay_widget);
-        overlay_widget->setParent(this);
-        overlay_widget->setGeometry(rect());
-        controls_dialog = nullptr;
-        dialog->deleteLater();
-        update_compact_controls();
-        if (compact_controls_button->isVisible()) {
-            compact_controls_button->setFocus(Qt::OtherFocusReason);
-        }
-    });
-    dialog->show();
-    if (quiz_prompt_active && !quiz_feedback_active) {
-        if (gameplay_owner && gameplay_input->isEnabled())
-            gameplay_input->setFocus(Qt::OtherFocusReason);
-        else if (!gameplay_owner)
-            quiz_spin_box->setFocus(Qt::OtherFocusReason);
-    } else if (quiz_prompt_active && quiz_continue_visible) {
-        quiz_continue_button->setFocus(Qt::OtherFocusReason);
-    } else if (quiz_prompt_active) {
-        close_buttons->button(QDialogButtonBox::Close)
-            ->setFocus(Qt::OtherFocusReason);
-    } else {
-        (void)focus_details_action();
-    }
+    QWidget* preferred = slot_actions->button_for(details_action);
+    if (quiz_prompt_active)
+        preferred = quiz_feedback_active
+            ? (quiz_continue_visible ? quiz_continue_button : nullptr)
+            : (gameplay_owner ? static_cast<QWidget*>(gameplay_input)
+                              : quiz_spin_box);
+    controls_surface->set_preferred_focus(preferred);
+    controls_surface->place_in(rect(), visible, visible);
 }
 
 void table_slot::update_settings_button_state(bool dialog_open) {
@@ -535,21 +253,22 @@ void table_slot::update_lockable_settings() {
 
 void table_slot::resizeEvent(QResizeEvent* event) {
     BaseWidget::resizeEvent(event);
-    update_quiz_figure_size();
+    if (quiz_bar_widget != nullptr)
+        quiz_bar_widget->set_available_area(size());
 
     if (card_widget_internal != nullptr) {
         card_widget_internal->setGeometry(rect());
     }
     update_overlay_margins();
     if (gameplay_owner) {
-        if (!controls_dialog)
+        if (!controls_surface)
             overlay_widget->setGeometry(rect());
         place_settings_editor();
         update_compact_controls();
         return;
     }
 
-    if (overlay_widget != nullptr && !controls_dialog) {
+    if (overlay_widget != nullptr && !controls_surface) {
         overlay_widget->setGeometry(rect());
     }
     place_settings_editor();

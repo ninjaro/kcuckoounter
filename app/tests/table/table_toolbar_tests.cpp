@@ -1,11 +1,14 @@
+#include <shared_ui/qt/appearance_editor.hpp>
+#include <shared_ui/qt/icons.hpp>
+#include <shared_ui/qt/toolbar_presentation.hpp>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
 
 #include "table/table_tests.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 #include "arch/str_label.hpp"
-#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/settings_template.hpp"
@@ -46,7 +49,7 @@ struct shell_state_guard {
 
 settings_template_widget* appearance_editor(main_window& window) {
     for (auto* editor : window.findChildren<settings_template_widget*>())
-        if (editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar")))
+        if (editor->desktop_model())
             return editor;
     return nullptr;
 }
@@ -178,8 +181,7 @@ void table_tests::toolbar_styles_preserve_owned_quiz() {
     QTest::mouseClick(settings_button, Qt::LeftButton);
     auto* editor = appearance_editor(window);
     QVERIFY(editor);
-    auto* combo
-        = editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar"));
+    auto* combo = editor->desktop_model();
     QVERIFY(combo);
     // Native accessibility can omit dialog punctuation and mnemonics. Preserve
     // the finalized widgets' names rather than synthesizing a shared label.
@@ -193,7 +195,7 @@ void table_tests::toolbar_styles_preserve_owned_quiz() {
     QCOMPARE(names[1], str_label("Resume"));
     // The native appearance transaction changes only the toolbar treatment.
     for (const bool compact : { !initial_compact, initial_compact, true }) {
-        combo->setCurrentIndex(compact ? 2 : 1);
+        combo->set_override("toolbar", compact ? "compact" : "classic");
         QVERIFY(editor->apply_theme_settings());
         QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
         QCOMPARE(toolbar->actions(), actions);
@@ -327,7 +329,7 @@ void table_tests::toolbar_styles_preserve_owned_quiz() {
     QTest::mouseClick(settings_button, Qt::LeftButton);
     QCOMPARE(appearance_editor(window), editor);
     for (const bool compact : { false, true }) {
-        combo->setCurrentIndex(compact ? 2 : 1);
+        combo->set_override("toolbar", compact ? "compact" : "classic");
         QVERIFY(editor->apply_theme_settings());
         QCOMPARE(toolbar->actions(), actions);
         QCOMPARE(*owner.result(), result);
@@ -438,8 +440,7 @@ void table_tests::toolbar_styles_preserve_terminal_routes() {
     QTest::mouseClick(settings_button, Qt::LeftButton);
     auto* editor = appearance_editor(window);
     QVERIFY(editor);
-    auto* combo
-        = editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar"));
+    auto* combo = editor->desktop_model();
     editor->window()->hide();
     window.addToolBar(Qt::BottomToolBarArea, toolbar);
     toolbar->setMaximumWidth(170);
@@ -465,7 +466,7 @@ void table_tests::toolbar_styles_preserve_terminal_routes() {
     toolbar->hide();
     const auto state = window.saveState();
     for (const bool compact : { false, true }) {
-        combo->setCurrentIndex(compact ? 2 : 1);
+        combo->set_override("toolbar", compact ? "compact" : "classic");
         QVERIFY(editor->apply_theme_settings());
         QCOMPARE(toolbar->actions(), actions);
         QVERIFY(toolbar->isHidden());
@@ -563,7 +564,8 @@ void table_tests::felt_shell_round_trips_one_bar() {
     QCOMPARE(clock->font().pixelSize(), 17);
     QCOMPARE(
         clock->palette().color(QPalette::WindowText),
-        theme_settings::felt(clock).accent
+        shared_ui::qt::material_for(*clock, shared_ui::qt::material::felt)
+            .accent
     );
 
     // Back to Classic: the native shell is exactly what it was.
@@ -575,10 +577,9 @@ void table_tests::felt_shell_round_trips_one_bar() {
     auto* editor = appearance_editor(window);
     QVERIFY(editor);
     editor->window()->hide();
-    auto* preset
-        = editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_preset"));
+    auto* preset = editor->desktop_model();
     QVERIFY(preset);
-    preset->setCurrentIndex(0);
+    preset->choose_preset("classic");
     QVERIFY(editor->apply_theme_settings());
     QCoreApplication::processEvents();
     QCOMPARE(toolbar->actions().size(), qsizetype { 4 });
@@ -590,7 +591,97 @@ void table_tests::felt_shell_round_trips_one_bar() {
     QVERIFY(tracks.constFirst()->isHidden());
     QVERIFY(!quiz_mode->isHidden());
     QVERIFY(!status->property("instrument_paint").toBool());
-    QVERIFY(!theme_settings::felt_chrome(&window));
+    QVERIFY(
+        shared_ui::qt::presentation_for(window).value
+        != shared_ui::qt::material::felt
+    );
+}
+
+void table_tests::native_toolbar_follows_felt_commands_and_late_actions() {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    QSKIP("Desktop native toolbar presentation");
+#endif
+    for (const bool compact : { false, true }) {
+        launcher_preferences_guard preferences;
+        shell_state_guard shell;
+        desktop_ui_preferences ui;
+        ui.preset = desktop_ui_preset::felt;
+        ui.toolbar_override = compact ? desktop_toolbar_style::compact
+                                      : desktop_toolbar_style::classic;
+        QVERIFY(save_desktop_ui_preferences(ui));
+        main_window window;
+        window.resize(1400, 900);
+        window.show();
+        QCoreApplication::processEvents();
+        for (auto* dialog : window.findChildren<QDialog*>())
+            if (dialog->isVisible())
+                dialog->reject();
+        auto* view = window.findChild<table*>();
+        auto* toolbar
+            = window.findChild<BaseToolBar*>(QStringLiteral("main_toolbar"));
+        auto* start = launcher_start_action(window);
+        QVERIFY(view && toolbar && start);
+        auto* button
+            = qobject_cast<QToolButton*>(toolbar->widgetForAction(start));
+        QVERIFY(button);
+        const auto shortcuts = start->shortcuts();
+        const auto actions = toolbar->actions();
+        QVERIFY(view->install_gameplay_session(owned_clock_fixture(
+            1, true, gameplay::dealing_mode::simultaneous,
+            gameplay::quiz_scope::single, { 1 }
+        )));
+        QVERIFY(view->start_gameplay_runtime(61));
+        view->stop_gameplay_clock();
+        const auto ink = shared_ui::qt::material_for(*toolbar).panel;
+        QCOMPARE(start->text(), str_label("Pause"));
+        QCOMPARE(
+            button->icon().pixmap(16, 16).toImage(),
+            shared_ui::qt::transport_icon(true, ink).pixmap(16, 16).toImage()
+        );
+        QVERIFY(view->pause_gameplay_runtime());
+        QCOMPARE(start->text(), str_label("Resume"));
+        QCOMPARE(
+            button->icon().pixmap(16, 16).toImage(),
+            shared_ui::qt::transport_icon(false, ink).pixmap(16, 16).toImage()
+        );
+        QVERIFY(view->resume_gameplay_runtime());
+        view->stop_gameplay_clock();
+        QCOMPARE(start->text(), str_label("Pause"));
+        QCOMPARE(
+            button->icon().pixmap(16, 16).toImage(),
+            shared_ui::qt::transport_icon(true, ink).pixmap(16, 16).toImage()
+        );
+        QCOMPARE(toolbar->widgetForAction(start), button);
+        QCOMPARE(start->shortcuts(), shortcuts);
+        QCOMPARE(toolbar->actions(), actions);
+        QCOMPARE(
+            button->objectName(), QStringLiteral("game_start_pause_button")
+        );
+
+        QAction extra(
+            window.style()->standardIcon(QStyle::SP_DialogOpenButton),
+            str_label("Extra"), &window
+        );
+        extra.setToolTip(str_label("Additional host action"));
+        toolbar->addAction(&extra);
+        QCoreApplication::processEvents();
+        auto* late
+            = qobject_cast<QToolButton*>(toolbar->widgetForAction(&extra));
+        QVERIFY(late && late->focusPolicy() == Qt::StrongFocus);
+        QCOMPARE(
+            late->toolButtonStyle(),
+            compact ? Qt::ToolButtonIconOnly : Qt::ToolButtonTextOnly
+        );
+        extra.setIcon({});
+        QCOMPARE(late->toolButtonStyle(), Qt::ToolButtonTextOnly);
+        extra.setText(str_label("Longer host action"));
+        QCOMPARE(late->text(), extra.iconText());
+        extra.setEnabled(false);
+        QVERIFY(!late->isEnabled());
+        toolbar->removeAction(&extra);
+        QCoreApplication::processEvents();
+        QCOMPARE(toolbar->actions(), actions);
+    }
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

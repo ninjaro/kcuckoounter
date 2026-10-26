@@ -19,6 +19,7 @@
 #include <QSettings>
 #include <QTemporaryDir>
 #include <QtTest/QtTest>
+#include <shared_ui/qt/appearance_editor.hpp>
 
 #include "settings/preferences_fixture.hpp"
 
@@ -54,18 +55,12 @@ void preferences_tests::
     editor.resize(900, 700);
     editor.show();
     QCoreApplication::processEvents();
-    auto* preset = editor.findChild<QComboBox*>("desktop_ui_preset");
-    auto* frame = editor.findChild<QComboBox*>("desktop_ui_frame");
-    auto* actions = editor.findChild<QComboBox*>("desktop_ui_slot_actions");
-    QVERIFY(preset && frame && actions);
-    QCOMPARE(preset->currentData().toString(), QStringLiteral("future-preset"));
-    QVERIFY(
-        !(preset->model()->flags(
-              preset->model()->index(preset->currentIndex(), 0)
-          )
-          & Qt::ItemIsEnabled)
-    );
-    QVERIFY(frame->currentIndex() > 0); // explicit empty is not inheritance
+    auto* model = editor.desktop_model();
+    auto* shared_editor = editor.desktop_editor();
+    QVERIFY(model && shared_editor);
+    QCOMPARE(model->state().preset, QStringLiteral("future-preset"));
+    QVERIFY(!model->fallbacks().isEmpty());
+    QVERIFY(model->is_override("frame")); // Explicit empty is not inheritance.
     settings.setValue("trainer_preferences/future", QByteArray("keep trainer"));
     settings.setValue("trainer_session/payload", QByteArray("keep session"));
     settings.setValue("desktop_shell/geometry", QByteArray("keep geometry"));
@@ -73,8 +68,9 @@ void preferences_tests::
     for (const auto& key : settings.allKeys())
         if (!key.startsWith("desktop_ui/"))
             unrelated.insert(key, settings.value(key));
-    actions->setCurrentIndex(actions->findData("rail"));
-    QVERIFY(editor.apply_theme_settings());
+    QVERIFY(model->set_override("slot_actions", "rail"));
+    shared_editor->command(shared_ui::qt::editor_command::save)->click();
+    QVERIFY(!model->dirty());
     settings.sync();
     QCOMPARE(
         settings.value("desktop_ui/preset").toString(),
@@ -91,18 +87,14 @@ void preferences_tests::
     );
     for (auto it = unrelated.cbegin(); it != unrelated.cend(); ++it)
         QCOMPARE(settings.value(it.key()), it.value());
-    frame->setCurrentIndex(0);
+    model->clear_override("frame");
     editor
         .reset_theme_selection(); // cancel draft; saved empty remains explicit
-    QVERIFY(frame->currentIndex() > 0);
-    frame->setCurrentIndex(0);
+    QVERIFY(model->is_override("frame"));
+    model->clear_override("frame");
     QVERIFY(editor.apply_theme_settings());
     QVERIFY(!settings.contains("desktop_ui/overrides/frame"));
-    const int classic = preset->findData("classic");
-    preset->setCurrentIndex(classic);
-    QVERIFY(
-        QMetaObject::invokeMethod(preset, "activated", Q_ARG(int, classic))
-    );
+    QVERIFY(model->choose_preset("classic"));
     QVERIFY(editor.apply_theme_settings());
     QCOMPARE(
         settings.value("desktop_ui/overrides/feedback").toString(),
@@ -110,12 +102,22 @@ void preferences_tests::
     );
     QVERIFY(settings.contains("desktop_ui/overrides/future_component"));
     QVERIFY(!settings.contains("desktop_ui/overrides/slot_actions"));
-    auto* reset = editor.findChild<QPushButton*>("desktop_ui_reset");
+    auto* reset = shared_editor->command(shared_ui::qt::editor_command::reset);
     QVERIFY(reset);
     reset->click();
     QVERIFY(editor.apply_theme_settings());
-    for (const auto& key : settings.allKeys())
-        QVERIFY(!key.startsWith("desktop_ui/overrides/"));
+    // A generic reset preserves choices this version cannot offer.
+    QCOMPARE(
+        settings.value("desktop_ui/overrides/feedback").toString(),
+        QStringLiteral("future-feedback")
+    );
+    QVERIFY(settings.contains("desktop_ui/overrides/future_component"));
+    auto blank = model->state();
+    blank.preset.clear();
+    model->load(blank);
+    QVERIFY(!model->fallbacks().isEmpty());
+    QVERIFY(editor.apply_theme_settings());
+    QCOMPARE(settings.value("desktop_ui/preset").toString(), QString());
 #endif
 }
 

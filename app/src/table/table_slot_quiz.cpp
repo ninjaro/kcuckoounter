@@ -1,4 +1,6 @@
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/answer_panel.hpp>
+#include <shared_ui/qt/presentation.hpp>
 
 #include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
@@ -7,7 +9,6 @@
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/card_widget.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/infinity_spinbox.hpp"
@@ -15,7 +16,6 @@
 #include "table/slot_settings.hpp"
 #include <QLabel>
 #include <QLineEdit>
-#include <QStackedLayout>
 #include <QToolButton>
 
 #include <QString>
@@ -199,11 +199,7 @@ void table_slot::update_quiz_controls_visibility() {
             && gameplay_owner->phase() == gameplay::session_phase::running;
         const auto value = gameplay_input_value();
         quiz_bar_widget->setEnabled(true);
-        quiz_layout->setCurrentWidget(
-            quiz_feedback_active ? quiz_feedback_widget : quiz_prompt_widget
-        );
-        quiz_prompt_widget->setVisible(!quiz_feedback_active);
-        quiz_feedback_widget->setVisible(quiz_feedback_active);
+        quiz_bar_widget->show_feedback(quiz_feedback_active);
         quiz_spin_box->hide();
         quiz_spin_box->setEnabled(false);
         gameplay_input->setVisible(!quiz_feedback_active);
@@ -226,9 +222,7 @@ void table_slot::update_quiz_controls_visibility() {
             );
             for (auto* button :
                  quiz_chip_widget->findChildren<QPushButton*>()) {
-                const auto step = button->objectName()
-                                      .mid(QStringLiteral("quiz_chip_").size())
-                                      .toInt();
+                const auto step = button->property("chip_step").toInt();
                 button->setEnabled(
                     editable && value
                     && (step > 0
@@ -243,18 +237,7 @@ void table_slot::update_quiz_controls_visibility() {
         update_compact_controls();
         return;
     }
-    if (quiz_layout != nullptr && quiz_prompt_widget != nullptr
-        && quiz_feedback_widget != nullptr) {
-        quiz_layout->setCurrentWidget(
-            quiz_feedback_active ? quiz_feedback_widget : quiz_prompt_widget
-        );
-    }
-    if (quiz_prompt_widget != nullptr) {
-        quiz_prompt_widget->setVisible(!quiz_feedback_active);
-    }
-    if (quiz_feedback_widget != nullptr) {
-        quiz_feedback_widget->setVisible(quiz_feedback_active);
-    }
+    quiz_bar_widget->show_feedback(quiz_feedback_active);
     if (quiz_spin_box != nullptr) {
         quiz_spin_box->setVisible(!quiz_feedback_active);
     }
@@ -298,36 +281,22 @@ void table_slot::update_feedback_stamp() {
     } else if (quiz_feedback_active) {
         counts = legacy_feedback_counts;
     }
-    const bool felt = theme_settings::felt_chrome(this);
+    const bool felt = shared_ui::qt::presentation_for(*this).value
+        == shared_ui::qt::material::felt;
     if (card_widget_internal != nullptr)
         card_widget_internal->set_verdict_glow(felt && counts.has_value());
-    if (quiz_feedback_band == nullptr)
+    if (!counts) {
+        quiz_bar_widget->set_feedback_fields({});
         return;
-    const bool show = felt && counts.has_value()
-        && feedback_style == quiz_feedback_style::stamp;
-    quiz_feedback_band->setVisible(show);
-    if (!show)
-        return;
-    const shared_ui::qt::material_tokens m = theme_settings::felt(this);
+    }
     const auto signed_text = [](qint64 value) {
-        return value < 0 ? QStringLiteral("\u2212%1").arg(-value)
-                         : QString::number(value);
+        auto text = QString::number(value);
+        if (text.startsWith(u'-'))
+            text[0] = QChar(0x2212);
+        return text;
     };
-    // The verdict states both figures; the sentence below repeats them.
-    quiz_feedback_band->setText(
-        QStringLiteral(
-            "<table width=\"100%\" cellspacing=\"0\" cellpadding=\"0\"><tr>"
-            "<td valign=\"bottom\" style=\"font-family:'%1'; font-size:10px; "
-            "letter-spacing:1px; color:rgba(255,255,255,0.8);\">%2 %3</td>"
-            "<td align=\"right\" valign=\"bottom\" style=\"font-family:'%1'; "
-            "font-size:10px; letter-spacing:1px; "
-            "color:rgba(255,255,255,0.8);\">%4 <span style=\"font-size:24px; "
-            "font-weight:700; color:#ffffff; letter-spacing:0px;\">%5</span>"
-            "</td></tr></table>"
-        )
-            .arg(
-                m.mono_family, str_label("YOU"), signed_text(counts->first),
-                str_label("WAS"), signed_text(counts->second)
-            )
+    quiz_bar_widget->set_feedback_fields(
+        { { str_label("YOU"), signed_text(counts->first) },
+          { str_label("WAS"), signed_text(counts->second) } }
     );
 }

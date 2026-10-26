@@ -1,3 +1,4 @@
+#include <shared_ui/qt/appearance_editor.hpp>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
@@ -207,14 +208,11 @@ void table_tests::shell_menus_preserve_owned_routes() {
     QCOMPARE(owner.phase(), gameplay::session_phase::paused);
     settings_template_widget* editor = nullptr;
     for (auto* candidate : window.findChildren<settings_template_widget*>())
-        if (candidate->findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar"
-            )))
+        if (candidate->desktop_model())
             editor = candidate;
     QVERIFY(editor);
-    editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_toolbar"))
-        ->setCurrentIndex(2);
-    editor->findChild<QComboBox*>(QStringLiteral("desktop_ui_hud"))
-        ->setCurrentIndex(2);
+    editor->desktop_model()->set_override("toolbar", "compact");
+    editor->desktop_model()->set_override("hud", "instruments");
     QVERIFY(editor->apply_theme_settings());
     QVERIFY(toolbar->isHidden());
 #ifdef KC_KDE

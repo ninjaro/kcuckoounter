@@ -1,4 +1,7 @@
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/adaptive_surface.hpp>
+#include <shared_ui/qt/answer_panel.hpp>
+#include <shared_ui/qt/presentation.hpp>
 
 #include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
@@ -7,7 +10,6 @@
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/card_widget.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/infinity_spinbox.hpp"
@@ -19,7 +21,6 @@
 #include <QLineEdit>
 #include <QRegularExpressionValidator>
 #include <QString>
-#include <QVBoxLayout>
 #include <QtGlobal>
 
 bool table_slot::bind_gameplay_deck(
@@ -63,11 +64,8 @@ void table_slot::refresh_gameplay_deck() {
 }
 
 void table_slot::setup_gameplay_input() {
-    gameplay_input = new QLineEdit(quiz_prompt_widget);
+    gameplay_input = new QLineEdit(quiz_bar_widget);
     gameplay_input->setObjectName(QStringLiteral("gameplay_quiz_input"));
-    shared_ui::qt::set_presentation_role(
-        *gameplay_input, QStringLiteral("figure")
-    );
     gameplay_input->setAccessibleName(str_label("Accumulated-count answer"));
     gameplay_input->setToolTip(
         str_label("Enter a signed 64-bit accumulated count")
@@ -83,23 +81,20 @@ void table_slot::setup_gameplay_input() {
     gameplay_input->setValidator(new QRegularExpressionValidator(
         QRegularExpression(QStringLiteral("[+-]?[0-9]{1,19}")), gameplay_input
     ));
-    delete quiz_prompt_widget->layout()->replaceWidget(
-        quiz_spin_box, gameplay_input
-    );
-    quiz_spin_box->hide();
+    quiz_bar_widget->set_editor(gameplay_input);
     quiz_spin_box->setEnabled(false);
     quiz_weight_label->setText(
-        theme_settings::felt_chrome(this) ? str_label("YOUR COUNT")
-                                          : str_label("Count")
+        shared_ui::qt::presentation_for(*this).value
+                == shared_ui::qt::material::felt
+            ? str_label("YOUR COUNT")
+            : str_label("Count")
     );
-    quiz_weight_label->setBuddy(gameplay_input);
     gameplay_input->installEventFilter(this);
     quiz_answer_button->installEventFilter(this);
     quiz_skip_button->installEventFilter(this);
     if (compact_controls_button)
         compact_controls_button->installEventFilter(this);
-    auto* layout = qobject_cast<QVBoxLayout*>(quiz_prompt_widget->layout());
-    gameplay_input_error = new QLabel(quiz_prompt_widget);
+    gameplay_input_error = new QLabel(quiz_bar_widget);
     gameplay_input_error->setObjectName(
         QStringLiteral("gameplay_quiz_validation")
     );
@@ -107,23 +102,15 @@ void table_slot::setup_gameplay_input() {
     gameplay_input_error->setText(
         str_label("Enter a whole count in the signed 64-bit range.")
     );
-    layout->insertWidget(1, gameplay_input_error);
-    gameplay_correction_label = new QLabel(quiz_prompt_widget);
+    quiz_bar_widget->add_notice(gameplay_input_error);
+    gameplay_correction_label = new QLabel(quiz_bar_widget);
     gameplay_correction_label->setObjectName(
         QStringLiteral("gameplay_previous_correction")
     );
     gameplay_correction_label->setWordWrap(true);
     gameplay_correction_label->setTextFormat(Qt::PlainText);
-    layout->insertWidget(2, gameplay_correction_label);
+    quiz_bar_widget->add_notice(gameplay_correction_label);
     quiz_feedback_label->setTextFormat(Qt::PlainText);
-    QWidget* previous = gameplay_input;
-    if (quiz_chip_widget) {
-        for (auto* button : quiz_chip_widget->findChildren<QPushButton*>()) {
-            QWidget::setTabOrder(previous, button);
-            previous = button;
-        }
-    }
-    QWidget::setTabOrder(previous, quiz_answer_button);
     connect(
         gameplay_input, &QLineEdit::textEdited, this,
         &table_slot::on_gameplay_input_edited
@@ -212,7 +199,8 @@ void table_slot::show_gameplay_answer(const gameplay::quiz_answer& answer) {
 void table_slot::focus_gameplay_input() {
     if (!gameplay_prompt || !gameplay_input->isEnabled())
         return;
-    if (compact_controls_button->isVisible() && !controls_dialog)
+    if (compact_controls_button->isVisible()
+        && !(controls_surface && controls_surface->window()))
         compact_controls_button->setFocus(Qt::OtherFocusReason);
     else
         gameplay_input->setFocus(Qt::OtherFocusReason);

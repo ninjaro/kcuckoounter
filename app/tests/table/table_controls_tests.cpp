@@ -3,11 +3,11 @@
 // readability-make-member-function-const)
 
 #include "table/table_tests.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
@@ -38,11 +38,12 @@
 using namespace table_test;
 
 void table_tests::overlay_palette_applies_to_bars() {
-    const QColor original_base = theme_settings::base_color();
     const QColor base_color(0x1B, 0x3C, 0xF0);
-    theme_settings::set_base_color(base_color);
 
     table_slot slot;
+    auto presentation = shared_ui::qt::presentation_for(slot);
+    presentation.context.felt_surface = base_color;
+    shared_ui::qt::apply_presentation(slot, presentation);
     slot.apply_theme();
 
     const theme_palette_option& palette_option = theme_palette_registry::option(
@@ -63,19 +64,19 @@ void table_tests::overlay_palette_applies_to_bars() {
     );
     QCOMPARE(settings_frame->palette().color(QPalette::Window), expected_panel);
     QCOMPARE(swap_frame->palette().color(QPalette::Window), expected_panel);
-
-    theme_settings::set_base_color(original_base);
 }
 
 void table_tests::overlay_palette_uses_gold_text_on_frames() {
-    const QColor original_base = theme_settings::base_color();
-    const QColor base_color(0x1B, 0x3C, 0xF0);
-    theme_settings::set_base_color(base_color);
+    // Native gold must not become a surface-adjusted Felt foreground.
+    const QColor base_color(Qt::white);
 
     table_slot slot;
+    auto presentation = shared_ui::qt::presentation_for(slot);
+    presentation.context.felt_surface = base_color;
+    shared_ui::qt::apply_presentation(slot, presentation);
     slot.apply_theme();
 
-    const QColor expected_text = theme_settings::slot_border_color();
+    const QColor expected_text(QStringLiteral("#d4af37"));
     auto settings_frame
         = slot.findChild<QFrame*>(QStringLiteral("settings_bar_frame"));
     auto swap_frame = slot.findChild<QFrame*>(QStringLiteral("swap_bar_frame"));
@@ -85,8 +86,6 @@ void table_tests::overlay_palette_uses_gold_text_on_frames() {
         settings_frame->palette().color(QPalette::WindowText), expected_text
     );
     QCOMPARE(swap_frame->palette().color(QPalette::WindowText), expected_text);
-
-    theme_settings::set_base_color(original_base);
 }
 
 void table_tests::overlay_frames_enable_auto_fill() {

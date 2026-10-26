@@ -1,5 +1,7 @@
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/adaptive_surface.hpp>
 #include <shared_ui/qt/editor_panel.hpp>
+#include <shared_ui/qt/presentation.hpp>
 
 #include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
@@ -8,7 +10,6 @@
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/card_widget.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/infinity_spinbox.hpp"
@@ -118,8 +119,8 @@ void table_slot::open_settings_editor() {
     ) {
         return;
     }
-    if (controls_dialog)
-        controls_dialog->close();
+    if (controls_surface && controls_surface->window())
+        controls_surface->window()->close();
     // Only classic editors notify the classic shell's pause handler. Target
     // edits require setup/manual Pause already; neither path auto-resumes.
     if (!gameplay_owner)
@@ -147,7 +148,8 @@ void table_slot::open_settings_editor() {
               "unapplied edits."
           );
     panel->set_heading(notice, help);
-    const bool kit_card = theme_settings::felt_chrome(this)
+    const bool kit_card = shared_ui::qt::presentation_for(*this).value
+            == shared_ui::qt::material::felt
         && settings_style == slot_settings_style::card;
     if (kit_card && card_widget_internal->displayed_slot_number() > 0) {
         panel->setAccessibleDescription(notice);

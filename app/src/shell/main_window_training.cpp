@@ -1,4 +1,5 @@
 #include "shell/main_window.hpp"
+#include <shared_ui/qt/toolbar_presentation.hpp>
 
 #include "card_helpers/card_sheet.hpp"
 #include "table/gameplay_setup.hpp"
@@ -13,7 +14,6 @@
 #include "settings/session_checkpoint.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "settings/training_progress.hpp"
 
 #include <QAbstractButton>
@@ -25,6 +25,7 @@
 #include <QPointer>
 #include <QScrollArea>
 #include <QTabWidget>
+#include <shared_ui/qt/appearance_editor.hpp>
 
 void main_window::open_setup_dialog() {
     if (table_widget && table_widget->active_gameplay_session())
@@ -78,6 +79,9 @@ void main_window::on_continue_button_clicked() {
     update_status_text();
 
     if (start_pause_action != nullptr) {
+        shared_ui::qt::set_toolbar_icon(
+            *start_pause_action, shared_ui::qt::toolbar_icon::play
+        );
         start_pause_action->setText(str_label("Start"));
         start_pause_action->setIcon(icon_loader::themed(
             { "media-playback-start", "media-playback-play", "play" },
@@ -363,11 +367,16 @@ void main_window::on_settings_triggered() {
         shared_state
     );
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    auto* editor_scroll = new QScrollArea(tab_widget);
+    editor_scroll->setWidgetResizable(true);
+    editor_scroll->setFrameShape(QFrame::NoFrame);
+    editor_scroll->setWidget(appearance_settings_widget->desktop_editor());
+    tab_widget->addTab(editor_scroll, str_label("Appearance"));
     auto* appearance_scroll = new QScrollArea(tab_widget);
     appearance_scroll->setWidgetResizable(true);
     appearance_scroll->setFrameShape(QFrame::NoFrame);
     appearance_scroll->setWidget(appearance_settings_widget);
-    tab_widget->addTab(appearance_scroll, str_label("Appearance"));
+    tab_widget->addTab(appearance_scroll, str_label("Table and cards"));
 #else
     tab_widget->addTab(appearance_settings_widget, str_label("Appearance"));
 #endif
@@ -407,6 +416,15 @@ void main_window::on_settings_triggered() {
         &main_window::on_settings_commit_requested
     );
     dialog_layout->addWidget(button_box);
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
+    const auto show_host_commands = [tab_widget, button_box, editor_scroll] {
+        button_box->setVisible(tab_widget->currentWidget() != editor_scroll);
+    };
+    connect(
+        tab_widget, &QTabWidget::currentChanged, button_box, show_host_commands
+    );
+    show_host_commands();
+#endif
 
     QObject::connect(
         settings_dialog, &QDialog::finished, this,
@@ -533,6 +551,9 @@ void main_window::reset_game_state(bool show_setup_dialog, bool mark_finished) {
     update_status_text();
 
     if (start_pause_action != nullptr) {
+        shared_ui::qt::set_toolbar_icon(
+            *start_pause_action, shared_ui::qt::toolbar_icon::play
+        );
         start_pause_action->setText(str_label("Start"));
         start_pause_action->setIcon(icon_loader::themed(
             { "media-playback-start", "media-playback-play", "play" },

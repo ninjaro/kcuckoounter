@@ -17,7 +17,6 @@
 #include <optional>
 
 class QAction;
-class QStackedLayout;
 class QResizeEvent;
 class QLabel;
 class QColor;
@@ -33,6 +32,8 @@ class deck_setup_widget;
 
 namespace shared_ui::qt {
 class action_group;
+class answer_panel;
+class adaptive_surface;
 class editor_panel;
 }
 
@@ -139,7 +140,7 @@ private:
 
     BaseWidget* overlay_widget;
     QToolButton* compact_controls_button = nullptr;
-    QPointer<QDialog> controls_dialog;
+    shared_ui::qt::adaptive_surface* controls_surface = nullptr;
     BaseWidget* settings_bar_widget;
     BaseWidget* swap_bar_widget;
     QBoxLayout* overlay_layout;
@@ -164,16 +165,12 @@ private:
     QAction* copy_settings_action = nullptr;
     QAction* copy_all_action = nullptr;
     shared_ui::qt::action_group* slot_actions = nullptr;
-    BaseWidget* quiz_bar_widget;
-    QStackedLayout* quiz_layout;
-    BaseWidget* quiz_prompt_widget;
-    BaseWidget* quiz_feedback_widget;
+    shared_ui::qt::answer_panel* quiz_bar_widget;
     QLabel* quiz_weight_label;
     BaseSpinBox* quiz_spin_box;
     BaseWidget* quiz_chip_widget = nullptr;
     QLabel* quiz_feedback_heading = nullptr;
     // Felt D-FEED-2 band: submitted and expected accumulated counts.
-    QLabel* quiz_feedback_band = nullptr;
     std::optional<std::pair<qint64, qint64>> legacy_feedback_counts;
     quiz_answer_style answer_style = quiz_answer_style::numeric;
     quiz_feedback_style feedback_style = quiz_feedback_style::classic;
@@ -194,8 +191,6 @@ private:
     void setup_overlay();
     void setup_quiz_chips();
     void update_quiz_presentation();
-    // Felt D-COUNT-1 figure size follows the slot; no repacking.
-    void update_quiz_figure_size();
     void update_feedback_stamp();
     void update_overlay_layout();
     void update_overlay_margins();
@@ -203,7 +198,6 @@ private:
     // Keyboard focus to the Details command, if it is shown.
     bool focus_details_action();
     void update_compact_controls();
-    void show_compact_controls();
     void update_settings_button_state(bool dialog_open = false);
     static void
     update_infinity_state(BaseCheckBox* check_box, BaseSpinBox* spin_box);

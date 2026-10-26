@@ -7,7 +7,6 @@
 #include <QList>
 #include <QMargins>
 #include <QPointer>
-#include <QSize>
 #include <QString>
 #include <QtCore/Qt>
 
@@ -24,12 +23,15 @@ class QMenu;
 class QProgressBar;
 class QSlider;
 class settings_template_widget;
-class desktop_status_strip;
 class QTimer;
 class QVBoxLayout;
 class QTableWidget;
 class QCloseEvent;
 class gameplay_reservation;
+
+namespace shared_ui::qt {
+class status_strip;
+}
 
 namespace gameplay {
 class setup_widget;
@@ -121,7 +123,6 @@ private:
     bool mobile_checkpoint_restored;
     bool mobile_lifecycle_paused;
     qint64 last_mobile_checkpoint_elapsed_ms;
-    bool compact_toolbar = false;
     bool felt_chrome = false;
     QLabel* kit_wordmark = nullptr;
     // D-TOP-1 one-bar pieces: brand at the toolbar start and, where menus
@@ -129,11 +130,10 @@ private:
     QAction* kit_brand_action = nullptr;
     QList<QAction*> kit_menu_actions;
     std::optional<std::pair<QMargins, int>> classic_central_spacing;
-    std::optional<QSize> classic_toolbar_icon_size;
     std::optional<QMargins> classic_setup_margins;
     QLabel* slot_preview = nullptr;
     QLabel* setup_heading = nullptr;
-    desktop_status_strip* desktop_status = nullptr;
+    shared_ui::qt::status_strip* desktop_status = nullptr;
     desktop_hud_style gameplay_hud_style = desktop_hud_style::classic;
     int gameplay_default_suit = 0;
     // Operations retain a local copy through callbacks retiring this window.
@@ -152,7 +152,6 @@ private:
     void apply_desktop_presentation();
     void apply_kit_one_bar();
     void refresh_slot_preview();
-    void update_toolbar_buttons();
     void setup_game_actions();
     void setup_platform_shell();
     void finalize_platform_shell();

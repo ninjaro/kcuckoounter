@@ -2,7 +2,6 @@
 #include "card_helpers/card_sheet.hpp"
 #include "packing/layout/equal_rectangles.hpp"
 #include "settings/strategy_data.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/card_widget.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"

@@ -1,5 +1,6 @@
 #include "table/strategy_browser.hpp"
 #include "table/settings_template_support.hpp"
+#include <shared_ui/qt/presentation.hpp>
 #include <shared_ui/qt/status_badge.hpp>
 
 #include "arch/str_label.hpp"
@@ -7,7 +8,6 @@
 #include "image/card_preview_carousel.hpp"
 #include "settings/preferences.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/table.hpp"
 
 #include <QAbstractItemView>
@@ -71,8 +71,9 @@ public:
         const int level = index.data(level_role).toInt();
         if (level == 0)
             return;
-        const shared_ui::qt::material_tokens m
-            = theme_settings::felt(qobject_cast<QWidget*>(parent()));
+        const shared_ui::qt::material_tokens m = shared_ui::qt::material_for(
+            *qobject_cast<QWidget*>(parent()), shared_ui::qt::material::felt
+        );
         QFont tag(m.mono_family);
         tag.setPixelSize(10);
         painter->save();
@@ -136,7 +137,8 @@ QString strategy_detail_kit_html(
 ) {
     const auto text
         = [](const QString& value) { return value.toHtmlEscaped(); };
-    const shared_ui::qt::material_tokens m = theme_settings::felt(context);
+    const shared_ui::qt::material_tokens m
+        = shared_ui::qt::material_for(*context, shared_ui::qt::material::felt);
     const QString mono = m.mono_family;
     const auto label = [&](const QString& title) {
         return QStringLiteral(
@@ -353,15 +355,17 @@ QString strategy_detail_kit_html(
 
 QString
 strategy_detail_html(const strategy_data& strategy, const QWidget* context) {
-    if (theme_settings::felt_chrome(context))
+    if (shared_ui::qt::presentation_for(*context).value
+        == shared_ui::qt::material::felt)
         return strategy_detail_kit_html(strategy, context);
     const auto text
         = [](const QString& value) { return value.toHtmlEscaped(); };
     const auto absent = str_label("Not provided");
     // D-STRAT-1 on the felt: gold section labels and a coloured weight strip.
-    const bool felt = theme_settings::felt_chrome(context);
+    const bool felt = shared_ui::qt::presentation_for(*context).value
+        == shared_ui::qt::material::felt;
     const shared_ui::qt::material_tokens material
-        = theme_settings::felt(context);
+        = shared_ui::qt::material_for(*context, shared_ui::qt::material::felt);
     const QString heading = felt
         ? QStringLiteral(
               "<h3 style='color:%1; font-family:\"%2\"; "
@@ -718,7 +722,8 @@ QWidget* create_strategy_browser(
         else
             comparison->scrollTo(comparison->currentIndex());
     });
-    if (theme_settings::felt_chrome(browser)) {
+    if (shared_ui::qt::presentation_for(*browser).value
+        == shared_ui::qt::material::felt) {
         // D-STRAT-1: search inside the list's column, level tags on rows.
         search_label->hide();
         search->setPlaceholderText(str_label("Search"));

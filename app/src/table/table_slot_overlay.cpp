@@ -1,5 +1,8 @@
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/adaptive_surface.hpp>
+#include <shared_ui/qt/answer_panel.hpp>
 #include <shared_ui/qt/editor_panel.hpp>
+#include <shared_ui/qt/presentation.hpp>
 
 #include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
@@ -8,7 +11,6 @@
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/card_widget.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/infinity_spinbox.hpp"
@@ -19,13 +21,13 @@
 
 #include <QAction>
 #include <QBoxLayout>
+#include <QDialog>
 #include <QEvent>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
-#include <QStackedLayout>
 #include <QString>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -42,16 +44,24 @@ void table_slot::setup_overlay() {
     // A packed slot must never inherit the controls' minimum size. If they
     // cannot fit, expose the same widgets in a transient desktop window.
     overlay_layout->setSizeConstraint(QLayout::SetNoConstraint);
-    overlay_widget->installEventFilter(this);
-    compact_controls_button = new QToolButton(this);
+    controls_surface
+        = new shared_ui::qt::adaptive_surface(*this, *overlay_widget);
+    controls_surface->set_open_permission([this] {
+        return !gameplay_owner
+            || gameplay_owner->phase() == gameplay::session_phase::setup
+            || gameplay_owner->phase() == gameplay::session_phase::paused
+            || quiz_prompt_active;
+    });
+    controls_surface->set_window_title(str_label("Card controls"));
+    compact_controls_button = controls_surface->trigger();
     compact_controls_button->setObjectName(
         QStringLiteral("compact_slot_controls")
     );
-    compact_controls_button->setFocusPolicy(Qt::StrongFocus);
-    compact_controls_button->hide();
     connect(
-        compact_controls_button, &QToolButton::clicked, this,
-        &table_slot::show_compact_controls
+        controls_surface, &shared_ui::qt::adaptive_surface::opened, this,
+        [](QDialog* window) {
+            window->setObjectName(QStringLiteral("slot_controls_dialog"));
+        }
     );
 #endif
 
@@ -92,15 +102,13 @@ void table_slot::setup_overlay() {
     swap_layout->setContentsMargins(4, 4, 4, 4);
     swap_layout->setSpacing(2);
 
-    quiz_bar_widget = new QFrame(overlay_widget);
+    quiz_bar_widget = new shared_ui::qt::answer_panel(overlay_widget);
     quiz_bar_widget->setObjectName(QStringLiteral("quiz_bar_frame"));
-    shared_ui::qt::set_presentation_role(
-        *quiz_bar_widget, QStringLiteral("transparent")
+    quiz_chip_widget = quiz_bar_widget->step_area();
+    quiz_chip_widget->setObjectName(QStringLiteral("quiz_chip_stepper"));
+    quiz_bar_widget->feedback_band()->setObjectName(
+        QStringLiteral("quiz_feedback_band")
     );
-    quiz_bar_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-    quiz_layout = new QStackedLayout(quiz_bar_widget);
-    quiz_layout->setContentsMargins(4, 4, 4, 4);
-    quiz_layout->setSpacing(2);
 
     // The slot's own commands; Appearance's action group draws them in the
     // chosen Classic, Icon rail or Labelled pills form.
@@ -162,34 +170,11 @@ void table_slot::setup_overlay() {
         { details_action, swap_action, copy_settings_action, copy_all_action }
     );
 
-    quiz_prompt_widget = new BaseWidget(quiz_bar_widget);
-    auto quiz_prompt_layout = new QVBoxLayout(quiz_prompt_widget);
-    quiz_prompt_layout->setContentsMargins(0, 0, 0, 0);
-    quiz_prompt_layout->setSpacing(2);
-    auto quiz_prompt_row_layout = new QHBoxLayout();
-    quiz_prompt_row_layout->setContentsMargins(0, 0, 0, 0);
-    quiz_prompt_row_layout->setSpacing(2);
-    auto quiz_prompt_button_layout = new QHBoxLayout();
-    quiz_prompt_button_layout->setContentsMargins(0, 0, 0, 0);
-    quiz_prompt_button_layout->setSpacing(2);
-
-    quiz_feedback_widget = new BaseWidget(quiz_bar_widget);
-    auto quiz_feedback_layout = new QVBoxLayout(quiz_feedback_widget);
-    quiz_feedback_layout->setContentsMargins(0, 0, 0, 0);
-    quiz_feedback_layout->setSpacing(2);
-
     quiz_weight_label = new QLabel(str_label("Weight"), quiz_bar_widget);
     quiz_weight_label->setObjectName(QStringLiteral("quiz_weight_label"));
-    shared_ui::qt::set_presentation_role(
-        *quiz_weight_label, QStringLiteral("caption")
-    );
     quiz_spin_box = new BaseSpinBox(quiz_bar_widget);
-    quiz_weight_label->setBuddy(quiz_spin_box);
     quiz_spin_box->setAccessibleName(str_label("Card-count answer"));
     quiz_spin_box->setObjectName(QStringLiteral("quiz_spin_box"));
-    shared_ui::qt::set_presentation_role(
-        *quiz_spin_box, QStringLiteral("figure")
-    );
     quiz_spin_box->setRange(-9999, 9999);
     quiz_spin_box->setValue(0);
     quiz_spin_box->setToolTip(
@@ -213,10 +198,6 @@ void table_slot::setup_overlay() {
     quiz_feedback_label = new QLabel(quiz_bar_widget);
     quiz_feedback_label->setAccessibleName(str_label("Answer feedback"));
     quiz_feedback_label->setObjectName(QStringLiteral("quiz_feedback_label"));
-    shared_ui::qt::set_presentation_role(
-        *quiz_feedback_label, QStringLiteral("note")
-    );
-    quiz_feedback_label->setWordWrap(true);
     quiz_feedback_label->setVisible(false);
     quiz_continue_button = android_ui::create_button(quiz_bar_widget);
     quiz_continue_button->setObjectName(QStringLiteral("quiz_continue_button"));
@@ -240,44 +221,20 @@ void table_slot::setup_overlay() {
     swap_layout->addWidget(slot_actions);
     swap_layout->addStretch();
 
-    quiz_prompt_row_layout->addWidget(quiz_weight_label);
-    quiz_prompt_row_layout->addWidget(quiz_spin_box);
-    quiz_prompt_row_layout->addStretch();
-    quiz_prompt_button_layout->addStretch();
-    quiz_prompt_button_layout->addWidget(quiz_answer_button);
-    quiz_prompt_button_layout->addWidget(quiz_skip_button);
-    quiz_prompt_button_layout->addStretch();
-    quiz_prompt_layout->addLayout(quiz_prompt_row_layout);
-    setup_quiz_chips();
-    if (quiz_chip_widget != nullptr) {
-        quiz_prompt_layout->addWidget(quiz_chip_widget);
-    }
-    quiz_prompt_layout->addLayout(quiz_prompt_button_layout);
-
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     quiz_feedback_heading
-        = new QLabel(str_label("ACCUMULATED COUNT"), quiz_feedback_widget);
+        = new QLabel(str_label("ACCUMULATED COUNT"), quiz_bar_widget);
     quiz_feedback_heading->setObjectName(QStringLiteral("quiz_feedback_stamp"));
-    shared_ui::qt::set_presentation_role(
-        *quiz_feedback_heading, QStringLiteral("caption")
-    );
-    quiz_feedback_heading->setWordWrap(true);
-    quiz_feedback_heading->setAlignment(Qt::AlignCenter);
-    quiz_feedback_layout->addWidget(quiz_feedback_heading);
-    quiz_feedback_band = new QLabel(quiz_feedback_widget);
-    quiz_feedback_band->setObjectName(QStringLiteral("quiz_feedback_band"));
-    shared_ui::qt::set_presentation_role(
-        *quiz_feedback_band, QStringLiteral("negative-band")
-    );
-    quiz_feedback_band->setTextFormat(Qt::RichText);
-    quiz_feedback_band->hide();
-    quiz_feedback_layout->addWidget(quiz_feedback_band);
 #endif
-    quiz_feedback_layout->addWidget(quiz_feedback_label);
-    quiz_feedback_layout->addWidget(quiz_continue_button, 0, Qt::AlignCenter);
-
-    quiz_layout->addWidget(quiz_prompt_widget);
-    quiz_layout->addWidget(quiz_feedback_widget);
+    quiz_bar_widget->set_widgets(
+        { quiz_weight_label,
+          quiz_spin_box,
+          { quiz_answer_button, quiz_skip_button },
+          quiz_feedback_heading,
+          quiz_feedback_label,
+          quiz_continue_button }
+    );
+    setup_quiz_chips();
 
     update_overlay_layout();
 
@@ -354,12 +311,18 @@ void table_slot::update_overlay_palette() {
     const auto context = shared_ui::qt::presentation_for(*this).context;
     const QColor base_color = context.felt_surface.isValid()
         ? context.felt_surface
-        : theme_settings::base_color();
+        : theme_palette_registry::option(load_trainer_preferences().palette)
+              .base_color();
     const theme_palette_option& palette_option = theme_palette_registry::option(
         theme_palette_registry::id_from_color(base_color)
     );
     const QColor panel_color = palette_option.panel_color();
-    const QColor accent_color = theme_settings::slot_border_color();
+    const QColor accent_color
+        = shared_ui::qt::tokens_for(
+              shared_ui::qt::material::felt,
+              shared_ui::qt::presentation_for(*this).profile, palette()
+        )
+              .accent;
     const QColor input_color = palette_option.input_color();
     apply_palette_to_widget(
         settings_bar_widget, panel_color, accent_color, input_color
@@ -375,7 +338,9 @@ void table_slot::update_overlay_palette() {
     );
     // D-SET-1: under the felt chrome the settings card is warm paper placed
     // on the table rather than another dark panel.
-    if (settings_editor_panel && theme_settings::felt_chrome(this)
+    if (settings_editor_panel
+        && shared_ui::qt::presentation_for(*this).value
+            == shared_ui::qt::material::felt
         && settings_style == slot_settings_style::card) {
         shared_ui::qt::set_presentation_role(
             *settings_editor_panel, QStringLiteral("paper-panel")
@@ -432,7 +397,8 @@ void table_slot::update_overlay_layout() {
 
     if (quiz_prompt_active) {
         // Felt docks the prompt below the raised quiz marking.
-        const bool docked = theme_settings::felt_chrome(this)
+        const bool docked = shared_ui::qt::presentation_for(*this).value
+                == shared_ui::qt::material::felt
             && overlay_layout->direction() == QBoxLayout::TopToBottom;
         overlay_layout->addStretch(docked ? 3 : 1);
         overlay_layout->addWidget(quiz_bar_widget, 0, Qt::AlignCenter);
@@ -495,18 +461,7 @@ bool table_slot::eventFilter(QObject* watched, QEvent* event) {
                 }
                 return true; // Do not also activate a dialog default button.
             }
-            auto* button = qobject_cast<QPushButton*>(watched);
-            if (button != nullptr && quiz_chip_widget != nullptr
-                && quiz_chip_widget->isAncestorOf(button)) {
-                if (!key->isAutoRepeat()) {
-                    button->click();
-                }
-                return true;
-            }
         }
-    }
-    if (watched == overlay_widget && event->type() == QEvent::LayoutRequest) {
-        update_compact_controls();
     }
     return BaseWidget::eventFilter(watched, event);
 }

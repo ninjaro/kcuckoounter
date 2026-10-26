@@ -954,9 +954,7 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/session_checkpoint.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/strategy_data.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/theme_palette.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/theme_settings.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/training_progress.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/desktop_status_strip.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/drill_picker.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/gameplay_reservation.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/main_window.hpp
@@ -1016,9 +1014,7 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/session_checkpoint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/strategy_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/theme_palette.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/theme_settings.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/training_progress.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/desktop_status_strip.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_storage.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_summary.cpp
@@ -1052,6 +1048,7 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/infinity_spinbox.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_appearance.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_editor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_preview.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_strategy.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_support.cpp
@@ -1107,9 +1104,7 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/session_checkpoint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/strategy_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/theme_palette.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/theme_settings.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/training_progress.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/desktop_status_strip.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_storage.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_summary.cpp
@@ -1143,6 +1138,7 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/infinity_spinbox.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_appearance.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_editor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_preview.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_strategy.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_support.cpp

@@ -1,9 +1,11 @@
 #include "table/card_widget.hpp"
+#include "settings/preferences.hpp"
+#include "settings/theme_palette.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 #include "arch/asset_locator.hpp"
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
-#include "settings/theme_settings.hpp"
 #include <QEvent>
 #include <QImage>
 #include <QPointer>
@@ -71,6 +73,13 @@ card_widget::card_widget(BaseWidget* parent)
     , displayed_card_images()
     , rasterizing(false)
     , presented_image_mode(false) {
+    auto presentation = shared_ui::qt::presentation_for(*this);
+    if (parent == nullptr) {
+        presentation.context.felt_surface
+            = theme_palette_registry::option(load_trainer_preferences().palette)
+                  .base_color();
+        shared_ui::qt::apply_presentation(*this, presentation);
+    }
     selection_timer->set_interval(45);
     QObject::connect(
         selection_timer.get(), &time_interface::timeout, this,

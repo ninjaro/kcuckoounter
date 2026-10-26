@@ -2,10 +2,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "packing/layout/equal_rectangles.hpp"
 #include "settings/strategy_data.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/card_widget.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
+#include <shared_ui/qt/adaptive_surface.hpp>
 
 #include <QApplication>
 #include <QDialog>
@@ -145,8 +145,9 @@ void table::publish_gameplay_runtime(
     }
     const bool active_quiz_host
         = std::ranges::any_of(slot_widgets, [](const auto* slot) {
-              return slot->controls_dialog
-                  && slot->controls_dialog == QApplication::activeWindow();
+              return slot->controls_surface && slot->controls_surface->window()
+                  && slot->controls_surface->window()
+                  == QApplication::activeWindow();
           });
     const auto diagnostic = std::exchange(gameplay_runtime_failure, {});
     // Install correction before a refresh can close its compact prompt host.
@@ -207,11 +208,13 @@ bool table::focus_gameplay_quiz(
     const auto revision = gameplay_scene_revision;
     bool return_focus = false;
     for (auto* slot : slot_widgets) {
-        if (slot->gameplay_id == *id || !slot->controls_dialog)
+        if (slot->gameplay_id == *id || !slot->controls_surface
+            || !slot->controls_surface->window())
             continue;
-        return_focus |= slot->controls_dialog == QApplication::activeWindow();
+        return_focus
+            |= slot->controls_surface->window() == QApplication::activeWindow();
         // Keep the correction/draft in its slot, not a competing focus window.
-        slot->controls_dialog->close();
+        slot->controls_surface->window()->close();
         if (!guard || gameplay_scene_revision != revision)
             return false;
     }
@@ -268,8 +271,10 @@ QString table::gameplay_status_text() const {
         phase, verified, errors, skips, questions, gameplay_clock_text()
     );
 #else
-    QString text = str_label("Status: %1  Verified: %2  Errors: %3  Skips: %4  "
-                             "Questions: %5  Time: %6")
+    QString text = str_label(
+                       "Status: %1  Verified: %2  Errors: %3  Skips: %4  "
+                       "Questions: %5  Time: %6"
+    )
                        .arg(phase)
                        .arg(verified)
                        .arg(errors)

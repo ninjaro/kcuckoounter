@@ -6,18 +6,27 @@
 #include "image/card_preview_carousel.hpp"
 #include "settings/preferences.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/theme_settings.hpp"
 #include "table/table.hpp"
 
 #include <QImage>
+#include <shared_ui/qt/appearance_editor.hpp>
+#include <shared_ui/qt/presentation.hpp>
 #include <utility>
 
 settings_shared_state::settings_shared_state(QObject* parent)
     : QObject(parent)
     , default_suit_value(load_default_suit_preference())
-    , table_color_index_value(settings_template_support::theme_index_from_color(
-          theme_settings::base_color()
-      )) { }
+    , table_color_index_value(
+          theme_palette_registry::index(load_trainer_preferences().palette)
+      ) {
+    if (const auto* widget = qobject_cast<QWidget*>(parent)) {
+        const auto color
+            = shared_ui::qt::presentation_for(*widget).context.felt_surface;
+        if (color.isValid())
+            table_color_index_value
+                = settings_template_support::theme_index_from_color(color);
+    }
+}
 
 void settings_shared_state::set_default_suit(int index) {
     if (index < 0 || index > 3 || index == default_suit_value) {
@@ -93,11 +102,15 @@ settings_template_widget::settings_template_widget(
     setup_ui(selected_strategy);
 }
 
-settings_template_widget::~settings_template_widget() = default;
+settings_template_widget::~settings_template_widget() {
+    // The dialog may reparent the editor; retire it before its host state.
+    delete appearance_editor_.data();
+}
 
 void settings_template_widget::setup_ui(const QString& selected_strategy) {
     if (tab_kind == settings_tab_kind::appearance) {
         setup_appearance_ui();
+        setup_appearance_editor();
         return;
     }
     setup_strategy_ui(selected_strategy);
