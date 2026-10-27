@@ -6,7 +6,6 @@
 #include "table/table_tests.hpp"
 
 #include "arch/str_label.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/settings_template.hpp"
 #include "table/table_fixture.hpp"
@@ -106,13 +105,7 @@ void table_tests::hud_styles_preserve_owned_quiz() {
         = window.findChild<QProgressBar*>(QStringLiteral("raster_progress"));
     QVERIFY(view && surface && status && readout && speed && progress);
     set_gameplay_motion_style(*view, 0);
-    const auto legacy_interval = view->pick_interval();
-    const auto trainer = load_trainer_preferences();
-    const auto history = load_training_progress();
-    auto* legacy_clock
-        = window.findChild<BaseClock*>(QString(), Qt::FindDirectChildrenOnly);
-    QVERIFY(legacy_clock && !legacy_clock->is_active());
-    QSignalSpy legacy_score(view, &table::score_adjusted);
+    const auto trainer = load_table_appearance_preferences();
     QSignalSpy preparation(view, &table::gameplay_preparation_required);
     QVERIFY(view->install_gameplay_session(owned_clock_fixture(
         4, global_pause, gameplay::dealing_mode::simultaneous,
@@ -180,14 +173,6 @@ void table_tests::hud_styles_preserve_owned_quiz() {
     const auto widgets = view->slot_widgets;
     auto* cache = table::shared_image_service();
     const auto original_status = status->text();
-    legacy_clock->set_elapsed_time_ms(900'000);
-    QVERIFY(QMetaObject::invokeMethod(
-        &window, "on_clock_ticked", Q_ARG(qlonglong, 900'000),
-        Q_ARG(qlonglong, 1'000)
-    ));
-    QVERIFY(QMetaObject::invokeMethod(
-        &window, "on_table_score_adjusted", Q_ARG(int, 50), Q_ARG(int, 60)
-    ));
     QCOMPARE(status->text(), original_status);
     for (const bool instruments : { !initial_instruments, initial_instruments })
         for (const bool show_readout : { false, true }) {
@@ -233,8 +218,8 @@ void table_tests::hud_styles_preserve_owned_quiz() {
                 );
                 QCOMPARE(window.size(), size);
                 QList<QWidget*> fields { status, readout, speed, progress };
-                if (auto* clock
-                    = window.findChild<QLabel*>(QStringLiteral("session_clock")
+                if (auto* clock = window.findChild<QLabel*>(
+                        QStringLiteral("session_clock")
                     )) {
                     fields.append(clock);
                     QCOMPARE(clock->text(), view->gameplay_clock_text());
@@ -320,12 +305,8 @@ void table_tests::hud_styles_preserve_owned_quiz() {
     QTest::keyClick(speed, Qt::Key_Right);
     QCOMPARE(owner.pick_interval_ms(), 303);
     QCOMPARE(*owner.result(), result);
-    QVERIFY(!legacy_clock->is_active());
-    // pick_interval() projects the active owner, not the dormant legacy field.
-    QCOMPARE(view->pick_interval_ms, legacy_interval);
-    QCOMPARE(load_trainer_preferences(), trainer);
-    QCOMPARE(load_training_progress(), history);
-    QCOMPARE(legacy_score.count(), 0);
+    // pick_interval() projects the active owner, not a stale table-local field.
+    QCOMPARE(load_table_appearance_preferences(), trainer);
     QCOMPARE(preparation.count(), 0);
 }
 
@@ -334,9 +315,10 @@ void table_tests::hud_styles_preserve_finished_result_data() {
     QTest::addColumn<bool>("lives");
     for (const bool instruments : { false, true })
         for (const bool lives : { false, true })
-            QTest::newRow(qPrintable(QStringLiteral("instruments=%1/lives=%2")
-                                         .arg(instruments)
-                                         .arg(lives))
+            QTest::newRow(
+                qPrintable(QStringLiteral("instruments=%1/lives=%2")
+                               .arg(instruments)
+                               .arg(lives))
             ) << instruments
               << lives;
 }
@@ -383,7 +365,7 @@ void table_tests::hud_styles_preserve_finished_result() {
     auto& owner = *view->active_gameplay_session();
     QVERIFY(view->start_gameplay_runtime(84));
     view->stop_gameplay_clock();
-    view->prepare_cards_for_start();
+    view->update_card_image_demands(true);
     QTRY_VERIFY_WITH_TIMEOUT(!view->is_rasterization_busy(), 10000);
     std::vector<gameplay::quiz_answer> answers;
     QVERIFY(view->advance_gameplay_runtime(300, answers));
@@ -404,7 +386,7 @@ void table_tests::hud_styles_preserve_finished_result() {
         QVERIFY(editor->apply_theme_settings());
         // A skipped/answered question can reveal a previously undemanded face.
         // Compare the settled HUD, preserving its separate Processing state.
-        view->prepare_cards_for_start();
+        view->update_card_image_demands(true);
         QTRY_VERIFY_WITH_TIMEOUT(!view->is_rasterization_busy(), 10000);
         QVERIFY(status->text().contains(str_label("Running")));
         QVERIFY(speed->isEnabled());
@@ -458,13 +440,14 @@ void table_tests::hud_styles_preserve_finished_result() {
         QCOMPARE(table::shared_image_service(), cache);
         QVERIFY(!view->gameplay_timer.isActive());
         QVERIFY(!status->text().contains(QStringLiteral("%1")));
-        QVERIFY(!status->text().contains(QStringLiteral("I18N_ARGUMENT_MISSING")
-        ));
+        QVERIFY(
+            !status->text().contains(QStringLiteral("I18N_ARGUMENT_MISSING"))
+        );
     }
     // HUD widgets outlive scenes; no previous result/life/speed leaks to setup.
     QVERIFY(view->install_gameplay_session(owned_clock_fixture(1)));
     // The replacement scene can require larger physical rasters.
-    view->prepare_cards_for_start();
+    view->update_card_image_demands(true);
     QTRY_VERIFY_WITH_TIMEOUT(!view->is_rasterization_busy(), 10000);
     QCOMPARE(
         window.findChild<QLabel*>(QStringLiteral("session_status")), status
@@ -479,10 +462,9 @@ void table_tests::hud_styles_preserve_finished_result() {
     QVERIFY(speed->isEnabled());
     QCOMPARE(speed->value(), 300);
     view->clear_gameplay_session();
-    QVERIFY(status->text().contains(str_label("Ready")));
+    QVERIFY(status->text().contains(str_label("New game")));
     QVERIFY(!status->text().contains(str_label("Verified")));
-    QVERIFY(speed->isEnabled());
-    QCOMPARE(speed->value(), view->pick_interval());
+    QVERIFY(!speed->isEnabled());
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

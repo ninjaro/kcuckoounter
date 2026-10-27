@@ -7,12 +7,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -48,15 +46,15 @@ void table_tests::strategy_browser_preserves_identity_and_reference_values() {
     std::unique_ptr<QWidget> browser(
         create_strategy_browser(catalog, strategy.slug)
     );
-    auto* list
-        = browser->findChild<QListView*>(QStringLiteral("strategy_browser_list")
-        );
+    auto* list = browser->findChild<QListView*>(
+        QStringLiteral("strategy_browser_list")
+    );
     auto* details = browser->findChild<QTextBrowser*>(
         QStringLiteral("strategy_browser_details")
     );
-    auto* comparison
-        = browser->findChild<QTableView*>(QStringLiteral("strategy_comparison")
-        );
+    auto* comparison = browser->findChild<QTableView*>(
+        QStringLiteral("strategy_comparison")
+    );
     auto* search
         = browser->findChild<QLineEdit*>(QStringLiteral("strategy_search"));
     auto* tabs = browser->findChild<QTabWidget*>(
@@ -174,9 +172,9 @@ void table_tests::strategy_browser_handles_missing_and_filtered_metadata() {
     std::unique_ptr<QWidget> browser(
         create_strategy_browser(catalog, QStringLiteral("1"))
     );
-    auto* comparison
-        = browser->findChild<QTableView*>(QStringLiteral("strategy_comparison")
-        );
+    auto* comparison = browser->findChild<QTableView*>(
+        QStringLiteral("strategy_comparison")
+    );
     auto* details = browser->findChild<QTextBrowser*>(
         QStringLiteral("strategy_browser_details")
     );
@@ -201,12 +199,12 @@ void table_tests::strategy_browser_handles_missing_and_filtered_metadata() {
         str_label("Not provided")
     );
     QVERIFY(details->toPlainText().contains(description));
-    auto* field
-        = browser->findChild<BaseComboBox*>(QStringLiteral("strategy_sort_field"
-        ));
-    auto* order
-        = browser->findChild<BaseComboBox*>(QStringLiteral("strategy_sort_order"
-        ));
+    auto* field = browser->findChild<BaseComboBox*>(
+        QStringLiteral("strategy_sort_field")
+    );
+    auto* order = browser->findChild<BaseComboBox*>(
+        QStringLiteral("strategy_sort_order")
+    );
     QVERIFY(field && order);
     QCOMPARE(field->currentIndex(), 1);
     QCOMPARE(order->currentIndex(), 1);
@@ -239,7 +237,8 @@ void table_tests::strategy_browser_handles_missing_and_filtered_metadata() {
                 QStringLiteral("Invalid catalogue fixture")
             );
         }
-        std::unique_ptr<QWidget> empty(create_strategy_browser(unavailable, {})
+        std::unique_ptr<QWidget> empty(
+            create_strategy_browser(unavailable, {})
         );
         QCOMPARE(
             empty->findChild<QTableView*>(QStringLiteral("strategy_comparison"))
@@ -269,12 +268,16 @@ void table_tests::strategy_browser_routes_do_not_change_gameplay() {
 #endif
     const auto& catalog = strategy_repository();
     QVERIFY(catalog.is_valid());
-    const auto preferences = load_trainer_preferences();
+    const auto preferences = load_table_appearance_preferences();
     const auto appearance = load_desktop_ui_preferences();
     table view;
-    view.set_slot_count(4);
-    view.start_quiz(0, true);
-    const auto session = view.capture_session_state();
+    QVERIFY(view.install_gameplay_session(
+        setup_table_fixture(static_cast<std::size_t>(4))
+    ));
+    QVERIFY(view.install_gameplay_session(owned_clock_fixture(4)));
+    QVERIFY(view.start_gameplay_runtime(19));
+    view.stop_gameplay_clock();
+    const auto session = view.capture_gameplay_checkpoint();
     const auto visit = [&](settings_template_widget* classic) {
         auto* browse = classic->findChild<QPushButton*>(
             QStringLiteral("browse_strategies")
@@ -305,7 +308,7 @@ void table_tests::strategy_browser_routes_do_not_change_gameplay() {
             dialog->resize(360, 480);
             QCoreApplication::processEvents();
             QCOMPARE(dialog->width(), 360);
-            QCOMPARE(view.capture_session_state(), session);
+            QCOMPARE(view.capture_gameplay_checkpoint(), session);
         });
         browse->click();
         QVERIFY(visited);
@@ -320,24 +323,7 @@ void table_tests::strategy_browser_routes_do_not_change_gameplay() {
     QCOMPARE(classic_list->currentItem()->text(), catalog.strategies[1].name);
     visit(&classic);
     QCOMPARE(classic_list->currentItem()->text(), catalog.strategies[1].name);
-    // Actual slot Info route, not a second selection/apply implementation.
-    auto* slot = view.findChild<table_slot*>();
-    bool info_visited = false;
-    QTimer::singleShot(0, slot, [&] {
-        auto* info = qobject_cast<QDialog*>(QApplication::activeModalWidget());
-        QVERIFY(info);
-        auto* editor = info->findChild<settings_template_widget*>();
-        QVERIFY(editor);
-        info_visited = true;
-        visit(editor);
-        info->reject();
-    });
-    QVERIFY(QMetaObject::invokeMethod(
-        slot, "on_info_button_clicked", Qt::DirectConnection
-    ));
-    QVERIFY(info_visited);
-    QCOMPARE(view.capture_session_state(), session);
-    QCOMPARE(load_trainer_preferences(), preferences);
+    QCOMPARE(load_table_appearance_preferences(), preferences);
     QCOMPARE(load_desktop_ui_preferences(), appearance);
 }
 

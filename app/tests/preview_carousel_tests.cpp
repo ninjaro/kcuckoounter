@@ -170,8 +170,10 @@ void preview_carousel_tests::geometry_requests_use_settled_dimensions() {
     if (transition == QStringLiteral("grow")
         || transition == QStringLiteral("no-size"))
         carousel.set_visible_count(4);
-    else if (transition == QStringLiteral("shrink")
-             || transition == QStringLiteral("pending"))
+    else if (
+        transition == QStringLiteral("shrink")
+        || transition == QStringLiteral("pending")
+    )
         carousel.set_visible_count(3);
     else if (transition == QStringLiteral("range"))
         carousel.set_visible_range(4, 5);
@@ -253,8 +255,7 @@ void preview_carousel_tests::provider_window_releases_departed_cards() {
     carousel.set_card_size(QSize(64, 96));
     QVector<int> requests;
     carousel.set_card_provider(
-        total,
-        [&requests](int index, const QSize& size) {
+        total, [&requests](int index, const QSize& size) {
             requests.append(index);
             QPixmap image(size);
             image.fill(QColor::fromRgb(card_color(index)));
@@ -394,8 +395,9 @@ void preview_carousel_tests::visible_cards_expose_domain_accessible_names() {
     int semantic_label_count = 0;
     for (const QLabel* label : labels) {
         if (label != nullptr
-            && label->accessibleName().startsWith(QStringLiteral("Semantic card"
-            ))) {
+            && label->accessibleName().startsWith(
+                QStringLiteral("Semantic card")
+            )) {
             ++semantic_label_count;
             QVERIFY(label->accessibleName().contains(
                 QStringLiteral("count value -1")
@@ -488,12 +490,13 @@ void preview_carousel_tests::table_and_preview_share_master_images() {
     );
     field.refresh_gameplay_session();
     field.show();
-    field.prepare_cards_for_start();
-    QTRY_VERIFY_WITH_TIMEOUT(!field.is_rasterization_busy(), 10000);
+    field.schedule_card_preload();
     const auto field_slots = field.findChildren<table_slot*>();
-    QVERIFY(
-        !field_slots.isEmpty()
-        && field_slots.front()->has_presented_card_images()
+    QVERIFY(!field_slots.isEmpty());
+    QTRY_VERIFY_WITH_TIMEOUT(
+        field_slots.front()->has_presented_card_images()
+            && !field.is_rasterization_busy(),
+        10000
     );
     const auto master = observer.image_for(card_element_ids().front());
     QVERIFY(!master.isNull());
@@ -534,9 +537,11 @@ void preview_carousel_tests::settings_preview_window_replaces_desired() {
         editor.update_preview_demands();
         QStringList expected;
         for (int rank : editor.theme_carousel->requested_card_indices())
-            expected.append(settings_template_support::preview_scope(
-                rank, editor.theme_suit
-            ));
+            expected.append(
+                settings_template_support::preview_scope(
+                    rank, editor.theme_suit
+                )
+            );
         expected.sort();
         QCOMPARE(editor.preview_requested_ids, expected);
         QVERIFY(editor.preview_requested_ids.size() <= 4);
@@ -594,8 +599,8 @@ void preview_carousel_tests::settings_preview_source_cutover_is_atomic() {
     QCOMPARE(card_sheet_source_path(), game_source);
 }
 
-void preview_carousel_tests::speculative_neighbors_do_not_hold_visible_cutover(
-) {
+void preview_carousel_tests::
+    speculative_neighbors_do_not_hold_visible_cutover() {
     auto& service = application_image_service();
     const auto restore_limits = qScopeGuard([&] { service.set_limits({}); });
     QTemporaryDir directory;
@@ -641,8 +646,9 @@ void preview_carousel_tests::speculative_neighbors_do_not_hold_visible_cutover(
     );
     const auto bytes = rasterflow::pixel_bytes(required);
     // Normal visible content fits. The two tall neighbors cannot be admitted.
-    service.set_limits({ 1, bytes * 8,
-                         std::max<std::uint64_t>(bytes * 2, 10000) });
+    service.set_limits(
+        { 1, bytes * 8, std::max<std::uint64_t>(bytes * 2, 10000) }
+    );
     editor.theme_carousel->set_prefetch_adjacent_cards(true);
     QVERIFY(select_source(editor, blue));
     QCOMPARE(editor.displayed_preview_source, red);

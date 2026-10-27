@@ -17,7 +17,9 @@ settings_shared_state::settings_shared_state(QObject* parent)
     : QObject(parent)
     , default_suit_value(load_default_suit_preference())
     , table_color_index_value(
-          theme_palette_registry::index(load_trainer_preferences().palette)
+          theme_palette_registry::index(
+              load_table_appearance_preferences().palette
+          )
       ) {
     if (const auto* widget = qobject_cast<QWidget*>(parent)) {
         const auto color

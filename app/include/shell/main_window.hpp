@@ -16,7 +16,6 @@
 #include <utility>
 
 class table;
-class KGameClock;
 class QLabel;
 class QDialog;
 class QMenu;
@@ -46,51 +45,30 @@ public:
     ~main_window() override;
 
 private slots:
-    void on_clock_ticked(qint64 elapsed_ms, qint64 delta_ms);
     void on_table_rasterization_busy_changed(bool busy);
-    void on_table_score_adjusted(int correct_delta, int total_delta);
     void on_speed_slider_value_changed(int value);
-    void on_dealing_mode_changed(int index);
-    void on_quiz_type_changed(int index);
-    void on_table_slot_count_changed(int value);
-    void open_setup_dialog();
-    void on_setup_dialog_rejected();
-    void on_continue_button_clicked();
     void on_new_game_triggered();
-    void on_new_gameplay_triggered();
     void on_gameplay_review_triggered();
     void on_gameplay_roster_changed(int count);
     void on_saved_drills_triggered();
     void on_start_pause_triggered();
     void on_finish_triggered();
-    void on_show_highscores_triggered();
     void on_progress_triggered();
     void on_settings_triggered();
     void on_settings_commit_requested();
     void on_settings_dialog_finished(int result);
-    void on_application_state_changed(Qt::ApplicationState state);
 
 private:
     friend class gameplay_host_tests;
     friend class gameplay_mobile_tests;
     bool eventFilter(QObject* watched, QEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
-    BaseSpinBox* table_slots_count;
-    BaseComboBox* quiz_type;
-    BaseCheckBox* wait_for_answers;
-    BaseCheckBox* allow_skipping;
-    BaseComboBox* dealing_mode;
-    BasePushButton* continue_button;
     BaseToolBar* primary_toolbar;
     QMenu* game_menu;
     QMenu* settings_menu;
     table* table_widget;
-    QDialog* setup_dialog;
     QDialog* settings_dialog;
     settings_template_widget* appearance_settings_widget;
-    BaseWidget* setup_widget;
-    BaseClock* clock_timer;
-    KGameClock* kde_clock;
     QLabel* clock_label;
     QLabel* status_label;
     QLabel* pickup_interval_label;
@@ -99,11 +77,9 @@ private:
     BaseAction* new_game_action;
     BaseAction* start_pause_action;
     BaseAction* finish_action;
-    BaseAction* highscores_action;
     BaseAction* progress_action;
     BaseAction* settings_action;
     BaseAction* saved_drills_action = nullptr;
-    BaseAction* new_gameplay_action = nullptr;
     BaseAction* gameplay_review_action = nullptr;
     QPointer<QDialog> gameplay_review_dialog;
     QTableWidget* gameplay_review_rows = nullptr;
@@ -114,15 +90,7 @@ private:
     QLabel* gameplay_setup_error = nullptr;
     QTimer* gameplay_geometry_timer = nullptr;
     bool gameplay_geometry_ready = false;
-    bool quiz_started;
-    bool quiz_paused;
-    bool quiz_finished;
     bool rasterization_busy;
-    int score_correct;
-    int score_total;
-    bool mobile_checkpoint_restored;
-    bool mobile_lifecycle_paused;
-    qint64 last_mobile_checkpoint_elapsed_ms;
     bool felt_chrome = false;
     QLabel* kit_wordmark = nullptr;
     // D-TOP-1 one-bar pieces: brand at the toolbar start and, where menus
@@ -130,9 +98,6 @@ private:
     QAction* kit_brand_action = nullptr;
     QList<QAction*> kit_menu_actions;
     std::optional<std::pair<QMargins, int>> classic_central_spacing;
-    std::optional<QMargins> classic_setup_margins;
-    QLabel* slot_preview = nullptr;
-    QLabel* setup_heading = nullptr;
     shared_ui::qt::status_strip* desktop_status = nullptr;
     desktop_hud_style gameplay_hud_style = desktop_hud_style::classic;
     int gameplay_default_suit = 0;
@@ -151,7 +116,6 @@ private:
     void setup_ui();
     void apply_desktop_presentation();
     void apply_kit_one_bar();
-    void refresh_slot_preview();
     void setup_game_actions();
     void setup_platform_shell();
     void finalize_platform_shell();
@@ -162,12 +126,7 @@ private:
     void update_status_text();
     void set_pickup_readout(int interval_ms) const;
     void refresh_clock_label() const;
-    void record_platform_score();
-    void show_platform_highscores();
     void update_start_pause_action(bool paused) const;
-    void reset_game_state(bool show_setup_dialog, bool mark_finished = false);
-    void show_game_over_dialog();
-    void start_quiz_from_ui();
     void open_gameplay_setup_dialog();
     void close_gameplay_setup_dialog();
     void close_gameplay_review_dialog();
@@ -187,12 +146,10 @@ private:
     void report_gameplay_storage(const QString& error);
     bool load_gameplay_drill(const gameplay_drill& drill);
     void pause_for_dialog();
-    void persist_setup_preferences() const;
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     void persist_desktop_shell_state() const;
     void restore_desktop_shell_state();
-    void persist_mobile_session_checkpoint(bool was_running) const;
-    bool restore_mobile_session_checkpoint();
-    void clear_mobile_session_checkpoint();
+#endif
     void apply_mobile_state(Qt::ApplicationState state);
     void pause_mobile_gameplay();
 };

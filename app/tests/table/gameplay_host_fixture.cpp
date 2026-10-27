@@ -19,8 +19,7 @@ void gameplay_host_tests::initTestCase() {
 void gameplay_host_tests::launch(main_window& window) {
     window.resize(1600, 1000);
     window.show();
-    auto* entry
-        = window.findChild<QAction*>(QStringLiteral("game_new_gameplay"));
+    auto* entry = window.findChild<QAction*>(QStringLiteral("game_new"));
     QVERIFY(entry);
     entry->trigger(); // intentionally precedes the queued startup callback
     auto* dialog

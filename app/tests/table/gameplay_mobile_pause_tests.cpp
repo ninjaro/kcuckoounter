@@ -6,7 +6,7 @@
 #include "settings/gameplay_recovery_fixture.hpp"
 #include "shell/gameplay_reservation.hpp"
 #include "shell/main_window.hpp"
-#include "table/gameplay_mobile_fixture.hpp"
+#include "table/table_fixture.hpp"
 #include "table/table_slot.hpp"
 
 #include <QLabel>
@@ -25,7 +25,7 @@ void gameplay_mobile_tests::background_stops_dealing_data() {
 
 void gameplay_mobile_tests::background_stops_dealing() {
     QFETCH(int, state);
-    mobile_test::preferences_guard preferences;
+    table_test::launcher_preferences_guard preferences;
     main_window window;
     start_owned(window);
     auto* view = window.table_widget;
@@ -44,7 +44,6 @@ void gameplay_mobile_tests::background_stops_dealing() {
     QVERIFY(record);
     QCOMPARE(std::get<gameplay_active_record>(*record).checkpoint, *paused);
     QVERIFY(storage.value(storage_key) != original);
-    QVERIFY(!storage.contains(mobile_test::legacy_key));
     QVERIFY(!tick(*view, 120'000)); // stale delivery cannot accrue time
     view->on_gameplay_clock_tick();
     QTest::qWait(3);
@@ -75,9 +74,10 @@ void gameplay_mobile_tests::background_freezes_quiz_data() {
     for (const bool frozen : { false, true })
         for (const auto scope :
              { gameplay::quiz_scope::single, gameplay::quiz_scope::multi })
-            QTest::newRow(qPrintable(QString("%1-%2")
-                                         .arg(frozen ? "frozen" : "unfrozen")
-                                         .arg(static_cast<int>(scope)))
+            QTest::newRow(
+                qPrintable(QString("%1-%2")
+                               .arg(frozen ? "frozen" : "unfrozen")
+                               .arg(static_cast<int>(scope)))
             ) << frozen
               << static_cast<int>(scope);
 }
@@ -85,7 +85,7 @@ void gameplay_mobile_tests::background_freezes_quiz_data() {
 void gameplay_mobile_tests::background_freezes_quiz() {
     QFETCH(bool, frozen);
     QFETCH(int, scope);
-    mobile_test::preferences_guard preferences;
+    table_test::launcher_preferences_guard preferences;
     main_window window;
     prepare_window(window);
     auto* view = window.table_widget;
@@ -136,7 +136,7 @@ void gameplay_mobile_tests::background_freezes_quiz() {
 }
 
 void gameplay_mobile_tests::background_save_can_retry() {
-    mobile_test::preferences_guard preferences;
+    table_test::launcher_preferences_guard preferences;
     main_window window;
     start_owned(window);
     QVERIFY(tick(*window.table_widget, 137));
@@ -176,7 +176,7 @@ void gameplay_mobile_tests::background_save_can_retry() {
 }
 
 void gameplay_mobile_tests::background_retries_exact_result() {
-    mobile_test::preferences_guard preferences;
+    table_test::launcher_preferences_guard preferences;
     main_window window;
     start_owned(window);
     QSettings storage("ninjaro", "kcuckoounter");

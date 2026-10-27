@@ -12,9 +12,7 @@
 #include "settings/theme_palette.hpp"
 #include "table/card_widget.hpp"
 #include "table/gameplay_setup.hpp"
-#include "table/infinity_spinbox.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include <QToolButton>
 
 #include <QLabel>
@@ -32,10 +30,7 @@ bool table_slot::bind_gameplay_deck(
     gameplay_id = id;
     gameplay_host = &host;
     setup_gameplay_input();
-    settings_bar_widget->setEnabled(false);
     quiz_bar_widget->setEnabled(false);
-    copy_settings_action->setEnabled(false);
-    copy_all_action->setEnabled(false);
     refresh_gameplay_deck();
     return true;
 }
@@ -82,7 +77,6 @@ void table_slot::setup_gameplay_input() {
         QRegularExpression(QStringLiteral("[+-]?[0-9]{1,19}")), gameplay_input
     ));
     quiz_bar_widget->set_editor(gameplay_input);
-    quiz_spin_box->setEnabled(false);
     quiz_weight_label->setText(
         shared_ui::qt::presentation_for(*this).value
                 == shared_ui::qt::material::felt

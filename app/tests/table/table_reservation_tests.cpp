@@ -50,7 +50,6 @@ void gameplay_start_tests::reservation_precedes_publication() {
         storage.value(QStringLiteral("gameplay_recovery/document")), durable
     );
     QVERIFY(!storage.contains(QStringLiteral("gameplay_progress/document")));
-    QVERIFY(!storage.contains(QStringLiteral("training_progress")));
 }
 
 void gameplay_start_tests::reservation_rejects_protected_storage_data() {

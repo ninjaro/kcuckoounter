@@ -26,7 +26,7 @@ bool main_window::complete_gameplay_from_ui() {
     QSettings storage(
         QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
     );
-    const auto cap = gameplay::desktop_slot_technical_cap;
+    const auto cap = gameplay::slot_technical_cap;
     gameplay_recovery_service recovery(storage, { cap, cap });
     QString error;
     const bool saved = binding->complete(recovery, &error);
@@ -72,7 +72,7 @@ bool main_window::save_gameplay_from_ui() {
         QSettings storage(
             QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
         );
-        const auto cap = gameplay::desktop_slot_technical_cap;
+        const auto cap = gameplay::slot_technical_cap;
         gameplay_recovery_service recovery(storage, { cap, cap });
         saved = recovery.save(*binding->sequence(), *checkpoint, &error);
     } else {

@@ -60,7 +60,8 @@ void gameplay_restore_tests::pending_retries_without_scene() {
             storage_key, *encode_gameplay_recovery(record, { 1, 64 })
         );
         if (admitted) {
-            QVERIFY(gameplay_progress_service(storage, { 1, 64 }).record(record)
+            QVERIFY(
+                gameplay_progress_service(storage, { 1, 64 }).record(record)
             );
             progress_bytes = storage.value(progress_key);
         }
@@ -78,7 +79,6 @@ void gameplay_restore_tests::pending_retries_without_scene() {
     auto* owner = view.active_gameplay_session();
     gameplay_reservation binding;
     QSignalSpy changed(&view, &table::gameplay_session_changed);
-    QSignalSpy legacy_end(&view, &table::game_over);
     QString error("old diagnostic");
     QCOMPARE(binding.recover(view, recovery, &error), outcome::completed);
     QVERIFY(error.isEmpty() && !binding.sequence());
@@ -86,7 +86,6 @@ void gameplay_restore_tests::pending_retries_without_scene() {
     QCOMPARE(view.gameplay_scene(), scene);
     QVERIFY(view.capture_gameplay_checkpoint() == checkpoint);
     QCOMPARE(changed.count(), 0);
-    QCOMPARE(legacy_end.count(), 0);
     QVERIFY(!reopened.contains(storage_key));
     const auto progress = gameplay_progress_service(reopened, { 1, 64 }).load();
     QVERIFY(

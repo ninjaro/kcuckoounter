@@ -60,7 +60,6 @@ void table_tests::frame_styles_preserve_owned_runtime() {
     QCOMPARE(owner.size(), std::size_t { 4 });
     const auto widgets = view.slot_widgets;
     auto* cache = table::shared_image_service();
-    QSignalSpy legacy_score(&view, &table::score_adjusted);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
     QSignalSpy resolved(&view, &table::gameplay_quiz_resolved);
     QVERIFY(view.start_gameplay_runtime(101));
@@ -222,7 +221,6 @@ void table_tests::frame_styles_preserve_owned_runtime() {
     QCOMPARE(owner.configuration(), configuration);
     QCOMPARE(table::shared_image_service(), cache);
     QCOMPARE(preparation.count(), 0);
-    QCOMPARE(legacy_score.count(), 0);
 
     QVERIFY(view.resume_gameplay_runtime());
     view.stop_gameplay_clock();
@@ -250,7 +248,6 @@ void table_tests::frame_styles_preserve_owned_runtime() {
     );
     QCOMPARE(owner.result(), result);
     QCOMPARE(view.slot_widgets, widgets);
-    QCOMPARE(legacy_score.count(), 0);
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

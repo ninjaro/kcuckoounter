@@ -313,8 +313,8 @@ void settings_template_widget::setup_appearance_editor() {
                                               : choices.show_speed_readout()
                 );
                 strip->control_slider()->setRange(
-                    trainer_preferences::minimum_pickup_interval_ms,
-                    trainer_preferences::maximum_pickup_interval_ms
+                    gameplay::session::minimum_pick_interval_ms,
+                    gameplay::session::maximum_pick_interval_ms
                 );
                 strip->control_slider()->setValue(300);
                 layout->addWidget(strip);

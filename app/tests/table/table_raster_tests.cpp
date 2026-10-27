@@ -63,7 +63,7 @@ void table_tests::shared_faces_track_set_and_clear() {
     view.resize(500, 400);
     view.show();
     QVERIFY(view.install_gameplay_session(owned_table_fixture(1)));
-    view.prepare_cards_for_start();
+    view.update_card_image_demands(true);
     QTRY_VERIFY(!view.is_rasterization_busy());
     QCOMPARE(view.displayed_card_images.size(), 1);
     QVERIFY(view.slot_widgets.front()->has_presented_card_images());
@@ -89,7 +89,7 @@ void table_tests::shared_cache_rasterization_populates_visible_slots() {
     QVERIFY(view.install_gameplay_session(owned_table_fixture(1)));
     view.show();
     QCoreApplication::processEvents();
-    view.prepare_cards_for_start();
+    view.update_card_image_demands(true);
     QTRY_VERIFY_WITH_TIMEOUT(!view.is_rasterization_busy(), 4000);
     QCOMPARE(table::shared_image_service(), &application_image_service());
     QCOMPARE(view.displayed_card_images.size(), 1);
@@ -106,7 +106,7 @@ void table_tests::shared_cache_generation_cutover_stays_bounded() {
     QVERIFY(view.install_gameplay_session(owned_table_fixture(1)));
     view.show();
     QCoreApplication::processEvents();
-    view.prepare_cards_for_start();
+    view.update_card_image_demands(true);
     for (int index : { 1, 2, 0 }) {
         set_card_sheet_source_path(fixture.sources[index]);
         view.apply_theme();
@@ -130,7 +130,7 @@ void table_tests::shared_generation_cutover_keeps_single_visible_generation() {
     QVERIFY(view.install_gameplay_session(owned_table_fixture(3)));
     view.show();
     QCoreApplication::processEvents();
-    view.prepare_cards_for_start();
+    view.update_card_image_demands(true);
     QTRY_VERIFY_WITH_TIMEOUT(!view.is_rasterization_busy(), 10000);
     const auto previous = view.displayed_card_images;
     QVERIFY(!previous.isEmpty());
@@ -180,7 +180,7 @@ void table_tests::theme_and_resize_transitions_are_non_blocking() {
     QVERIFY(view.install_gameplay_session(owned_table_fixture(4)));
     view.show();
     QCoreApplication::processEvents();
-    view.prepare_cards_for_start();
+    view.update_card_image_demands(true);
     set_card_sheet_source_path(fixture.sources[2]);
     QElapsedTimer timer;
     timer.start();
@@ -250,14 +250,34 @@ void table_tests::replacing_shared_demand_rejects_obsolete_images() {
     }
     QTRY_VERIFY_WITH_TIMEOUT(!view.is_rasterization_busy(), 15000);
     QCOMPARE(view.displayed_card_source, fixture.sources[2]);
-    const auto accepted = view.displayed_card_images;
+    const auto accepted_source = view.displayed_card_source;
+    const auto accepted_ids = view.displayed_card_images.keys();
+    QCOMPARE(accepted_ids, QList<QString> { card_back_element_id() });
     QCoreApplication::sendPostedEvents(nullptr, QEvent::MetaCall);
-    QCOMPARE(view.displayed_card_images, accepted);
+    QTRY_VERIFY_WITH_TIMEOUT(!view.is_rasterization_busy(), 15000);
+    QCOMPARE(view.displayed_card_source, accepted_source);
+    QCOMPARE(view.displayed_card_images.keys(), accepted_ids);
+    // Source metadata can settle geometry and replace a sufficient larger
+    // master with a smaller current one. Reject obsolete source/request
+    // results, not a legitimate change in cached master dimensions.
+    for (const auto& id : accepted_ids) {
+        QTRY_COMPARE(
+            view.displayed_card_images.value(id), view.card_images.image_for(id)
+        );
+        const auto image = view.displayed_card_images.value(id);
+        const auto needed = view.desired_card_sizes.value(id);
+        QVERIFY(
+            rasterflow::satisfies(
+                { image.width(), image.height() },
+                { needed.width(), needed.height() }
+            )
+        );
+    }
     view.clear_gameplay_session();
     QTRY_VERIFY(!view.is_rasterization_busy());
     QVERIFY(view.displayed_card_images.isEmpty());
     QVERIFY(view.install_gameplay_session(owned_table_fixture(1)));
-    view.prepare_cards_for_start();
+    view.update_card_image_demands(true);
     QTRY_VERIFY_WITH_TIMEOUT(!view.is_rasterization_busy(), 10000);
     QCOMPARE(view.displayed_card_source, fixture.sources[2]);
 }
@@ -283,8 +303,7 @@ void table_tests::first_visible_subset_is_incremental() {
     // at the first settled notification, before another result can be delivered
     // on the owner thread. No fake future, worker sleep or pixel substitute.
     connect(
-        &view.card_images, &card_image_consumer::images_changed, &view,
-        [&] {
+        &view.card_images, &card_image_consumer::images_changed, &view, [&] {
             int ready = 0;
             for (const auto& id : view.desired_card_sizes.keys())
                 ready += !view.card_images.image_for(id).isNull();
@@ -295,7 +314,7 @@ void table_tests::first_visible_subset_is_incremental() {
         }
     );
     view.show();
-    view.prepare_cards_for_start();
+    view.update_card_image_demands(true);
     QTRY_VERIFY_WITH_TIMEOUT(!view.is_rasterization_busy(), 10000);
     QVERIFY(first_published);
     QCOMPARE(view.desired_card_sizes.size(), 2);
@@ -337,7 +356,7 @@ void table_tests::visible_window_closes_with_pending_images() {
     auto* view = window->findChild<table*>();
     QVERIFY(view);
     QVERIFY(view->install_gameplay_session(owned_table_fixture(1)));
-    view->prepare_cards_for_start();
+    view->update_card_image_demands(true);
     QVERIFY(view->is_rasterization_busy());
     const QPointer<table> table_lifetime(view);
     const QPointer<main_window> window_lifetime(window.get());

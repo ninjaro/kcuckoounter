@@ -80,8 +80,6 @@ void table_tests::action_styles_preserve_owned_quiz() {
     QVERIFY(details->isEnabled());
     QVERIFY(!setup_swap->isEnabled());
     const auto setup = *owner.deck({ 0 });
-    QSignalSpy legacy_pause(&view, &table::dialog_opened);
-    QSignalSpy legacy_score(&view, &table::score_adjusted);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
     if (setup_opener->isVisible()) {
         setup_opener->click();
@@ -224,23 +222,6 @@ void table_tests::action_styles_preserve_owned_quiz() {
             QCOMPARE(move->accessibleName(), str_label("Swap"));
             QVERIFY(!info->toolTip().isEmpty() && !move->toolTip().isEmpty());
             QVERIFY(!info->icon().isNull() && !move->icon().isNull());
-            for (const auto* name :
-                 { "slot_copy_button", "slot_copy_all_button" }) {
-                auto* copy = slot->findChild<QAbstractButton*>(
-                    QString::fromLatin1(name)
-                );
-                QVERIFY(copy && copy->isHidden() && !copy->isEnabled());
-            }
-            QVERIFY(
-                QMetaObject::invokeMethod(
-                    slot, "on_copy_button_clicked", Qt::DirectConnection
-                )
-            );
-            QVERIFY(
-                QMetaObject::invokeMethod(
-                    slot, "on_copy_all_button_clicked", Qt::DirectConnection
-                )
-            );
             QCOMPARE(*owner.deck({ id }), records[id]);
             QCOMPARE(slot->geometry(), bounds[id]);
             QCOMPARE(slot->card_face_need_short_px(), demand[id]);
@@ -326,8 +307,6 @@ void table_tests::action_styles_preserve_owned_quiz() {
     QCOMPARE(
         denied_swaps.count(), 1
     ); // only the final allowed paused selection
-    QCOMPARE(legacy_pause.count(), 0);
-    QCOMPARE(legacy_score.count(), 0);
     QCOMPARE(preparation.count(), 0);
 }
 
@@ -454,7 +433,7 @@ void table_tests::action_styles_preserve_terminal_swaps() {
     );
     QVERIFY(view.install_gameplay_session(owned_clock_fixture(2)));
     QVERIFY(old_slot.isNull() && old_swap.isNull() && old_host.isNull());
-    QVERIFY(!view.swap_source_slot && !view.copy_source_slot);
+    QVERIFY(!view.swap_source_slot);
     for (auto* slot : view.slot_widgets) {
         auto* move = slot->findChild<QAbstractButton*>(
             QStringLiteral("slot_swap_button")
@@ -464,25 +443,9 @@ void table_tests::action_styles_preserve_terminal_swaps() {
         QVERIFY(!slot->swap_selected());
     }
     view.clear_gameplay_session();
-    view.set_slot_count(2);
-    auto* legacy_source = view.slot_widgets[0];
-    auto* legacy_target = view.slot_widgets[1];
-    auto* copy = legacy_source->findChild<QAbstractButton*>(
-        QStringLiteral("slot_copy_button")
-    );
-    auto* target_copy = legacy_target->findChild<QAbstractButton*>(
-        QStringLiteral("slot_copy_button")
-    );
-    QVERIFY(copy && target_copy && copy->isEnabled() && !copy->isHidden());
-    QCOMPARE(!shows_label(copy), style == slot_action_style::rail);
-    copy->click();
-    QVERIFY(copy->isChecked());
-    QCOMPARE(copy->accessibleName(), str_label("Cancel"));
-    QCOMPARE(target_copy->accessibleName(), str_label("Set"));
-    target_copy->click();
-    QVERIFY(!copy->isChecked());
-    QCOMPARE(copy->accessibleName(), str_label("Copy"));
-    QVERIFY(!view.copy_source_slot && !view.swap_source_slot);
+    QVERIFY(view.install_gameplay_session(
+        setup_table_fixture(static_cast<std::size_t>(2))
+    ));
 }
 
 void table_tests::slot_actions_present_host_commands() {
@@ -492,34 +455,26 @@ void table_tests::slot_actions_present_host_commands() {
 
     table view;
     view.resize(1200, 900);
-    view.set_slot_count(2);
+    QVERIFY(view.install_gameplay_session(
+        setup_table_fixture(static_cast<std::size_t>(2))
+    ));
     view.show();
     const auto slots_shown = view.findChildren<table_slot*>();
     QCOMPARE(slots_shown.size(), 2);
     auto* slot = slots_shown[0];
-    slot->set_paused(true);
     auto* group = slot->findChild<shared_ui::qt::action_group*>(
         QStringLiteral("slot_actions")
     );
     QVERIFY(group);
-    // The four commands are the slot's own actions, in the kit's order.
+    // The two commands retain their host ownership.
     QStringList names;
     for (QAction* action : group->actions_shown()) {
         QCOMPARE(action->parent(), slot);
         names.append(action->objectName());
     }
-    QCOMPARE(
-        names,
-        QStringList(
-            { "slot_details", "slot_swap", "slot_copy", "slot_copy_all" }
-        )
-    );
-    // Triggering an action runs the slot's handler: Copy selects a source.
-    QSignalSpy copy(slot, &table_slot::copy_clicked);
-    group->actions_shown()[2]->trigger();
-    QCOMPARE(copy.count(), 1);
-    // Presentation follows the trainer's choices; nothing else changes.
-    const auto state = slot->capture_session_state();
+    QCOMPARE(names, QStringList({ "slot_details", "slot_swap" }));
+    const auto state
+        = *view.active_gameplay_session()->deck(*slot->gameplay_deck_id());
     const auto geometry = slot->geometry();
     for (const bool felt : { false, true }) {
         auto presentation = shared_ui::qt::presentation_for(view);
@@ -543,8 +498,11 @@ void table_tests::slot_actions_present_host_commands() {
                  : shared_ui::qt::action_variant::labelled
         );
         QCOMPARE(group->orientation(), Qt::Horizontal);
-        QCOMPARE(group->actions_shown().size(), 4);
-        QCOMPARE(slot->capture_session_state(), state);
+        QCOMPARE(group->actions_shown().size(), 2);
+        QCOMPARE(
+            *view.active_gameplay_session()->deck(*slot->gameplay_deck_id()),
+            state
+        );
         QCOMPARE(slot->geometry(), geometry);
     }
 }

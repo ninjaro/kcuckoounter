@@ -1,7 +1,6 @@
 #include "table/gameplay_session_fixture.hpp"
 
 #include "packing/layout/equal_rectangles.hpp"
-#include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "table/gameplay_cadence.hpp"
 #include "table/gameplay_generation.hpp"
@@ -24,14 +23,6 @@ using namespace gameplay;
 static_assert(!std::is_convertible_v<deck_id, physical_slot_id>);
 static_assert(!std::is_convertible_v<physical_slot_id, deck_id>);
 static_assert(!std::is_convertible_v<std::size_t, deck_id>);
-static_assert(
-    session::minimum_pick_interval_ms
-    == trainer_preferences::minimum_pickup_interval_ms
-);
-static_assert(
-    session::maximum_pick_interval_ms
-    == trainer_preferences::maximum_pickup_interval_ms
-);
 
 std::vector<deck_configuration> configurations(std::size_t count) {
     std::vector<deck_configuration> decks(count);
@@ -155,11 +146,13 @@ session ready_session(failure_policy failure) {
 }
 
 packing::equal_packing_result layout(double width, double height) {
-    return packing::pack_equal_rectangles({
-        .container = { width, height },
-        .item = { 88.0, 63.0 },
-        .count = 4,
-    });
+    return packing::pack_equal_rectangles(
+        {
+            .container = { width, height },
+            .item = { 88.0, 63.0 },
+            .count = 4,
+        }
+    );
 }
 
 bool same_geometry(

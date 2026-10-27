@@ -6,6 +6,7 @@
 #include "settings/preferences_tests.hpp"
 #include "table/settings_template.hpp"
 #include "table/table.hpp"
+#include "table/table_fixture.hpp"
 #include <QAbstractButton>
 #include <QComboBox>
 #include <QDialog>
@@ -42,8 +43,8 @@ void preferences_tests::desktop_editor_save_snapshot_and_cancel() {
     });
     QVERIFY(save_desktop_ui_preferences({}));
     table view;
-    view.set_slot_count(1);
-    const auto before = view.capture_session_state();
+    QVERIFY(view.install_gameplay_session(table_test::setup_table_fixture(1)));
+    const auto before = *view.active_gameplay_session()->deck({ 0 });
     settings_template_widget host(
         settings_tab_kind::appearance, nullptr, {}, &view
     );
@@ -83,11 +84,11 @@ void preferences_tests::desktop_editor_save_snapshot_and_cancel() {
     QCOMPARE(model->saved(), submitted);
     QVERIFY(model->dirty());
     QCOMPARE(load_desktop_ui_preferences().appearance(), submitted);
-    QCOMPARE(view.capture_session_state(), before);
+    QCOMPARE(*view.active_gameplay_session()->deck({ 0 }), before);
     editor->command(editor_command::cancel)->click();
     QCOMPARE(model->state(), submitted);
     QVERIFY(!model->dirty());
-    QCOMPARE(view.capture_session_state(), before);
+    QCOMPARE(*view.active_gameplay_session()->deck({ 0 }), before);
     QVERIFY(host.findChild<QComboBox*>("orientation_combo_box"));
     QVERIFY(host.findChild<QComboBox*>("default_suit"));
     QVERIFY(!host.findChild<QComboBox*>("desktop_ui_preset"));
@@ -125,8 +126,8 @@ void preferences_tests::desktop_editor_failed_save_has_no_application() {
     const auto path = QSettings("ninjaro", "kcuckoounter").fileName();
     QVERIFY(QDir().mkpath(path)); // A directory cannot be a preferences file.
     table view;
-    view.set_slot_count(1);
-    const auto before = view.capture_session_state();
+    QVERIFY(view.install_gameplay_session(table_test::setup_table_fixture(1)));
+    const auto before = *view.active_gameplay_session()->deck({ 0 });
     const auto source = card_sheet_source_path();
     const auto color = presentation_for(view).context.felt_surface;
     settings_template_widget host(
@@ -148,7 +149,7 @@ void preferences_tests::desktop_editor_failed_save_has_no_application() {
                 .join(QStringLiteral(" "))
                 .contains(QStringLiteral("Could not save")));
     QCOMPARE(applied.count(), 0);
-    QCOMPARE(view.capture_session_state(), before);
+    QCOMPARE(*view.active_gameplay_session()->deck({ 0 }), before);
     QCOMPARE(presentation_for(view).context.felt_surface, color);
     QCOMPARE(card_sheet_source_path(), source);
     QVERIFY(QFileInfo(path).isDir());

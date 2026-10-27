@@ -22,7 +22,7 @@ host artwork; a custom SDK prefix must expose its shared data to Qt.
 ## Desktop HUD ownership
 
 Both Classic and Instrument HUDs use Appearance's `status_strip`. The host
-projects the live trainer/session into explicit captions, values, score
+projects the owned session into explicit captions, values, score
 continuations and status indicators, alongside the unchanged readable status
 text. No localized status string is split to recover fields. Errors explicitly
 replace the fields with plain text.
@@ -42,8 +42,8 @@ into a separate window. Promotion retains the same draft widget and focus.
 The host supplies card/legend clearance, alignment, labels and stable object
 names. It decides eligibility and alone applies or rejects edits.
 
-The existing Classic modal/inline path, infinity spinbox, strategy controls and
-legal field values remain host-owned. The shared panel introduces no second
+Classic and the decorated staged editors use the same owned deck draft.
+Strategy data, exact signed answer values and legal field ranges remain host-owned. The shared panel introduces no second
 transaction model and changes no commit boundary or gameplay phase rule.
 
 ## Appearance preference ownership
@@ -192,3 +192,13 @@ lifetimes remain distinct;
 visibility does not turn a valid prepared session into a different game.
 Retaining artwork is not redistribution approval: licensing/provenance uncertainty
 remains and this contract grants no additional rights.
+
+## One gameplay implementation
+
+Qt, KDE and Android use `gameplay::session` for New, Start, Pause, Resume and
+Finish. Saved drills describe fresh setup; active recovery retains exact prepared
+continuation and always restores Paused. Pending terminal results are admitted
+once to current history, never reopened as playable sessions. Old trainer runtime,
+checkpoints, scores and conversion routes are removed. Presentation variants do
+not change these rules. Android kit/emulator acceptance is recorded separately
+from desktop/native tests; this contract makes no physical-device guarantee.

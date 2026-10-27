@@ -7,12 +7,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -43,6 +41,16 @@ void table_tests::gameplay_controls_numeric_and_chips_data() {
     QTest::addColumn<bool>("thin");
     QTest::addColumn<bool>("compact");
     QTest::addColumn<bool>("horizontal");
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    // Android offers numeric Native controls, not desktop Chips/Stamp choices.
+    for (const bool compact : { false, true })
+        for (const bool horizontal : { false, true })
+            QTest::newRow(
+                qPrintable(QString("mobile-%1-%2").arg(compact).arg(horizontal))
+            ) << false
+              << false << false << compact << horizontal;
+    return;
+#endif
     // Frame and feedback choices must not choose a different answer model.
     for (const bool chips : { false, true }) {
         for (const bool stamp : { false, true }) {
@@ -129,11 +137,6 @@ void table_tests::gameplay_controls_numeric_and_chips() {
     QVERIFY(details && details->isVisible() && details->isEnabled());
     QVERIFY(view.resume_gameplay_runtime());
     view.stop_gameplay_clock();
-    QVERIFY(!slot->findChild<QSpinBox*>(QStringLiteral("quiz_spin_box"))
-                 ->isEnabled());
-    QVERIFY(
-        slot->findChild<QSpinBox*>(QStringLiteral("quiz_spin_box"))->isHidden()
-    );
     const auto expected
         = view.gameplay_owner->deck({ 0 })->quiz->expected_count;
     QVERIFY(expected < std::numeric_limits<int>::min());
@@ -165,7 +168,11 @@ void table_tests::gameplay_controls_numeric_and_chips() {
     input->setSelection(1, 3);
     const auto cursor = input->cursorPosition();
     const auto selected = input->selectedText();
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    for (const bool use_chips : { false }) {
+#else
     for (const bool use_chips : { !chips, chips }) {
+#endif
         view.set_quiz_presentation(
             use_chips ? quiz_answer_style::chips : quiz_answer_style::numeric,
             stamp ? quiz_feedback_style::stamp : quiz_feedback_style::classic
@@ -181,16 +188,17 @@ void table_tests::gameplay_controls_numeric_and_chips() {
             std::pair(view.desired_card_source, view.desired_card_size),
             image_demand
         );
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
         auto* plus
             = slot->findChild<QPushButton*>(QStringLiteral("quiz_chip_1"));
+        QVERIFY(plus);
         QCOMPARE(plus->isVisible(), use_chips);
+#endif
     }
-    QSignalSpy legacy_score(&view, &table::score_adjusted);
     QSignalSpy resolved(&view, &table::gameplay_quiz_resolved);
     QTest::keyClick(input, Qt::Key_Return);
     QCOMPARE(resolved.count(), 1);
     QVERIFY(!view.gameplay_owner->deck({ 0 })->quiz);
-    QCOMPARE(legacy_score.count(), 0);
     QCOMPARE(
         view.gameplay_owner->deck({ 0 })->statistics.errors, std::uint64_t { 0 }
     );
@@ -231,6 +239,7 @@ void table_tests::gameplay_controls_invalid_drafts_and_signed_boundaries() {
         view.gameplay_owner->deck({ 0 })->latest_input,
         std::numeric_limits<std::int64_t>::max()
     );
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     for (const int step : { 1, 2 }) {
         auto* chip = slot->findChild<QPushButton*>(
             QStringLiteral("quiz_chip_%1").arg(step)
@@ -238,16 +247,19 @@ void table_tests::gameplay_controls_invalid_drafts_and_signed_boundaries() {
         QVERIFY(!chip->isEnabled());
         chip->click();
     }
+#endif
     enter_owned_count(input, QStringLiteral("-9223372036854775808"));
     QCOMPARE(
         view.gameplay_owner->deck({ 0 })->latest_input,
         std::numeric_limits<std::int64_t>::min()
     );
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     for (const int step : { -2, -1 })
         QVERIFY(!slot->findChild<QPushButton*>(
                          QStringLiteral("quiz_chip_%1").arg(step)
         )
                      ->isEnabled());
+#endif
     const auto last_valid = view.gameplay_owner->deck({ 0 })->latest_input;
     enter_owned_count(input, QStringLiteral("-9223372036854775809"));
     QCOMPARE(input->text(), QStringLiteral("-9223372036854775809"));
@@ -279,13 +291,19 @@ void table_tests::gameplay_controls_invalid_drafts_and_signed_boundaries() {
     const auto selection = input->selectedText();
     shared_ui::qt::apply_presentation(
         view,
-        { shared_ui::qt::material::felt,
-#ifdef KC_KDE
-          shared_ui::qt::platform_profile::desktop_kde,
+        {
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+            shared_ui::qt::material::system,
+            shared_ui::qt::platform_profile::android,
 #else
-          shared_ui::qt::platform_profile::desktop_qt,
+            shared_ui::qt::material::felt,
+#ifdef KC_KDE
+            shared_ui::qt::platform_profile::desktop_kde,
+#else
+            shared_ui::qt::platform_profile::desktop_qt,
 #endif
-          {} }
+#endif
+            {} }
     );
     view.set_quiz_presentation(
         quiz_answer_style::chips, quiz_feedback_style::stamp
@@ -293,11 +311,20 @@ void table_tests::gameplay_controls_invalid_drafts_and_signed_boundaries() {
     view.apply_theme();
     QCOMPARE(input->text(), QString::number(last_valid));
     QCOMPARE(input->selectedText(), selection);
+    std::optional<gameplay::quiz_answer> submitted;
+    connect(
+        &view, &table::gameplay_quiz_resolved, &view,
+        [&](const auto& answer) { submitted = answer; }
+    );
     check->click();
     QCoreApplication::processEvents();
+    QVERIFY(submitted);
+    QCOMPARE(submitted->submitted_count, last_valid);
+#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     auto* band = slot->findChild<QLabel*>(QStringLiteral("quiz_feedback_band"));
     QVERIFY(band && !band->isHidden());
     QVERIFY(band->text().contains(QStringLiteral("−9223372036854775808")));
+#endif
     QVERIFY(!view.gameplay_owner->deck({ 0 })->quiz);
 }
 

@@ -13,9 +13,7 @@
 #include "settings/theme_palette.hpp"
 #include "table/card_widget.hpp"
 #include "table/gameplay_setup.hpp"
-#include "table/infinity_spinbox.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 
 #include <shared_ui/qt/action_group.hpp>
 
@@ -40,7 +38,6 @@ void table_slot::setup_overlay() {
     overlay_layout->setContentsMargins(2, 2, 2, 2);
     overlay_layout->setSpacing(2);
 
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     // A packed slot must never inherit the controls' minimum size. If they
     // cannot fit, expose the same widgets in a transient desktop window.
     overlay_layout->setSizeConstraint(QLayout::SetNoConstraint);
@@ -63,34 +60,6 @@ void table_slot::setup_overlay() {
             window->setObjectName(QStringLiteral("slot_controls_dialog"));
         }
     );
-#endif
-
-    auto settings_frame = new QFrame(overlay_widget);
-    settings_frame->setObjectName(QStringLiteral("settings_bar_frame"));
-    shared_ui::qt::set_presentation_role(
-        *settings_frame, QStringLiteral("panel")
-    );
-    auto settings_frame_layout = new QVBoxLayout(settings_frame);
-    settings_frame_layout->setContentsMargins(2, 2, 2, 2);
-    settings_frame_layout->setSpacing(0);
-
-    auto settings_widget_internal = new slot_settings(settings_frame, true);
-    settings_frame_layout->addWidget(settings_widget_internal);
-    settings_bar_widget = settings_frame;
-    settings_bar_widget->setSizePolicy(
-        QSizePolicy::Minimum, QSizePolicy::Fixed
-    );
-
-    infinity_check_box = settings_widget_internal->infinity_check_box();
-    deck_count_spin_box = settings_widget_internal->deck_count_spin_box();
-    if (deck_count_spin_box != nullptr) {
-        deck_count_minimum = deck_count_spin_box->minimum();
-    }
-    strategy_combo_box = settings_widget_internal->strategy_combo_box();
-    show_card_indexing = settings_widget_internal->show_card_indexing();
-    show_strategy_name = settings_widget_internal->show_strategy_name();
-    training_check_box = settings_widget_internal->training_check_box();
-    info_button = settings_widget_internal->info_button();
 
     swap_bar_widget = new QFrame(overlay_widget);
     swap_bar_widget->setObjectName(QStringLiteral("swap_bar_frame"));
@@ -130,14 +99,7 @@ void table_slot::setup_overlay() {
         "slot_swap", str_label("Swap"),
         str_label("Swap this slot with another"), true
     );
-    copy_settings_action = command(
-        "slot_copy", str_label("Copy"),
-        str_label("Copy settings from this slot"), true
-    );
-    copy_all_action = command(
-        "slot_copy_all", str_label("Copy all"),
-        str_label("Copy settings to all slots"), false
-    );
+
     details_action->setIcon(
         icon_loader::themed(
             { "document-properties", "view-list-details", "document-preview",
@@ -151,36 +113,16 @@ void table_slot::setup_overlay() {
             QStyle::SP_BrowserReload
         )
     );
-    const QIcon copy_icon = icon_loader::themed(
-        { "edit-copy", "copy", "document-duplicate" },
-        QStyle::SP_FileDialogNewFolder
-    );
-    copy_settings_action->setIcon(copy_icon);
-    copy_all_action->setIcon(copy_icon);
     slot_actions = new shared_ui::qt::action_group(swap_bar_widget);
     slot_actions->setObjectName(QStringLiteral("slot_actions"));
     slot_actions->setAccessibleName(str_label("Slot actions"));
     // A crowded slot moves its whole overlay to the compact host instead.
     slot_actions->set_overflow(shared_ui::qt::action_overflow::host);
     slot_actions->set_icons_visible(true);
-    // Native themes may supply the same glyph for Copy and Copy all. Keep the
-    // scope explicit even in the otherwise icon-only rail.
-    slot_actions->set_compact_text(copy_all_action, str_label("All"));
-    slot_actions->set_actions(
-        { details_action, swap_action, copy_settings_action, copy_all_action }
-    );
+    slot_actions->set_actions({ details_action, swap_action });
 
-    quiz_weight_label = new QLabel(str_label("Weight"), quiz_bar_widget);
+    quiz_weight_label = new QLabel(str_label("Count"), quiz_bar_widget);
     quiz_weight_label->setObjectName(QStringLiteral("quiz_weight_label"));
-    quiz_spin_box = new BaseSpinBox(quiz_bar_widget);
-    quiz_spin_box->setAccessibleName(str_label("Card-count answer"));
-    quiz_spin_box->setObjectName(QStringLiteral("quiz_spin_box"));
-    quiz_spin_box->setRange(-9999, 9999);
-    quiz_spin_box->setValue(0);
-    quiz_spin_box->setToolTip(
-        str_label("Enter the total weight for the current cards")
-    );
-    android_ui::apply_spin_box_style(quiz_spin_box);
     quiz_answer_button = android_ui::create_button(quiz_bar_widget);
     quiz_answer_button->setObjectName(QStringLiteral("quiz_answer_button"));
     shared_ui::qt::set_presentation_role(
@@ -228,7 +170,7 @@ void table_slot::setup_overlay() {
 #endif
     quiz_bar_widget->set_widgets(
         { quiz_weight_label,
-          quiz_spin_box,
+          nullptr,
           { quiz_answer_button, quiz_skip_button },
           quiz_feedback_heading,
           quiz_feedback_label,
@@ -242,15 +184,10 @@ void table_slot::setup_overlay() {
     update_quiz_controls_visibility();
 
     overlay_widget->show();
-    settings_bar_widget->show();
     swap_bar_widget->show();
     quiz_bar_widget->hide();
     overlay_widget->raise();
 
-    QObject::connect(
-        infinity_check_box, &BaseCheckBox::toggled, this,
-        &table_slot::on_infinity_toggled
-    );
     QObject::connect(
         swap_action, &QAction::triggered, this,
         &table_slot::on_swap_button_clicked
@@ -259,20 +196,7 @@ void table_slot::setup_overlay() {
         details_action, &QAction::triggered, this,
         &table_slot::on_settings_button_clicked
     );
-    if (info_button != nullptr) {
-        QObject::connect(
-            info_button, &BasePushButton::clicked, this,
-            &table_slot::on_info_button_clicked
-        );
-    }
-    QObject::connect(
-        copy_settings_action, &QAction::triggered, this,
-        &table_slot::on_copy_button_clicked
-    );
-    QObject::connect(
-        copy_all_action, &QAction::triggered, this,
-        &table_slot::on_copy_all_button_clicked
-    );
+
     QObject::connect(
         quiz_answer_button, &BasePushButton::clicked, this,
         &table_slot::on_quiz_answer_button_clicked
@@ -285,24 +209,7 @@ void table_slot::setup_overlay() {
         quiz_continue_button, &BasePushButton::clicked, this,
         &table_slot::on_quiz_continue_button_clicked
     );
-    QObject::connect(
-        show_card_indexing, &BaseCheckBox::toggled, this,
-        &table_slot::on_show_card_indexing_toggled
-    );
-    QObject::connect(
-        show_strategy_name, &BaseCheckBox::toggled, this,
-        &table_slot::on_show_strategy_name_toggled
-    );
-    QObject::connect(
-        training_check_box, &BaseCheckBox::toggled, this,
-        &table_slot::on_training_check_box_toggled
-    );
-    QObject::connect(
-        strategy_combo_box, &BaseComboBox::currentTextChanged, this,
-        &table_slot::on_strategy_name_changed
-    );
 
-    sync_card_display_settings();
     update_action_presentation();
     update_settings_button_state();
 }
@@ -311,7 +218,9 @@ void table_slot::update_overlay_palette() {
     const auto context = shared_ui::qt::presentation_for(*this).context;
     const QColor base_color = context.felt_surface.isValid()
         ? context.felt_surface
-        : theme_palette_registry::option(load_trainer_preferences().palette)
+        : theme_palette_registry::option(
+              load_table_appearance_preferences().palette
+          )
               .base_color();
     const theme_palette_option& palette_option = theme_palette_registry::option(
         theme_palette_registry::id_from_color(base_color)
@@ -324,9 +233,6 @@ void table_slot::update_overlay_palette() {
         )
               .accent;
     const QColor input_color = palette_option.input_color();
-    apply_palette_to_widget(
-        settings_bar_widget, panel_color, accent_color, input_color
-    );
     apply_palette_to_widget(
         swap_bar_widget, panel_color, accent_color, input_color
     );
@@ -376,8 +282,8 @@ void table_slot::apply_palette_to_widget(
 }
 
 void table_slot::update_overlay_layout() {
-    if (overlay_layout == nullptr || settings_bar_widget == nullptr
-        || swap_bar_widget == nullptr || quiz_bar_widget == nullptr) {
+    if (overlay_layout == nullptr || swap_bar_widget == nullptr
+        || quiz_bar_widget == nullptr) {
         return;
     }
 
@@ -407,7 +313,6 @@ void table_slot::update_overlay_layout() {
             overlay_layout->addWidget(swap_bar_widget, 0, Qt::AlignCenter);
         overlay_layout->addStretch(1);
     } else {
-        overlay_layout->addWidget(settings_bar_widget, 0, Qt::AlignCenter);
         overlay_layout->addStretch();
         overlay_layout->addWidget(swap_bar_widget, 0, Qt::AlignCenter);
         overlay_layout->addWidget(quiz_bar_widget, 0, Qt::AlignCenter);
@@ -429,8 +334,8 @@ bool table_slot::eventFilter(QObject* watched, QEvent* event) {
         && event->type() == QEvent::LayoutRequest) {
         place_settings_editor();
     }
-    if (event->type() == QEvent::KeyPress) {
-        auto* key = static_cast<QKeyEvent*>(event);
+    if (auto* key = dynamic_cast<QKeyEvent*>(event);
+        key && event->type() == QEvent::KeyPress) {
         if (gameplay_prompt
             && (watched == gameplay_input || watched == quiz_answer_button
                 || watched == quiz_skip_button
@@ -452,14 +357,6 @@ bool table_slot::eventFilter(QObject* watched, QEvent* event) {
                 if (!key->isAutoRepeat())
                     on_quiz_answer_button_clicked();
                 return true;
-            }
-            if (quiz_spin_box != nullptr
-                && (watched == quiz_spin_box
-                    || watched == quiz_spin_box->findChild<QLineEdit*>())) {
-                if (!key->isAutoRepeat()) {
-                    on_quiz_answer_button_clicked();
-                }
-                return true; // Do not also activate a dialog default button.
             }
         }
     }

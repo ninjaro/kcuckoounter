@@ -1,7 +1,5 @@
 #include "settings/preferences.hpp"
 
-#include "settings/strategy_data.hpp"
-
 #include <QMetaType>
 #include <QSettings>
 #include <QVariant>
@@ -14,35 +12,6 @@ namespace {
 const QString preferences_group = QStringLiteral("trainer_preferences");
 const QString desktop_shell_group = QStringLiteral("desktop_shell");
 constexpr qsizetype maximum_shell_state_bytes = 1024 * 1024;
-
-template <typename T>
-T bounded_integer(const QVariant& value, T minimum, T maximum, T fallback) {
-    bool ok = false;
-    const qlonglong converted = value.toLongLong(&ok);
-    if (!ok || converted < static_cast<qlonglong>(minimum)
-        || converted > static_cast<qlonglong>(maximum)) {
-        return fallback;
-    }
-    return static_cast<T>(converted);
-}
-
-bool validated_bool(const QVariant& value, bool fallback) {
-    if (!value.isValid()) {
-        return fallback;
-    }
-    if (value.metaType().id() == QMetaType::Bool) {
-        return value.toBool();
-    }
-
-    const QString text = value.toString().trimmed().toLower();
-    if (text == QStringLiteral("true") || text == QStringLiteral("1")) {
-        return true;
-    }
-    if (text == QStringLiteral("false") || text == QStringLiteral("0")) {
-        return false;
-    }
-    return fallback;
-}
 
 QString palette_key(theme_palette_id palette) {
     switch (palette) {
@@ -107,54 +76,6 @@ card_orientation_from_key(const QString& value) {
     return std::nullopt;
 }
 
-void canonicalize_strategy(
-    trainer_preferences* preferences, const strategy_catalog& catalog
-) {
-    if (preferences == nullptr) {
-        return;
-    }
-    if (!catalog.is_valid() || catalog.strategies.isEmpty()) {
-        preferences->preferred_strategy_slug.clear();
-        return;
-    }
-
-    for (const strategy_data& strategy : catalog.strategies) {
-        if (!preferences->preferred_strategy_slug.isEmpty()
-            && strategy.slug == preferences->preferred_strategy_slug) {
-            preferences->preferred_strategy_slug = strategy.slug;
-            return;
-        }
-    }
-    preferences->preferred_strategy_slug = catalog.strategies.first().slug;
-}
-
-trainer_preferences validated_preferences(
-    trainer_preferences preferences, const strategy_catalog& catalog
-) {
-    const trainer_preferences fallback = preferences_service::defaults(catalog);
-    if (preferences.slot_count < trainer_preferences::minimum_slot_count
-        || preferences.slot_count > trainer_preferences::maximum_slot_count) {
-        preferences.slot_count = fallback.slot_count;
-    }
-    if (preferences.quiz_type < 0 || preferences.quiz_type > 1) {
-        preferences.quiz_type = fallback.quiz_type;
-    }
-    if (preferences.dealing_mode < 0 || preferences.dealing_mode > 2) {
-        preferences.dealing_mode = fallback.dealing_mode;
-    }
-    if (preferences.pickup_interval_ms
-            < trainer_preferences::minimum_pickup_interval_ms
-        || preferences.pickup_interval_ms
-            > trainer_preferences::maximum_pickup_interval_ms) {
-        preferences.pickup_interval_ms = fallback.pickup_interval_ms;
-    }
-    if (!valid_card_orientation(preferences.card_orientation)) {
-        preferences.card_orientation = fallback.card_orientation;
-    }
-    canonicalize_strategy(&preferences, catalog);
-    return preferences;
-}
-
 QByteArray bounded_byte_array(const QVariant& value) {
     if (value.metaType().id() != QMetaType::QByteArray) {
         return {};
@@ -166,51 +87,19 @@ QByteArray bounded_byte_array(const QVariant& value) {
     return bytes;
 }
 
-trainer_preferences
-read_current_preferences(QSettings& settings, const strategy_catalog& catalog) {
-    const trainer_preferences fallback = preferences_service::defaults(catalog);
-    trainer_preferences result = fallback;
-    result.slot_count = bounded_integer<int>(
-        settings.value(QStringLiteral("setup/slot_count")),
-        trainer_preferences::minimum_slot_count,
-        trainer_preferences::maximum_slot_count, fallback.slot_count
-    );
-    result.quiz_type = bounded_integer<int>(
-        settings.value(QStringLiteral("setup/quiz_type")), 0, 1,
-        fallback.quiz_type
-    );
-    result.wait_for_answers = validated_bool(
-        settings.value(QStringLiteral("setup/wait_for_answers")),
-        fallback.wait_for_answers
-    );
-    result.allow_skipping = validated_bool(
-        settings.value(QStringLiteral("setup/allow_skipping")),
-        fallback.allow_skipping
-    );
-    result.dealing_mode = bounded_integer<int>(
-        settings.value(QStringLiteral("setup/dealing_mode")), 0, 2,
-        fallback.dealing_mode
-    );
-    result.pickup_interval_ms = bounded_integer<int>(
-        settings.value(QStringLiteral("setup/pickup_interval_ms")),
-        trainer_preferences::minimum_pickup_interval_ms,
-        trainer_preferences::maximum_pickup_interval_ms,
-        fallback.pickup_interval_ms
-    );
+table_appearance_preferences read_current_preferences(QSettings& settings) {
+    table_appearance_preferences result;
     result.palette
         = palette_from_key(
               settings.value(QStringLiteral("appearance/palette")).toString()
         )
-              .value_or(fallback.palette);
+              .value_or(result.palette);
     result.card_orientation
         = card_orientation_from_key(
               settings.value(QStringLiteral("appearance/card_orientation"))
                   .toString()
         )
-              .value_or(fallback.card_orientation);
-    result.preferred_strategy_slug
-        = settings.value(QStringLiteral("strategy/slug")).toString().trimmed();
-    canonicalize_strategy(&result, catalog);
+              .value_or(result.card_orientation);
     return result;
 }
 
@@ -219,64 +108,25 @@ read_current_preferences(QSettings& settings, const strategy_catalog& catalog) {
 preferences_service::preferences_service(QSettings& settings_value)
     : settings(settings_value) { }
 
-trainer_preferences
-preferences_service::defaults(const strategy_catalog& catalog) {
-    trainer_preferences result;
-    canonicalize_strategy(&result, catalog);
-    return result;
-}
-
-trainer_preferences preferences_service::load(const strategy_catalog& catalog) {
+table_appearance_preferences preferences_service::load() const {
     settings.beginGroup(preferences_group);
-    const trainer_preferences result
-        = read_current_preferences(settings, catalog);
+    const table_appearance_preferences result
+        = read_current_preferences(settings);
     settings.endGroup();
     return result;
-}
-
-void preferences_service::save(
-    const trainer_preferences& preferences, const strategy_catalog& catalog
-) {
-    const trainer_preferences value
-        = validated_preferences(preferences, catalog);
-
-    settings.beginGroup(preferences_group);
-    settings.remove(QString());
-    settings.setValue(QStringLiteral("setup/slot_count"), value.slot_count);
-    settings.setValue(QStringLiteral("setup/quiz_type"), value.quiz_type);
-    settings.setValue(
-        QStringLiteral("setup/wait_for_answers"), value.wait_for_answers
-    );
-    settings.setValue(
-        QStringLiteral("setup/allow_skipping"), value.allow_skipping
-    );
-    settings.setValue(QStringLiteral("setup/dealing_mode"), value.dealing_mode);
-    settings.setValue(
-        QStringLiteral("setup/pickup_interval_ms"), value.pickup_interval_ms
-    );
-    settings.setValue(
-        QStringLiteral("appearance/palette"), palette_key(value.palette)
-    );
-    settings.setValue(
-        QStringLiteral("appearance/card_orientation"),
-        card_orientation_key(value.card_orientation)
-    );
-    settings.setValue(
-        QStringLiteral("strategy/slug"), value.preferred_strategy_slug
-    );
-    settings.endGroup();
-    settings.sync();
 }
 
 void preferences_service::save_appearance(
-    const trainer_preferences& before, const trainer_preferences& after
+    const table_appearance_preferences& before,
+    const table_appearance_preferences& after
 ) {
     settings.beginGroup(preferences_group);
     if (before.palette != after.palette)
         settings.setValue(
             QStringLiteral("appearance/palette"), palette_key(after.palette)
         );
-    if (before.card_orientation != after.card_orientation)
+    if (before.card_orientation != after.card_orientation
+        && valid_card_orientation(after.card_orientation))
         settings.setValue(
             QStringLiteral("appearance/card_orientation"),
             card_orientation_key(after.card_orientation)
@@ -285,8 +135,9 @@ void preferences_service::save_appearance(
     settings.sync();
 }
 
-void save_trainer_appearance_preferences(
-    const trainer_preferences& before, const trainer_preferences& after
+void save_table_appearance_preferences(
+    const table_appearance_preferences& before,
+    const table_appearance_preferences& after
 ) {
     QSettings settings(
         QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
@@ -322,20 +173,12 @@ void desktop_shell_state_service::save(const desktop_shell_state& state) {
     settings.sync();
 }
 
-trainer_preferences load_trainer_preferences() {
+table_appearance_preferences load_table_appearance_preferences() {
     QSettings settings(
         QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
     );
     preferences_service service(settings);
-    return service.load(strategy_repository());
-}
-
-void save_trainer_preferences(const trainer_preferences& preferences) {
-    QSettings settings(
-        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
-    );
-    preferences_service service(settings);
-    service.save(preferences, strategy_repository());
+    return service.load();
 }
 
 desktop_shell_state load_desktop_shell_state() {

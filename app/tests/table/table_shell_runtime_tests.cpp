@@ -6,7 +6,6 @@
 #include "table/table_tests.hpp"
 
 #include "arch/str_label.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/settings_template.hpp"
@@ -42,10 +41,9 @@ struct shell_storage_guard {
 
     shell_storage_guard() {
         save_desktop_shell_state({});
-        for (const auto& key :
-             { QStringLiteral("trainer_session/payload"),
-               QStringLiteral("gameplay_drills/document"),
-               QStringLiteral("training_progress/recent_results") })
+        for (const auto& key : { QStringLiteral("unrelated/session"),
+                                 QStringLiteral("gameplay_drills/document"),
+                                 QStringLiteral("unrelated/history") })
             documents.insert(key, settings.value(key));
     }
 
@@ -123,15 +121,18 @@ void table_tests::shell_menus_preserve_owned_routes() {
     QVERIFY(!window.windowFlags().testFlag(Qt::FramelessWindowHint));
     set_gameplay_motion_style(*view, 0);
     const auto actions = toolbar->actions();
+#ifdef KC_KDE
     QCOMPARE(actions.size(), qsizetype { 4 });
+#else
+    QCOMPARE(actions.size(), qsizetype { 5 });
+#endif
     auto* new_game = actions[0];
     auto* start = actions[1];
     auto* finish = actions[2];
     auto* settings = actions[3];
     auto* game_menu = action_menu(window, start);
     auto* settings_menu = action_menu(window, settings);
-    auto* entry
-        = window.findChild<QAction*>(QStringLiteral("game_new_gameplay"));
+    auto* entry = window.findChild<QAction*>(QStringLiteral("game_new"));
     auto* review
         = window.findChild<QAction*>(QStringLiteral("game_review_corrections"));
     auto* drills
@@ -187,8 +188,7 @@ void table_tests::shell_menus_preserve_owned_routes() {
     const auto statistics = owner.statistics();
     const std::array records { *owner.deck({ 0 }), *owner.deck({ 1 }),
                                *owner.deck({ 2 }), *owner.deck({ 3 }) };
-    const auto trainer = load_trainer_preferences();
-    const auto progress = load_training_progress();
+    const auto trainer = load_table_appearance_preferences();
     QSignalSpy started(start, &QAction::triggered);
     QSignalSpy reviewed(review, &QAction::triggered);
     QSignalSpy menu_triggered(game_menu, &QMenu::triggered);
@@ -233,7 +233,7 @@ void table_tests::shell_menus_preserve_owned_routes() {
     QCOMPARE(input->text(), QStringLiteral("+17"));
     QCOMPARE(input->cursorPosition(), cursor);
     QCOMPARE(input->selectedText(), selection);
-    // The shared picker is available without enabling the legacy score route.
+    // The shared picker uses current saved gameplay configurations.
     QTimer::singleShot(0, &window, [&] {
         auto* picker
             = window.findChild<QDialog*>(QStringLiteral("saved_drills_dialog"));
@@ -241,9 +241,9 @@ void table_tests::shell_menus_preserve_owned_routes() {
         picker->reject();
     });
     QVERIFY(QMetaObject::invokeMethod(&window, "on_saved_drills_triggered"));
-    QVERIFY(QMetaObject::invokeMethod(&window, "on_show_highscores_triggered"));
     QVERIFY(!window.findChild<QDialog*>(QStringLiteral("saved_drills_dialog")));
-    use_menu(window, game_menu, new_game, QMessageBox::No);
+    QVERIFY(!new_game->isEnabled());
+    new_game->trigger();
     QCOMPARE(view->active_gameplay_session(), &owner); // Finish first
     editor->window()->hide();
     window.activateWindow();
@@ -262,15 +262,18 @@ void table_tests::shell_menus_preserve_owned_routes() {
     QVERIFY(!start->isEnabled() && !finish->isEnabled());
     QVERIFY(entry->isEnabled() && drills->isEnabled());
     QCOMPARE(owner.timing(), timing);
-    QCOMPARE(load_trainer_preferences(), trainer);
-    QCOMPARE(load_training_progress(), progress);
+    QCOMPARE(load_table_appearance_preferences(), trainer);
     QCOMPARE(*owner.result(), result);
     use_menu(window, game_menu, new_game);
-    QVERIFY(!view->active_gameplay_session());
+    QVERIFY(view->active_gameplay_session());
+    QCOMPARE(
+        view->active_gameplay_session()->phase(), gameplay::session_phase::setup
+    );
+    QVERIFY(!view->active_gameplay_session()->result());
     QVERIFY(input.isNull());
     QVERIFY(drills->isEnabled());
 #ifdef KC_KDE
-    QVERIFY(collection->action(QStringLiteral("game_highscores"))->isEnabled());
+    QVERIFY(!collection->action(QStringLiteral("game_highscores")));
 #endif
     QVERIFY(toolbar->isHidden());
     QCOMPARE(toolbar->actions(), actions);
@@ -294,19 +297,16 @@ void table_tests::shell_state_keeps_gameplay_ephemeral() {
     QFETCH(int, phase);
     launcher_preferences_guard preferences;
     shell_storage_guard storage;
-    auto trainer = load_trainer_preferences();
-    trainer.slot_count = 2; // distinguish persisted legacy setup from the owner
-    save_trainer_preferences(trainer);
     auto ui = load_desktop_ui_preferences();
     ui.toolbar_override = desktop_toolbar_style::compact;
     ui.hud_override = desktop_hud_style::instruments;
     QVERIFY(save_desktop_ui_preferences(ui));
-    // Unknown/corrupt legacy documents must remain byte-for-byte untouched by
+    // Unrelated documents must remain byte-for-byte untouched by
     // owned play and shell shutdown, rather than getting silently migrated.
     for (auto it = storage.documents.cbegin(); it != storage.documents.cend();
          ++it)
         storage.settings.setValue(
-            it.key(), QByteArray("legacy document sentinel")
+            it.key(), QByteArray("unrelated document sentinel")
         );
     const auto documents = non_shell_settings(storage.settings);
     QPointer<table> old_view;
@@ -324,11 +324,10 @@ void table_tests::shell_state_keeps_gameplay_ephemeral() {
         old_view = window.findChild<table*>();
         QVERIFY(old_view);
         set_gameplay_motion_style(*old_view, 0);
-        window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))
-            ->trigger();
-        auto* dialog
-            = window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog")
-            );
+        window.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
+        auto* dialog = window.findChild<QDialog*>(
+            QStringLiteral("gameplay_setup_dialog")
+        );
         QVERIFY(dialog);
         dialog->hide();
         QVERIFY(old_view->install_gameplay_session(owned_clock_fixture(
@@ -375,24 +374,28 @@ void table_tests::shell_state_keeps_gameplay_ephemeral() {
     auto* view = restored.findChild<table*>();
     auto* toolbar
         = restored.findChild<BaseToolBar*>(QStringLiteral("main_toolbar"));
-    auto* legacy_clock
-        = restored.findChild<BaseClock*>(QString(), Qt::FindDirectChildrenOnly);
-    QVERIFY(view && toolbar && legacy_clock);
-    QVERIFY(
-        !view->active_gameplay_session() && !view->gameplay_timer.isActive()
-    );
-    QVERIFY(!legacy_clock->is_active());
-    QCOMPARE(view->slot_widgets.size(), std::size_t { 2 });
-    QVERIFY(!view->capture_session_state().quiz_running);
+    QVERIFY(view && toolbar && view->active_gameplay_session());
+    const auto& fresh = *view->active_gameplay_session();
+    QCOMPARE(fresh.phase(), gameplay::session_phase::setup);
+    QCOMPARE(fresh.statistics(), gameplay::session_statistics {});
+    QVERIFY(!view->has_gameplay_runtime() && !view->gameplay_timer.isActive());
+    QVERIFY(!fresh.result());
+    for (std::size_t index = 0; index < fresh.size(); ++index)
+        QVERIFY(fresh.deck({ index })->stream.cards.empty());
     QVERIFY(toolbar->isHidden());
     QCOMPARE(restored.toolBarArea(toolbar), Qt::BottomToolBarArea);
+#ifdef KC_KDE
     QCOMPARE(toolbar->actions().size(), qsizetype { 4 });
+#else
+    QCOMPARE(toolbar->actions().size(), qsizetype { 5 });
+#endif
     QVERIFY(restored.menuBar()->isVisible());
     QVERIFY(restored.findChild<QAction*>(QStringLiteral("game_saved_drills"))
                 ->isEnabled());
-    QVERIFY(!restored.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"
-    )));
-    QCOMPARE(load_trainer_preferences(), trainer);
+    QVERIFY(
+        restored.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
+    );
+
     QCOMPARE(load_desktop_ui_preferences(), ui);
     QCOMPARE(non_shell_settings(storage.settings), documents);
 }

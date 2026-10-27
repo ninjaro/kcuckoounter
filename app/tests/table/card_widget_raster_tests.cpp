@@ -5,6 +5,7 @@
 #include "arch/asset_locator.hpp"
 #include "card_helpers/card_sheet.hpp"
 #include "table/card_widget.hpp"
+#include "table/card_widget_fixture.hpp"
 #include "table/card_widget_tests.hpp"
 #include <QEvent>
 #include <QFile>
@@ -32,11 +33,15 @@ QHash<QString, QImage> shared_images() {
     return { { card_element_ids().front(), image } };
 }
 
-void prime_paused_card(card_widget& widget) {
-    widget.start_quiz(0, 1, false);
+std::unique_ptr<gameplay::session> prime_paused_card(card_widget& widget) {
+    auto owner
+        = std::make_unique<gameplay::session>(card_test::renderer_session());
+    if (!widget.bind_gameplay_deck(*owner, { 0 }))
+        qFatal("Could not bind raster fixture");
     widget.show();
     // Deliver the causal state/geometry request before explicit resize probes.
     QCoreApplication::processEvents();
+    return owner;
 }
 
 int back_index() { return static_cast<int>(card_element_ids().size()); }
@@ -58,10 +63,12 @@ void card_widget_tests::visible_faces_preserve_variants_data() {
 }
 
 void card_widget_tests::visible_faces_preserve_variants() {
+    std::unique_ptr<gameplay::session> widget_owner;
+
     QFETCH(QString, source);
     card_widget widget;
     widget.card_sheet_source = source;
-    prime_paused_card(widget);
+    widget_owner = prime_paused_card(widget);
     const QSize logical(32, 48);
     widget.update_card_faces(logical);
     QTRY_VERIFY_WITH_TIMEOUT(!widget.rasterizing, 15000);
@@ -94,19 +101,22 @@ void card_widget_tests::local_resize_tracks_latest_demand_data() {
     for (bool ready : { false, true })
         for (const auto& size :
              { QSize(20, 30), QSize(40, 60), QSize(80, 100) })
-            QTest::newRow(qPrintable(QStringLiteral("%1-%2x%3")
-                                         .arg(ready)
-                                         .arg(size.width())
-                                         .arg(size.height()))
+            QTest::newRow(
+                qPrintable(QStringLiteral("%1-%2x%3")
+                               .arg(ready)
+                               .arg(size.width())
+                               .arg(size.height()))
             ) << ready
               << size;
 }
 
 void card_widget_tests::local_resize_tracks_latest_demand() {
+    std::unique_ptr<gameplay::session> widget_owner;
+
     QFETCH(bool, ready);
     QFETCH(QSize, final_size);
     card_widget widget;
-    prime_paused_card(widget);
+    widget_owner = prime_paused_card(widget);
     widget.update_card_faces(QSize(40, 60));
     if (ready)
         QTRY_VERIFY(!widget.rasterizing);
@@ -155,6 +165,8 @@ void card_widget_tests::shared_faces_outlive_source_file() {
 }
 
 void card_widget_tests::standalone_source_validation_rejects_invalid_svg() {
+    std::unique_ptr<gameplay::session> widget_owner;
+
     QTemporaryDir directory;
     QFile source(directory.filePath("invalid.svg"));
     QVERIFY(source.open(QIODevice::WriteOnly));
@@ -162,7 +174,7 @@ void card_widget_tests::standalone_source_validation_rejects_invalid_svg() {
     source.close();
     card_widget widget;
     widget.card_sheet_source = source.fileName();
-    prime_paused_card(widget);
+    widget_owner = prime_paused_card(widget);
     widget.update_card_faces(QSize(20, 30));
     QTRY_VERIFY(!widget.rasterizing);
     QVERIFY(widget.displayed_card_images.isEmpty());
@@ -184,20 +196,21 @@ void card_widget_tests::shared_faces_reject_local_notifications_data() {
 }
 
 void card_widget_tests::shared_faces_reject_local_notifications() {
+    std::unique_ptr<gameplay::session> departing_owner;
+    std::unique_ptr<gameplay::session> survivor_owner;
+
     QFETCH(bool, ready);
     QFETCH(bool, shared_ready);
     QTemporaryDir directory;
     const auto path = directory.filePath("ownership.svg");
-    QVERIFY(write_deck(
-        path,
-        ready ? (shared_ready ? "#257629" : "#276329")
-              : (shared_ready ? "#127629" : "#126329")
-    ));
+    const auto color = ready ? (shared_ready ? "#257629" : "#276329")
+                             : (shared_ready ? "#127629" : "#126329");
+    QVERIFY(write_deck(path, color));
     card_widget departing, survivor;
     departing.card_sheet_source = path;
     survivor.card_sheet_source = path;
-    prime_paused_card(departing);
-    prime_paused_card(survivor);
+    departing_owner = prime_paused_card(departing);
+    survivor_owner = prime_paused_card(survivor);
     departing.update_card_faces(QSize(30, 40));
     survivor.update_card_faces(QSize(30, 40));
     if (ready)
@@ -221,10 +234,21 @@ void card_widget_tests::shared_faces_reject_local_notifications() {
     departing.set_presented_image_mode(false);
     departing.update_card_faces(QSize(30, 40));
     QTRY_VERIFY(!departing.rasterizing);
-    QCOMPARE(
-        departing.displayed_card_images.cbegin().value().cacheKey(),
-        survivor.displayed_card_images.cbegin().value().cacheKey()
-    );
+    // Geometry updates can retain different sufficient masters. Both owners
+    // must receive current source pixels, never the departing shared red image.
+    for (const auto* widget : { &departing, &survivor }) {
+        QVERIFY(!widget->displayed_card_images.isEmpty());
+        const auto image = widget->displayed_card_images.cbegin().value();
+        QVERIFY(!image.isNull());
+        QCOMPARE(
+            image.pixelColor(image.width() / 2, image.height() / 2),
+            QColor(color)
+        );
+        const auto needed = physical_size(*widget, QSize(30, 40));
+        QVERIFY(
+            image.width() >= needed.width() && image.height() >= needed.height()
+        );
+    }
 }
 
 void card_widget_tests::local_withdrawal_preserves_other_subscribers_data() {
@@ -234,6 +258,9 @@ void card_widget_tests::local_withdrawal_preserves_other_subscribers_data() {
 }
 
 void card_widget_tests::local_withdrawal_preserves_other_subscribers() {
+    std::unique_ptr<gameplay::session> departing_owner;
+    std::unique_ptr<gameplay::session> survivor_owner;
+
     QFETCH(bool, ready);
     QTemporaryDir directory;
     const auto path = directory.filePath("withdrawal.svg");
@@ -242,8 +269,8 @@ void card_widget_tests::local_withdrawal_preserves_other_subscribers() {
     card_widget survivor;
     departing->card_sheet_source = path;
     survivor.card_sheet_source = path;
-    prime_paused_card(*departing);
-    prime_paused_card(survivor);
+    departing_owner = prime_paused_card(*departing);
+    survivor_owner = prime_paused_card(survivor);
     departing->update_card_faces(QSize(40, 60));
     survivor.update_card_faces(QSize(40, 60));
     if (ready)
@@ -294,6 +321,8 @@ void card_widget_tests::selected_presentation_reuses_and_invalidates() {
 }
 
 void card_widget_tests::theme_source_change_invalidates_stale_raster_result() {
+    std::unique_ptr<gameplay::session> widget_owner;
+
     QTemporaryDir directory;
     const auto red = directory.filePath("red.svg");
     const auto blue = directory.filePath("blue.svg");
@@ -304,7 +333,7 @@ void card_widget_tests::theme_source_change_invalidates_stale_raster_result() {
         = qScopeGuard([&original] { set_card_sheet_source_path(original); });
     set_card_sheet_source_path(red);
     card_widget widget;
-    prime_paused_card(widget);
+    widget_owner = prime_paused_card(widget);
     widget.update_card_faces(QSize(20, 30));
     set_card_sheet_source_path(blue);
     widget.sync_card_sheet_source();
@@ -319,6 +348,8 @@ void card_widget_tests::theme_source_change_invalidates_stale_raster_result() {
 }
 
 void card_widget_tests::visible_face_does_not_wait_for_unrelated_elements() {
+    std::unique_ptr<gameplay::session> widget_owner;
+
     QTemporaryDir directory;
     const auto path = directory.filePath("lazy.svg");
     QVERIFY(write_deck(path, "#943873"));
@@ -328,7 +359,7 @@ void card_widget_tests::visible_face_does_not_wait_for_unrelated_elements() {
     widget.update_card_faces(QSize(30, 40));
     QVERIFY(!widget.card_images);
     QVERIFY(widget.displayed_card_images.isEmpty());
-    prime_paused_card(widget);
+    widget_owner = prime_paused_card(widget);
     widget.update_card_faces(QSize(30, 40));
     QTRY_VERIFY(!widget.rasterizing);
     QCOMPARE(widget.displayed_card_images.size(), 1);
@@ -341,8 +372,9 @@ void card_widget_tests::visible_face_does_not_wait_for_unrelated_elements() {
     widget.set_hide_cards(false);
     QTRY_VERIFY(!widget.displayed_card_images.isEmpty());
     QCOMPARE(widget.displayed_card_images.size(), 1);
-    widget.set_running(true);
-    widget.advance_card();
+    QVERIFY(widget_owner->start());
+    (void)widget_owner->deal_step();
+    widget.refresh_gameplay_deck();
     const auto face_id
         = card_element_id_from_index(widget.display_card_index());
     QTRY_VERIFY(!widget.card_images->image_for(face_id).isNull());
@@ -377,12 +409,15 @@ void card_widget_tests::visible_face_does_not_wait_for_unrelated_elements() {
 }
 
 void card_widget_tests::completion_observer_can_destroy_widget() {
+    std::unique_ptr<gameplay::session> widget_owner;
+
     QTemporaryDir directory;
     const auto path = directory.filePath("destroy.svg");
     QVERIFY(write_deck(path, "#182b37"));
     QPointer<card_widget> widget = new card_widget;
+    const auto cleanup = qScopeGuard([&widget] { delete widget.data(); });
     widget->card_sheet_source = path;
-    widget->start_quiz(0, 1, false);
+    widget_owner = prime_paused_card(*widget);
     widget->show();
     connect(
         widget, &card_widget::rasterization_busy_changed, this,

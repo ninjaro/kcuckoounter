@@ -2,13 +2,10 @@
 #define KCUCKOOUNTER_TABLE_CARD_WIDGET_HPP
 
 #include "arch/random_generator.hpp"
-#include "arch/time_interface.hpp"
 #include "arch/widget_helpers.hpp"
-#include "card_helpers/card_picker.hpp"
 #include "image/card_images.hpp"
 #include "image/image_cacher.hpp"
 #include "settings/preferences.hpp"
-#include "settings/session_checkpoint.hpp"
 #include "table/gameplay_session.hpp"
 #include <QHash>
 #include <QImage>
@@ -18,6 +15,7 @@
 #include <QSizeF>
 #include <QString>
 #include <QStringList>
+#include <QTimer>
 #include <QVector>
 #include <deque>
 #include <memory>
@@ -51,12 +49,6 @@ public:
     void set_swap_selected(bool selected);
     [[nodiscard]] bool swap_selected() const;
 
-    void start_quiz(
-        int quiz_type_index, int requested_decks_count,
-        bool infinity_enabled_flag
-    );
-    void set_infinity(bool enabled);
-    void set_running(bool running);
     void set_slot_rotated(bool rotated);
     // Bound target presentation only. A transient 0..90-degree angle preserves
     // jitter/marking through resize frames; nullopt restores endpoint painting.
@@ -74,25 +66,14 @@ public:
     [[nodiscard]] int bottom_legend_clearance() const;
     void set_show_card_indexing(bool enabled);
     void set_show_strategy_name(bool enabled);
-    void set_training_mode(bool enabled);
     void set_strategy_name(const QString& name);
-    void set_strategy_weights(const QVector<int>& weights);
     void set_table_marking_source(const QString& source);
     void set_hide_cards(bool hide);
-    void advance_card();
     [[nodiscard]] bool has_cards() const;
     [[nodiscard]] bool has_current_card() const;
     [[nodiscard]] bool is_deck_exhausted() const;
-    void mark_deck_exhausted();
     // Trainer checkpoint accessors. A session-bound card has no separate shoe;
     // its host reads typed counters and recovery state from the session.
-    [[nodiscard]] int current_position() const;
-    [[nodiscard]] int current_total_weight() const;
-    [[nodiscard]] card_session_state capture_session_state() const;
-    [[nodiscard]] static bool
-    can_restore_session_state(const card_session_state& state);
-    bool restore_session_state(const card_session_state& state);
-    void clear_quiz();
     void trigger_highlight(int duration_ms);
     void tick_highlight(int delta_ms);
     void prepare_card_faces();
@@ -113,12 +94,11 @@ protected:
     void resizeEvent(QResizeEvent* event) override;
 
 private:
+    void reset_presentation();
     const gameplay::session* gameplay_owner = nullptr;
     gameplay::deck_id gameplay_id { 0 };
     std::uint64_t presented_physical_cards = 0;
-    bool running;
     bool swap_selected_flag;
-    card_picker picker;
     random_generator random_gen;
     qreal card_rotation_deg;
     QPointF card_offset;
@@ -132,13 +112,8 @@ private:
     bool verdict_glow = false;
     bool show_card_indexing_flag;
     bool show_strategy_name_flag;
-    bool training_mode_flag;
     QString strategy_name;
-    QVector<int> strategy_weights;
-    int cards_per_deck;
-    int decks_count;
-    bool infinity_enabled;
-    std::unique_ptr<time_interface> selection_timer;
+    std::unique_ptr<QTimer> selection_timer;
     qreal selection_phase;
 
     struct discard_card {
@@ -200,7 +175,6 @@ private:
     void record_discard();
     [[nodiscard]] qreal highlight_strength() const;
     void update_selection_pulse();
-    [[nodiscard]] int total_weight_for_picks() const;
     void apply_presented_images(const QHash<QString, QImage>& images);
     void set_rasterizing(bool active);
     void on_card_images_changed();
@@ -248,7 +222,6 @@ private:
         const QStringList& extra_lines
     ) const;
     [[nodiscard]] QString current_index_text() const;
-    static int total_cards_for_quiz_type(int quiz_type_index);
     static qreal compute_font_point_size(const QRectF& card_rect);
     static QString weight_text_for_value(std::int64_t weight);
     static int rank_index_from_card_index(int card_index);

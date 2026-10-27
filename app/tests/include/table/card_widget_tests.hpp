@@ -31,7 +31,7 @@ private slots:
     void frame_choice_only_changes_presentation();
     void rotated_stack_stays_inside_slot();
     void retained_transforms_fit_after_resize();
-    void binding_reads_owned_decks_rejects_legacy_mutation();
+    void binding_projects_owned_deck_and_lifetime();
     void count_visibility_uses_training_choice_and_int64();
     void quiz_and_pause_keep_faces_hidden();
     void piping_moves_gameplay_strategy_to_legend();

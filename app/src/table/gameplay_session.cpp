@@ -21,7 +21,7 @@ namespace {
     }
 
     // Provisional R-007: uniform over eligible stable deck identities, with
-    // immediate repeats allowed (also the current classic trainer policy). This
+    // immediate repeats allowed. This
     // is the sole repeat-policy boundary, independent of slot
     // geometry/traversal.
     deck_id select_random_deck(
@@ -108,7 +108,7 @@ struct session::quiz_transition {
     std::optional<schedule_progress> table_schedule;
     std::vector<question> questions;
     std::optional<quiz_batch> next_batch;
-    std::uint64_t next_batch_id;
+    std::uint64_t next_batch_id = 0;
 };
 
 struct session::progress_transition {
@@ -124,7 +124,7 @@ struct session::progress_transition {
     std::vector<deck_progress> decks;
     session_statistics challenge;
     session_timing timing;
-    int lives;
+    int lives = 0;
     std::optional<session_result> result;
 };
 
@@ -139,8 +139,8 @@ std::optional<session::progress_transition> session::plan_progress(
     next.decks.reserve(decks.size());
     const bool any_question = batch.has_value();
     if (!add_checked(next.timing.play_time_ms, elapsed_ms)
-        || (any_question && !add_checked(next.timing.quiz_time_ms, elapsed_ms)
-        )) {
+        || (any_question
+            && !add_checked(next.timing.quiz_time_ms, elapsed_ms))) {
         return std::nullopt;
     }
     for (const auto& record : decks) {
@@ -258,22 +258,24 @@ std::optional<session::progress_transition> session::plan_progress(
             const auto& recipe = *record.stream.infinite_cards;
             position = { recipe.seed, recipe.chunk, recipe.decks_per_chunk };
         }
-        result.decks.push_back({
-            .id = record.id,
-            .slot = deck_to_slot[i],
-            .configuration = record.configuration,
-            .status = progress.status,
-            .rank_weights = record.stream.rank_weights,
-            .initial_running_count = record.stream.initial_running_count,
-            .final_running_count = progress.running_count,
-            .dealt_physical_cards = progress.physical_cards,
-            .unverified_normal_cards = progress.unverified_cards,
-            .statistics = progress.statistics,
-            .schedule
-            = { record.stream.virtual_quiz_targets, record.next_quiz_target,
-                record.stream.quiz_continuation },
-            .infinite_position = position,
-        });
+        result.decks.push_back(
+            {
+                .id = record.id,
+                .slot = deck_to_slot[i],
+                .configuration = record.configuration,
+                .status = progress.status,
+                .rank_weights = record.stream.rank_weights,
+                .initial_running_count = record.stream.initial_running_count,
+                .final_running_count = progress.running_count,
+                .dealt_physical_cards = progress.physical_cards,
+                .unverified_normal_cards = progress.unverified_cards,
+                .statistics = progress.statistics,
+                .schedule
+                = { record.stream.virtual_quiz_targets, record.next_quiz_target,
+                    record.stream.quiz_continuation },
+                .infinite_position = position,
+            }
+        );
         switch (progress.status) {
         case deck_status::active:
             ++result.active_decks;
@@ -362,8 +364,7 @@ std::optional<session::quiz_transition> session::plan_quizzes(
         }
     } else {
         bool triggered = std::any_of(
-            reveals.begin(), reveals.end(),
-            [&](const auto& reveal) {
+            reveals.begin(), reveals.end(), [&](const auto& reveal) {
                 return live(decks[reveal.owner.value])
                     && !normal_card_rank(reveal.face);
             }
@@ -641,14 +642,14 @@ dealing_step session::deal_step() {
         const auto rank = normal_card_rank(face);
         auto count = original.running_count;
         if (rank) {
-            const auto weight
-                = static_cast<std::int64_t>(original.stream.rank_weights[*rank]
-                );
+            const auto weight = static_cast<std::int64_t>(
+                original.stream.rank_weights[*rank]
+            );
             if ((weight > 0
                  && count > std::numeric_limits<std::int64_t>::max() - weight)
                 || (weight < 0
-                    && count < std::numeric_limits<std::int64_t>::min() - weight
-                )) {
+                    && count
+                        < std::numeric_limits<std::int64_t>::min() - weight)) {
                 return { .status = dealing_step_status::arithmetic_limit };
             }
             count += weight;

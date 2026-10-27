@@ -50,10 +50,10 @@ void gameplay_host_tests::failed_result_blocks_retirement() {
     const auto scene = view->gameplay_scene();
     const auto* owner = view->active_gameplay_session();
     QVERIFY(window.gameplay_retry_action->isEnabled());
-    QVERIFY(!window.new_gameplay_action->isEnabled());
+    QVERIFY(!window.new_game_action->isEnabled());
     // Direct slot invocation exercises admission even for a stale enabled
     // action.
-    QVERIFY(QMetaObject::invokeMethod(&window, "on_new_gameplay_triggered"));
+    QVERIFY(QMetaObject::invokeMethod(&window, "on_new_game_triggered"));
     window.new_game_action->trigger();
     QVERIFY(!window.load_gameplay_drill(target_drill(2)));
     QAction* quit = nullptr;
@@ -81,7 +81,7 @@ void gameplay_host_tests::failed_result_blocks_retirement() {
     QVERIFY(progress && progress->completed_sessions == 1);
     QCOMPARE(progress->recent_results.front(), exact);
     QVERIFY(window.gameplay_storage_error.isEmpty());
-    window.new_gameplay_action->trigger();
+    window.new_game_action->trigger();
     QCOMPARE(
         view->active_gameplay_session()->phase(), gameplay::session_phase::setup
     );

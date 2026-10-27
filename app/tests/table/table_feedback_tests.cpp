@@ -52,7 +52,6 @@ void table_tests::corrections_neither_gate_nor_overwrite_controls() {
         4, false, gameplay::dealing_mode::simultaneous,
         gameplay::quiz_scope::single, { 1, 2, 4 }
     )));
-    QSignalSpy legacy(&view, &table::score_adjusted);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
     QVERIFY(view.start_gameplay_runtime(35));
     view.stop_gameplay_clock();
@@ -141,17 +140,19 @@ void table_tests::corrections_neither_gate_nor_overwrite_controls() {
     QCOMPARE(owner.deck({ 0 })->next_card, std::size_t { 2 });
     QVERIFY(owner.timing().play_time_ms > timing.play_time_ms);
     QCOMPARE(input->text(), QStringLiteral("9"));
-    auto* previous
-        = slot->findChild<QLabel*>(QStringLiteral("gameplay_previous_correction"
-        ));
+    auto* previous = slot->findChild<QLabel*>(
+        QStringLiteral("gameplay_previous_correction")
+    );
     QVERIFY(previous->isVisible());
     QCOMPARE(previous->text(), text);
     QCOMPARE(previous->textFormat(), Qt::PlainText);
     QVERIFY(!view.gameplay_status_text().contains(str_label("Quiz remaining")));
     const auto before = *owner.deck({ 0 });
-    QVERIFY(QMetaObject::invokeMethod(
-        slot, "on_quiz_continue_button_clicked", Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            slot, "on_quiz_continue_button_clicked", Qt::DirectConnection
+        )
+    );
     QCOMPARE(*owner.deck({ 0 }), before);
     QVERIFY(previous->isHidden());
     QVERIFY(view.gameplay_corrections().empty());
@@ -206,12 +207,11 @@ void table_tests::corrections_neither_gate_nor_overwrite_controls() {
     QCOMPARE(
         view.gameplay_corrections().front().owner, gameplay::deck_id { 1 }
     );
-    QCOMPARE(legacy.count(), 0);
     QCOMPARE(preparation.count(), 0);
 }
 
-void table_tests::gameplay_controls_compact_correction_stays_nonblocking_data(
-) {
+void table_tests::
+    gameplay_controls_compact_correction_stays_nonblocking_data() {
     corrections_neither_gate_nor_overwrite_controls_data();
 }
 
@@ -238,9 +238,9 @@ void table_tests::gameplay_controls_compact_correction_stays_nonblocking() {
     QVERIFY(view.advance_gameplay_runtime(300, answers));
     view.publish_gameplay_runtime(answers);
     auto* slot = view.slot_widgets[0];
-    auto* opener
-        = slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls")
-        );
+    auto* opener = slot->findChild<QToolButton*>(
+        QStringLiteral("compact_slot_controls")
+    );
     QVERIFY(opener && opener->isVisible());
     opener->click();
     auto* host
@@ -360,7 +360,6 @@ void table_tests::feedback_timeout_preserves_finished_result() {
         fixture->prepare_decks(streams, std::array<std::uint64_t, 2> { 1, 4 })
     );
     QVERIFY(view.install_gameplay_session(std::move(fixture)));
-    QSignalSpy legacy(&view, &table::score_adjusted);
     QSignalSpy resolved(&view, &table::gameplay_quiz_resolved);
     QVERIFY(view.start_gameplay_runtime(41));
     view.stop_gameplay_clock();
@@ -447,10 +446,12 @@ void table_tests::feedback_timeout_preserves_finished_result() {
         QVERIFY(feedback && feedback->isVisible() && heading);
         QVERIFY(dismiss && dismiss->isVisible() && dismiss->isEnabled());
         QCOMPARE(feedback->textFormat(), Qt::PlainText);
-        QVERIFY(feedback->text().contains(QString::number(answer.submitted_count
-        )));
-        QVERIFY(feedback->text().contains(QString::number(answer.expected_count)
-        ));
+        QVERIFY(
+            feedback->text().contains(QString::number(answer.submitted_count))
+        );
+        QVERIFY(
+            feedback->text().contains(QString::number(answer.expected_count))
+        );
         const auto before = *owner.deck(answer.owner);
         const auto correction = view.gameplay_corrections();
         for (const bool next_stamp : { !stamp, stamp }) {
@@ -481,7 +482,6 @@ void table_tests::feedback_timeout_preserves_finished_result() {
         QVERIFY(!opener->isVisible());
     }
     QVERIFY(view.gameplay_corrections().empty());
-    QCOMPARE(legacy.count(), 0);
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

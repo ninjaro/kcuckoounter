@@ -29,9 +29,6 @@ bool main_window::recover_gameplay_from_ui() {
     if (gameplay_storage_busy)
         return false;
     const QPointer<main_window> guard(this);
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    const bool first_check = !gameplay_recovery_checked;
-#endif
     gameplay_recovery_checked = true;
     gameplay_recovery_ready = false;
     const auto binding = std::make_shared<gameplay_reservation>();
@@ -47,26 +44,15 @@ bool main_window::recover_gameplay_from_ui() {
         QSettings storage(
             QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
         );
-        const auto cap = gameplay::desktop_slot_technical_cap;
+        const auto cap = gameplay::slot_technical_cap;
         gameplay_recovery_service recovery(storage, { cap, cap });
         const auto outcome = binding->recover(*table_widget, recovery, &error);
         if (!guard)
             return false;
         gameplay_recovery_ready
             = outcome != gameplay_reservation::recovery_outcome::failed;
-        if (outcome == gameplay_reservation::recovery_outcome::paused
-            && setup_dialog)
-            setup_dialog->hide();
     }
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    // First native actions and queued startup share this ordered check. Never
-    // let early classic Start overwrite a checkpoint not yet offered to Resume.
-    if (first_check && gameplay_recovery_ready
-        && !table_widget->active_gameplay_session() && !quiz_started)
-        (void)restore_mobile_session_checkpoint();
-    if (!guard)
-        return false;
-#endif
+
     report_gameplay_storage(error);
     if (!guard)
         return false;
@@ -125,7 +111,7 @@ bool main_window::reserve_gameplay_from_ui(std::uint64_t seed) {
         QSettings storage(
             QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
         );
-        const auto cap = gameplay::desktop_slot_technical_cap;
+        const auto cap = gameplay::slot_technical_cap;
         gameplay_recovery_service recovery(storage, { cap, cap });
         started = binding->start(*table_widget, recovery, seed, &error);
         if (!guard)

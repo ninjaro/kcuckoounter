@@ -7,12 +7,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -39,9 +37,10 @@ void table_tests::gameplay_hud_projects_owned_session_data() {
     QTest::addColumn<bool>("global_pause");
     for (const bool instruments : { false, true })
         for (const bool global_pause : { false, true })
-            QTest::newRow(qPrintable(QStringLiteral("hud-%1-global-%2")
-                                         .arg(instruments)
-                                         .arg(global_pause))
+            QTest::newRow(
+                qPrintable(QStringLiteral("hud-%1-global-%2")
+                               .arg(instruments)
+                               .arg(global_pause))
             ) << instruments
               << global_pause;
 }
@@ -72,9 +71,7 @@ void table_tests::gameplay_hud_projects_owned_session() {
     auto* speed
         = window.findChild<QSlider*>(QStringLiteral("pickup_interval_slider"));
     QVERIFY(view && status && speed);
-    view->clear_quiz();
-    const auto legacy_speed = speed->value();
-    const auto legacy_preferences = load_trainer_preferences();
+    const auto appearance_preferences = load_table_appearance_preferences();
     auto fixture = owned_clock_fixture(
         4, global_pause, gameplay::dealing_mode::simultaneous,
         gameplay::quiz_scope::multi, { 1, 4 }
@@ -87,7 +84,7 @@ void table_tests::gameplay_hud_projects_owned_session() {
         QVERIFY(status->text().startsWith(
             str_label("Processing") + QStringLiteral(" / ")
         ));
-    view->prepare_cards_for_start();
+    view->update_card_image_demands(true);
     QTRY_VERIFY_WITH_TIMEOUT(!view->is_rasterization_busy(), 10000);
     QCOMPARE(status->text(), view->gameplay_status_text());
     QVERIFY(view->start_gameplay_runtime(38));
@@ -103,13 +100,7 @@ void table_tests::gameplay_hud_projects_owned_session() {
     QVERIFY(!status->text().contains(QStringLiteral("%1")));
     QVERIFY(!status->text().contains(QStringLiteral("I18N_ARGUMENT_MISSING")));
     const auto label_before = status->text();
-    auto* legacy_clock
-        = window.findChild<BaseClock*>(QString(), Qt::FindDirectChildrenOnly);
-    legacy_clock->set_elapsed_time_ms(900000);
-    QVERIFY(QMetaObject::invokeMethod(
-        &window, "on_table_score_adjusted", Qt::DirectConnection,
-        Q_ARG(int, 50), Q_ARG(int, 60)
-    ));
+    view->refresh_gameplay_session();
     QCOMPARE(status->text(), label_before);
     QVERIFY(view->pause_gameplay_runtime());
     QVERIFY(status->text().contains(str_label("Paused")));
@@ -132,11 +123,9 @@ void table_tests::gameplay_hud_projects_owned_session() {
     if (auto* clock
         = window.findChild<QLabel*>(QStringLiteral("session_clock")))
         QCOMPARE(clock->text(), view->gameplay_clock_text());
-    QCOMPARE(load_trainer_preferences(), legacy_preferences);
+    QCOMPARE(load_table_appearance_preferences(), appearance_preferences);
     view->clear_gameplay_session();
-    QVERIFY(speed->isEnabled());
-    QCOMPARE(speed->value(), legacy_speed);
-    QCOMPARE(view->pick_interval(), legacy_speed);
+    QVERIFY(!speed->isEnabled());
     QVERIFY(!status->text().contains(str_label("Verified")));
 }
 
@@ -176,7 +165,7 @@ void table_tests::gameplay_lives_hud() {
     ui.hud_override = instruments ? desktop_hud_style::instruments
                                   : desktop_hud_style::classic;
     QVERIFY(save_desktop_ui_preferences(ui));
-    const auto trainer = load_trainer_preferences();
+    const auto trainer = load_table_appearance_preferences();
     main_window window;
     window.resize(1600, 1000);
     window.show();
@@ -184,9 +173,11 @@ void table_tests::gameplay_lives_hud() {
     auto* status = window.findChild<QLabel*>(QStringLiteral("session_status"));
     QVERIFY(view && status);
     QVERIFY(!status->text().contains(str_label("Remaining lives")));
-    QVERIFY(QMetaObject::invokeMethod(
-        &window, "on_settings_triggered", Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &window, "on_settings_triggered", Qt::DirectConnection
+        )
+    );
     auto* shared = window.findChild<settings_shared_state*>();
     QVERIFY(shared);
     auto fixture = owned_clock_fixture(
@@ -309,7 +300,7 @@ void table_tests::gameplay_lives_hud() {
     QVERIFY(!status->text().contains(str_label("Remaining lives")));
     QVERIFY(view->install_gameplay_session(owned_clock_fixture(1)));
     QVERIFY(!status->text().contains(str_label("Remaining lives"))); // Block
-    QCOMPARE(load_trainer_preferences(), trainer);
+    QCOMPARE(load_table_appearance_preferences(), trainer);
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

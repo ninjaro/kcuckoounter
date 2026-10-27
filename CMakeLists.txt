@@ -928,14 +928,11 @@ endif ()
 set(KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/android_ui.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/asset_locator.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/base_clock.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/icon_loader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/num_helpers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/random_generator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/str_label.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/time_interface.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/widget_helpers.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/card_helpers/card_picker.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/card_helpers/card_sheet.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/card_images.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/card_preview_carousel.hpp
@@ -951,10 +948,8 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/gameplay_recovery.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/gameplay_recovery_codec.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/preferences.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/session_checkpoint.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/strategy_data.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/theme_palette.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/training_progress.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/drill_picker.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/gameplay_reservation.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/main_window.hpp
@@ -970,10 +965,8 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_setup.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_strategy.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_types.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/infinity_spinbox.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/settings_template.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/settings_template_support.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/slot_settings.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/strategy_browser.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/table.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/table_slot.hpp
@@ -981,11 +974,8 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS
 set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/android_ui.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/asset_locator.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/base_clock.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/icon_loader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/random_generator.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/time_interface.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_picker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_sheet.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_images.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_preview_carousel.cpp
@@ -1011,10 +1001,8 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_recovery_codec.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_recovery_completion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/preferences.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/session_checkpoint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/strategy_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/theme_palette.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/training_progress.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_storage.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_summary.cpp
@@ -1022,6 +1010,7 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/gameplay_reservation_completion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/gameplay_reservation_recovery.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_commands.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_drills.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_gameplay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_kde_mode.cpp
@@ -1030,7 +1019,6 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_recovery.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_review.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_state.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_training.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_paint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_raster.cpp
@@ -1045,14 +1033,12 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_session_setup.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_setup.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_strategy.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/infinity_spinbox.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_appearance.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_editor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_preview.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_strategy.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_support.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/slot_settings.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/strategy_browser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_layout.cpp
@@ -1065,17 +1051,13 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_overlay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_quiz.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_settings.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_state.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_start.cpp
 )
 set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/android_ui.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/asset_locator.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/base_clock.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/icon_loader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/random_generator.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/time_interface.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_picker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_sheet.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_images.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_preview_carousel.cpp
@@ -1101,10 +1083,8 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_recovery_codec.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_recovery_completion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/preferences.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/session_checkpoint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/strategy_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/theme_palette.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/training_progress.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_storage.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_summary.cpp
@@ -1112,6 +1092,7 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/gameplay_reservation_completion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/gameplay_reservation_recovery.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_commands.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_drills.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_gameplay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_kde_mode.cpp
@@ -1120,7 +1101,6 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_recovery.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_review.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_state.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_training.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_paint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_raster.cpp
@@ -1135,14 +1115,12 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_session_setup.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_setup.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_strategy.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/infinity_spinbox.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_appearance.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_editor.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_preview.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_strategy.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_support.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/slot_settings.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/strategy_browser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_layout.cpp
@@ -1155,7 +1133,6 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_overlay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_quiz.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_settings.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_state.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_start.cpp
 )
 set(KCUCKOOUNTER_TRAINER_APP_APP_HEADERS

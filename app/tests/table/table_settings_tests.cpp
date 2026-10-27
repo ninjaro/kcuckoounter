@@ -13,12 +13,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -45,352 +43,6 @@
 #include "table/table_fixture.hpp"
 
 using namespace table_test;
-
-void table_tests::settings_surfaces_stage_changes_data() {
-    QTest::addColumn<int>("style_id");
-    QTest::addColumn<bool>("compact");
-    QTest::addColumn<bool>("rotated");
-    for (const auto style :
-         { slot_settings_style::card, slot_settings_style::drawer,
-           slot_settings_style::sill }) {
-        for (const bool compact : { false, true }) {
-            for (const bool rotated : { false, true }) {
-                const auto name
-                    = QStringLiteral("style=%1/compact=%2/rotated=%3")
-                          .arg(static_cast<int>(style))
-                          .arg(compact)
-                          .arg(rotated)
-                          .toLatin1();
-                QTest::newRow(name.constData())
-                    << static_cast<int>(style) << compact << rotated;
-            }
-        }
-    }
-}
-
-void table_tests::settings_surfaces_stage_changes() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    QSKIP("Desktop settings surfaces");
-#endif
-    QFETCH(int, style_id);
-    QFETCH(bool, compact);
-    QFETCH(bool, rotated);
-    const auto style = static_cast<slot_settings_style>(style_id);
-    table_slot slot;
-    slot.set_presented_image_mode(true);
-    slot.set_rotated(rotated);
-    slot.resize(compact ? QSize(120, 85) : QSize(800, 600));
-    slot.set_settings_style(style);
-    slot.show();
-    slot.start_quiz(0);
-    for (int i = 0; i < 8; ++i)
-        slot.advance_card();
-    slot.set_paused(true);
-    const auto original = slot.capture_session_state();
-    auto* card = slot.findChild<card_widget*>();
-    const auto card_rect = card->geometry();
-    const auto raster_need = card->card_face_target_short_px();
-    auto* live = slot.findChild<QFrame*>(QStringLiteral("settings_bar_frame"));
-    QVERIFY(live && live->isHidden());
-    auto* trigger
-        = slot.findChild<QToolButton*>(QStringLiteral("compact_slot_controls"));
-    auto* details = slot.findChild<QAbstractButton*>(
-        QStringLiteral("slot_details_button")
-    );
-    QVERIFY(trigger && details);
-    QSignalSpy paused(&slot, &table_slot::dialog_opened);
-    if (trigger->isVisible())
-        QTest::mouseClick(trigger, Qt::LeftButton);
-    QTest::mouseClick(details, Qt::LeftButton);
-    auto* panel
-        = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
-    QVERIFY(panel && panel->isVisible());
-    QCOMPARE(paused.count(), 1);
-    auto* draft = panel->findChild<slot_settings*>();
-    auto* buttons = panel->findChild<QDialogButtonBox*>();
-    QVERIFY(draft && buttons);
-    auto* shared_panel = qobject_cast<shared_ui::qt::editor_panel*>(panel);
-    QVERIFY(shared_panel);
-    QCOMPARE(shared_panel->content(), draft);
-    for (int i = 0; i < 4; ++i)
-        QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
-    QCOMPARE(slot.capture_session_state(), original);
-    QCOMPARE(card->geometry(), card_rect);
-    QCOMPARE(card->card_face_target_short_px(), raster_need);
-    if (!compact) {
-        QCOMPARE(panel->parentWidget(), &slot);
-        QVERIFY(slot.rect().contains(panel->geometry()));
-        if (style == slot_settings_style::drawer)
-            QCOMPARE(panel->geometry().right(), slot.width() - 9);
-        if (style == slot_settings_style::sill)
-            QCOMPARE(panel->geometry().bottom(), slot.height() - 9);
-    } else {
-        QVERIFY(qobject_cast<QDialog*>(panel->parentWidget()));
-    }
-    QVERIFY(panel->rect().contains(
-        QRect(buttons->mapTo(panel, QPoint()), buttons->size())
-    ));
-    QCOMPARE(draft->deck_count_spin_box()->minimum(), original.deck_count);
-    draft->show_card_indexing()->setChecked(!original.show_card_indexing);
-    draft->show_strategy_name()->setChecked(!original.show_strategy_name);
-    QCOMPARE(
-        slot.capture_session_state(), original
-    ); // Draft is never a checkpoint.
-    slot.set_settings_style(slot_settings_style::classic);
-    QVERIFY(panel->isVisible());
-    QCOMPARE(
-        draft->show_card_indexing()->isChecked(), !original.show_card_indexing
-    );
-    slot.set_settings_style(style);
-    slot.set_action_style(slot_action_style::rail);
-    QCOMPARE(slot.capture_session_state(), original);
-    slot.resize(
-        80, 60
-    ); // Promotion retains the actual editor and its unsaved values.
-    auto* host = qobject_cast<QDialog*>(panel->parentWidget());
-    QVERIFY(host && host->isVisible());
-    QCOMPARE(panel->findChild<slot_settings*>(), draft);
-    slot.resize(900, 700);
-    QCOMPARE(
-        panel->parentWidget(), host
-    ); // Do not bounce an open window on resize.
-    QTest::keyClick(host, Qt::Key_Escape);
-    QVERIFY(!panel->isVisible());
-    QCOMPARE(slot.capture_session_state(), original);
-    QVERIFY(details->isVisible());
-    QCOMPARE(slot.focusWidget(), details);
-    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-
-    QTest::mouseClick(details, Qt::LeftButton);
-    panel = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
-    QVERIFY(panel && panel->isVisible());
-    draft = panel->findChild<slot_settings*>();
-    draft->show_card_indexing()->setChecked(!original.show_card_indexing);
-    draft->show_strategy_name()->setChecked(!original.show_strategy_name);
-    buttons = panel->findChild<QDialogButtonBox*>();
-    QTest::mouseClick(buttons->button(QDialogButtonBox::Ok), Qt::LeftButton);
-    auto expected = original;
-    expected.show_card_indexing = !original.show_card_indexing;
-    expected.show_strategy_name = !original.show_strategy_name;
-    QCOMPARE(slot.capture_session_state(), expected);
-    QVERIFY(!panel->isVisible());
-    QCOMPARE(card->geometry(), slot.rect());
-    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-
-    // Inline Escape discards the draft and returns focus to Details too.
-    QTest::mouseClick(details, Qt::LeftButton);
-    panel = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
-    QVERIFY(panel && panel->isVisible());
-    draft = panel->findChild<slot_settings*>();
-    draft->show_card_indexing()->toggle();
-    slot.activateWindow();
-    draft->show_card_indexing()->setFocus();
-    // Activate the window so the scoped Escape shortcut is dispatched.
-    QTest::qWait(1);
-    QTest::keyClick(draft->show_card_indexing(), Qt::Key_Escape);
-    QVERIFY(!panel->isVisible());
-    QCOMPARE(slot.capture_session_state(), expected);
-    QCOMPARE(slot.focusWidget(), details);
-    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-
-    // The shared editor preserves existing irreversible-in-session toggles.
-    expected.training_mode = true;
-    expected.infinity_enabled = true;
-    expected.card.infinity_enabled = true;
-    QVERIFY(slot.restore_session_state(expected));
-    QTest::mouseClick(details, Qt::LeftButton);
-    panel = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
-    QVERIFY(panel && panel->isVisible());
-    draft = panel->findChild<slot_settings*>();
-    QVERIFY(!draft->infinity_check_box()->isEnabled());
-    QVERIFY(!draft->training_check_box()->isEnabled());
-    QTest::mouseClick(
-        panel->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Cancel),
-        Qt::LeftButton
-    );
-    QVERIFY(!panel->isVisible());
-}
-
-void table_tests::felt_settings_card_follows_kit_layout() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    QSKIP("Desktop settings surfaces");
-#endif
-
-    table_slot slot;
-    auto presentation = shared_ui::qt::presentation_for(slot);
-    presentation.value = shared_ui::qt::material::felt;
-    shared_ui::qt::apply_presentation(slot, presentation);
-    slot.set_presented_image_mode(true);
-    slot.resize(800, 600);
-    slot.set_frame_style(slot_frame_style::piping);
-    slot.set_settings_style(slot_settings_style::card);
-    auto* card = slot.findChild<card_widget*>();
-    QVERIFY(card);
-    card->set_slot_number(3);
-    slot.show();
-    slot.start_quiz(0);
-    slot.advance_card();
-    slot.set_paused(true);
-    const auto original = slot.capture_session_state();
-    auto* details = slot.findChild<QAbstractButton*>(
-        QStringLiteral("slot_details_button")
-    );
-    QVERIFY(details);
-    QTest::mouseClick(details, Qt::LeftButton);
-    QPointer<QFrame> panel
-        = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
-    QVERIFY(panel && panel->isVisible());
-    // D-SET-1: `SLOT nn` header, a switch and a stepper for the same fields.
-    auto* heading
-        = panel->findChild<QLabel*>(QStringLiteral("kit_settings_heading"));
-    QVERIFY(heading);
-    QCOMPARE(heading->text(), str_label("SLOT %1").arg(QStringLiteral("03")));
-    QVERIFY(!panel->accessibleDescription().isEmpty());
-    auto* draft = panel->findChild<slot_settings*>();
-    QVERIFY(draft);
-    auto* infinite = draft->infinity_check_box();
-    QCOMPARE(infinite->objectName(), QStringLiteral("kit_switch"));
-    QCOMPARE(
-        infinite->style()->pixelMetric(
-            QStyle::PM_IndicatorWidth, nullptr, infinite
-        ),
-        40 // 38px indicator body plus its two 1px borders
-    );
-    QVERIFY(infinite->text().isEmpty());
-    QCOMPARE(infinite->accessibleName(), str_label("Infinite deck"));
-    QCOMPARE(
-        draft->deck_count_spin_box()->objectName(),
-        QStringLiteral("kit_stepper")
-    );
-    QCOMPARE(
-        draft->info_button()->objectName(), QStringLiteral("kit_info_button")
-    );
-    // The card stays between the piping's top notch and bottom legends.
-    for (int i = 0; i < 4; ++i)
-        QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
-    const int clear = card->bottom_legend_clearance();
-    QVERIFY(clear > 8);
-    QCOMPARE(panel->parentWidget(), &slot);
-    QVERIFY(panel->geometry().top() >= clear);
-    QVERIFY(panel->geometry().bottom() < slot.height() - clear);
-    // The close mark discards the draft like Cancel.
-    draft->show_card_indexing()->setChecked(!original.show_card_indexing);
-    auto* close
-        = panel->findChild<QToolButton*>(QStringLiteral("kit_settings_close"));
-    QVERIFY(close);
-    QTest::mouseClick(close, Qt::LeftButton);
-    QTRY_VERIFY(panel.isNull()); // deleted after closing
-    QCOMPARE(slot.capture_session_state(), original);
-    // Other chrome keeps the original arrangement and heading.
-    presentation.value = shared_ui::qt::material::system;
-    shared_ui::qt::apply_presentation(slot, presentation);
-    QTest::mouseClick(details, Qt::LeftButton);
-    panel = slot.findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
-    QVERIFY(panel && panel->isVisible());
-    QVERIFY(!panel->findChild<QLabel*>(QStringLiteral("kit_settings_heading")));
-    QCOMPARE(
-        panel->findChild<slot_settings*>()->infinity_check_box()->text(),
-        str_label("Infinite deck")
-    );
-}
-
-void table_tests::settings_editor_lifecycle_cancels_stale_drafts() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    QSKIP("Desktop settings surfaces");
-#endif
-    table view;
-    view.resize(1000, 700);
-    view.set_settings_style(slot_settings_style::drawer);
-    view.set_slot_count(2);
-    view.show();
-    auto* slot = view.findChild<table_slot*>();
-    slot->start_quiz(0);
-    slot->set_paused(true);
-    auto original = slot->capture_session_state();
-    const auto open = [&]() -> QFrame* {
-        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        QMetaObject::invokeMethod(
-            slot, "on_settings_button_clicked", Qt::DirectConnection
-        );
-        auto* panel
-            = slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"));
-        if (panel)
-            panel->findChild<slot_settings*>()->show_card_indexing()->toggle();
-        return panel;
-    };
-    auto* panel = open();
-    QVERIFY(
-        panel && panel->isVisible()
-    ); // Newly created slots inherit presentation.
-    slot->set_paused(false);
-    QVERIFY(!panel->isVisible());
-    QCOMPARE(
-        slot->capture_session_state().show_card_indexing,
-        original.show_card_indexing
-    );
-    slot->set_paused(true);
-    panel = open();
-    QVERIFY(panel && panel->isVisible());
-    QVERIFY(slot->restore_session_state(original));
-    QVERIFY(!panel->isVisible());
-    QCOMPARE(slot->capture_session_state(), original);
-    panel = open();
-    QVERIFY(panel && panel->isVisible());
-    table_slot source;
-    source.set_presented_image_mode(true);
-    slot->apply_settings_from(source);
-    QVERIFY(!panel->isVisible());
-    panel = open();
-    QVERIFY(panel && panel->isVisible());
-    slot->start_quiz(0);
-    QVERIFY(!panel->isVisible());
-    for (int i = 0; i < 29; ++i)
-        slot->advance_card();
-    QVERIFY(slot->is_quiz_prompt_active());
-    QVERIFY(open() == nullptr); // Settings cannot replace a question.
-    slot->clear_quiz();
-    panel = open();
-    QVERIFY(panel && panel->isVisible());
-    slot->resize(50, 40);
-    QPointer<QDialog> host = qobject_cast<QDialog*>(panel->parentWidget());
-    QVERIFY(host);
-    view.set_slot_count(0);
-    QVERIFY(host.isNull());
-}
-
-void table_tests::classic_settings_dialog_preserves_transaction() {
-    table_slot slot;
-    slot.set_presented_image_mode(true);
-    slot.resize(80, 60);
-    slot.show();
-    slot.start_quiz(0);
-    slot.set_paused(true);
-    const auto original = slot.capture_session_state();
-    for (const bool accept : { false, true }) {
-        bool inspected = false;
-        QTimer::singleShot(0, &slot, [&] {
-            auto* dialog
-                = qobject_cast<QDialog*>(QApplication::activeModalWidget());
-            if (!dialog)
-                return;
-            auto* editor = dialog->findChild<slot_settings*>();
-            inspected = editor != nullptr;
-            if (editor)
-                editor->show_card_indexing()->toggle();
-            dialog->done(accept ? QDialog::Accepted : QDialog::Rejected);
-        });
-        QVERIFY(
-            QMetaObject::invokeMethod(
-                &slot, "on_settings_button_clicked", Qt::DirectConnection
-            )
-        );
-        QVERIFY(inspected);
-        auto expected = original;
-        if (accept)
-            expected.show_card_indexing = !expected.show_card_indexing;
-        QCOMPARE(slot.capture_session_state(), expected);
-    }
-}
 
 void table_tests::gameplay_settings_surfaces_stage_changes_data() {
     QTest::addColumn<int>("settings_id");
@@ -445,7 +97,6 @@ void table_tests::gameplay_settings_surfaces_stage_changes() {
         QStringLiteral("slot_details_button")
     );
     QVERIFY(trigger && details);
-    QSignalSpy legacy_pause(&view, &table::dialog_opened);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
     const auto original = *game.deck({ 0 });
     const auto geometry = slot->geometry();
@@ -459,7 +110,6 @@ void table_tests::gameplay_settings_surfaces_stage_changes() {
     auto* draft = panel->findChild<gameplay::deck_setup_widget*>();
     auto* buttons = panel->findChild<QDialogButtonBox*>();
     QVERIFY(draft && buttons);
-    QVERIFY(panel->findChildren<slot_settings*>().isEmpty());
     for (int i = 0; i < 4; ++i)
         QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
     if (!compact) {
@@ -487,7 +137,6 @@ void table_tests::gameplay_settings_surfaces_stage_changes() {
     QCOMPARE(slot->geometry(), geometry);
     QCOMPARE(slot->card_face_need_short_px(), need);
     QCOMPARE(preparation.count(), 0);
-    QCOMPARE(legacy_pause.count(), 0);
     view.set_settings_style(slot_settings_style::classic);
     view.set_settings_style(style);
     slot->resize(80, 60);
@@ -528,17 +177,7 @@ void table_tests::gameplay_settings_surfaces_stage_changes() {
     QVERIFY(game.deck({ 0 })->stream.cards.empty());
     QCOMPARE(game.deck({ 0 })->show_count, original.show_count);
     QCOMPARE(preparation.count(), 1);
-    QCOMPARE(legacy_pause.count(), 0);
     QCOMPARE(owned_card(slot)->geometry(), slot->rect());
-    QVERIFY(
-        !slot->findChild<QWidget*>(QStringLiteral("quiz_spin_box"))->isEnabled()
-    );
-    QVERIFY(
-        slot->findChild<QAbstractButton*>(QStringLiteral("slot_copy_button"))
-            ->isHidden()
-    );
-    QVERIFY(slot->findChild<QFrame*>(QStringLiteral("settings_bar_frame"))
-                ->isHidden());
 }
 
 void table_tests::count_visibility_keeps_preparation_and_cache() {
@@ -547,7 +186,7 @@ void table_tests::count_visibility_keeps_preparation_and_cache() {
     view.set_settings_style(slot_settings_style::card);
     view.show();
     QVERIFY(view.install_gameplay_session(owned_table_fixture(1)));
-    view.prepare_cards_for_start();
+    view.update_card_image_demands(true);
     QTRY_VERIFY_WITH_TIMEOUT(
         !view.is_rasterization_busy()
             && view.slot_widgets.front()->has_presented_card_images(),
@@ -839,8 +478,7 @@ void table_tests::gameplay_lives_suit_settings_preserve_domain() {
     auto ui = load_desktop_ui_preferences();
     ui.hud_override = desktop_hud_style::instruments;
     QVERIFY(save_desktop_ui_preferences(ui));
-    const auto trainer = load_trainer_preferences();
-    const auto progress = load_training_progress();
+    const auto trainer = load_table_appearance_preferences();
     main_window window;
     window.resize(1600, 1000);
     window.show();
@@ -898,8 +536,7 @@ void table_tests::gameplay_lives_suit_settings_preserve_domain() {
         std::pair(view->desired_card_source, view->desired_card_size),
         image_demand
     );
-    QCOMPARE(load_trainer_preferences(), trainer);
-    QCOMPARE(load_training_progress(), progress);
+    QCOMPARE(load_table_appearance_preferences(), trainer);
     QVERIFY(view->finish_gameplay_runtime());
     QCOMPARE(status->text().count(QStringLiteral("♠")), 3);
     QVERIFY(save_desktop_ui_preferences(desktop_ui_preferences {}));
@@ -935,9 +572,13 @@ void table_tests::gameplay_lives_suit_settings_preserve_domain() {
 void table_tests::material_contexts_are_window_local() {
     table first;
     table second;
-    first.set_slot_count(1);
-    second.set_slot_count(1);
-    const auto before = first.findChild<table_slot*>()->capture_session_state();
+    QVERIFY(first.install_gameplay_session(
+        setup_table_fixture(static_cast<std::size_t>(1))
+    ));
+    QVERIFY(second.install_gameplay_session(
+        setup_table_fixture(static_cast<std::size_t>(1))
+    ));
+    const auto before = *first.active_gameplay_session()->deck({ 0 });
     shared_ui::qt::apply_presentation(
         first,
         { shared_ui::qt::material::felt,
@@ -993,7 +634,7 @@ void table_tests::material_contexts_are_window_local() {
         shared_ui::qt::presentation_for(second).context.felt_surface,
         QColor("#163c71")
     );
-    QCOMPARE(slot->capture_session_state(), before);
+    QCOMPARE(*first.active_gameplay_session()->deck({ 0 }), before);
 }
 
 void table_tests::table_palette_preferences_are_window_local() {
@@ -1001,12 +642,15 @@ void table_tests::table_palette_preferences_are_window_local() {
     QSKIP("Desktop windows and settings previews");
 #endif
     struct restore_preferences {
-        trainer_preferences trainer = load_trainer_preferences();
+        table_appearance_preferences trainer
+            = load_table_appearance_preferences();
         desktop_ui_preferences ui = load_desktop_ui_preferences();
         desktop_shell_state shell = load_desktop_shell_state();
 
         ~restore_preferences() {
-            save_trainer_preferences(trainer);
+            save_table_appearance_preferences(
+                load_table_appearance_preferences(), trainer
+            );
             static_cast<void>(save_desktop_ui_preferences(ui));
             save_desktop_shell_state(shell);
         }
@@ -1014,12 +658,19 @@ void table_tests::table_palette_preferences_are_window_local() {
 
     auto trainer = guard.trainer;
     trainer.palette = theme_palette_id::red;
-    save_trainer_preferences(trainer);
+    save_table_appearance_preferences(
+        load_table_appearance_preferences(), trainer
+    );
     QVERIFY(save_desktop_ui_preferences({}));
     main_window first;
     first.show();
     auto* first_table = first.findChild<table*>();
     QVERIFY(first_table);
+    QTRY_VERIFY(first_table->active_gameplay_session());
+    const auto* owner = first_table->active_gameplay_session();
+    const auto configuration = owner->configuration();
+    const auto interval = owner->pick_interval_ms();
+    const auto deck_count = owner->size();
     const auto red
         = theme_palette_registry::option(theme_palette_id::red).base_color();
     const auto blue
@@ -1030,7 +681,9 @@ void table_tests::table_palette_preferences_are_window_local() {
         shared_ui::qt::presentation_for(*first_table).context.felt_surface, red
     );
     trainer.palette = theme_palette_id::blue;
-    save_trainer_preferences(trainer);
+    save_table_appearance_preferences(
+        load_table_appearance_preferences(), trainer
+    );
     main_window second;
     second.show();
     auto* second_table = second.findChild<table*>();
@@ -1060,7 +713,9 @@ void table_tests::table_palette_preferences_are_window_local() {
     QCOMPARE(
         shared_ui::qt::presentation_for(*first_table).context.felt_surface, red
     );
-    QCOMPARE(load_trainer_preferences().palette, theme_palette_id::blue);
+    QCOMPARE(
+        load_table_appearance_preferences().palette, theme_palette_id::blue
+    );
     settings_template_widget* editor = nullptr;
     for (auto* candidate : first.findChildren<settings_template_widget*>())
         if (candidate->desktop_model())
@@ -1080,7 +735,9 @@ void table_tests::table_palette_preferences_are_window_local() {
     );
     QVERIFY(editor->findChild<QComboBox*>("default_suit")->isVisible());
     QVERIFY(editor->apply_theme_settings());
-    QCOMPARE(load_trainer_preferences().palette, theme_palette_id::green);
+    QCOMPARE(
+        load_table_appearance_preferences().palette, theme_palette_id::green
+    );
     QCOMPARE(
         shared_ui::qt::presentation_for(*first_table).context.felt_surface,
         green
@@ -1097,11 +754,10 @@ void table_tests::table_palette_preferences_are_window_local() {
         shared_ui::qt::presentation_for(second).value,
         shared_ui::qt::material::system
     );
-    QCOMPARE(
-        load_trainer_preferences().pickup_interval_ms,
-        trainer.pickup_interval_ms
-    );
-    QCOMPARE(load_trainer_preferences().slot_count, trainer.slot_count);
+    QCOMPARE(first_table->active_gameplay_session(), owner);
+    QCOMPARE(owner->configuration(), configuration);
+    QCOMPARE(owner->pick_interval_ms(), interval);
+    QCOMPARE(owner->size(), deck_count);
     QWidget preview_root;
     auto preview_presentation = shared_ui::qt::presentation_for(first);
     preview_presentation.value = shared_ui::qt::material::felt;
@@ -1116,7 +772,9 @@ void table_tests::table_palette_preferences_are_window_local() {
         preview_draft->table_color_index(),
         theme_palette_registry::index(theme_palette_id::red)
     );
-    QCOMPARE(load_trainer_preferences().palette, theme_palette_id::green);
+    QCOMPARE(
+        load_table_appearance_preferences().palette, theme_palette_id::green
+    );
     QCOMPARE(
         shared_ui::qt::presentation_for(*first_table).context.felt_surface,
         green

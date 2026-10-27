@@ -1,13 +1,10 @@
 #ifndef KCUCKOOUNTER_TABLE_TABLE_HPP
 #define KCUCKOOUNTER_TABLE_TABLE_HPP
 
-#include "arch/random_generator.hpp"
-#include "arch/time_interface.hpp"
 #include "arch/widget_helpers.hpp"
 #include "image/card_images.hpp"
 #include "settings/gameplay_checkpoint.hpp"
 #include "settings/preferences.hpp"
-#include "settings/session_checkpoint.hpp"
 #include "table/gameplay_layout.hpp"
 #include <QElapsedTimer>
 #include <QHash>
@@ -47,10 +44,9 @@ public:
     explicit table(BaseWidget* parent = nullptr);
     ~table() override;
 
-    // Explicit target scene installation; takes ownership even on rejection.
-    // Preflight leaves the displayed scene unchanged. A populated classic
-    // trainer game must be explicitly cleared first. No gameplay timer/launcher
-    // is started.
+    // Session installation takes ownership even on rejection.
+    // Preflight leaves the displayed scene unchanged; installation never
+    // Starts.
     [[nodiscard]] bool
     install_gameplay_session(std::unique_ptr<gameplay::session> owner);
     /// Settle active time before capture; no automatic Pause or settings I/O.
@@ -79,11 +75,10 @@ public:
     void refresh_gameplay_session();
     [[nodiscard]] bool
     swap_gameplay_decks(gameplay::deck_id first, gameplay::deck_id second);
-    // Destroys deck views before their owner; explicitly returns to empty
-    // classic trainer mode.
+    // Destroys deck views before their owner and returns to an empty table.
     void clear_gameplay_session();
 
-    // Opt-in target runtime, GUI thread only. Installation is not Start.
+    // Runtime commands are GUI thread only. Installation is not Start.
     // All actions settle the same monotonic clock before domain mutation.
     [[nodiscard]] bool start_gameplay_runtime(std::uint64_t dealing_seed);
     using start_gate = std::function<bool(const gameplay_checkpoint&)>;
@@ -107,9 +102,9 @@ public:
     // prevent a stale view action from answering that replacement question.
     struct gameplay_prompt_key {
         gameplay::deck_id owner;
-        std::uint64_t batch_id;
-        std::uint64_t physical_cards;
-        std::uint64_t scene_revision;
+        std::uint64_t batch_id = 0;
+        std::uint64_t physical_cards = 0;
+        std::uint64_t scene_revision = 0;
         bool operator==(const gameplay_prompt_key&) const = default;
     };
 
@@ -119,7 +114,7 @@ public:
     edit_gameplay_quiz(const gameplay_prompt_key& prompt, std::int64_t input);
     [[nodiscard]] bool check_gameplay_quiz(const gameplay_prompt_key& prompt);
     [[nodiscard]] bool skip_gameplay_quiz(const gameplay_prompt_key& prompt);
-    // Read-only target projections for the existing native HUD, not a timer
+    // Read-only projections for the existing native HUD, not a timer
     // or duplicated scoring model. Empty without an installed owned scene.
     [[nodiscard]] QString gameplay_status_text() const;
     [[nodiscard]] QString gameplay_clock_text() const;
@@ -128,12 +123,6 @@ public:
         bool reverse = false
     );
 
-    void set_slot_count(int count);
-    void start_quiz(int quiz_type_index, bool wait_for_answers);
-    void clear_quiz();
-    void set_paused(bool paused);
-    void set_pick_interval(int interval_ms);
-    [[nodiscard]] int pick_interval() const;
     [[nodiscard]] card_orientation_mode current_card_orientation() const;
     [[nodiscard]] bool has_open_gameplay_settings() const;
     [[nodiscard]] bool has_usable_gameplay_layout() const;
@@ -142,8 +131,6 @@ public:
     [[nodiscard]] bool has_gameplay_corrections() const;
     [[nodiscard]] std::vector<gameplay::quiz_answer>
     gameplay_corrections() const;
-    void set_dealing_mode(int mode_index);
-    void set_allow_skipping(bool allow);
     void set_card_orientation(card_orientation_mode orientation);
     void set_frame_style(slot_frame_style style);
     void set_action_style(slot_action_style style);
@@ -152,24 +139,12 @@ public:
         quiz_answer_style answer, quiz_feedback_style feedback
     );
     void schedule_card_preload();
-    void prepare_cards_for_start();
     void apply_theme();
     // Restyles slot controls for the current window chrome; no repacking.
     void refresh_material();
-    // Packed rectangles a classic table of this size would use for count
-    // slots. Launch previews only; slots and raster demand are untouched.
-    [[nodiscard]] QVector<QRectF> preview_slot_layout(int count) const;
     [[nodiscard]] bool is_rasterization_busy() const;
     [[nodiscard]] static const rasterflow::qt::image_service*
     shared_image_service();
-    [[nodiscard]] table_session_state capture_session_state() const;
-    // Invalid/unsupported input leaves the entire table unchanged. This
-    // prepares a fresh session; normal start_quiz still creates the new shoes.
-    bool restore_session_state(const table_session_state& state);
-
-public slots:
-    void on_clock_tick(qint64 elapsed_ms, qint64 delta_ms);
-
 signals:
     // Close external setup views synchronously before their owner is replaced.
     void gameplay_session_about_to_change();
@@ -178,7 +153,7 @@ signals:
     // Accepted setup edit invalidated preparation. The launcher owns seed,
     // budgets and generation; typing and Show Count never emit this.
     void gameplay_preparation_required();
-    // Target-only notifications; no classic trainer score/game-over callbacks.
+    // Notifications project the same owned session.
     void gameplay_runtime_updated();
     void gameplay_quiz_resolved(const gameplay::quiz_answer& answer);
     // One notification per published answer batch, or explicit dismissal;
@@ -186,9 +161,6 @@ signals:
     void gameplay_corrections_changed();
     void gameplay_runtime_failed(const QString& diagnostic);
     void rasterization_busy_changed(bool busy);
-    void game_over();
-    void dialog_opened();
-    void score_adjusted(int correct_delta, int total_delta);
 
 protected:
     bool event(QEvent* event) override;
@@ -197,14 +169,10 @@ protected:
 
 private slots:
     void on_slot_swap(table_slot* slot);
-    void on_slot_copy(table_slot* slot);
-    void on_slot_copy_all(table_slot* slot);
     void on_slot_rasterization_busy_changed(bool busy);
     void on_card_images_changed();
 
 private:
-    enum class dealing_mode { sequential, random, simultaneous };
-
     std::vector<table_slot*> slot_widgets;
     std::unique_ptr<gameplay::session> gameplay_owner;
     std::unique_ptr<gameplay::layout_transition> gameplay_layout;
@@ -229,23 +197,14 @@ private:
     std::optional<std::uint64_t> gameplay_presented_batch;
     QString gameplay_runtime_failure;
     table_slot* swap_source_slot;
-    table_slot* copy_source_slot;
     card_orientation_mode card_orientation;
     slot_frame_style frame_style = slot_frame_style::classic;
     slot_action_style action_style = slot_action_style::classic;
     slot_settings_style settings_style = slot_settings_style::classic;
     quiz_answer_style answer_style = quiz_answer_style::numeric;
     quiz_feedback_style feedback_style = quiz_feedback_style::classic;
-    int pick_interval_ms;
-    qint64 pick_elapsed_ms;
-    bool quiz_running;
-    bool quiz_paused;
-    bool allow_skipping;
-    dealing_mode current_mode;
-    int next_slot_index;
     QSet<table_slot*> rasterizing_slots;
     bool rasterization_busy;
-    random_generator random_gen;
     card_image_consumer card_images;
     QHash<QString, QImage> displayed_card_images;
     QMap<QString, QSize> desired_card_sizes;
@@ -283,18 +242,13 @@ private:
     );
     void
     publish_gameplay_runtime(const std::vector<gameplay::quiz_answer>& answers);
-    [[nodiscard]] bool current_gameplay_prompt(const gameplay_prompt_key& prompt
-    ) const;
+    [[nodiscard]] bool
+    current_gameplay_prompt(const gameplay_prompt_key& prompt) const;
     [[nodiscard]] bool
     answer_gameplay_quiz(const gameplay_prompt_key& prompt, bool skip);
-    void on_pick_timeout();
     void update_rasterization_state(table_slot* slot, bool busy);
     void refresh_rasterization_busy_state();
     void clear_swap_selection();
-    void clear_copy_selection();
-    void update_copy_button_labels(table_slot* selected_slot = nullptr);
-    [[nodiscard]] bool all_slots_exhausted() const;
-    void handle_game_over();
     bool gameplay_start_pending = false;
     // One explicit shell-owned metadata sink. No settings I/O or Qt
     // publication.

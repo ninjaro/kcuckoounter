@@ -17,56 +17,31 @@
 
 using namespace card_test;
 
-void card_widget_tests::binding_reads_owned_decks_rejects_legacy_mutation() {
+void card_widget_tests::binding_projects_owned_deck_and_lifetime() {
     auto owner = renderer_session();
-    card_widget widget;
     const auto original = *owner.deck({ 0 });
-    QVERIFY(!widget.bind_gameplay_deck(owner, { 99 }));
+    card_widget widget;
+    supply_renderer_faces(widget);
     QVERIFY(widget.bind_gameplay_deck(owner, { 0 }));
-    QVERIFY(widget.picker.deck_order().empty());
     QVERIFY(widget.has_cards());
     QVERIFY(!widget.has_current_card());
     QCOMPARE(widget.accessibleDescription(), str_label("Card back"));
-    card_session_state legacy;
-    legacy.cards_per_deck = 52;
-    legacy.decks_count = 1;
-    for (int face = 0; face < 52; ++face)
-        legacy.deck.push_back(face);
-    widget.start_quiz(1, 4, true);
-    widget.set_running(true);
-    widget.advance_card();
-    widget.set_infinity(true);
-    widget.set_training_mode(true);
-    widget.set_strategy_weights(QVector<int>(13, 1));
-    widget.mark_deck_exhausted();
-    widget.clear_quiz();
-    QVERIFY(!widget.restore_session_state(legacy));
-    QCOMPARE(widget.capture_session_state(), card_session_state {});
-    QCOMPARE(*owner.deck({ 0 }), original);
-    QVERIFY(widget.picker.deck_order().empty());
     QVERIFY(!widget.bind_gameplay_deck(owner, { 1 }));
     auto another = renderer_session();
     QVERIFY(!widget.bind_gameplay_deck(another, { 0 }));
+    QCOMPARE(*owner.deck({ 0 }), original);
     QVERIFY(owner.start());
     QCOMPARE(owner.deal_step().status, gameplay::dealing_step_status::advanced);
     widget.refresh_gameplay_deck();
     QCOMPARE(widget.display_card_index(), 0);
     QVERIFY(widget.has_current_card());
-    QVERIFY(!widget.is_deck_exhausted());
     const auto dealt = *owner.deck({ 0 });
-    widget.advance_card();
-    widget.clear_quiz();
+    widget.refresh_gameplay_deck();
     QCOMPARE(*owner.deck({ 0 }), dealt);
-    QCOMPARE(widget.display_card_index(), 0);
     widget.unbind_gameplay_deck();
     QVERIFY(!widget.has_cards());
     QVERIFY(!widget.has_current_card());
     QCOMPARE(widget.accessibleDescription(), str_label("Empty card slot"));
-    QVERIFY(widget.restore_session_state(legacy));
-    const auto saved = widget.capture_session_state();
-    QVERIFY(!widget.bind_gameplay_deck(owner, { 0 }));
-    QCOMPARE(widget.capture_session_state(), saved);
-    widget.clear_quiz();
     QVERIFY(widget.bind_gameplay_deck(owner, { 1 }));
 }
 
@@ -92,7 +67,6 @@ void card_widget_tests::count_visibility_uses_training_choice_and_int64() {
     );
     QVERIFY(widget.accessibleDescription().contains(QString::number(count)));
     QVERIFY(render_card(widget) != hidden);
-    QVERIFY(widget.picker.deck_order().empty());
     QCOMPARE(owner.deck({ 0 })->running_count, count);
     QVERIFY(!widget.rasterizing);
     QVERIFY(owner.pause());
@@ -104,8 +78,6 @@ void card_widget_tests::count_visibility_uses_training_choice_and_int64() {
     card_widget challenge;
     supply_renderer_faces(challenge);
     QVERIFY(challenge.bind_gameplay_deck(owner, { 1 }));
-    challenge.set_training_mode(true
-    ); // legacy setter cannot expose target count
     QVERIFY(challenge.gameplay_extra_lines().isEmpty());
     QVERIFY(!owner.set_show_count({ 1 }, true));
     QCOMPARE(
@@ -172,10 +144,12 @@ void card_widget_tests::quiz_and_pause_keep_faces_hidden() {
     QCOMPARE(*owner.deck({ 0 }), payload);
     QVERIFY(owner.set_show_count({ 0 }, true));
     widget.refresh_gameplay_deck();
-    QVERIFY(widget.accessibleDescription().startsWith(str_label("Card hidden"))
+    QVERIFY(
+        widget.accessibleDescription().startsWith(str_label("Card hidden"))
     );
-    QVERIFY(!widget.accessibleDescription().contains(card_label_from_index(face)
-    ));
+    QVERIFY(
+        !widget.accessibleDescription().contains(card_label_from_index(face))
+    );
     QVERIFY(widget.accessibleDescription().contains(
         QString::number(payload.running_count)
     ));
@@ -184,7 +158,8 @@ void card_widget_tests::quiz_and_pause_keep_faces_hidden() {
     QVERIFY(owner.check_quiz({ 0 }));
     widget.refresh_gameplay_deck();
     QVERIFY(!widget.display_hidden());
-    QVERIFY(widget.accessibleDescription().contains(card_label_from_index(face))
+    QVERIFY(
+        widget.accessibleDescription().contains(card_label_from_index(face))
     );
     QVERIFY(owner.pause());
     widget.refresh_gameplay_deck();
@@ -308,7 +283,6 @@ void card_widget_tests::stack_refresh_and_swap_preserve_deck_binding() {
     QCOMPARE(*owner.deck({ 0 }), first);
     QCOMPARE(*owner.deck({ 1 }), second);
     QCOMPARE(widget.discard_history.size(), history.size());
-    QVERIFY(widget.picker.deck_order().empty());
     QVERIFY(!widget.rasterizing);
 }
 
@@ -357,7 +331,6 @@ void card_widget_tests::rollover_reads_current_buffer_and_cumulative_index() {
             widget.current_index_text(),
             QString::number(static_cast<qulonglong>(exposure))
         );
-        QVERIFY(widget.picker.deck_order().empty());
     }
     QCOMPARE(owner.deck({ 0 })->stream.infinite_cards->chunk, 1U);
     QCOMPARE(owner.deck({ 0 })->next_card, std::size_t { 1 });

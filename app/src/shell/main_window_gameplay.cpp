@@ -16,20 +16,21 @@
 #include "settings/gameplay_drill.hpp"
 #include "settings/gameplay_preferences.hpp"
 #include "settings/preferences.hpp"
-#include "settings/session_checkpoint.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/gameplay_reservation.hpp"
 
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QGuiApplication>
 #include <QLabel>
 #include <QPointer>
 #include <QRandomGenerator>
+#include <QScreen>
 #include <QSettings>
 #include <QSignalBlocker>
 #include <QTimer>
+#include <shared_ui/qt/presentation.hpp>
 
 #include <algorithm>
 
@@ -115,8 +116,21 @@ void main_window::open_gameplay_setup_dialog() {
         auto* dialog = new QDialog(this);
         gameplay_setup_dialog = dialog;
         dialog->setObjectName(QStringLiteral("gameplay_setup_dialog"));
-        dialog->setWindowTitle(str_label("New gameplay session"));
+        dialog->setWindowTitle(str_label("New game"));
         dialog->setModal(false);
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+        // Mobile navigation stays in the existing activity/window. A second
+        // maximized native surface during startup is unnecessary here.
+        dialog->setParent(centralWidget(), Qt::Widget);
+        centralWidget()->layout()->addWidget(dialog);
+        connect(dialog, &QDialog::finished, this, [this] {
+            table_widget->show();
+            if (auto* status = centralWidget()->findChild<QWidget*>(
+                    QStringLiteral("mobile_status_surface")
+                ))
+                status->show();
+        });
+#endif
         auto* layout = new QVBoxLayout(dialog);
         auto* panel = new shared_ui::qt::editor_panel(dialog);
         panel->set_heading(dialog->windowTitle());
@@ -153,7 +167,7 @@ void main_window::open_gameplay_setup_dialog() {
             str_label("Gameplay table slots")
         );
         gameplay_slot_count->setRange(
-            1, static_cast<int>(gameplay::desktop_slot_technical_cap)
+            1, static_cast<int>(gameplay::slot_technical_cap)
         );
         gameplay_slot_count->setKeyboardTracking(false);
         count_row->add_row(str_label("Table slots"), gameplay_slot_count);
@@ -194,16 +208,35 @@ void main_window::open_gameplay_setup_dialog() {
             &main_window::refresh_gameplay_setup
         );
         rebuild_gameplay_setup_fields();
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+        shared_ui::qt::apply_presentation(
+            *dialog,
+            { shared_ui::qt::material::system,
+              shared_ui::qt::platform_profile::android,
+              {} }
+        );
+        if (auto* screen = this->screen())
+            dialog->resize(screen->availableGeometry().size());
+#else
         dialog->resize(480, 600);
+#endif
     }
     refresh_gameplay_setup();
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    table_widget->hide();
+    if (auto* status = centralWidget()->findChild<QWidget*>(
+            QStringLiteral("mobile_status_surface")
+        ))
+        status->hide();
+    gameplay_setup_dialog->show();
+#else
     gameplay_setup_dialog->show();
     gameplay_setup_dialog->raise();
     gameplay_setup_dialog->activateWindow();
+#endif
 }
 
 void main_window::report_gameplay_error(const QString& message) {
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     if (table_widget->active_gameplay_session()) {
         const QPointer<main_window> guard(this);
         open_gameplay_setup_dialog();
@@ -211,7 +244,6 @@ void main_window::report_gameplay_error(const QString& message) {
             gameplay_setup_error->setText(message);
         return;
     }
-#endif
     if (desktop_status)
         desktop_status->set_status(message);
     else if (status_label)
@@ -230,18 +262,16 @@ void main_window::refresh_gameplay_actions() {
         gameplay_retry_action->setVisible(!gameplay_storage_error.isEmpty());
 #endif
     }
-    if (new_gameplay_action)
-        new_gameplay_action->setEnabled(
+    if (new_game_action)
+        new_game_action->setEnabled(
             !gameplay_storage_busy && !retained
             && (!gameplay_recovery_checked || gameplay_recovery_ready)
             && (owner ? owner->phase() == gameplay::session_phase::setup
                         || owner->phase() == gameplay::session_phase::finished
-                      : !quiz_started)
+                      : true)
         );
     if (saved_drills_action)
         saved_drills_action->setEnabled(!gameplay_storage_busy);
-    if (highscores_action)
-        highscores_action->setEnabled(!owner);
     if (!owner)
         return;
     const auto phase = owner->phase();
@@ -274,19 +304,15 @@ void main_window::refresh_gameplay_actions() {
         refresh_gameplay_setup();
 }
 
-void main_window::on_new_gameplay_triggered() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    return;
-#else
+void main_window::on_new_game_triggered() {
     const QPointer<main_window> guard(this);
     if (!gameplay_storage_ready() || !guard || !gameplay_retirement_allowed()
         || !guard)
         return;
     auto* current = table_widget->active_gameplay_session();
-    if ((!current && quiz_started)
-        || (current
-            && (current->phase() == gameplay::session_phase::running
-                || current->phase() == gameplay::session_phase::paused)))
+    if (current
+        && (current->phase() == gameplay::session_phase::running
+            || current->phase() == gameplay::session_phase::paused))
         return; // Finish first; never implicitly replace live gameplay.
     if (!current || current->phase() == gameplay::session_phase::finished) {
         const auto recommendation = gameplay::recommend_slots(
@@ -303,6 +329,7 @@ void main_window::on_new_gameplay_triggered() {
         std::optional<gameplay::session> next;
         if (current) {
             std::vector<gameplay::deck_configuration> decks;
+            decks.reserve(current->size());
             for (std::size_t id = 0; id < current->size(); ++id)
                 decks.push_back(current->deck({ id })->configuration);
             next = gameplay::session::create(
@@ -356,10 +383,7 @@ void main_window::on_new_gameplay_triggered() {
         if (gameplay_setup_error)
             gameplay_setup_error->clear();
     }
-    if (setup_dialog)
-        setup_dialog->hide();
     open_gameplay_setup_dialog();
-#endif
 }
 
 bool main_window::load_gameplay_drill(const gameplay_drill& drill) {
@@ -368,9 +392,8 @@ bool main_window::load_gameplay_drill(const gameplay_drill& drill) {
         || !guard)
         return false;
     const auto* owner = table_widget->active_gameplay_session();
-    if ((!owner && quiz_started)
-        || (owner && owner->phase() != gameplay::session_phase::setup
-            && owner->phase() != gameplay::session_phase::finished))
+    if (owner && owner->phase() != gameplay::session_phase::setup
+        && owner->phase() != gameplay::session_phase::finished)
         return false;
     const auto recommendation = gameplay::recommend_slots(
         { static_cast<double>(table_widget->width()),
@@ -387,8 +410,6 @@ bool main_window::load_gameplay_drill(const gameplay_drill& drill) {
             std::make_unique<gameplay::session>(std::move(*next))
         ))
         return false;
-    if (setup_dialog)
-        setup_dialog->hide();
     open_gameplay_setup_dialog();
     if (gameplay_setup_error)
         gameplay_setup_error->clear();

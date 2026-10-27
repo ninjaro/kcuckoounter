@@ -8,7 +8,6 @@
 #include "include/asset_locator_tests.hpp"
 #include "include/card_sheet_tests.hpp"
 #include "include/image_cacher_tests.hpp"
-#include "include/infinity_spinbox_tests.hpp"
 #include "include/preview_carousel_tests.hpp"
 #include "include/settings/gameplay_checkpoint_tests.hpp"
 #include "include/settings/gameplay_progress_tests.hpp"
@@ -34,7 +33,18 @@ int main(int argc, char** argv) {
     }
     qputenv("XDG_CONFIG_HOME", settings_directory.filePath("config").toUtf8());
     qputenv("XDG_STATE_HOME", settings_directory.filePath("state").toUtf8());
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    // Native platform helpers can block before queued Qt test replies run.
+    // Exercise the host's modal/reentrancy semantics with the Qt dialog;
+    // real native dialog interaction is covered by the separate app session.
+    QCoreApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+#endif
     QApplication app(argc, argv);
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    // Many independent window lifetimes share this test activity. Finishing
+    // one fixture must not finish Android's activity before the suite ends.
+    QApplication::setQuitOnLastWindowClosed(false);
+#endif
     QSettings::setDefaultFormat(QSettings::IniFormat);
     QSettings::setPath(
         QSettings::IniFormat, QSettings::UserScope, settings_directory.path()
@@ -95,10 +105,6 @@ int main(int argc, char** argv) {
         status |= run(t);
     }
     {
-        infinity_spinbox_tests t;
-        status |= run(t);
-    }
-    {
         image_cacher_tests t;
         status |= run(t);
     }
@@ -123,11 +129,13 @@ int main(int argc, char** argv) {
         status |= run(t);
     }
     {
-        gameplay_host_tests t;
+        gameplay_mobile_tests t;
         status |= run(t);
     }
+    // This desktop fixture skips in initTestCase on Android. Keep it last:
+    // the combined QtTest runner otherwise skips the following mobile class.
     {
-        gameplay_mobile_tests t;
+        gameplay_host_tests t;
         status |= run(t);
     }
 

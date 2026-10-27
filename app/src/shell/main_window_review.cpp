@@ -10,10 +10,8 @@
 #include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
 #include "settings/preferences.hpp"
-#include "settings/session_checkpoint.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -32,9 +30,6 @@ void main_window::close_gameplay_review_dialog() {
 }
 
 void main_window::on_gameplay_review_triggered() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    return;
-#else
     if (!table_widget->has_gameplay_corrections())
         return;
     if (!gameplay_review_dialog) {
@@ -73,9 +68,11 @@ void main_window::on_gameplay_review_triggered() {
               str_label("Result"), str_label("Entered count"),
               str_label("Expected count"), str_label("Quiz batch") }
         );
-        gameplay_review_rows->setEditTriggers(QAbstractItemView::NoEditTriggers
+        gameplay_review_rows->setEditTriggers(
+            QAbstractItemView::NoEditTriggers
         );
-        gameplay_review_rows->setSelectionBehavior(QAbstractItemView::SelectRows
+        gameplay_review_rows->setSelectionBehavior(
+            QAbstractItemView::SelectRows
         );
         gameplay_review_rows->setSelectionMode(
             QAbstractItemView::SingleSelection
@@ -91,12 +88,15 @@ void main_window::on_gameplay_review_triggered() {
         layout->addWidget(buttons);
         dialog->resize(760, 420);
     }
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    gameplay_review_dialog->showMaximized();
+#else
     gameplay_review_dialog->show();
+#endif
     refresh_gameplay_review();
     gameplay_review_rows->setFocus(Qt::OtherFocusReason);
     gameplay_review_dialog->raise();
     gameplay_review_dialog->activateWindow();
-#endif
 }
 
 void main_window::refresh_gameplay_review() {
@@ -127,8 +127,8 @@ void main_window::refresh_gameplay_review() {
             : answer.timed_out ? str_label("Wrong (timeout)")
                                : str_label("Wrong");
         const QStringList text {
-            QString::number(static_cast<qulonglong>(answer.owner.value + 1)),
-            slot ? QString::number(static_cast<qulonglong>(slot->value + 1))
+            QString::number(static_cast<qulonglong>(answer.owner.value) + 1),
+            slot ? QString::number(static_cast<qulonglong>(slot->value) + 1)
                  : QStringLiteral("—"),
             deck->configuration.training ? str_label("Training")
                                          : str_label("Challenge"),

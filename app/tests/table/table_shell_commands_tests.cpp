@@ -163,8 +163,13 @@ void table_tests::kde_commands_use_shared_actions() {
     QCOMPARE(window.saveState(), native_state);
     tree->setCurrentIndex(new_row);
     QTest::keyClick(query, Qt::Key_Return);
-    QVERIFY(!view->active_gameplay_session());
-    QVERIFY(collection->action(QStringLiteral("game_saved_drills"))->isEnabled()
+    QVERIFY(view->active_gameplay_session());
+    QCOMPARE(
+        view->active_gameplay_session()->phase(), gameplay::session_phase::setup
+    );
+    QVERIFY(!view->active_gameplay_session()->result());
+    QVERIFY(
+        collection->action(QStringLiteral("game_saved_drills"))->isEnabled()
     );
     QVERIFY(toolbar->isHidden() && window.statusBar()->isHidden());
     QCOMPARE(collection->action(QStringLiteral("game_start_pause")), start);

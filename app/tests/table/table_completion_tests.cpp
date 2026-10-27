@@ -54,8 +54,6 @@ void gameplay_completion_tests::manual_retains_result() {
     gameplay_reservation binding;
     QVERIFY(binding.start(view, recovery, 91));
     view.stop_gameplay_clock();
-    QSignalSpy score(&view, &table::score_adjusted);
-    QSignalSpy ended(&view, &table::game_over);
     QVERIFY(tick(view, 300));
     QVERIFY(tick(view, 300));
     if (paused)
@@ -76,7 +74,8 @@ void gameplay_completion_tests::manual_retains_result() {
     QVERIFY(exact.result == *view.active_gameplay_session()->result());
     QCOMPARE(exact.result.timing.play_time_ms, std::uint64_t { 600 });
     const auto active = storage.value(storage_key);
-    QVERIFY(!storage.contains(progress_key)
+    QVERIFY(
+        !storage.contains(progress_key)
     ); // Capture performs no settings I/O.
     view.publish_gameplay_runtime({});
     QVERIFY(!view.finish_gameplay_runtime());
@@ -94,8 +93,6 @@ void gameplay_completion_tests::manual_retains_result() {
     const auto bytes = storage.value(progress_key);
     QVERIFY(binding.complete(recovery, &error) && error.isEmpty());
     QCOMPARE(storage.value(progress_key), bytes);
-    QCOMPARE(score.count(), 0);
-    QCOMPARE(ended.count(), 0);
     QVERIFY(!binding.start(view, recovery, 92, &error) && !error.isEmpty());
 }
 
@@ -104,9 +101,10 @@ void gameplay_completion_tests::natural_retains_result_data() {
     QTest::addColumn<int>("scope");
     for (int mode = 0; mode < 3; ++mode)
         for (int scope = 0; scope < 2; ++scope)
-            QTest::newRow(qPrintable(QStringLiteral("%1-%2").arg(mode).arg(scope
-            ))) << mode
-                << scope;
+            QTest::newRow(
+                qPrintable(QStringLiteral("%1-%2").arg(mode).arg(scope))
+            ) << mode
+              << scope;
 }
 
 void gameplay_completion_tests::natural_retains_result() {
@@ -184,8 +182,6 @@ void gameplay_completion_tests::lives_waits_for_all_answers() {
         QVERIFY(view.edit_gameplay_quiz(
             *view.gameplay_quiz_prompt(id), owner->deck(id)->running_count - 1
         ));
-    QSignalSpy score(&view, &table::score_adjusted);
-    QSignalSpy ended(&view, &table::game_over);
     bool retained_before_answers = false;
     QObject::connect(&view, &table::gameplay_quiz_resolved, &view, [&] {
         if (owner->phase() == session_phase::finished)
@@ -200,7 +196,8 @@ void gameplay_completion_tests::lives_waits_for_all_answers() {
                 *view.gameplay_quiz_prompt(pending[index])
             ));
             if (index + 1 < pending.size())
-                QVERIFY(!binding.completion()
+                QVERIFY(
+                    !binding.completion()
                 ); // Zero lives is not a partial-batch finish.
         }
     }
@@ -216,8 +213,6 @@ void gameplay_completion_tests::lives_waits_for_all_answers() {
     QVERIFY(binding.complete(recovery));
     const auto progress = gameplay_progress_service(storage, { 1, 64 }).load();
     QVERIFY(progress && progress->recent_results.front() == exact);
-    QCOMPARE(score.count(), 0);
-    QCOMPARE(ended.count(), 0);
 }
 
 void gameplay_completion_tests::restored_paused_owner_completes() {

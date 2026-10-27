@@ -5,9 +5,7 @@
 #include "settings/preferences_tests.hpp"
 
 #include "settings/preferences.hpp"
-#include "settings/session_checkpoint.hpp"
 #include "settings/strategy_data.hpp"
-#include "settings/training_progress.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
@@ -62,7 +60,7 @@ void preferences_tests::
     QVERIFY(!model->fallbacks().isEmpty());
     QVERIFY(model->is_override("frame")); // Explicit empty is not inheritance.
     settings.setValue("trainer_preferences/future", QByteArray("keep trainer"));
-    settings.setValue("trainer_session/payload", QByteArray("keep session"));
+    settings.setValue("unrelated/session", QByteArray("keep session"));
     settings.setValue("desktop_shell/geometry", QByteArray("keep geometry"));
     QMap<QString, QVariant> unrelated;
     for (const auto& key : settings.allKeys())
@@ -138,7 +136,7 @@ void preferences_tests::desktop_unknown_choices_survive_unrelated_saves() {
     const QMap<QString, QVariant> unrelated {
         { "trainer_preferences/future", QByteArray("trainer") },
         { "appearance/card_source", "artwork" },
-        { "trainer_session/payload", QByteArray("session") },
+        { "unrelated/session", QByteArray("session") },
         { "desktop_shell/geometry", QByteArray("geometry") },
         { "desktop_ui/future_metadata", 42 }
     };
@@ -197,7 +195,7 @@ void preferences_tests::desktop_unknown_choices_survive_unrelated_saves() {
         "trainer_preferences/appearance/card_orientation", "future-orientation"
     );
     preferences_service service(settings);
-    const auto before = service.load(test_catalog());
+    const auto before = service.load();
     auto after = before;
     after.palette = theme_palette_id::blue;
     service.save_appearance(before, after);
@@ -219,16 +217,15 @@ void preferences_tests::default_suit_is_independent_persistent_appearance() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     auto settings = temporary_settings(directory);
-    const auto catalog = test_catalog();
     preferences_service service(settings);
-    const auto trainer = service.load(catalog);
+    const auto trainer = service.load();
     desktop_ui_preferences ui;
     QVERIFY(save_desktop_ui_preferences(settings, ui));
     settings.setValue(
-        QStringLiteral("trainer_session/payload"), QByteArray("checkpoint")
+        QStringLiteral("unrelated/session"), QByteArray("checkpoint")
     );
     settings.setValue(
-        QStringLiteral("training_progress/document"), QByteArray("progress")
+        QStringLiteral("unrelated/history"), QByteArray("progress")
     );
     settings.sync();
     const auto original_keys = settings.allKeys();
@@ -242,7 +239,7 @@ void preferences_tests::default_suit_is_independent_persistent_appearance() {
         auto restored = temporary_settings(directory);
         QCOMPARE(load_default_suit_preference(restored), suit);
         // Trainer saves replace their own group, never this appearance key.
-        service.save(trainer, catalog);
+        service.save_appearance(service.load(), trainer);
         ui.preset = desktop_ui_preset::quiet;
         ui.reset_overrides();
         QVERIFY(save_desktop_ui_preferences(settings, ui));
@@ -280,93 +277,44 @@ void preferences_tests::round_trip_preserves_valid_values() {
     QVERIFY(directory.isValid());
     QSettings settings = temporary_settings(directory);
     preferences_service service(settings);
-    const strategy_catalog catalog = test_catalog();
-
-    trainer_preferences expected;
-    expected.slot_count = 12;
-    expected.quiz_type = 1;
-    expected.wait_for_answers = true;
-    expected.allow_skipping = false;
-    expected.dealing_mode = 2;
-    expected.pickup_interval_ms = 875;
+    table_appearance_preferences expected;
     expected.palette = theme_palette_id::blue;
     expected.card_orientation = card_orientation_mode::horizontal;
-    expected.preferred_strategy_slug = QStringLiteral("renamed_strategy");
-
-    service.save(expected, catalog);
-    QCOMPARE(service.load(catalog), expected);
-    QVERIFY(
-        !settings.contains(QStringLiteral("trainer_preferences/schema_version"))
+    settings.setValue("unrelated/data", QByteArray("keep"));
+    service.save_appearance(service.load(), expected);
+    QCOMPARE(service.load(), expected);
+    QCOMPARE(
+        settings.value("unrelated/data").toByteArray(), QByteArray("keep")
     );
+    QVERIFY(!settings.contains("trainer_preferences/schema_version"));
 }
 
 void preferences_tests::invalid_values_fall_back_independently() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     QSettings settings = temporary_settings(directory);
-    const strategy_catalog catalog = test_catalog();
-
-    settings.beginGroup(QStringLiteral("trainer_preferences"));
-    settings.setValue(QStringLiteral("setup/slot_count"), 0);
-    settings.setValue(QStringLiteral("setup/quiz_type"), 4);
+    settings.setValue("trainer_preferences/appearance/palette", "purple");
     settings.setValue(
-        QStringLiteral("setup/wait_for_answers"), QStringLiteral("perhaps")
+        "trainer_preferences/appearance/card_orientation", "absolute"
     );
-    settings.setValue(
-        QStringLiteral("setup/allow_skipping"), QStringLiteral("false")
-    );
-    settings.setValue(QStringLiteral("setup/dealing_mode"), -1);
-    settings.setValue(QStringLiteral("setup/pickup_interval_ms"), 5000);
-    settings.setValue(
-        QStringLiteral("appearance/palette"), QStringLiteral("purple")
-    );
-    settings.setValue(
-        QStringLiteral("appearance/card_orientation"),
-        QStringLiteral("absolute")
-    );
-    settings.setValue(
-        QStringLiteral("strategy/slug"),
-        QStringLiteral("Translated second name")
-    );
-    settings.setValue(QStringLiteral("strategy/id"), -10);
-    settings.endGroup();
-
+    settings.setValue("unrelated/data", QByteArray("keep"));
     preferences_service service(settings);
-    const trainer_preferences actual = service.load(catalog);
-    const trainer_preferences defaults = preferences_service::defaults(catalog);
-    QCOMPARE(actual.slot_count, defaults.slot_count);
-    QCOMPARE(actual.quiz_type, defaults.quiz_type);
-    QCOMPARE(actual.wait_for_answers, defaults.wait_for_answers);
-    QCOMPARE(actual.allow_skipping, false);
-    QCOMPARE(actual.dealing_mode, defaults.dealing_mode);
-    QCOMPARE(actual.pickup_interval_ms, defaults.pickup_interval_ms);
-    QCOMPARE(actual.palette, defaults.palette);
-    QCOMPARE(actual.card_orientation, defaults.card_orientation);
-    QCOMPARE(actual.preferred_strategy_slug, QStringLiteral("first_strategy"));
-}
-
-void preferences_tests::strategy_identity_is_current_slug_only() {
-    QTemporaryDir directory;
-    QVERIFY(directory.isValid());
-    QSettings settings = temporary_settings(directory);
-    settings.setValue(
-        QStringLiteral("trainer_preferences/strategy/slug"),
-        QStringLiteral("old_strategy_slug")
-    );
-    settings.setValue(QStringLiteral("trainer_preferences/strategy/id"), 22);
-    const auto before = settings.allKeys();
-    preferences_service service(settings);
-    const auto current = service.load(test_catalog());
-    QCOMPARE(current.preferred_strategy_slug, QStringLiteral("first_strategy"));
-    QCOMPARE(settings.allKeys(), before);
+    const auto before = service.load();
+    QCOMPARE(before, table_appearance_preferences {});
     QCOMPARE(
-        settings.value(QStringLiteral("trainer_preferences/strategy/slug"))
-            .toString(),
-        QStringLiteral("old_strategy_slug")
+        settings.value("trainer_preferences/appearance/palette").toString(),
+        QString("purple")
     );
-    service.save(current, test_catalog());
-    QVERIFY(
-        !settings.contains(QStringLiteral("trainer_preferences/strategy/id"))
+    auto after = before;
+    after.card_orientation = card_orientation_mode::vertical;
+    service.save_appearance(before, after);
+    QCOMPARE(
+        settings.value("trainer_preferences/appearance/palette").toString(),
+        QString("purple")
+    );
+    QCOMPARE(service.load().card_orientation, card_orientation_mode::vertical);
+    QCOMPARE(
+        settings.value("unrelated/data").toByteArray(), QByteArray("keep")
     );
 }
 
@@ -398,8 +346,8 @@ void preferences_tests::desktop_components_preserve_domain_settings() {
         QStringLiteral("trainer_preferences/setup/slot_count"),
         QStringLiteral("trainer_preferences/appearance/palette"),
         QStringLiteral("desktop_shell/window/geometry"),
-        QStringLiteral("session_checkpoint/payload"),
-        QStringLiteral("training_progress/payload")
+        QStringLiteral("unrelated/checkpoint"),
+        QStringLiteral("unrelated/history")
     };
     for (const auto& key : unrelated) {
         settings.setValue(key, QByteArray("unchanged"));

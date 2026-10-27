@@ -9,7 +9,6 @@
 #include <shared_ui/qt/presentation.hpp>
 
 #include "arch/str_label.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/settings_template.hpp"
 #include "table/table_fixture.hpp"
@@ -97,7 +96,11 @@ void table_tests::toolbar_styles_preserve_owned_quiz() {
     QVERIFY(view && toolbar);
     set_gameplay_motion_style(*view, 0);
     const auto actions = toolbar->actions();
+#ifdef KC_KDE
     QCOMPARE(actions.size(), qsizetype { 4 });
+#else
+    QCOMPARE(actions.size(), qsizetype { 5 });
+#endif
     QList<QWidget*> buttons;
     for (auto* action : actions)
         buttons.append(toolbar->widgetForAction(action));
@@ -123,13 +126,7 @@ void table_tests::toolbar_styles_preserve_owned_quiz() {
     QCOMPARE(start->text(), str_label("Start"));
     QCOMPARE(start_button->toolButtonStyle(), Qt::ToolButtonTextBesideIcon);
     QVERIFY(start->isEnabled() && !finish->isEnabled());
-    const auto legacy_preferences = load_trainer_preferences();
-    const auto progress = load_training_progress();
-    auto* legacy_clock
-        = window.findChild<BaseClock*>(QString(), Qt::FindDirectChildrenOnly);
-    QVERIFY(legacy_clock && !legacy_clock->is_active());
-    QSignalSpy legacy_pause(view, &table::dialog_opened);
-    QSignalSpy legacy_score(view, &table::score_adjusted);
+    const auto appearance_preferences = load_table_appearance_preferences();
     QSignalSpy preparation(view, &table::gameplay_preparation_required);
     QSignalSpy triggered(start, &QAction::triggered);
     QVERIFY(view->start_gameplay_runtime(71));
@@ -336,12 +333,7 @@ void table_tests::toolbar_styles_preserve_owned_quiz() {
         QCOMPARE(owner.timing(), finished_timing);
         QVERIFY(!start->isEnabled() && !finish->isEnabled());
     }
-    QCOMPARE(legacy_clock->elapsed_time_ms(), qint64 { 0 });
-    QVERIFY(!legacy_clock->is_active());
-    QCOMPARE(load_trainer_preferences(), legacy_preferences);
-    QCOMPARE(load_training_progress(), progress);
-    QCOMPARE(legacy_pause.count(), 0);
-    QCOMPARE(legacy_score.count(), 0);
+    QCOMPARE(load_table_appearance_preferences(), appearance_preferences);
     QCOMPARE(preparation.count(), 0);
 }
 
@@ -382,7 +374,11 @@ void table_tests::toolbar_styles_preserve_terminal_routes() {
     QVERIFY(toolbar && view);
     set_gameplay_motion_style(*view, 0);
     const auto actions = toolbar->actions();
+#ifdef KC_KDE
     QCOMPARE(actions.size(), qsizetype { 4 });
+#else
+    QCOMPARE(actions.size(), qsizetype { 5 });
+#endif
     auto* start = launcher_start_action(window);
     auto* start_button
         = qobject_cast<QToolButton*>(toolbar->widgetForAction(start));
@@ -395,8 +391,7 @@ void table_tests::toolbar_styles_preserve_terminal_routes() {
     QVERIFY(fixture->configure(configuration));
     QVERIFY(view->install_gameplay_session(std::move(fixture)));
     auto& owner = *view->active_gameplay_session();
-    const auto legacy_preferences = load_trainer_preferences();
-    const auto progress = load_training_progress();
+    const auto appearance_preferences = load_table_appearance_preferences();
     QSignalSpy triggered(start, &QAction::triggered);
     // Native Start prepares the real finite shoe, unlike the deterministic
     // prepared quiz fixture in the companion test above.
@@ -477,8 +472,7 @@ void table_tests::toolbar_styles_preserve_terminal_routes() {
         QCOMPARE(owner.timing(), timing);
         QVERIFY(!start_button->isEnabled());
     }
-    QCOMPARE(load_trainer_preferences(), legacy_preferences);
-    QCOMPARE(load_training_progress(), progress);
+    QCOMPARE(load_table_appearance_preferences(), appearance_preferences);
     // Return via the very same native New game action, without leaving a
     // borrowed global form or a started owned clock behind.
     toolbar->show();
@@ -488,11 +482,14 @@ void table_tests::toolbar_styles_preserve_terminal_routes() {
         = qobject_cast<QToolButton*>(toolbar->widgetForAction(actions[0]));
     QVERIFY(new_button && new_button->isVisible() && new_button->isEnabled());
     QTest::keyClick(new_button, Qt::Key_Space);
-    QVERIFY(!view->active_gameplay_session());
-    QVERIFY(!view->gameplay_timer.isActive());
-    QVERIFY(
-        !window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
+    QVERIFY(view->active_gameplay_session());
+    QCOMPARE(
+        view->active_gameplay_session()->phase(), gameplay::session_phase::setup
     );
+    QVERIFY(!view->gameplay_timer.isActive());
+    auto* fresh_setup
+        = window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"));
+    QVERIFY(fresh_setup && fresh_setup->isVisible());
     QCOMPARE(toolbar->actions(), actions);
     QCOMPARE(start->text(), str_label("Start"));
     QVERIFY(!actions[2]->isEnabled());
@@ -515,25 +512,9 @@ void table_tests::felt_shell_round_trips_one_bar() {
     window.show();
     QCoreApplication::processEvents();
 
-    // D-NEW-1: segmented choices are views of the unchanged combo models.
-    auto* setup = window.findChild<QDialog*>(QStringLiteral("setup_dialog"));
-    QVERIFY(setup);
-    const auto tracks
-        = setup->findChildren<QFrame*>(QStringLiteral("kit_segmented"));
-    QCOMPARE(tracks.size(), qsizetype { 2 });
-    auto* quiz_mode
-        = tracks.constFirst()->parentWidget()->findChild<QComboBox*>();
-    QVERIFY(quiz_mode);
-    QVERIFY(tracks.constFirst()->isVisible());
-    QVERIFY(!quiz_mode->isVisible());
-    const auto options = tracks.constFirst()->findChildren<QPushButton*>();
-    QCOMPARE(options.size(), qsizetype { quiz_mode->count() });
-    const int initial_mode = quiz_mode->currentIndex();
-    options.at(1 - initial_mode)->click();
-    QCOMPARE(quiz_mode->currentIndex(), 1 - initial_mode);
-    quiz_mode->setCurrentIndex(initial_mode);
-    QVERIFY(options.at(initial_mode)->isChecked());
-    setup->reject();
+    if (auto* setup
+        = window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog")))
+        setup->accept();
 
     // D-TOP-1: brand first; in-window menus join the same bar.
     auto* toolbar
@@ -582,14 +563,16 @@ void table_tests::felt_shell_round_trips_one_bar() {
     preset->choose_preset("classic");
     QVERIFY(editor->apply_theme_settings());
     QCoreApplication::processEvents();
+#ifdef KC_KDE
     QCOMPARE(toolbar->actions().size(), qsizetype { 4 });
+#else
+    QCOMPARE(toolbar->actions().size(), qsizetype { 5 });
+#endif
     for (auto* action : toolbar->actions())
         QVERIFY(action->menu() == nullptr);
     if (in_window_menus)
         QVERIFY(!window.menuBar()->isHidden());
     QVERIFY(window.centralWidget()->layout()->contentsMargins() != QMargins());
-    QVERIFY(tracks.constFirst()->isHidden());
-    QVERIFY(!quiz_mode->isHidden());
     QVERIFY(!status->property("instrument_paint").toBool());
     QVERIFY(
         shared_ui::qt::presentation_for(window).value

@@ -7,12 +7,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -35,7 +33,9 @@ using namespace table_test;
 void table_tests::card_orientation_constrains_packed_slot_geometry() {
     table table_widget;
     table_widget.resize(900, 600);
-    table_widget.set_slot_count(6);
+    QVERIFY(table_widget.install_gameplay_session(
+        setup_table_fixture(static_cast<std::size_t>(6))
+    ));
 
     table_widget.set_card_orientation(card_orientation_mode::horizontal);
     const QList<table_slot*> horizontal_slots
@@ -89,11 +89,17 @@ void table_tests::presentation_preserves_packed_slots() {
     table_widget.set_card_orientation(
         static_cast<card_orientation_mode>(orientation)
     );
-    table_widget.set_slot_count(1);
+    QVERIFY(table_widget.install_gameplay_session(
+        setup_table_fixture(static_cast<std::size_t>(1))
+    ));
     table_widget.show();
     table_widget.resize(viewport);
-    table_widget.set_slot_count(count + 1);
-    table_widget.set_slot_count(count);
+    QVERIFY(table_widget.install_gameplay_session(setup_table_fixture(
+        static_cast<std::size_t>(count == 64 ? count - 1 : count + 1)
+    )));
+    QVERIFY(table_widget.install_gameplay_session(
+        setup_table_fixture(static_cast<std::size_t>(count))
+    ));
     // Deliver widget layout, without waiting on unrelated SVG warmup timers.
     QCoreApplication::sendPostedEvents(nullptr, QEvent::LayoutRequest);
     const auto slot_widgets = table_widget.findChildren<table_slot*>();
@@ -140,10 +146,8 @@ void table_tests::presentation_preserves_packed_slots() {
         for (qsizetype i = 0; i < slot_widgets.size(); ++i) {
             auto* slot = slot_widgets[i];
             slot->set_swap_selected(true);
-            slot->set_paused(true);
             QCOMPARE(slot->geometry(), bounds[i]);
             QCOMPARE(slot->card_face_need_short_px(), raster_demands[i]);
-            slot->set_paused(false);
             QCOMPARE(slot->geometry(), bounds[i]);
         }
     }
@@ -170,21 +174,32 @@ void table_tests::presentation_preserves_packed_slots() {
         }
         if (style != slot_settings_style::classic) {
             auto* slot = slot_widgets[0];
-            const auto state = slot->capture_session_state();
-            QVERIFY(QMetaObject::invokeMethod(
-                slot, "on_settings_button_clicked", Qt::DirectConnection
-            ));
-            auto* panel
-                = slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor"
-                ));
+            const auto state = *table_widget.active_gameplay_session()->deck(
+                *slot->gameplay_deck_id()
+            );
+            QVERIFY(
+                QMetaObject::invokeMethod(
+                    slot, "on_settings_button_clicked", Qt::DirectConnection
+                )
+            );
+            auto* panel = slot->findChild<QFrame*>(
+                QStringLiteral("slot_settings_editor")
+            );
             QVERIFY(panel && panel->isVisible());
             QCOMPARE(slot->geometry(), bounds[0]);
             QCOMPARE(slot->findChild<card_widget*>()->geometry(), slot->rect());
             QCOMPARE(slot->card_face_need_short_px(), raster_demands[0]);
-            QCOMPARE(slot->capture_session_state(), state);
-            QVERIFY(QMetaObject::invokeMethod(
-                slot, "on_settings_button_clicked", Qt::DirectConnection
-            ));
+            QCOMPARE(
+                *table_widget.active_gameplay_session()->deck(
+                    *slot->gameplay_deck_id()
+                ),
+                state
+            );
+            QVERIFY(
+                QMetaObject::invokeMethod(
+                    slot, "on_settings_button_clicked", Qt::DirectConnection
+                )
+            );
             QVERIFY(!panel->isVisible());
             QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         }

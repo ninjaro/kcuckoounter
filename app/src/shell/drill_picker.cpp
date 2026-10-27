@@ -2,6 +2,8 @@
 
 #include "arch/str_label.hpp"
 #include "settings/strategy_data.hpp"
+#include <shared_ui/qt/editor_panel.hpp>
+#include <shared_ui/qt/presentation.hpp>
 
 #include <QDialogButtonBox>
 #include <QLabel>
@@ -25,7 +27,14 @@ drill_picker::drill_picker(
     target = gameplay_drill_service(storage, policy.limits).load(&target_error);
     setObjectName(QStringLiteral("saved_drills_dialog"));
     setWindowTitle(str_label("Pick a drill"));
-    auto* layout = new QVBoxLayout(this);
+    auto* outer = new QVBoxLayout(this);
+    auto* panel = new shared_ui::qt::editor_panel(this);
+    panel->set_scrollable(true);
+    outer->addWidget(panel);
+    auto* content = new QWidget(panel);
+    auto* layout = new QVBoxLayout(content);
+    layout->setContentsMargins(0, 0, 0, 0);
+    panel->set_content(content);
     auto* explanation = new QLabel(
         str_label(
             "Save a named gameplay setup or load it before Start. Appearance "
@@ -70,7 +79,8 @@ drill_picker::drill_picker(
     message->setTextFormat(Qt::PlainText);
     message->setWordWrap(true);
     layout->addWidget(message);
-    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
+    auto* buttons = panel->buttons();
+    buttons->setStandardButtons(QDialogButtonBox::Close);
     launch = buttons->addButton(
         str_label("Launch drill"), QDialogButtonBox::ActionRole
     );
@@ -78,7 +88,6 @@ drill_picker::drill_picker(
     launch->setAutoDefault(false);
     buttons->button(QDialogButtonBox::Close)->setDefault(true);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    layout->addWidget(buttons);
     connect(
         list, &QListWidget::currentRowChanged, this,
         &drill_picker::selection_changed
@@ -95,6 +104,12 @@ drill_picker::drill_picker(
     );
     show_message();
     refresh(target && !target->isEmpty() ? 0 : -1);
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    auto presentation
+        = shared_ui::qt::presentation_for(parent ? *parent : *this);
+    presentation.profile = shared_ui::qt::platform_profile::android;
+    shared_ui::qt::apply_presentation(*this, presentation);
+#endif
     resize(460, 570);
 }
 
@@ -164,20 +179,25 @@ void drill_picker::selection_changed() {
     QString text = summarize(target->at(*row));
     if (!supported)
         text.prepend(
-            str_label("Cannot launch: a saved strategy is unavailable or "
-                      "unsupported. No replacement strategy will be chosen.")
+            str_label(
+                "Cannot launch: a saved strategy is unavailable or "
+                "unsupported. No replacement strategy will be chosen."
+            )
             + QLatin1Char('\n')
         );
     else if (!allowed)
         text.prepend(
-            str_label("Finish the current session before loading another drill."
+            str_label(
+                "Finish the current session before loading another drill."
             )
             + QLatin1Char('\n')
         );
     if (!policy.save_allowed || !current)
         text.prepend(
-            str_label("Apply or close open deck Details before saving current "
-                      "configuration.")
+            str_label(
+                "Apply or close open deck Details before saving current "
+                "configuration."
+            )
             + QLatin1Char('\n')
         );
     details->setPlainText(text);

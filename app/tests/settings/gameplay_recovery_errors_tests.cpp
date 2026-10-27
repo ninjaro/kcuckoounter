@@ -24,11 +24,10 @@ void gameplay_recovery_tests::reservation_rejects_replacement() {
         directory.filePath("settings.ini"), QSettings::IniFormat
     );
     settings.setValue(
-        QStringLiteral("trainer_session/payload"), QByteArray("legacy recovery")
+        QStringLiteral("unrelated/session"), QByteArray("unrelated recovery")
     );
     settings.setValue(
-        QStringLiteral("training_progress/recent_results"),
-        QByteArray("legacy history")
+        QStringLiteral("unrelated/history"), QByteArray("unrelated history")
     );
     settings.setValue(
         QStringLiteral("gameplay_preferences/document"), QByteArray("defaults")

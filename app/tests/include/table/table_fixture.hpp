@@ -17,6 +17,8 @@ class table_slot;
 
 namespace table_test {
 
+std::unique_ptr<gameplay::session> setup_table_fixture(std::size_t count);
+
 std::unique_ptr<gameplay::session>
 owned_table_fixture(std::size_t count = 4, bool global_pause = false);
 card_widget* owned_card(table_slot* slot);
@@ -32,7 +34,7 @@ void enter_owned_count(QLineEdit* input, const QString& text);
 
 struct launcher_preferences_guard {
     desktop_ui_preferences ui;
-    trainer_preferences trainer;
+    table_appearance_preferences trainer;
     QVariant gameplay_defaults;
     QVariantMap gameplay_storage;
 

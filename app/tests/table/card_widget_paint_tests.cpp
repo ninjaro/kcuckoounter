@@ -11,6 +11,7 @@
 
 #include <QPainter>
 #include <QtTest/QtTest>
+#include <array>
 
 #include "table/card_widget_fixture.hpp"
 
@@ -37,7 +38,8 @@ QImage detailed_face() {
 void card_widget_tests::selected_presentation_preserves_master_pixels() {
     card_widget widget;
     auto master = detailed_face();
-    widget.set_presented_card_images({ { card_element_ids().front(), master } }
+    widget.set_presented_card_images(
+        { { card_element_ids().front(), master } }
     );
     widget.update_card_faces(QSize(32, 48));
     master.setDevicePixelRatio(widget.devicePixelRatioF());
@@ -51,10 +53,11 @@ void card_widget_tests::rotated_master_uses_smooth_single_transform_data() {
     QTest::addColumn<QSize>("display");
     for (const auto& display : { QSize(32, 48), QSize(100, 150) })
         for (const qreal angle : { 0.0, 2.0, 3.5, 15.0, 90.0 })
-            QTest::newRow(qPrintable(QStringLiteral("%1x%2-%3deg")
-                                         .arg(display.width())
-                                         .arg(display.height())
-                                         .arg(angle))
+            QTest::newRow(
+                qPrintable(QStringLiteral("%1x%2-%3deg")
+                               .arg(display.width())
+                               .arg(display.height())
+                               .arg(angle))
             ) << angle
               << display;
 }
@@ -105,50 +108,53 @@ void card_widget_tests::rotated_master_uses_smooth_single_transform() {
 }
 
 void card_widget_tests::accumulated_count_survives_presentation_changes() {
+    gameplay::session_configuration configuration;
+    configuration.failure = gameplay::failure_policy::block;
+    auto owner = gameplay::session::create(
+                     configuration, { { "test", 1, false, true } }, { 1, 64 }
+    )
+                     .value();
+    gameplay::prepared_deck stream;
+    stream.cards = { 0, 1, 2, 3 };
+    stream.rank_weights[0] = 2;
+    stream.rank_weights[1] = -1;
+    stream.rank_weights[2] = 3;
+    stream.rank_weights[3] = -2;
+    QVERIFY(owner.prepare_decks(std::array { stream }));
+    QVERIFY(owner.set_traversal(std::array<std::size_t, 1> { 0 }));
     card_widget widget;
-    card_session_state state;
-    state.cards_per_deck = 52;
-    state.decks_count = 1;
-    for (int index = 0; index < 52; ++index) {
-        state.deck.push_back(index);
-    }
-    state.deck_position = 2;
-    QVERIFY(widget.restore_session_state(state));
-    QVector<int> weights(13, 0);
-    weights[0] = 2;
-    weights[1] = -1;
-    weights[2] = 3;
-    weights[3] = -2;
-    widget.set_strategy_weights(weights);
-    QCOMPARE(widget.current_total_weight(), 4); // Not last-card weight 3.
-
+    QVERIFY(widget.bind_gameplay_deck(owner, { 0 }));
+    QVERIFY(owner.start());
+    for (int index = 0; index < 3; ++index)
+        (void)owner.deal_step();
+    widget.refresh_gameplay_deck();
+    QCOMPARE(owner.deck({ 0 })->running_count, 4);
+    const auto state = *owner.deck({ 0 });
     widget.resize(200, 300);
     widget.set_slot_rotated(true);
     widget.set_hide_cards(true);
     widget.set_show_card_indexing(true);
     widget.set_show_strategy_name(true);
-    QCOMPARE(widget.current_total_weight(), 4);
-    QCOMPARE(widget.capture_session_state().deck, state.deck);
-    QCOMPARE(widget.current_position(), 2);
+    QCOMPARE(*owner.deck({ 0 }), state);
     widget.set_hide_cards(false);
-    widget.set_running(true);
-    widget.advance_card();
-    QCOMPARE(widget.current_total_weight(), 2);
-    widget.set_running(false);
-    widget.advance_card();
-    QCOMPARE(widget.current_position(), 3);
-    QCOMPARE(widget.current_total_weight(), 2);
+    (void)owner.deal_step();
+    widget.refresh_gameplay_deck();
+    QCOMPARE(owner.deck({ 0 })->running_count, 2);
 }
 
 void card_widget_tests::recent_stack_retains_five_transforms() {
+    auto widget_owner = renderer_session();
     card_widget widget;
-    widget.start_quiz(0, 1, false);
-    widget.set_running(true);
+    QVERIFY(widget.bind_gameplay_deck(widget_owner, { 0 }));
+    QVERIFY(widget_owner.start());
+    (void)widget_owner.deal_step();
+    widget.refresh_gameplay_deck();
     // Use known transforms, not probabilistic assertions about RNG output.
     for (int index = 0; index < 8; ++index) {
         widget.card_rotation_deg = index * 0.25;
         widget.card_offset = QPointF(index * 0.1, -index * 0.1);
-        widget.advance_card();
+        (void)widget_owner.deal_step();
+        widget.refresh_gameplay_deck();
     }
     QCOMPARE(widget.discard_history.size(), size_t(5));
     for (size_t index = 0; index < widget.discard_history.size(); ++index) {
@@ -162,69 +168,54 @@ void card_widget_tests::recent_stack_retains_five_transforms() {
     widget.set_slot_rotated(true);
     widget.resize(300, 200);
     QCOMPARE(widget.discard_history.size(), size_t(5));
-    widget.clear_quiz();
+    widget.unbind_gameplay_deck();
     QVERIFY(widget.discard_history.empty());
-    widget.start_quiz(0, 1, false);
+    QVERIFY(widget.bind_gameplay_deck(widget_owner, { 0 }));
     QVERIFY(widget.discard_history.empty());
 }
 
 void card_widget_tests::accessible_description_tracks_visible_card_state() {
+    auto owner = renderer_session();
     card_widget widget;
     QCOMPARE(widget.accessibleDescription(), str_label("Empty card slot"));
-    widget.start_quiz(0, 1, false);
-    const auto visible_description = [&widget] {
-#ifdef KC_KDE
-        return i18n(
-            "Current card: %1",
-            card_label_from_index(widget.picker.current_card_index())
-        );
-#else
-        return str_label("Current card: %1")
-            .arg(card_label_from_index(widget.picker.current_card_index()));
-#endif
-    };
+    QVERIFY(widget.bind_gameplay_deck(owner, { 0 }));
     QCOMPARE(widget.accessibleDescription(), str_label("Card back"));
-    widget.set_running(true);
-    QCOMPARE(widget.accessibleDescription(), visible_description());
-    QVERIFY(!widget.accessibleDescription().contains(
-        QStringLiteral("I18N_ARGUMENT_MISSING")
-    ));
-    const auto state = widget.capture_session_state();
+    QVERIFY(owner.start());
+    (void)owner.deal_step();
+    widget.refresh_gameplay_deck();
+    const auto visible = widget.accessibleDescription();
+    QVERIFY(
+        visible.contains(card_label_from_index(widget.display_card_index()))
+    );
     widget.set_hide_cards(true);
     QCOMPARE(widget.accessibleDescription(), str_label("Card hidden"));
-    widget.set_running(true);
-    widget.advance_card();
-    QCOMPARE(widget.accessibleDescription(), str_label("Card hidden"));
     widget.set_hide_cards(false);
-    QCOMPARE(widget.accessibleDescription(), visible_description());
-    widget.set_running(false);
+    QCOMPARE(widget.accessibleDescription(), visible);
+    QVERIFY(owner.pause());
+    widget.refresh_gameplay_deck();
     QCOMPARE(widget.accessibleDescription(), str_label("Card back"));
-    widget.set_running(true);
-    QCOMPARE(widget.accessibleDescription(), visible_description());
-    widget.mark_deck_exhausted();
-    QCOMPARE(widget.accessibleDescription(), str_label("Card back"));
-    QVERIFY(widget.restore_session_state(state));
-    QCOMPARE(widget.accessibleDescription(), str_label("Card back"));
-    widget.set_running(true);
-    QCOMPARE(widget.accessibleDescription(), visible_description());
-    widget.set_hide_cards(true);
-    widget.clear_quiz();
-    QCOMPARE(widget.accessibleDescription(), str_label("Empty card slot"));
-    widget.set_hide_cards(false);
+    QVERIFY(owner.resume());
+    widget.refresh_gameplay_deck();
+    QCOMPARE(widget.accessibleDescription(), visible);
+    widget.unbind_gameplay_deck();
     QCOMPARE(widget.accessibleDescription(), str_label("Empty card slot"));
 }
 
 void card_widget_tests::frame_choice_only_changes_presentation() {
+    auto widget_owner = renderer_session();
     card_widget widget;
     widget.resize(240, 360);
-    widget.start_quiz(0, 1, false);
-    widget.set_running(true);
-    widget.advance_card();
+    QVERIFY(widget.bind_gameplay_deck(widget_owner, { 0 }));
+    QVERIFY(widget_owner.start());
+    (void)widget_owner.deal_step();
+    widget.refresh_gameplay_deck();
+    (void)widget_owner.deal_step();
+    widget.refresh_gameplay_deck();
     widget.set_hide_cards(true); // Render framing without scheduling face jobs.
     QImage classic(widget.size(), QImage::Format_ARGB32_Premultiplied);
     classic.fill(Qt::transparent);
     widget.render(&classic); // Deliver any initial resize before the snapshot.
-    const auto state = widget.capture_session_state();
+    const auto state = *widget_owner.deck({ 0 });
     const auto target_size = widget.card_face_target_size();
     const auto rotation = widget.card_rotation_deg;
     const auto offset = widget.card_offset;
@@ -234,7 +225,7 @@ void card_widget_tests::frame_choice_only_changes_presentation() {
     thin.fill(Qt::transparent);
     widget.render(&thin);
     QVERIFY(classic != thin);
-    QCOMPARE(widget.capture_session_state(), state);
+    QCOMPARE(*widget_owner.deck({ 0 }), state);
     QCOMPARE(widget.card_face_target_size(), target_size);
     QCOMPARE(widget.card_rotation_deg, rotation);
     QCOMPARE(widget.card_offset, offset);
@@ -252,7 +243,7 @@ void card_widget_tests::frame_choice_only_changes_presentation() {
     renumbered.fill(Qt::transparent);
     widget.render(&renumbered);
     QVERIFY(renumbered != piping);
-    QCOMPARE(widget.capture_session_state(), state);
+    QCOMPARE(*widget_owner.deck({ 0 }), state);
     QCOMPARE(widget.card_face_target_size(), target_size);
     QCOMPARE(widget.card_rotation_deg, rotation);
     QCOMPARE(widget.card_offset, offset);
@@ -266,9 +257,10 @@ void card_widget_tests::frame_choice_only_changes_presentation() {
 }
 
 void card_widget_tests::rotated_stack_stays_inside_slot() {
+    auto widget_owner = renderer_session();
     card_widget widget;
     widget.set_presented_image_mode(true);
-    widget.start_quiz(0, 1, false);
+    QVERIFY(widget.bind_gameplay_deck(widget_owner, { 0 }));
     QImage face(16, 24, QImage::Format_ARGB32_Premultiplied);
     face.fill(Qt::magenta);
     QHash<QString, QImage> faces;
@@ -298,14 +290,14 @@ void card_widget_tests::rotated_stack_stays_inside_slot() {
                             QVERIFY2(
                                 rendered.pixelColor(x, y)
                                     != QColor(Qt::magenta),
-                                qPrintable(
-                                    QStringLiteral("card reaches slot edge at "
-                                                   "%1,%2 in %3x%4")
-                                        .arg(x)
-                                        .arg(y)
-                                        .arg(size.width())
-                                        .arg(size.height())
+                                qPrintable(QStringLiteral(
+                                               "card reaches slot edge at "
+                                               "%1,%2 in %3x%4"
                                 )
+                                               .arg(x)
+                                               .arg(y)
+                                               .arg(size.width())
+                                               .arg(size.height()))
                             );
                         }
                     }

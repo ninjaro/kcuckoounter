@@ -7,12 +7,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -104,16 +102,13 @@ void table_tests::gameplay_launcher_native_setup_and_roster() {
     window.show();
     auto* view = window.findChild<table*>();
     QVERIFY(view && !view->active_gameplay_session());
-    auto* entry
-        = window.findChild<QAction*>(QStringLiteral("game_new_gameplay"));
-    auto* button
-        = window.findChild<QPushButton*>(QStringLiteral("setup_new_gameplay"));
-    QVERIFY(entry && entry->isEnabled() && button);
+    auto* entry = window.findChild<QAction*>(QStringLiteral("game_new"));
+    QVERIFY(entry && entry->isEnabled());
     bool in_menu = false;
     for (auto* menu : window.findChildren<QMenu*>())
         in_menu = in_menu || menu->actions().contains(entry);
     QVERIFY(in_menu); // both Qt and rebuilt KDE menus expose the same action
-    button->click(); // discovery route in the existing setup dialog
+    entry->trigger(); // ordinary New game is the sole launch route
     auto* owner = view->active_gameplay_session();
     QVERIFY(owner);
     QCOMPARE(owner->phase(), gameplay::session_phase::setup);
@@ -170,7 +165,7 @@ void table_tests::gameplay_launcher_native_setup_and_roster() {
     fields->findChild<QSpinBox*>(QStringLiteral("gameplay_sequential_count"))
         ->setValue(3);
     QCOMPARE(owner->configuration().sequential_count, std::size_t { 3 });
-    const auto legacy = load_trainer_preferences();
+    const auto appearance = load_table_appearance_preferences();
     count->setValue(24);
     QVERIFY(fields.isNull()); // borrowing view dies before its previous owner
     owner = view->active_gameplay_session();
@@ -195,7 +190,7 @@ void table_tests::gameplay_launcher_native_setup_and_roster() {
     entry->trigger();
     QVERIFY(dialog->isVisible());
     QCOMPARE(view->active_gameplay_session(), owner);
-    QCOMPARE(load_trainer_preferences(), legacy);
+    QCOMPARE(load_table_appearance_preferences(), appearance);
     QVERIFY(window.findChild<QAction*>(QStringLiteral("game_saved_drills"))
                 ->isEnabled());
     QVERIFY(launcher_start_action(window)->isEnabled());
@@ -209,7 +204,7 @@ void table_tests::gameplay_launcher_roster_rejection_keeps_borrowed_views() {
     main_window window;
     window.resize(1600, 1000);
     window.show();
-    window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))->trigger();
+    window.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
     auto* view = window.findChild<table*>();
     auto* owner = view->active_gameplay_session();
     auto* dialog
@@ -249,7 +244,7 @@ void table_tests::gameplay_launcher_start_rejects_drafts_and_budgets() {
     main_window window;
     window.resize(1600, 1000);
     window.show();
-    window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))->trigger();
+    window.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
     auto* view = window.findChild<table*>();
     auto* owner = view->active_gameplay_session();
     auto* start = launcher_start_action(window);
@@ -310,7 +305,7 @@ void table_tests::gameplay_launcher_geometry_requires_explicit_consent() {
     main_window window;
     window.resize(1600, 1000);
     window.show();
-    window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))->trigger();
+    window.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
     auto* view = window.findChild<table*>();
     auto* dialog
         = window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"));
@@ -356,7 +351,7 @@ void table_tests::gameplay_launcher_routes_runtime_and_finish() {
     main_window window;
     window.resize(1600, 1000);
     window.show();
-    window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))->trigger();
+    window.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
     auto* view = window.findChild<table*>();
     auto* dialog
         = window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"));
@@ -370,18 +365,14 @@ void table_tests::gameplay_launcher_routes_runtime_and_finish() {
     fields->findChild<QComboBox*>(QStringLiteral("gameplay_dealing_mode"))
         ->setCurrentIndex(2);
     auto* start = launcher_start_action(window);
-    const auto legacy = load_trainer_preferences();
-    const auto progress = load_training_progress();
-    auto* clock
-        = window.findChild<BaseClock*>(QString(), Qt::FindDirectChildrenOnly);
-    QSignalSpy legacy_score(view, &table::score_adjusted);
+    const auto appearance = load_table_appearance_preferences();
     start->trigger();
     QCOMPARE(owner->phase(), gameplay::session_phase::running);
     QVERIFY(view->gameplay_timer.isActive());
     QVERIFY(owner->deck({ 1 })->stream.infinite_cards);
-    QVERIFY(!window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))
-                 ->isEnabled());
-    QVERIFY(clock->elapsed_time_ms() == 0);
+    QVERIFY(
+        !window.findChild<QAction*>(QStringLiteral("game_new"))->isEnabled()
+    );
     view->stop_gameplay_clock();
     std::vector<gameplay::quiz_answer> answers;
     for (int step = 0; step < 40 && !owner->current_quiz_batch(); ++step)
@@ -402,7 +393,12 @@ void table_tests::gameplay_launcher_routes_runtime_and_finish() {
         )
     );
     QCOMPARE(owner->phase(), gameplay::session_phase::paused);
-    QCOMPARE(*owner->current_quiz_batch(), batch);
+    // Settings settles real time accrued since Resume before pausing. The
+    // question and inputs survive; the live countdown may have advanced.
+    auto settled = *owner->current_quiz_batch();
+    QVERIFY(settled.remaining_ms <= batch.remaining_ms);
+    settled.remaining_ms = batch.remaining_ms;
+    QCOMPARE(settled, batch);
     // Opening ordinary appearance settings pauses only the owned runtime.
     for (auto* settings : window.findChildren<QDialog*>())
         if (settings->findChild<QTabWidget*>())
@@ -426,8 +422,7 @@ void table_tests::gameplay_launcher_routes_runtime_and_finish() {
     QCOMPARE(view->gameplay_timer.isActive(), !confirm);
     QCOMPARE(start->isEnabled(), !confirm);
     QCOMPARE(
-        window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))
-            ->isEnabled(),
+        window.findChild<QAction*>(QStringLiteral("game_new"))->isEnabled(),
         confirm
     );
     if (confirm) {
@@ -439,18 +434,14 @@ void table_tests::gameplay_launcher_routes_runtime_and_finish() {
         );
         QCOMPARE(*owner->result(), result);
         // Explicit fresh replacement reuses choices, never progress or shoes.
-        window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))
-            ->trigger();
+        window.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
         owner = view->active_gameplay_session();
         QCOMPARE(owner->phase(), gameplay::session_phase::setup);
         QCOMPARE(owner->deck({ 1 })->configuration, choice);
         QVERIFY(owner->deck({ 1 })->stream.cards.empty());
         QVERIFY(!owner->result());
     }
-    QCOMPARE(load_trainer_preferences(), legacy);
-    QCOMPARE(load_training_progress(), progress);
-    QCOMPARE(legacy_score.count(), 0);
-    QCOMPARE(view->capture_session_state(), table_session_state {});
+    QCOMPARE(load_table_appearance_preferences(), appearance);
 }
 
 void table_tests::gameplay_launcher_finish_replacement_is_not_finished() {
@@ -461,7 +452,7 @@ void table_tests::gameplay_launcher_finish_replacement_is_not_finished() {
     main_window window;
     window.resize(1600, 1000);
     window.show();
-    window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))->trigger();
+    window.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
     auto* view = window.findChild<table*>();
     launcher_start_action(window)->trigger();
     bool replaced = false;
@@ -483,13 +474,13 @@ void table_tests::gameplay_launcher_finish_replacement_is_not_finished() {
     QVERIFY(!view->active_gameplay_session()->result());
 }
 
-void table_tests::launcher_natural_end_and_legacy_return_data() {
+void table_tests::launcher_natural_end_and_fresh_session_data() {
     QTest::addColumn<bool>("physical_jokers");
     QTest::newRow("virtual-final-count") << false;
     QTest::newRow("physical-joker-final-count") << true;
 }
 
-void table_tests::launcher_natural_end_and_legacy_return() {
+void table_tests::launcher_natural_end_and_fresh_session() {
 #if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     QSKIP("Desktop opt-in launcher");
 #endif
@@ -498,7 +489,7 @@ void table_tests::launcher_natural_end_and_legacy_return() {
     main_window window;
     window.resize(1600, 1000);
     window.show();
-    window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))->trigger();
+    window.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
     auto* view = window.findChild<table*>();
     auto* dialog
         = window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"));
@@ -562,27 +553,22 @@ void table_tests::launcher_natural_end_and_legacy_return() {
         )
     );
     QVERIFY(fields.isNull());
-    QVERIFY(!view->active_gameplay_session());
-    QVERIFY(
-        !window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
+    QVERIFY(view->active_gameplay_session());
+    QCOMPARE(
+        view->active_gameplay_session()->phase(), gameplay::session_phase::setup
     );
+    QVERIFY(!view->active_gameplay_session()->result());
     QVERIFY(window.findChild<QAction*>(QStringLiteral("game_saved_drills"))
                 ->isEnabled());
-    QVERIFY(
-        QMetaObject::invokeMethod(
-            &window, "on_continue_button_clicked", Qt::DirectConnection
-        )
-    );
     auto* start = launcher_start_action(window);
     QVERIFY(start->isEnabled());
     start->trigger();
-    QVERIFY(!view->active_gameplay_session());
-    QVERIFY(view->quiz_running);
-    QVERIFY(!window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))
-                 ->isEnabled());
-    auto* clock
-        = window.findChild<BaseClock*>(QString(), Qt::FindDirectChildrenOnly);
-    clock->pause();
+    QCOMPARE(
+        view->active_gameplay_session()->phase(),
+        gameplay::session_phase::running
+    );
+    QVERIFY(view->has_gameplay_runtime());
+    QVERIFY(view->finish_gameplay_runtime());
 }
 
 void table_tests::gameplay_launcher_teardown_retires_global_view() {
@@ -593,7 +579,7 @@ void table_tests::gameplay_launcher_teardown_retires_global_view() {
     auto window = std::make_unique<main_window>();
     window->resize(1600, 1000);
     window->show();
-    window->findChild<QAction*>(QStringLiteral("game_new_gameplay"))->trigger();
+    window->findChild<QAction*>(QStringLiteral("game_new"))->trigger();
     QPointer<gameplay::setup_widget> fields
         = window->findChild<gameplay::setup_widget*>();
     QPointer<QDialog> dialog

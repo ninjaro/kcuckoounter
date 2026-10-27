@@ -7,12 +7,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -62,7 +60,8 @@ void table_tests::gameplay_resize_paths() {
     QCOMPARE(owner.deal_step().status, gameplay::dealing_step_status::advanced);
     if (count > 1) {
         QVERIFY(owner.edit_quiz_input({ 2 }, 9));
-        QVERIFY(owner.check_quiz({ 3 })
+        QVERIFY(
+            owner.check_quiz({ 3 })
         ); // retain pending/completed/failed peers
         QCOMPARE(
             owner.deal_step().status, gameplay::dealing_step_status::advanced
@@ -157,7 +156,8 @@ void table_tests::gameplay_resize_paths() {
     ); // no frame generations
     QCOMPARE(runtime.count(), 0);
     QCOMPARE(preparation.count(), 0);
-    view.gameplay_layout_animation.setCurrentTime(200
+    view.gameplay_layout_animation.setCurrentTime(
+        200
     ); // actual finished signal
     QCOMPARE(
         view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
@@ -165,10 +165,12 @@ void table_tests::gameplay_resize_paths() {
     QCOMPARE(view.gameplay_layout_progress, 1.0);
     const auto packed = view.pack_gameplay_slots(owner.size());
     QVERIFY(packed);
-    QVERIFY(std::ranges::equal(
-        owner.traversal(), packed->traversal, {},
-        [](auto id) { return id.value; }
-    ));
+    QVERIFY(
+        std::ranges::equal(
+            owner.traversal(), packed->traversal, {},
+            [](auto id) { return id.value; }
+        )
+    );
     for (std::size_t index = 0; index < owner.size(); ++index) {
         QCOMPARE(
             widgets[index]->geometry(),
@@ -236,7 +238,8 @@ void table_tests::gameplay_resize_motion_policy_and_lifetime() {
     QVERIFY(owner.start());
     QVERIFY(owner.pause());
     view.refresh_gameplay_session();
-    QVERIFY(view.swap_gameplay_decks({ 0 }, { 2 })
+    QVERIFY(
+        view.swap_gameplay_decks({ 0 }, { 2 })
     ); // content retargets from the active resize; frames keep slot paths
     QCOMPARE(
         view.gameplay_layout_animation.state(), QAbstractAnimation::Running
@@ -295,15 +298,6 @@ void table_tests::gameplay_resize_motion_policy_and_lifetime() {
         view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
     );
     QCoreApplication::processEvents();
-    view.set_slot_count(2);
-    view.start_quiz(0, false);
-    view.resize(900, 1200);
-    QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
-    );
-    QVERIFY(view.capture_session_state().quiz_running
-    ); // legacy stays immediate
-    view.clear_quiz();
     auto retiring = std::make_unique<table>();
     set_gameplay_motion_style(*retiring, 200);
     retiring->resize(1200, 900);
@@ -524,7 +518,8 @@ void table_tests::gameplay_swap_content_paths() {
     const auto halfway_frame
         = *view.gameplay_layout->slot_motion(*owner.slot_for(peer))
                ->sample(view.gameplay_layout_progress);
-    QVERIFY(view.swap_gameplay_decks({ 0 }, peer)
+    QVERIFY(
+        view.swap_gameplay_decks({ 0 }, peer)
     ); // Swap during rotated repack.
     QCOMPARE(view.gameplay_rotation_paths[0].from, halfway_angle);
     QCOMPARE(
@@ -660,7 +655,8 @@ void table_tests::gameplay_swap_pending_state() {
     QVERIFY(view.edit_gameplay_quiz(
         *prompt, owner.deck({ 2 })->quiz->expected_count
     ));
-    QVERIFY(view.check_gameplay_quiz(*prompt)
+    QVERIFY(
+        view.check_gameplay_quiz(*prompt)
     ); // Original question remains usable.
     QCOMPARE(resolved.count(), 1);
 }
@@ -677,7 +673,8 @@ void table_tests::gameplay_swap_motion_policy_and_lifetime() {
     QVERIFY(view.gameplay_owner->start());
     QVERIFY(view.gameplay_owner->pause());
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 2 }));
-    QVERIFY(!view.gameplay_motion_layer
+    QVERIFY(
+        !view.gameplay_motion_layer
     ); // No paint-layer allocation when inert.
     QVERIFY(!view.gameplay_content_motion);
     set_gameplay_motion_style(view, 200);
@@ -701,7 +698,8 @@ void table_tests::gameplay_swap_motion_policy_and_lifetime() {
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 2 }));
     QCOMPARE(view.gameplay_layout_animation.duration(), 50);
     QCOMPARE(view.gameplay_layout_progress, 0.0);
-    QVERIFY(view.gameplay_content_motion
+    QVERIFY(
+        view.gameplay_content_motion
     ); // Shorter nonzero hint cannot retire new motion.
     view.gameplay_layout_animation.setCurrentTime(50);
     QVERIFY(!view.gameplay_content_motion);

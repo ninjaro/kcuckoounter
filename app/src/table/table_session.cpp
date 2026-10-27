@@ -10,7 +10,7 @@
 
 bool table::install_gameplay_session(std::unique_ptr<gameplay::session> owner) {
     if (gameplay_start_pending || !owner || owner->size() == 0
-        || owner->size() > gameplay::desktop_slot_technical_cap)
+        || owner->size() > gameplay::slot_technical_cap)
         return false;
     const auto packed = pack_gameplay_slots(owner->size());
     return packed && install_gameplay_scene(std::move(owner), *packed);
@@ -22,12 +22,6 @@ bool table::install_gameplay_scene(
     std::optional<std::uint64_t> pickup_elapsed, const scene_binding& bind
 ) {
     if (gameplay_start_pending
-        || (!gameplay_owner
-            && (quiz_running
-                || std::ranges::any_of(
-                    slot_widgets,
-                    [](const auto* slot) { return slot->has_cards(); }
-                )))
         || (pickup_elapsed
             && (owner->phase() != gameplay::session_phase::paused
                 || *pickup_elapsed
@@ -85,13 +79,8 @@ bool table::install_gameplay_scene(
     slot_widgets
         = std::move(next_slots); // already allocated before replacement
     for (auto& slot : staged) {
-        slot->setParent(this);
-        (void)slot.release(); // QObject/table now owns each view
+        slot.release()->setParent(this); // QObject/table now owns each view
     }
-    quiz_running = false;
-    quiz_paused = false;
-    pick_elapsed_ms = 0;
-    next_slot_index = 0;
     // A recovered scene is resumable before observers inspect its new owner.
     // Ordinary installation retains its unattached/no-timer contract.
     if (pickup_elapsed) {
@@ -121,8 +110,8 @@ bool table::install_gameplay_scene(
     return guard && gameplay_scene_revision == revision;
 }
 
-std::optional<gameplay_checkpoint>
-table::capture_gameplay_checkpoint(const gameplay::generation_policy& resources
+std::optional<gameplay_checkpoint> table::capture_gameplay_checkpoint(
+    const gameplay::generation_policy& resources
 ) {
     if (!gameplay_runtime_attached || !gameplay_owner || !resources.valid()
         || (gameplay_owner->phase() != gameplay::session_phase::running
@@ -137,8 +126,10 @@ table::capture_gameplay_checkpoint(const gameplay::generation_policy& resources
         || !gameplay_runtime_attached || !gameplay_owner)
         return std::nullopt;
     auto state = gameplay::capture_checkpoint(*gameplay_owner, resources);
-    return state ? std::make_optional(gameplay_checkpoint {
-                       std::move(*state), gameplay_pick_elapsed_ms })
+    return state ? std::make_optional(
+                       gameplay_checkpoint { std::move(*state),
+                                             gameplay_pick_elapsed_ms }
+                   )
                  : std::nullopt;
 }
 
@@ -156,7 +147,7 @@ bool table::restore_gameplay_checkpoint(
     if (gameplay_start_pending)
         return false;
     const auto count = checkpoint.state.decks.size();
-    if (count == 0 || count > gameplay::desktop_slot_technical_cap
+    if (count == 0 || count > gameplay::slot_technical_cap
         || checkpoint.state.pickup_interval_ms <= 0
         || checkpoint.pickup_elapsed_ms
             >= static_cast<std::uint64_t>(checkpoint.state.pickup_interval_ms))
@@ -165,7 +156,7 @@ bool table::restore_gameplay_checkpoint(
     if (!packed)
         return false;
     auto owner = gameplay::restore_checkpoint(
-        checkpoint.state, { 1, gameplay::desktop_slot_technical_cap },
+        checkpoint.state, { 1, gameplay::slot_technical_cap },
         packed->traversal, resources
     );
     return owner

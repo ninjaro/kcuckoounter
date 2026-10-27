@@ -1,3 +1,4 @@
+#include <QLineEdit>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
@@ -7,12 +8,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -33,7 +32,7 @@
 
 using namespace table_test;
 
-void table_tests::gameplay_table_owns_roster_without_legacy_state() {
+void table_tests::gameplay_table_owns_roster_and_bindings() {
     table view;
     view.resize(1200, 900);
     auto owner = owned_table_fixture(24);
@@ -43,82 +42,45 @@ void table_tests::gameplay_table_owns_roster_without_legacy_state() {
     QCOMPARE(view.active_gameplay_session(), identity);
     QCOMPARE(view.slot_widgets.size(), std::size_t { 24 });
     QCOMPARE(changed.size(), 1);
-    QVERIFY(view.gameplay_owner->start());
+    QVERIFY(identity->start());
     QCOMPARE(
-        view.gameplay_owner->deal_step().status,
-        gameplay::dealing_step_status::advanced
+        identity->deal_step().status, gameplay::dealing_step_status::advanced
     );
     view.refresh_gameplay_session();
     const auto before = *identity->deck({ 0 });
-    QSignalSpy score(&view, &table::score_adjusted);
-    QSignalSpy ended(&view, &table::game_over);
-    view.set_slot_count(1);
-    view.start_quiz(1, false);
-    view.set_paused(true);
-    view.set_pick_interval(100);
-    view.set_dealing_mode(2);
-    view.set_allow_skipping(false);
-    view.on_clock_tick(9000, 9000);
-    view.clear_quiz();
-    QCOMPARE(view.slot_widgets.size(), std::size_t { 24 });
-    QCOMPARE(identity->phase(), gameplay::session_phase::running);
-    QCOMPARE(*identity->deck({ 0 }), before);
-    QCOMPARE(view.capture_session_state(), table_session_state {});
     for (std::size_t index = 0; index < view.slot_widgets.size(); ++index) {
         auto* slot = view.slot_widgets[index];
         QCOMPARE(
             slot->gameplay_deck_id(),
             std::optional { gameplay::deck_id { index } }
         );
-        QCOMPARE(
-            owned_card(slot)->capture_session_state(), card_session_state {}
-        );
-        slot->start_quiz(0);
-        slot->set_paused(false);
-        slot->advance_card();
-        slot->clear_quiz();
-        QVERIFY(!slot->restore_session_state({}));
-        QVERIFY(QMetaObject::invokeMethod(
-            slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
-        ));
-        QVERIFY(QMetaObject::invokeMethod(
-            slot, "on_quiz_skip_button_clicked", Qt::DirectConnection
-        ));
-        QVERIFY(QMetaObject::invokeMethod(
-            slot, "on_settings_button_clicked", Qt::DirectConnection
-        ));
-        QVERIFY(QMetaObject::invokeMethod(
-            slot, "on_copy_all_button_clicked", Qt::DirectConnection
-        ));
-        slot->resize(45, 65);
-        auto* compact = slot->findChild<QToolButton*>(
-            QStringLiteral("compact_slot_controls")
-        );
-        if (compact)
-            QVERIFY(compact->isHidden());
         QVERIFY(
-            slot->findChild<QWidget*>(QStringLiteral("quiz_spin_box"))
-                ->isEnabled()
-            == false
+            slot->findChild<QLineEdit*>(QStringLiteral("gameplay_quiz_input"))
+        );
+        QVERIFY(
+            QMetaObject::invokeMethod(
+                slot, "on_quiz_answer_button_clicked", Qt::DirectConnection
+            )
+        );
+        QVERIFY(
+            QMetaObject::invokeMethod(
+                slot, "on_quiz_skip_button_clicked", Qt::DirectConnection
+            )
+        );
+        QVERIFY(
+            QMetaObject::invokeMethod(
+                slot, "on_settings_button_clicked", Qt::DirectConnection
+            )
         );
     }
     QCOMPARE(*identity->deck({ 0 }), before);
-    QCOMPARE(score.size(), 0);
-    QCOMPARE(ended.size(), 0);
     QVERIFY(view.findChildren<QDialog*>().isEmpty());
 }
 
-void table_tests::gameplay_table_installation_preflight_preserves_current_scene(
-) {
+void table_tests::
+    gameplay_table_installation_preflight_preserves_current_scene() {
     table view;
     view.resize(900, 700);
-    view.set_slot_count(2);
-    view.start_quiz(0, false);
-    const auto before = view.capture_session_state();
-    QVERIFY(!view.install_gameplay_session(owned_table_fixture()));
-    QCOMPARE(view.capture_session_state(), before);
-    QVERIFY(!view.active_gameplay_session());
-    view.clear_quiz();
     QVERIFY(view.install_gameplay_session(owned_table_fixture()));
     auto* identity = view.active_gameplay_session();
     QPointer<table_slot> first = view.slot_widgets.front();
@@ -129,7 +91,6 @@ void table_tests::gameplay_table_installation_preflight_preserves_current_scene(
     QCOMPARE(view.active_gameplay_session(), identity);
     QCOMPARE(view.slot_widgets.front(), first.data());
     QCOMPARE(first->geometry(), bounds);
-    QVERIFY(!view.restore_session_state(before));
     QCOMPARE(changed.size(), 0);
     view.resize(
         1, 88
@@ -151,8 +112,7 @@ void table_tests::gameplay_table_replacement_destroys_views_before_owner() {
     );
     bool owner_alive_when_closed = false;
     QObject::connect(
-        &view, &table::gameplay_session_about_to_change, &view,
-        [&] {
+        &view, &table::gameplay_session_about_to_change, &view, [&] {
             owner_alive_when_closed
                 = view.active_gameplay_session() == first_owner;
             settings.reset();
@@ -171,10 +131,8 @@ void table_tests::gameplay_table_replacement_destroys_views_before_owner() {
     view.clear_gameplay_session();
     QVERIFY(last_slot.isNull());
     QVERIFY(!view.active_gameplay_session());
-    view.set_slot_count(2);
-    view.start_quiz(0, false);
-    QVERIFY(view.capture_session_state().quiz_running);
-    QVERIFY(!view.slot_widgets.front()->gameplay_deck_id());
+    QVERIFY(view.install_gameplay_session(owned_table_fixture(2)));
+    QVERIFY(view.slot_widgets.front()->gameplay_deck_id());
 }
 
 void table_tests::owned_table_projects_mixed_decks_and_swap() {
@@ -186,7 +144,8 @@ void table_tests::owned_table_projects_mixed_decks_and_swap() {
     QVERIFY(game.start());
     QCOMPARE(game.deal_step().status, gameplay::dealing_step_status::advanced);
     QVERIFY(game.edit_quiz_input({ 2 }, 9));
-    QVERIFY(game.check_quiz({ 3 })
+    QVERIFY(
+        game.check_quiz({ 3 })
     ); // wrong challenge -> failed, real answer path
     QCOMPARE(game.deal_step().status, gameplay::dealing_step_status::advanced);
     view.refresh_gameplay_session();
@@ -220,16 +179,20 @@ void table_tests::owned_table_projects_mixed_decks_and_swap() {
     QVERIFY(!view.swap_gameplay_decks({ 0 }, { 2 }));
     QVERIFY(game.pause());
     view.refresh_gameplay_session();
-    QVERIFY(QMetaObject::invokeMethod(
-        &view, "on_slot_swap", Qt::DirectConnection,
-        Q_ARG(table_slot*, deck_views[0])
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &view, "on_slot_swap", Qt::DirectConnection,
+            Q_ARG(table_slot*, deck_views[0])
+        )
+    );
     view.refresh_gameplay_session(); // same-state refresh preserves selection
     QVERIFY(deck_views[0]->swap_selected());
-    QVERIFY(QMetaObject::invokeMethod(
-        &view, "on_slot_swap", Qt::DirectConnection,
-        Q_ARG(table_slot*, deck_views[2])
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            &view, "on_slot_swap", Qt::DirectConnection,
+            Q_ARG(table_slot*, deck_views[2])
+        )
+    );
     QCOMPARE(
         view.slot_widgets, deck_views
     ); // deck storage is never widget-swap order
@@ -258,10 +221,12 @@ void table_tests::owned_table_projects_mixed_decks_and_swap() {
                   ? packing::orientation_constraint::vertical_only
                   : packing::orientation_constraint::horizontal_only }
         );
-        QVERIFY(std::ranges::equal(
-            game.traversal(), expected.traversal, {},
-            [](auto id) { return id.value; }
-        ));
+        QVERIFY(
+            std::ranges::equal(
+                game.traversal(), expected.traversal, {},
+                [](auto id) { return id.value; }
+            )
+        );
         for (std::size_t index = 0; index < game.size(); ++index) {
             QCOMPARE(
                 deck_views[index]->geometry(),
@@ -276,7 +241,8 @@ void table_tests::owned_table_projects_mixed_decks_and_swap() {
         }
     }
     QCOMPARE(*game.deck({ 2 }), pending);
-    QVERIFY(view.swap_gameplay_decks({ 1 }, { 3 })
+    QVERIFY(
+        view.swap_gameplay_decks({ 1 }, { 3 })
     ); // stopped owners also remain mapped
     QCOMPARE(*game.deck({ 1 }), completed);
     QCOMPARE(*game.deck({ 3 }), failed);
@@ -341,7 +307,8 @@ void table_tests::gameplay_table_refreshes_owned_check_and_timeout() {
     auto* timed_out = view.slot_widgets[3];
     QVERIFY(correct->is_quiz_prompt_active());
     QVERIFY(timed_out->is_quiz_prompt_active());
-    QVERIFY(game.edit_quiz_input({ 2 }, game.deck({ 2 })->quiz->expected_count)
+    QVERIFY(
+        game.edit_quiz_input({ 2 }, game.deck({ 2 })->quiz->expected_count)
     );
     QVERIFY(game.check_quiz({ 2 }));
     view.refresh_gameplay_session();
@@ -352,9 +319,6 @@ void table_tests::gameplay_table_refreshes_owned_check_and_timeout() {
     QVERIFY(timed_out->is_quiz_prompt_active());
     QVERIFY(game.pause());
     const auto batch = game.current_quiz_batch();
-    view.on_clock_tick(
-        90000, 90000
-    ); // legacy clock cannot consume the new batch
     view.refresh_gameplay_session();
     QCOMPARE(game.current_quiz_batch(), batch);
     QVERIFY(game.resume());
@@ -376,7 +340,7 @@ void table_tests::gameplay_table_reuses_one_bounded_raster_owner() {
     view.resize(1100, 800);
     view.show();
     QVERIFY(view.install_gameplay_session(owned_table_fixture()));
-    view.prepare_cards_for_start();
+    view.update_card_image_demands(true);
     const auto all_ready = [&view] {
         return !view.is_rasterization_busy()
             && std::ranges::all_of(view.slot_widgets, [](const auto* slot) {
@@ -408,7 +372,7 @@ void table_tests::gameplay_table_reuses_one_bounded_raster_owner() {
     QCOMPARE(*game.deck({ 0 }), before);
     for (const auto count : { std::size_t { 24 }, std::size_t { 2 } }) {
         QVERIFY(view.install_gameplay_session(owned_table_fixture(count)));
-        view.prepare_cards_for_start();
+        view.update_card_image_demands(true);
         QTRY_VERIFY_WITH_TIMEOUT(all_ready(), 10000);
         QVERIFY(view.rasterizing_slots.isEmpty());
         QCOMPARE(view.displayed_card_images.size(), 1);

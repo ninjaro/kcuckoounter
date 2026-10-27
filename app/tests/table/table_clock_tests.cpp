@@ -7,12 +7,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -65,10 +63,9 @@ void table_tests::gameplay_clock_requires_explicit_bound_start() {
     QCOMPARE(view.active_gameplay_session(), owner);
     QVERIFY(view.gameplay_timer.isActive());
     const auto before = *owner->deck({ 0 });
-    view.on_clock_tick(9000, 9000);
+    view.refresh_gameplay_session();
     QCOMPARE(*owner->deck({ 0 }), before);
     QCOMPARE(owner->timing().play_time_ms, std::uint64_t { 0 });
-    QCOMPARE(view.capture_session_state(), table_session_state {});
 }
 
 void table_tests::gameplay_clock_routes_dealing_modes_data() {
@@ -233,7 +230,6 @@ void table_tests::gameplay_clock_pause_preserves_batch_and_actions() {
     QVERIFY(view.resume_gameplay_runtime());
     view.stop_gameplay_clock();
     QSignalSpy resolved(&view, &table::gameplay_quiz_resolved);
-    QSignalSpy legacy_score(&view, &table::score_adjusted);
     QVERIFY(view.check_gameplay_quiz(prompts[0]));
     QCOMPARE(
         owner.current_quiz_batch()->remaining_ms,
@@ -262,7 +258,6 @@ void table_tests::gameplay_clock_pause_preserves_batch_and_actions() {
     QCOMPARE(owner.statistics().skips, std::uint64_t { 1 });
     QCOMPARE(owner.timing().play_time_ms, std::uint64_t { 1550 });
     QCOMPARE(owner.timing().quiz_time_ms, std::uint64_t { 1250 });
-    QCOMPARE(legacy_score.count(), 0);
     QVERIFY(view.advance_gameplay_runtime(299, answers));
     QCOMPARE(owner.deck({ 0 })->next_card, std::size_t { 1 });
     QVERIFY(view.advance_gameplay_runtime(1, answers));
@@ -471,7 +466,6 @@ void table_tests::gameplay_clock_rejections_pause_and_diagnose() {
     QVERIFY(view.start_gameplay_runtime(6));
     view.stop_gameplay_clock();
     QSignalSpy failed(&view, &table::gameplay_runtime_failed);
-    QSignalSpy legacy_ended(&view, &table::game_over);
     std::vector<gameplay::quiz_answer> answers;
     QVERIFY(!view.advance_gameplay_runtime(300, answers));
     view.publish_gameplay_runtime(answers);
@@ -483,7 +477,6 @@ void table_tests::gameplay_clock_rejections_pause_and_diagnose() {
     QVERIFY(!view.gameplay_elapsed.isValid());
     view.publish_gameplay_runtime({});
     QCOMPARE(failed.count(), 1); // not a repeated error every UI refresh
-    QCOMPARE(legacy_ended.count(), 0);
 
     QVERIFY(view.install_gameplay_session(owned_clock_fixture(1)));
     QVERIFY(view.start_gameplay_runtime(7));
@@ -544,10 +537,9 @@ void table_tests::gameplay_clock_replacement_retires_timer_and_notifications() {
     QVERIFY(!view.gameplay_timer.isActive());
     QVERIFY(!view.gameplay_elapsed.isValid());
     view.on_gameplay_clock_tick();
-    view.set_slot_count(1);
-    view.start_quiz(0, false);
-    view.on_clock_tick(300, 300);
-    QVERIFY(view.capture_session_state().quiz_running);
+    QVERIFY(view.install_gameplay_session(owned_clock_fixture(1)));
+    QVERIFY(view.start_gameplay_runtime(10));
+    QVERIFY(view.has_gameplay_runtime());
     QVERIFY(view.slot_widgets.front()->has_cards());
 }
 

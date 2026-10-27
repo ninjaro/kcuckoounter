@@ -26,14 +26,14 @@ namespace {
 
 // Exercise the real Details route, including its compact native host.
 QFrame* open_settings(table_slot* slot) {
-    auto* opener
-        = slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls")
-        );
+    auto* opener = slot->findChild<QToolButton*>(
+        QStringLiteral("compact_slot_controls")
+    );
     if (opener && opener->isVisible())
         QTest::mouseClick(opener, Qt::LeftButton);
-    auto* details
-        = slot->findChild<QAbstractButton*>(QStringLiteral("slot_details_button"
-        ));
+    auto* details = slot->findChild<QAbstractButton*>(
+        QStringLiteral("slot_details_button")
+    );
     if (!details || !details->isVisible() || !details->isEnabled())
         return nullptr;
     QTest::keyClick(details, Qt::Key_Space);
@@ -41,9 +41,9 @@ QFrame* open_settings(table_slot* slot) {
 }
 
 void show_controls(table_slot* slot) {
-    auto* opener
-        = slot->findChild<QToolButton*>(QStringLiteral("compact_slot_controls")
-        );
+    auto* opener = slot->findChild<QToolButton*>(
+        QStringLiteral("compact_slot_controls")
+    );
     if (opener && opener->isVisible())
         QTest::mouseClick(opener, Qt::LeftButton);
 }
@@ -89,8 +89,6 @@ void table_tests::settings_hosts_preserve_frozen_quiz() {
         multi ? gameplay::quiz_scope::multi : gameplay::quiz_scope::single,
         { 1, 4 }
     )));
-    QSignalSpy legacy_pause(&view, &table::dialog_opened);
-    QSignalSpy legacy_score(&view, &table::score_adjusted);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
     QVERIFY(view.start_gameplay_runtime(61));
     view.stop_gameplay_clock();
@@ -103,11 +101,14 @@ void table_tests::settings_hosts_preserve_frozen_quiz() {
     auto* training = widgets[0];
     auto* peer = widgets[2];
     // Automatic quiz freeze is not manual Pause, even with a countdown.
-    QVERIFY(QMetaObject::invokeMethod(
-        training, "on_settings_button_clicked", Qt::DirectConnection
-    ));
-    QVERIFY(!training->findChild<QFrame*>(QStringLiteral("slot_settings_editor")
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            training, "on_settings_button_clicked", Qt::DirectConnection
+        )
+    );
+    QVERIFY(
+        !training->findChild<QFrame*>(QStringLiteral("slot_settings_editor"))
+    );
     show_controls(training);
     auto* input = owned_input(training);
     QVERIFY(input && input->isVisible() && input->isEnabled());
@@ -147,9 +148,9 @@ void table_tests::settings_hosts_preserve_frozen_quiz() {
     auto* panel = open_settings(training);
     QVERIFY(panel && panel->isVisible());
     auto* draft = panel->findChild<gameplay::deck_setup_widget*>();
-    auto* show
-        = panel->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
-        ));
+    auto* show = panel->findChild<QCheckBox*>(
+        QStringLiteral("gameplay_deck_show_count")
+    );
     QVERIFY(draft && draft->pending_changes_current());
     QVERIFY(
         show && show->isVisible() && show->isEnabled() && show->isChecked()
@@ -218,9 +219,9 @@ void table_tests::settings_hosts_preserve_frozen_quiz() {
         auto* field = panel->findChild<QWidget*>(QString::fromLatin1(name));
         QVERIFY(field && !field->isEnabled());
     }
-    auto* peer_show
-        = panel->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
-        ));
+    auto* peer_show = panel->findChild<QCheckBox*>(
+        QStringLiteral("gameplay_deck_show_count")
+    );
     QVERIFY(peer_show && peer_show->isHidden() && !peer_show->isEnabled());
     QTest::mouseClick(
         panel->findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok),
@@ -237,9 +238,9 @@ void table_tests::settings_hosts_preserve_frozen_quiz() {
     panel = open_settings(training);
     QVERIFY(panel && panel->isVisible());
     draft = panel->findChild<gameplay::deck_setup_widget*>();
-    show
-        = panel->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
-        ));
+    show = panel->findChild<QCheckBox*>(
+        QStringLiteral("gameplay_deck_show_count")
+    );
     QTest::keyClick(show, Qt::Key_Space);
     const auto training_position = owner.slot_for({ 0 });
     const auto peer_position = owner.slot_for({ 2 });
@@ -306,8 +307,6 @@ void table_tests::settings_hosts_preserve_frozen_quiz() {
     ));
     QVERIFY(view.finish_gameplay_runtime());
     QCOMPARE(preparation.count(), 0);
-    QCOMPARE(legacy_pause.count(), 0);
-    QCOMPARE(legacy_score.count(), 0);
 }
 
 void table_tests::settings_hosts_discard_runtime_drafts_data() {
@@ -317,9 +316,10 @@ void table_tests::settings_hosts_discard_runtime_drafts_data() {
          { slot_settings_style::classic, slot_settings_style::card,
            slot_settings_style::drawer, slot_settings_style::sill }) {
         for (const bool compact : { false, true }) {
-            QTest::newRow(qPrintable(QStringLiteral("style=%1/compact=%2")
-                                         .arg(static_cast<int>(style))
-                                         .arg(compact))
+            QTest::newRow(
+                qPrintable(QStringLiteral("style=%1/compact=%2")
+                               .arg(static_cast<int>(style))
+                               .arg(compact))
             ) << static_cast<int>(style)
               << compact;
         }
@@ -347,7 +347,6 @@ void table_tests::settings_hosts_discard_runtime_drafts() {
     QVERIFY(fixture->prepare_decks(prepared));
     QVERIFY(view.install_gameplay_session(std::move(fixture)));
     auto& owner = *view.active_gameplay_session();
-    QSignalSpy legacy_pause(&view, &table::dialog_opened);
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
     QVERIFY(view.start_gameplay_runtime(63));
     view.stop_gameplay_clock();
@@ -377,9 +376,9 @@ void table_tests::settings_hosts_discard_runtime_drafts() {
     QPointer<gameplay::deck_setup_widget> draft
         = panel->findChild<gameplay::deck_setup_widget*>();
     QVERIFY(draft);
-    auto* show
-        = draft->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
-        ));
+    auto* show = draft->findChild<QCheckBox*>(
+        QStringLiteral("gameplay_deck_show_count")
+    );
     QVERIFY(show && show->isChecked());
     QTest::keyClick(show, Qt::Key_Space);
     slot->resize(80, 60); // promote the same paused draft, never a second form
@@ -399,9 +398,9 @@ void table_tests::settings_hosts_discard_runtime_drafts() {
     panel = open_settings(slot);
     QVERIFY(panel && panel->isVisible());
     draft = panel->findChild<gameplay::deck_setup_widget*>();
-    show
-        = draft->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
-        ));
+    show = draft->findChild<QCheckBox*>(
+        QStringLiteral("gameplay_deck_show_count")
+    );
     QTest::keyClick(show, Qt::Key_Space);
     QVERIFY(view.resume_gameplay_runtime());
     view.stop_gameplay_clock();
@@ -431,9 +430,9 @@ void table_tests::settings_hosts_discard_runtime_drafts() {
     panel = open_settings(slot);
     QVERIFY(panel && panel->isVisible());
     draft = panel->findChild<gameplay::deck_setup_widget*>();
-    show
-        = draft->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
-        ));
+    show = draft->findChild<QCheckBox*>(
+        QStringLiteral("gameplay_deck_show_count")
+    );
     QTest::keyClick(show, Qt::Key_Space);
     QVERIFY(view.finish_gameplay_runtime());
     QVERIFY(!panel->isVisible());
@@ -443,9 +442,11 @@ void table_tests::settings_hosts_discard_runtime_drafts() {
     const auto result = *owner.result();
     const auto finished_timing = owner.timing();
     view.set_settings_style(slot_settings_style::sill);
-    QVERIFY(QMetaObject::invokeMethod(
-        slot, "on_settings_button_clicked", Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            slot, "on_settings_button_clicked", Qt::DirectConnection
+        )
+    );
     QVERIFY(!slot->findChild<QFrame*>(QStringLiteral("slot_settings_editor")));
     QCOMPARE(*owner.result(), result);
     QCOMPARE(owner.timing(), finished_timing);
@@ -465,9 +466,9 @@ void table_tests::settings_hosts_discard_runtime_drafts() {
     QVERIFY(panel && panel->isVisible());
     draft = panel->findChild<gameplay::deck_setup_widget*>();
     QPointer<QWidget> retired_host = panel->parentWidget();
-    show
-        = draft->findChild<QCheckBox*>(QStringLiteral("gameplay_deck_show_count"
-        ));
+    show = draft->findChild<QCheckBox*>(
+        QStringLiteral("gameplay_deck_show_count")
+    );
     QTest::keyClick(show, Qt::Key_Space);
     QVERIFY(view.install_gameplay_session(owned_clock_fixture(2)));
     QVERIFY(retired.isNull() && retired_input.isNull() && draft.isNull());
@@ -482,7 +483,6 @@ void table_tests::settings_hosts_discard_runtime_drafts() {
         std::int64_t { 0 }
     );
     QCOMPARE(preparation.count(), 0);
-    QCOMPARE(legacy_pause.count(), 0);
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

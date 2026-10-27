@@ -5,7 +5,6 @@
 #include "settings/gameplay_progress_tests.hpp"
 
 #include "settings/gameplay_progress_fixture.hpp"
-#include "settings/training_progress.hpp"
 
 #include <QDataStream>
 #include <QJsonDocument>
@@ -78,17 +77,14 @@ void gameplay_progress_tests::history_reopen_and_retries() {
     QCOMPARE(reopened.value(storage_key), before);
 }
 
-void gameplay_progress_tests::progress_records_are_mode_local() {
+void gameplay_progress_tests::progress_preserves_other_settings() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     QSettings settings(
         directory.filePath("settings.ini"), QSettings::IniFormat
     );
-    training_progress_service classic(settings);
-    QVERIFY(classic.record({ 7, 10, 1000, 1'700'000'000'000 }));
-    const auto old = classic.load();
     settings.setValue(
-        QStringLiteral("trainer_session/payload"), QByteArray("legacy recovery")
+        QStringLiteral("unrelated/session"), QByteArray("unrelated recovery")
     );
     settings.setValue(
         QStringLiteral("gameplay_preferences/document"), QByteArray("defaults")
@@ -102,16 +98,9 @@ void gameplay_progress_tests::progress_records_are_mode_local() {
     gameplay_progress_service service(settings, { 3, 64 });
     QVERIFY(!service.load());
     QVERIFY(service.record(progress_for(sample_result()).recent_results[0]));
-    QCOMPARE(classic.load(), old);
     QCOMPARE(settings.allKeys().size(), before.size() + 1);
     for (const auto& key : before.keys())
         QCOMPARE(settings.value(key), before.value(key));
-    const auto target = service.load();
-    const auto target_bytes = settings.value(storage_key);
-    QVERIFY(classic.record({ 9, 10, 900, 1'700'000'001'000 }));
-    QVERIFY(service.load() == target);
-    QCOMPARE(settings.value(storage_key), target_bytes);
-    QCOMPARE(classic.load().correct_answers, 16);
 }
 
 void gameplay_progress_tests::lifetime_sequence_bounds() {
@@ -126,8 +115,9 @@ void gameplay_progress_tests::lifetime_sequence_bounds() {
     progress.timing.play_time_ms = std::numeric_limits<std::uint64_t>::max();
     for (std::uint64_t i = 0; i < gameplay_progress::maximum_recent_results;
          ++i)
-        progress.recent_results.push_back({ progress.completed_sessions - i, 1,
-                                            result });
+        progress.recent_results.push_back(
+            { progress.completed_sessions - i, 1, result }
+        );
     const auto bytes = encode_gameplay_progress(progress, { 3, 64 });
     QVERIFY(bytes && decode_gameplay_progress(*bytes, { 3, 64 }) == progress);
     settings.setValue(storage_key, *bytes);

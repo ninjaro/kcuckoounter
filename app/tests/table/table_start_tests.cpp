@@ -56,7 +56,6 @@ void gameplay_start_tests::gate_precedes_activation() {
     QVERIFY(view.install_gameplay_session(owned_clock_fixture(2)));
     const auto expected = gameplay::capture_start(*view.gameplay_owner, 91);
     QSignalSpy updates(&view, &table::gameplay_runtime_updated);
-    QSignalSpy legacy(&view, &table::score_adjusted);
     std::optional<gameplay_checkpoint> admitted;
     bool setup_before_gate = false;
     QVERIFY(view.start_gameplay_runtime(91, [&](const auto& checkpoint) {
@@ -74,7 +73,6 @@ void gameplay_start_tests::gate_precedes_activation() {
     QVERIFY(view.gameplay_runtime_attached && view.gameplay_timer.isActive());
     QVERIFY(gameplay::capture_checkpoint(*view.gameplay_owner) == expected);
     QCOMPARE(updates.count(), 1);
-    QCOMPARE(legacy.count(), 0);
     view.stop_gameplay_clock();
 }
 
@@ -182,12 +180,9 @@ void gameplay_start_tests::gate_survives_destruction_and_exceptions() {
     QVERIFY(view.install_gameplay_session(owned_clock_fixture(1)));
     QVERIFY_THROWS_EXCEPTION(
         std::runtime_error,
-        (void)view.start_gameplay_runtime(
-            4,
-            [](const auto&) -> bool {
-                throw std::runtime_error("admission failed");
-            }
-        )
+        (void)view.start_gameplay_runtime(4, [](const auto&) -> bool {
+            throw std::runtime_error("admission failed");
+        })
     );
     QVERIFY(!view.gameplay_start_pending);
     QCOMPARE(view.gameplay_owner->phase(), gameplay::session_phase::setup);

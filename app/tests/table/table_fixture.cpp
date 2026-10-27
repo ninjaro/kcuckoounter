@@ -3,12 +3,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -30,6 +28,21 @@
 #endif
 
 namespace table_test {
+
+std::unique_ptr<gameplay::session> setup_table_fixture(std::size_t count) {
+    gameplay::session_configuration configuration;
+    configuration.allow_extra_slots = true;
+    auto owner = gameplay::session::create(
+        configuration,
+        std::vector<gameplay::deck_configuration>(
+            count, { "hi_lo", 1, false, false }
+        ),
+        { 1, std::max(count, std::size_t { 64 }) }
+    );
+    if (!owner)
+        qFatal("Invalid unprepared roster fixture");
+    return std::make_unique<gameplay::session>(std::move(*owner));
+}
 
 std::unique_ptr<gameplay::session>
 owned_table_fixture(std::size_t count, bool global_pause) {
@@ -116,10 +129,10 @@ void enter_owned_count(QLineEdit* input, const QString& text) {
 }
 
 // Exercise the native shell with deterministic presentation, without persisting
-// test choices into either legacy preferences or other profile cases.
+// test choices into table preferences or other profile cases.
 launcher_preferences_guard::launcher_preferences_guard()
     : ui(load_desktop_ui_preferences())
-    , trainer(load_trainer_preferences()) {
+    , trainer(load_table_appearance_preferences()) {
     QSettings storage(
         QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
     );
@@ -138,7 +151,9 @@ launcher_preferences_guard::launcher_preferences_guard()
     (void)save_desktop_ui_preferences(defaults);
     auto preferences = trainer;
     preferences.card_orientation = card_orientation_mode::automatic;
-    (void)save_trainer_preferences(preferences);
+    (void)save_table_appearance_preferences(
+        load_table_appearance_preferences(), preferences
+    );
 }
 
 launcher_preferences_guard::~launcher_preferences_guard() {
@@ -160,7 +175,9 @@ launcher_preferences_guard::~launcher_preferences_guard() {
         storage.remove(QStringLiteral("gameplay_preferences/document"));
     storage.sync();
     (void)save_desktop_ui_preferences(ui);
-    (void)save_trainer_preferences(trainer);
+    (void)save_table_appearance_preferences(
+        load_table_appearance_preferences(), trainer
+    );
 }
 
 QAction* launcher_start_action(main_window& window) {

@@ -10,9 +10,6 @@
 #include <QSettings>
 
 void main_window::on_saved_drills_triggered() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    return;
-#else
     if (gameplay_storage_busy)
         return;
     const QPointer<main_window> guard(this);
@@ -21,22 +18,20 @@ void main_window::on_saved_drills_triggered() {
     const bool live_owned = owner
         && (owner->phase() == gameplay::session_phase::running
             || owner->phase() == gameplay::session_phase::paused);
-    const bool resume = owned
-        ? owner->phase() == gameplay::session_phase::running
-        : quiz_started && !quiz_paused;
+    const bool resume
+        = owned ? owner->phase() == gameplay::session_phase::running : false;
     const auto pause_revision = mobile_pause_revision;
-    const auto cap = gameplay::desktop_slot_technical_cap;
+    const auto cap = gameplay::slot_technical_cap;
     const drill_picker_policy policy {
         { cap, cap },
         owned && !table_widget->has_open_gameplay_settings(),
-        !live_owned && (owned || !quiz_started),
-        owned ? !live_owned : quiz_started
+        !live_owned,
+        !live_owned
     };
     bool replaced = false;
     QPointer<drill_picker> picker;
     const auto replacement = connect(
-        table_widget, &table::gameplay_session_about_to_change, this,
-        [&] {
+        table_widget, &table::gameplay_session_about_to_change, this, [&] {
             replaced = true;
             if (picker)
                 picker->invalidate();
@@ -69,6 +64,9 @@ void main_window::on_saved_drills_triggered() {
         QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
     );
     picker = new drill_picker(storage, std::move(current), policy, this);
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    picker->setWindowState(Qt::WindowMaximized);
+#endif
     const auto result = picker->exec();
     std::optional<gameplay_drill> chosen;
     if (guard && picker && !replaced && result == QDialog::Accepted)
@@ -94,9 +92,6 @@ void main_window::on_saved_drills_triggered() {
             auto* active = table_widget->active_gameplay_session();
             if (active && active->phase() == gameplay::session_phase::paused)
                 (void)table_widget->resume_gameplay_runtime();
-        } else if (quiz_started && quiz_paused) {
-            on_start_pause_triggered();
         }
     }
-#endif
 }

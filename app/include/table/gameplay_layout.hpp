@@ -12,7 +12,7 @@ namespace gameplay {
 // Provisional R-006 desktop policy, not a fundamental domain/storage limit.
 // Logical slot short side leaves room for the existing frame/inset treatment.
 inline constexpr double recommended_slot_short_side = 160.0;
-inline constexpr std::size_t desktop_slot_technical_cap = 64;
+inline constexpr std::size_t slot_technical_cap = 64;
 
 struct slot_recommendation {
     slot_limits bounds;
@@ -37,8 +37,8 @@ struct rectangle_motion {
     // Linear box geometry only. Metadata describes the target; the renderer
     // can inspect both endpoints to choose its rotation/easing treatment.
     // Nonfinite/out-of-range progress is rejected, never extrapolated.
-    [[nodiscard]] std::optional<packing::rectangle> sample(double progress
-    ) const;
+    [[nodiscard]] std::optional<packing::rectangle>
+    sample(double progress) const;
 };
 
 // Application-owned, ephemeral presentation history, NOT gameplay state or
@@ -64,8 +64,8 @@ public:
     [[nodiscard]] bool
     swap_decks(deck_id first, deck_id second, double current_progress = 1.0);
 
-    [[nodiscard]] const rectangle_motion* slot_motion(physical_slot_id id
-    ) const;
+    [[nodiscard]] const rectangle_motion*
+    slot_motion(physical_slot_id id) const;
     [[nodiscard]] const rectangle_motion* deck_motion(deck_id id) const;
 
 private:

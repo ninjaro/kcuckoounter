@@ -5,9 +5,7 @@
 #include "settings/preferences_tests.hpp"
 
 #include "settings/preferences.hpp"
-#include "settings/session_checkpoint.hpp"
 #include "settings/strategy_data.hpp"
-#include "settings/training_progress.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 
@@ -62,8 +60,8 @@ void preferences_tests::gameplay_setup_defaults_and_accessible_controls() {
     QCOMPARE(changed.count(), 1);
 }
 
-void preferences_tests::gameplay_setup_loads_without_normalizing_configuration(
-) {
+void preferences_tests::
+    gameplay_setup_loads_without_normalizing_configuration() {
     gameplay::session_configuration settings;
     settings.failure = gameplay::failure_policy::block;
     settings.initial_lives = 12;
@@ -125,9 +123,9 @@ void preferences_tests::gameplay_setup_enforces_lives_pause_and_bounds() {
     auto owner = setup_session(4, settings);
     QVERIFY(owner);
     gameplay::setup_widget widget(*owner);
-    auto* failure
-        = widget.findChild<QComboBox*>(QStringLiteral("gameplay_failure_policy")
-        );
+    auto* failure = widget.findChild<QComboBox*>(
+        QStringLiteral("gameplay_failure_policy")
+    );
     auto* lives
         = widget.findChild<QSpinBox*>(QStringLiteral("gameplay_initial_lives"));
     auto* pause
@@ -298,9 +296,9 @@ void preferences_tests::gameplay_setup_rejects_live_and_invalid_edits() {
     QVERIFY(prepare_setup_session(*owner));
     gameplay::setup_widget widget(*owner);
     QSignalSpy changed(&widget, &gameplay::setup_widget::configuration_changed);
-    auto* failure
-        = widget.findChild<QComboBox*>(QStringLiteral("gameplay_failure_policy")
-        );
+    auto* failure = widget.findChild<QComboBox*>(
+        QStringLiteral("gameplay_failure_policy")
+    );
     const auto settings = owner->configuration();
     const auto prepared = owner->deck({ 0 })->stream;
     failure->setCurrentIndex(-1);
@@ -357,9 +355,9 @@ void preferences_tests::slot_recommendation_and_override_are_domain_owned() {
     auto* recommendation = widget.findChild<QLabel*>(
         QStringLiteral("gameplay_slot_recommendation")
     );
-    auto* warning
-        = widget.findChild<QLabel*>(QStringLiteral("gameplay_slot_limit_warning"
-        ));
+    auto* warning = widget.findChild<QLabel*>(
+        QStringLiteral("gameplay_slot_limit_warning")
+    );
     QVERIFY(override_control && recommendation && warning);
     QVERIFY(widget.update_table_geometry({ 1000, 700 }, { 88, 63 }));
     QCOMPARE(owner->slot_constraints(), (gameplay::slot_limits { 18, 64 }));
@@ -382,7 +380,8 @@ void preferences_tests::slot_recommendation_and_override_are_domain_owned() {
     QTest::keyClick(override_control, Qt::Key_Space);
     QVERIFY(owner->configuration().allow_extra_slots);
     QCOMPARE(changed.count(), 1);
-    override_control->setChecked(false
+    override_control->setChecked(
+        false
     ); // cannot turn off without first reducing M
     QVERIFY(override_control->isChecked());
     QVERIFY(owner->configuration().allow_extra_slots);
@@ -408,9 +407,9 @@ void preferences_tests::slot_resize_preserves_preparation_and_choice() {
     auto* override_control = widget.findChild<QCheckBox*>(
         QStringLiteral("gameplay_allow_extra_slots")
     );
-    auto* warning
-        = widget.findChild<QLabel*>(QStringLiteral("gameplay_slot_limit_warning"
-        ));
+    auto* warning = widget.findChild<QLabel*>(
+        QStringLiteral("gameplay_slot_limit_warning")
+    );
     QVERIFY(widget.update_table_geometry({ 640, 480 }, { 88, 63 }));
     QCOMPARE(owner->slot_constraints().recommended, 6U);
     QVERIFY(warning->isHidden());
@@ -431,7 +430,8 @@ void preferences_tests::slot_resize_preserves_preparation_and_choice() {
     QVERIFY(override_control->isChecked());
     QVERIFY(owner->configuration().allow_extra_slots);
     QVERIFY(widget.update_table_geometry({ 1920, 1000 }, { 88, 63 }));
-    QVERIFY(override_control->isChecked()
+    QVERIFY(
+        override_control->isChecked()
     ); // growth does not reset an explicit choice
     override_control->setChecked(false);
     QCOMPARE(owner->configuration(), configuration);
@@ -496,8 +496,7 @@ void preferences_tests::gameplay_setup_does_not_write_storage() {
     );
     settings.clear();
     settings.setValue(
-        QStringLiteral("trainer_session/payload"),
-        QByteArray("legacy checkpoint")
+        QStringLiteral("unrelated/session"), QByteArray("legacy checkpoint")
     );
     settings.setValue(QStringLiteral("trainer_preferences/quiz_type"), 1);
     settings.sync();
@@ -515,7 +514,8 @@ void preferences_tests::gameplay_setup_does_not_write_storage() {
             gameplay::failure_policy::block
         );
         choose(
-            widget.findChild<QComboBox*>(QStringLiteral("gameplay_quiz_source")
+            widget.findChild<QComboBox*>(
+                QStringLiteral("gameplay_quiz_source")
             ),
             gameplay::quiz_source::physical_joker
         );

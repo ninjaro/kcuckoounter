@@ -28,8 +28,6 @@ void table::schedule_card_preload() {
     );
 }
 
-void table::prepare_cards_for_start() { update_card_image_demands(true); }
-
 bool table::is_rasterization_busy() const { return rasterization_busy; }
 
 const rasterflow::qt::image_service* table::shared_image_service() {

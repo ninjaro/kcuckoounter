@@ -1,9 +1,7 @@
 #include "settings/preferences_fixture.hpp"
 
 #include "settings/preferences.hpp"
-#include "settings/session_checkpoint.hpp"
 #include "settings/strategy_data.hpp"
-#include "settings/training_progress.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 
@@ -37,52 +35,6 @@ strategy_catalog test_catalog() {
 QSettings temporary_settings(const QTemporaryDir& directory) {
     return { directory.filePath(QStringLiteral("preferences.ini")),
              QSettings::IniFormat };
-}
-
-trainer_session_checkpoint test_checkpoint() {
-    table_slot_session_state slot;
-    slot.card.cards_per_deck = 4;
-    slot.card.decks_count = 2;
-    slot.card.deck = { 0, 3, 2, 1, 2, 0, 1, 3 };
-    slot.card.deck_position = 5;
-    slot.deck_count = 2;
-    slot.strategy_slug = QStringLiteral("first_strategy");
-    slot.show_card_indexing = true;
-    slot.quiz_prompt_active = true;
-    slot.quiz_feedback_active = true;
-    slot.quiz_continue_visible = true;
-    slot.quiz_input_value = -3;
-    slot.quiz_feedback_text = QStringLiteral("Try again");
-
-    trainer_session_checkpoint checkpoint;
-    checkpoint.table.slot_states.append(slot);
-    checkpoint.table.pick_elapsed_ms = 175;
-    checkpoint.table.quiz_running = true;
-    checkpoint.table.quiz_paused = false;
-    checkpoint.table.allow_skipping = false;
-    checkpoint.table.dealing_mode = 1;
-    checkpoint.score_correct = 3;
-    checkpoint.score_total = 5;
-    checkpoint.elapsed_ms = 12345;
-    checkpoint.was_running = true;
-    checkpoint.saved_at_utc_ms = 1700000000000LL;
-    return checkpoint;
-}
-
-QJsonObject stored_checkpoint_root(QSettings& settings) {
-    return QJsonDocument::fromJson(
-               settings.value(QStringLiteral("trainer_session/payload"))
-                   .toByteArray()
-    )
-        .object();
-}
-
-void store_checkpoint_root(QSettings& settings, const QJsonObject& root) {
-    settings.setValue(
-        QStringLiteral("trainer_session/payload"),
-        QJsonDocument(root).toJson(QJsonDocument::Compact)
-    );
-    settings.sync();
 }
 
 std::optional<gameplay::session> setup_session(

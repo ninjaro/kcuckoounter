@@ -24,10 +24,11 @@ void gameplay_restore_tests::active_restores_identity_data() {
     for (int mode = 0; mode < 3; ++mode)
         for (bool multi : { false, true })
             for (bool infinite : { false, true })
-                QTest::newRow(qPrintable(QStringLiteral("%1-%2-%3")
-                                             .arg(mode)
-                                             .arg(multi)
-                                             .arg(infinite))
+                QTest::newRow(
+                    qPrintable(QStringLiteral("%1-%2-%3")
+                                   .arg(mode)
+                                   .arg(multi)
+                                   .arg(infinite))
                 ) << mode
                   << multi << infinite;
 }
@@ -81,8 +82,6 @@ void gameplay_restore_tests::active_restores_identity() {
             && !view.gameplay_timer.isActive()
             && !view.gameplay_elapsed.isValid();
     });
-    QSignalSpy legacy_score(&view, &table::score_adjusted);
-    QSignalSpy legacy_end(&view, &table::game_over);
     QString error("old diagnostic");
     QCOMPARE(binding.recover(view, recovery, &error), outcome::paused);
     QVERIFY(error.isEmpty() && bound_at_publication);
@@ -127,8 +126,6 @@ void gameplay_restore_tests::active_restores_identity() {
             view.gameplay_pick_elapsed_ms, reference.gameplay_pick_elapsed_ms
         );
     }
-    QCOMPARE(legacy_score.count(), 0);
-    QCOMPARE(legacy_end.count(), 0);
     QVERIFY(binding.owns(view));
 }
 
@@ -213,7 +210,6 @@ void gameplay_restore_tests::active_preflight_keeps_scene_data() {
     QTest::addColumn<int>("fault");
     QTest::newRow("geometry") << 0;
     QTest::newRow("generation-budget") << 1;
-    QTest::newRow("populated-legacy") << 2;
     QTest::newRow("live-target") << 3;
 }
 
@@ -227,22 +223,14 @@ void gameplay_restore_tests::active_preflight_keeps_scene() {
     const auto bytes = storage.value(storage_key);
     table view;
     view.resize(900, 700);
-    if (fault == 2) {
-        view.set_slot_count(1);
-        view.start_quiz(0, false);
-        view.set_paused(true);
-    } else {
-        QVERIFY(view.install_gameplay_session(table_test::owned_clock_fixture(1)
-        ));
-        if (fault == 3) {
-            QVERIFY(view.start_gameplay_runtime(7));
-            QVERIFY(view.pause_gameplay_runtime());
-        }
+    QVERIFY(view.install_gameplay_session(table_test::owned_clock_fixture(1)));
+    if (fault == 3) {
+        QVERIFY(view.start_gameplay_runtime(7));
+        QVERIFY(view.pause_gameplay_runtime());
     }
     if (fault == 0)
         view.resize(1, 1);
     auto* owner = view.gameplay_owner.get();
-    const auto legacy = view.capture_session_state();
     const auto scene = view.gameplay_scene();
     gameplay::generation_policy resources;
     if (fault == 1)
@@ -254,7 +242,6 @@ void gameplay_restore_tests::active_preflight_keeps_scene() {
     );
     QVERIFY(!error.isEmpty() && !binding.sequence());
     QCOMPARE(view.gameplay_owner.get(), owner);
-    QCOMPARE(view.capture_session_state(), legacy);
     QCOMPARE(view.gameplay_scene(), scene);
     QCOMPARE(storage.value(storage_key), bytes);
 }
@@ -298,8 +285,7 @@ void gameplay_restore_tests::active_commit_blocks_reentry() {
     gameplay_reservation binding;
     bool protected_scene = false;
     const auto connection = QObject::connect(
-        &view, &table::gameplay_session_about_to_change, &view,
-        [&] {
+        &view, &table::gameplay_session_about_to_change, &view, [&] {
             QString error;
             const bool restored = view.restore_gameplay_checkpoint(saved);
             const bool installed = view.install_gameplay_session(

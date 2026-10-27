@@ -24,14 +24,7 @@ private slots:
     void default_suit_rejects_invalid_storage_without_rewriting();
     void round_trip_preserves_valid_values();
     void invalid_values_fall_back_independently();
-    void strategy_identity_is_current_slug_only();
     void shell_round_trip_preserves_qt_state();
-    void session_checkpoint_round_trip_preserves_exact_progress();
-    void session_checkpoint_rejects_duplicate_or_missing_cards();
-    void session_checkpoint_rejects_huge_numeric_values();
-    void session_checkpoint_rejects_inconsistent_slot_state();
-    void training_progress_is_bounded();
-    void training_progress_rejects_huge_history_values();
     void desktop_components_preserve_domain_settings();
     void desktop_felt_preset_and_chrome_round_trip();
     void desktop_unknown_choices_survive_unrelated_saves();

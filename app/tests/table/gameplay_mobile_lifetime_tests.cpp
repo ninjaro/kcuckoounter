@@ -6,7 +6,7 @@
 #include "settings/gameplay_recovery_fixture.hpp"
 #include "shell/gameplay_reservation.hpp"
 #include "shell/main_window.hpp"
-#include "table/gameplay_mobile_fixture.hpp"
+#include "table/table_fixture.hpp"
 
 #include <QMessageBox>
 #include <QTimer>
@@ -16,7 +16,7 @@ using namespace table_test;
 using namespace recovery_test;
 
 void gameplay_mobile_tests::background_during_start() {
-    mobile_test::preferences_guard preferences;
+    table_test::launcher_preferences_guard preferences;
     main_window window;
     prepare_window(window);
     auto* view = window.table_widget;
@@ -48,7 +48,7 @@ void gameplay_mobile_tests::background_during_start() {
 }
 
 void gameplay_mobile_tests::background_during_restore() {
-    mobile_test::preferences_guard preferences;
+    table_test::launcher_preferences_guard preferences;
     QSettings storage("ninjaro", "kcuckoounter");
     {
         table source;
@@ -89,7 +89,7 @@ void gameplay_mobile_tests::background_retirement_data() {
 
 void gameplay_mobile_tests::background_retirement() {
     QFETCH(bool, destroy);
-    mobile_test::preferences_guard preferences;
+    table_test::launcher_preferences_guard preferences;
     auto window = std::make_unique<main_window>();
     start_owned(*window);
     auto* view = window->table_widget;
@@ -114,58 +114,47 @@ void gameplay_mobile_tests::background_retirement() {
         QVERIFY(!binding->owns(*view));
     QCOMPARE(storage.value(storage_key), before);
     QVERIFY(!storage.contains(progress_key));
-    QVERIFY(!storage.contains(mobile_test::legacy_key));
 }
 
 void gameplay_mobile_tests::modal_background_stays_paused_data() {
-    QTest::addColumn<bool>("owned");
     QTest::addColumn<bool>("foreground");
-    QTest::newRow("owned-hidden") << true << false;
-    QTest::newRow("owned-foreground") << true << true;
-    QTest::newRow("legacy-hidden") << false << false;
-    QTest::newRow("legacy-foreground") << false << true;
+    QTest::newRow("owned-hidden") << false;
+    QTest::newRow("owned-foreground") << true;
 }
 
 void gameplay_mobile_tests::modal_background_stays_paused() {
-    QFETCH(bool, owned);
     QFETCH(bool, foreground);
-    mobile_test::preferences_guard preferences;
+    table_test::launcher_preferences_guard preferences;
     main_window window;
-    if (owned) {
-        start_owned(window);
-    } else {
-        prepare_window(window);
-        window.table_slots_count->setValue(1);
-        window.wait_for_answers->setChecked(false);
-        window.on_continue_button_clicked();
-        window.start_pause_action->trigger();
-        QVERIFY(window.quiz_started && !window.quiz_paused);
-    }
+    start_owned(window);
     bool answered = false;
-    QTimer::singleShot(0, &window, [&] {
-        window.apply_mobile_state(Qt::ApplicationHidden);
-        if (foreground)
-            window.apply_mobile_state(Qt::ApplicationActive);
-        for (auto* widget : QApplication::topLevelWidgets()) {
-            if (auto* dialog = qobject_cast<QMessageBox*>(widget)) {
+    QTimer reply;
+    reply.setInterval(0);
+    connect(&reply, &QTimer::timeout, &window, [&] {
+        // Android can delegate the dialog to native UI. The backing widget
+        // need not appear in topLevelWidgets, and creation can process events.
+        for (auto* widget : QApplication::allWidgets()) {
+            if (auto* dialog = qobject_cast<QMessageBox*>(widget);
+                dialog && dialog->isVisible()) {
+                reply.stop();
+                window.apply_mobile_state(Qt::ApplicationHidden);
+                if (foreground)
+                    window.apply_mobile_state(Qt::ApplicationActive);
                 answered = true;
                 dialog->done(QMessageBox::No);
                 return;
             }
         }
     });
+    reply.start();
     window.on_finish_triggered();
     QVERIFY(answered);
-    if (owned) {
-        QCOMPARE(
-            window.table_widget->gameplay_owner->phase(),
-            gameplay::session_phase::paused
-        );
-        QVERIFY(!window.table_widget->gameplay_timer.isActive());
-        QVERIFY(window.table_widget->finish_gameplay_runtime());
-    } else {
-        QVERIFY(window.quiz_paused && !window.clock_timer->is_active());
-    }
+    QCOMPARE(
+        window.table_widget->gameplay_owner->phase(),
+        gameplay::session_phase::paused
+    );
+    QVERIFY(!window.table_widget->gameplay_timer.isActive());
+    QVERIFY(window.table_widget->finish_gameplay_runtime());
 }
 
 // NOLINTEND(readability-convert-member-functions-to-static,

@@ -45,7 +45,7 @@ decode(const QByteArray& bytes, slot_limits limits) {
     if (!document.isObject())
         return std::nullopt;
     const auto root = document.object();
-    if (root.size() != 11 || root.contains(QStringLiteral("version")))
+    if (root.size() != 11)
         return std::nullopt;
     const auto count = read_integer(
         root.value(QStringLiteral("slots")), 1,
@@ -111,11 +111,11 @@ gameplay_preferences_service::load(QString* error) const {
 }
 
 bool gameplay_preferences_service::save(
-    const gameplay_preferences& value, QString* error
+    const gameplay_preferences& preferences, QString* error
 ) {
     if (!load(error))
         return false;
-    if (!valid_preferences(value, limits)) {
+    if (!valid_preferences(preferences, limits)) {
         if (error)
             *error = QStringLiteral(
                 "Gameplay defaults do not satisfy the current configuration "
@@ -124,7 +124,7 @@ bool gameplay_preferences_service::save(
         return false;
     }
     const auto previous = settings.value(preferences_key);
-    settings.setValue(preferences_key, encode(value));
+    settings.setValue(preferences_key, encode(preferences));
     settings.sync();
     if (settings.status() == QSettings::NoError)
         return true;

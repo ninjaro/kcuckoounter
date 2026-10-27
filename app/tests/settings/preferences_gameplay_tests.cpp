@@ -39,19 +39,16 @@ void preferences_tests::gameplay_defaults_absence_preserves_other_settings() {
     QTemporaryDir directory;
     QVERIFY(directory.isValid());
     auto settings = temporary_settings(directory);
-    auto trainer = preferences_service::defaults(test_catalog());
-    trainer.slot_count = 16;
-    trainer.quiz_type = 1;
-    trainer.wait_for_answers = true;
+    auto trainer = table_appearance_preferences {};
     trainer.palette = theme_palette_id::blue;
-    preferences_service(settings).save(trainer, test_catalog());
-    settings.setValue(
-        QStringLiteral("trainer_session/payload"),
-        QByteArray("legacy checkpoint")
+    preferences_service(settings).save_appearance(
+        preferences_service(settings).load(), trainer
     );
     settings.setValue(
-        QStringLiteral("training_progress/recent_results"),
-        QByteArray("legacy history")
+        QStringLiteral("unrelated/session"), QByteArray("unrelated checkpoint")
+    );
+    settings.setValue(
+        QStringLiteral("unrelated/history"), QByteArray("unrelated history")
     );
     settings.setValue(QStringLiteral("appearance/default_suit"), 3);
     const auto before = other_settings(settings);
@@ -66,11 +63,8 @@ void preferences_tests::gameplay_defaults_absence_preserves_other_settings() {
         QVERIFY(!settings.contains(defaults_key));
         QCOMPARE(other_settings(settings), before);
     }
-    // Current classic trainer settings are independent of gameplay defaults.
-    QCOMPARE(preferences_service(settings).load(test_catalog()), trainer);
-    QVERIFY(
-        !settings.contains(QStringLiteral("trainer_preferences/schema_version"))
-    );
+    // Table presentation remains independent of gameplay defaults.
+    QCOMPARE(preferences_service(settings).load(), trainer);
     QCOMPARE(other_settings(settings), before);
 }
 

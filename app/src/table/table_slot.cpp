@@ -12,9 +12,7 @@
 #include "settings/theme_palette.hpp"
 #include "table/card_widget.hpp"
 #include "table/gameplay_setup.hpp"
-#include "table/infinity_spinbox.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 
 #include <QApplication>
 #include <QDialog>
@@ -27,40 +25,26 @@
 
 table_slot::table_slot(BaseWidget* parent)
     : BaseWidget(parent)
-    , current_phase(slot_phase::paused)
     , card_widget_internal(new card_widget(this))
     , overlay_widget(nullptr)
-    , settings_bar_widget(nullptr)
     , swap_bar_widget(nullptr)
     , overlay_layout(nullptr)
     , swap_layout(nullptr)
-    , infinity_check_box(nullptr)
-    , deck_count_spin_box(nullptr)
-    , strategy_combo_box(nullptr)
-    , info_button(nullptr)
-    , show_card_indexing(nullptr)
-    , show_strategy_name(nullptr)
-    , training_check_box(nullptr)
     , quiz_bar_widget(nullptr)
     , quiz_weight_label(nullptr)
-    , quiz_spin_box(nullptr)
     , quiz_answer_button(nullptr)
     , quiz_skip_button(nullptr)
     , quiz_feedback_label(nullptr)
     , quiz_continue_button(nullptr)
-    , settings_overlay_visible(true)
     , is_rotated(false)
-    , use_dialog_for_settings(false)
-    , deck_count_minimum(1)
     , quiz_prompt_active(false)
-    , quiz_feedback_active(false)
-    , quiz_continue_visible(false)
-    , allow_skipping_flag(true)
-    , last_quiz_input_value(0) {
+    , quiz_feedback_active(false) {
     auto presentation = shared_ui::qt::presentation_for(*this);
     if (!presentation.context.felt_surface.isValid()) {
         presentation.context.felt_surface
-            = theme_palette_registry::option(load_trainer_preferences().palette)
+            = theme_palette_registry::option(
+                  load_table_appearance_preferences().palette
+            )
                   .base_color();
         shared_ui::qt::apply_presentation(*this, presentation);
     }
@@ -114,157 +98,6 @@ void table_slot::set_rotated(bool rotated) {
 void table_slot::set_gameplay_layout_rotation(std::optional<qreal> degrees) {
     if (gameplay_owner && card_widget_internal)
         card_widget_internal->set_gameplay_layout_rotation(degrees);
-}
-
-void table_slot::set_allow_skipping(bool allow) {
-    if (gameplay_owner)
-        return;
-    if (allow_skipping_flag == allow) {
-        return;
-    }
-    allow_skipping_flag = allow;
-    update_quiz_controls_visibility();
-}
-
-void table_slot::start_quiz(int quiz_type_index) {
-    if (gameplay_owner)
-        return;
-    finish_settings_editor(false);
-    int decks_count = 1;
-    if (deck_count_spin_box != nullptr) {
-        decks_count = deck_count_spin_box->value();
-    }
-    if (decks_count <= 0) {
-        decks_count = 1;
-    }
-
-    const bool is_infinity = is_infinity_enabled();
-    if (card_widget_internal != nullptr) {
-        card_widget_internal->start_quiz(
-            quiz_type_index, decks_count, is_infinity
-        );
-    }
-
-    quiz_prompt_active = false;
-    quiz_feedback_active = false;
-    quiz_continue_visible = false;
-    last_quiz_input_value = 0;
-    update_overlay_layout();
-    if (quiz_bar_widget != nullptr) {
-        quiz_bar_widget->hide();
-    }
-    if (card_widget_internal != nullptr) {
-        card_widget_internal->set_hide_cards(false);
-        card_widget_internal->set_table_marking_source(
-            bundled_asset_path(QStringLiteral("brand/cuckoo.svg"))
-        );
-    }
-
-    sync_card_display_settings();
-    set_paused(false);
-}
-
-void table_slot::clear_quiz() {
-    if (gameplay_owner)
-        return;
-    finish_settings_editor(false);
-    if (card_widget_internal != nullptr) {
-        card_widget_internal->clear_quiz();
-        card_widget_internal->set_hide_cards(false);
-        card_widget_internal->set_table_marking_source(
-            bundled_asset_path(QStringLiteral("brand/cuckoo.svg"))
-        );
-    }
-    quiz_prompt_active = false;
-    quiz_feedback_active = false;
-    quiz_continue_visible = false;
-    last_quiz_input_value = 0;
-    update_overlay_layout();
-    if (quiz_bar_widget != nullptr) {
-        quiz_bar_widget->hide();
-    }
-    set_paused(true);
-}
-
-void table_slot::set_paused(bool paused) {
-    if (gameplay_owner)
-        return;
-    if (!paused)
-        finish_settings_editor(false);
-    const slot_phase new_phase
-        = paused ? slot_phase::paused : slot_phase::running;
-    current_phase = new_phase;
-
-    const bool has_deck
-        = card_widget_internal != nullptr && card_widget_internal->has_cards();
-    const bool show_overlay = paused || !has_deck || quiz_prompt_active;
-
-    if (overlay_widget != nullptr) {
-        overlay_widget->setVisible(show_overlay);
-    }
-
-    if (!has_deck) {
-        settings_overlay_visible = true;
-    }
-
-    if (settings_bar_widget != nullptr) {
-        const bool can_show_settings_inline = show_overlay
-            && settings_overlay_visible && !use_dialog_for_settings
-            && !quiz_prompt_active
-            && settings_style == slot_settings_style::classic;
-        settings_bar_widget->setVisible(can_show_settings_inline);
-    }
-
-    if (swap_bar_widget != nullptr) {
-        swap_bar_widget->setVisible(show_overlay && !quiz_prompt_active);
-    }
-
-    if (quiz_bar_widget != nullptr) {
-        quiz_bar_widget->setVisible(show_overlay && quiz_prompt_active);
-    }
-
-    if (swap_action != nullptr) {
-        swap_action->setEnabled(show_overlay);
-    }
-
-    update_action_presentation();
-    update_settings_button_state();
-
-    if (card_widget_internal != nullptr) {
-        card_widget_internal->set_running(current_phase == slot_phase::running);
-    }
-    if (deck_count_spin_box != nullptr) {
-        if (paused) {
-            if (has_deck) {
-                const int current_value = deck_count_spin_box->value();
-                deck_count_spin_box->setMinimum(
-                    std::max(deck_count_minimum, current_value)
-                );
-            } else {
-                deck_count_spin_box->setMinimum(deck_count_minimum);
-            }
-        } else {
-            deck_count_spin_box->setMinimum(deck_count_minimum);
-        }
-    }
-    update_lockable_settings();
-    update_compact_controls();
-    update();
-}
-
-void table_slot::advance_card() {
-    if (gameplay_owner || current_phase != slot_phase::running
-        || quiz_prompt_active) {
-        return;
-    }
-
-    if (card_widget_internal != nullptr) {
-        card_widget_internal->advance_card();
-        const int current_position = card_widget_internal->current_position();
-        if (current_position >= 0 && (current_position + 1) % 30 == 0) {
-            show_quiz_prompt();
-        }
-    }
 }
 
 void table_slot::trigger_highlight(int duration_ms) {
@@ -378,7 +211,7 @@ void table_slot::set_settings_style(slot_settings_style style) {
     if (settings_style == style)
         return;
     settings_style = style;
-    set_paused(current_phase == slot_phase::paused);
+    update_compact_controls();
     place_settings_editor();
 #else
     Q_UNUSED(style);
@@ -400,27 +233,6 @@ void table_slot::on_swap_button_clicked() {
     if (!gameplay_owner
         || gameplay_owner->phase() == gameplay::session_phase::paused)
         emit swap_clicked(this);
-}
-
-void table_slot::on_copy_button_clicked() {
-    if (!gameplay_owner)
-        emit copy_clicked(this);
-}
-
-void table_slot::on_copy_all_button_clicked() {
-    if (!gameplay_owner)
-        emit copy_all_clicked(this);
-}
-
-void table_slot::set_copy_action(copy_action action) {
-    current_copy_action = action;
-    update_action_presentation();
-    update_action_button_state();
-}
-
-bool table_slot::is_deck_exhausted() const {
-    return card_widget_internal != nullptr
-        && card_widget_internal->is_deck_exhausted();
 }
 
 bool table_slot::is_quiz_prompt_active() const {

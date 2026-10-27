@@ -4,7 +4,6 @@
 #include "table/table_tests.hpp"
 
 #include "settings/gameplay_preferences.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/drill_fixture.hpp"
 #include "table/gameplay_setup.hpp"
@@ -49,8 +48,7 @@ void table_tests::drill_setup_loads_exact_choices() {
     QVERIFY(service.save({ target }));
     const auto saved
         = catalogues.storage.value(QStringLiteral("gameplay_drills/document"));
-    const auto trainer = load_trainer_preferences();
-    const auto progress = load_training_progress();
+    const auto trainer = load_table_appearance_preferences();
     main_window window;
     window.resize(1600, 1000);
     window.show();
@@ -61,7 +59,7 @@ void table_tests::drill_setup_loads_exact_choices() {
     set_gameplay_motion_style(*view, 0);
     view->setFixedSize(1600, 1000);
     QCoreApplication::processEvents();
-    window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))->trigger();
+    window.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
     auto* previous = view->active_gameplay_session();
     QVERIFY(previous);
     visit_drill_picker(window, [&](QDialog& picker) {
@@ -88,18 +86,18 @@ void table_tests::drill_setup_loads_exact_choices() {
     auto* setup
         = window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"));
     QVERIFY(setup && setup->isVisible());
-    auto* saved_button
-        = setup->findChild<QPushButton*>(QStringLiteral("gameplay_saved_drills")
-        );
+    auto* saved_button = setup->findChild<QPushButton*>(
+        QStringLiteral("gameplay_saved_drills")
+    );
     QVERIFY(saved_button);
     auto* slot = view->slot_widgets.front();
     slot->findChild<QAbstractButton*>(QStringLiteral("slot_details_button"))
         ->click();
     QVERIFY(view->has_open_gameplay_settings());
     visit_drill_picker(window, [&](QDialog& picker) {
-        auto* save
-            = picker.findChild<QPushButton*>(QStringLiteral("save_current_drill"
-            ));
+        auto* save = picker.findChild<QPushButton*>(
+            QStringLiteral("save_current_drill")
+        );
         QVERIFY(!save->isEnabled());
         picker.findChild<QLineEdit*>(QStringLiteral("saved_drill_name"))
             ->setText(QStringLiteral("Pending draft"));
@@ -124,7 +122,8 @@ void table_tests::drill_setup_loads_exact_choices() {
         QCOMPARE(owner->configuration().sequential_count, std::size_t { 23 });
         QVERIFY(!owner->configuration().allow_extra_slots);
         setup
-            ->findChild<QCheckBox*>(QStringLiteral("gameplay_allow_extra_slots")
+            ->findChild<QCheckBox*>(
+                QStringLiteral("gameplay_allow_extra_slots")
             )
             ->setChecked(true);
     }
@@ -135,8 +134,7 @@ void table_tests::drill_setup_loads_exact_choices() {
                         : gameplay::session_phase::running
     );
     view->stop_gameplay_clock();
-    QCOMPARE(load_trainer_preferences(), trainer);
-    QCOMPARE(load_training_progress(), progress);
+    QCOMPARE(load_table_appearance_preferences(), trainer);
     QCOMPARE(
         catalogues.storage.value(QStringLiteral("gameplay_drills/document")),
         saved
@@ -226,7 +224,7 @@ void table_tests::drill_picker_preserves_live_quiz() {
         )
     );
     QVERIFY(view->pause_gameplay_runtime());
-    visit_drill_picker(window, [&](QDialog&) {});
+    visit_drill_picker(window, [&](QDialog&) { });
     QCOMPARE(owner.phase(), gameplay::session_phase::paused);
     QVERIFY(owner.finish());
     view->refresh_gameplay_session();

@@ -7,12 +7,10 @@
 #include "card_helpers/card_sheet.hpp"
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/main_window.hpp"
 #include "table/gameplay_setup.hpp"
 #include "table/gameplay_strategy.hpp"
 #include "table/settings_template.hpp"
-#include "table/slot_settings.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
@@ -53,7 +51,8 @@ void table_tests::review_keeps_one_record_per_deck() {
     view.publish_gameplay_runtime(answers);
     QSignalSpy changed(&view, &table::gameplay_corrections_changed);
     QVERIFY(view.skip_gameplay_quiz(*view.gameplay_quiz_prompt({ 0 })));
-    QVERIFY(view.check_gameplay_quiz(*view.gameplay_quiz_prompt({ 1 }))
+    QVERIFY(
+        view.check_gameplay_quiz(*view.gameplay_quiz_prompt({ 1 }))
     ); // Block failure
     QVERIFY(view.skip_gameplay_quiz(*view.gameplay_quiz_prompt({ 3 })));
     QCOMPARE(changed.count(), 3);
@@ -88,16 +87,20 @@ void table_tests::review_keeps_one_record_per_deck() {
     QCOMPARE(
         view.gameplay_corrections().front().owner, gameplay::deck_id { 1 }
     );
-    QVERIFY(QMetaObject::invokeMethod(
-        view.slot_widgets[3], "on_quiz_continue_button_clicked",
-        Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            view.slot_widgets[3], "on_quiz_continue_button_clicked",
+            Qt::DirectConnection
+        )
+    );
     QCOMPARE(view.gameplay_corrections().size(), std::size_t { 1 });
     const auto notified = changed.count();
-    QVERIFY(QMetaObject::invokeMethod(
-        view.slot_widgets[3], "on_quiz_continue_button_clicked",
-        Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            view.slot_widgets[3], "on_quiz_continue_button_clicked",
+            Qt::DirectConnection
+        )
+    );
     QCOMPARE(
         changed.count(), notified
     ); // no-op Dismiss does not rebuild a review
@@ -118,9 +121,6 @@ void table_tests::gameplay_review_native_timeout_data() {
 }
 
 void table_tests::gameplay_review_native_timeout() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    QSKIP("Desktop correction review");
-#endif
     QFETCH(int, count);
     QFETCH(bool, maximum_count);
     launcher_preferences_guard preferences;
@@ -150,7 +150,8 @@ void table_tests::gameplay_review_native_timeout() {
     std::vector<gameplay::prepared_deck> streams;
     for (std::size_t id = 0; id < fixture->size(); ++id)
         streams.push_back(id == 0 ? prepared : fixture->deck({ id })->stream);
-    QVERIFY(fixture->prepare_decks(streams, std::array<std::uint64_t, 1> { 1 })
+    QVERIFY(
+        fixture->prepare_decks(streams, std::array<std::uint64_t, 1> { 1 })
     );
     QVERIFY(view->install_gameplay_session(std::move(fixture)));
     QVERIFY(view->start_gameplay_runtime(102));
@@ -177,15 +178,16 @@ void table_tests::gameplay_review_native_timeout() {
     QCOMPARE(owner->remaining_lives(), 0);
     QVERIFY(!view->gameplay_timer.isActive());
     QVERIFY(action->isEnabled());
-    QVERIFY(!window.findChild<QDialog*>(QStringLiteral("gameplay_review_dialog")
-    )); // never auto-opens
+    QVERIFY(
+        !window.findChild<QDialog*>(QStringLiteral("gameplay_review_dialog"))
+    ); // never auto-opens
     const auto result = *owner->result();
     action->trigger();
     auto* dialog
         = window.findChild<QDialog*>(QStringLiteral("gameplay_review_dialog"));
-    auto* rows
-        = dialog->findChild<QTableWidget*>(QStringLiteral("gameplay_review_rows"
-        ));
+    auto* rows = dialog->findChild<QTableWidget*>(
+        QStringLiteral("gameplay_review_rows")
+    );
     QVERIFY(dialog->isVisible() && !dialog->isModal());
     QCOMPARE(rows->rowCount(), count);
     QCOMPARE(rows->editTriggers(), QAbstractItemView::NoEditTriggers);
@@ -199,10 +201,12 @@ void table_tests::gameplay_review_native_timeout() {
     QVERIFY(!rows->item(0, 4)->flags().testFlag(Qt::ItemIsEditable));
     rows->setCurrentCell(count - 1, 0);
     const auto selected = rows->item(rows->currentRow(), 0)->data(Qt::UserRole);
-    QVERIFY(QMetaObject::invokeMethod(
-        view->slot_widgets[0], "on_quiz_continue_button_clicked",
-        Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            view->slot_widgets[0], "on_quiz_continue_button_clicked",
+            Qt::DirectConnection
+        )
+    );
     QCOMPARE(rows->rowCount(), count - 1);
     QCOMPARE(rows->item(rows->currentRow(), 0)->data(Qt::UserRole), selected);
     QCOMPARE(
@@ -222,9 +226,6 @@ void table_tests::gameplay_review_native_timeout() {
 }
 
 void table_tests::gameplay_review_native_live_mapping_and_clear() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    QSKIP("Desktop correction review");
-#endif
     launcher_preferences_guard preferences;
     main_window window;
     window.resize(1600, 1000);
@@ -249,9 +250,9 @@ void table_tests::gameplay_review_native_live_mapping_and_clear() {
     action->trigger();
     auto* dialog
         = window.findChild<QDialog*>(QStringLiteral("gameplay_review_dialog"));
-    auto* rows
-        = dialog->findChild<QTableWidget*>(QStringLiteral("gameplay_review_rows"
-        ));
+    auto* rows = dialog->findChild<QTableWidget*>(
+        QStringLiteral("gameplay_review_rows")
+    );
     QCOMPARE(rows->rowCount(), 2);
     QCOMPARE(view->gameplay_owner->phase(), gameplay::session_phase::running);
     QCOMPARE(view->gameplay_owner->timing(), timing);
@@ -271,10 +272,12 @@ void table_tests::gameplay_review_native_live_mapping_and_clear() {
     QCOMPARE(data_changed.count(), 0);
     dialog->reject();
     const auto paused_timing = view->gameplay_owner->timing();
-    QVERIFY(QMetaObject::invokeMethod(
-        view->slot_widgets[0], "on_quiz_continue_button_clicked",
-        Qt::DirectConnection
-    ));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            view->slot_widgets[0], "on_quiz_continue_button_clicked",
+            Qt::DirectConnection
+        )
+    );
     QCOMPARE(data_changed.count(), 0); // hidden view is not rebuilt
     action->trigger();
     QCOMPARE(rows->rowCount(), 1);
@@ -307,26 +310,25 @@ void table_tests::gameplay_review_native_live_mapping_and_clear() {
                 ->isVisible());
 }
 
-void table_tests::gameplay_review_native_replacement_and_legacy() {
-#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
-    QSKIP("Desktop correction review");
-#endif
+void table_tests::gameplay_review_native_replacement_and_new_setup() {
     launcher_preferences_guard preferences;
     auto window = std::make_unique<main_window>();
     window->resize(1600, 1000);
     window->show();
     auto* view = window->findChild<table*>();
-    auto* action
-        = window->findChild<QAction*>(QStringLiteral("game_review_corrections")
-        );
-    const auto legacy = load_trainer_preferences();
-    const auto progress = load_training_progress();
+    auto* action = window->findChild<QAction*>(
+        QStringLiteral("game_review_corrections")
+    );
+    const auto appearance = load_table_appearance_preferences();
     QVERIFY(!action->isEnabled());
-    QVERIFY(QMetaObject::invokeMethod(
-        window.get(), "on_gameplay_review_triggered", Qt::DirectConnection
-    ));
-    QVERIFY(!window->findChild<QDialog*>(QStringLiteral("gameplay_review_dialog"
-    )));
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            window.get(), "on_gameplay_review_triggered", Qt::DirectConnection
+        )
+    );
+    QVERIFY(
+        !window->findChild<QDialog*>(QStringLiteral("gameplay_review_dialog"))
+    );
     QVERIFY(view->install_gameplay_session(owned_clock_fixture(
         2, true, gameplay::dealing_mode::simultaneous,
         gameplay::quiz_scope::multi, { 1 }
@@ -352,12 +354,16 @@ void table_tests::gameplay_review_native_replacement_and_legacy() {
     QVERIFY(!action->isEnabled());
     QVERIFY(view->gameplay_corrections().empty());
     QCOMPARE(view->gameplay_owner->phase(), gameplay::session_phase::setup);
-    QCOMPARE(load_trainer_preferences(), legacy);
-    QCOMPARE(load_training_progress(), progress);
-    QVERIFY(QMetaObject::invokeMethod(
-        window.get(), "on_new_game_triggered", Qt::DirectConnection
-    ));
-    QVERIFY(!view->active_gameplay_session());
+    QCOMPARE(load_table_appearance_preferences(), appearance);
+    QVERIFY(
+        QMetaObject::invokeMethod(
+            window.get(), "on_new_game_triggered", Qt::DirectConnection
+        )
+    );
+    QVERIFY(view->active_gameplay_session());
+    QCOMPARE(
+        view->active_gameplay_session()->phase(), gameplay::session_phase::setup
+    );
     QVERIFY(!action->isEnabled());
     QVERIFY(view->gameplay_corrections().empty());
     QVERIFY(view->install_gameplay_session(owned_clock_fixture(

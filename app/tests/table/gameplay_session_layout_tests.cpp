@@ -33,7 +33,7 @@ void gameplay_session_tests::slot_recommendations_follow_actual_packing() {
     QCOMPARE(recommend_slots({ 1920, 1000 }, item)->bounds.recommended, 50U);
     QCOMPARE(
         recommend_slots({ 2560, 1400 }, item)->bounds.recommended,
-        desktop_slot_technical_cap
+        slot_technical_cap
     );
     // Area alone would suggest seven readable slots in this too-short strip.
     const auto strip = recommend_slots({ 1800, 140 }, item);
@@ -70,13 +70,9 @@ void gameplay_session_tests::slot_recommendations_follow_actual_packing() {
                 const auto result
                     = recommend_slots(container, aspect, orientation);
                 QVERIFY(result);
-                QCOMPARE(
-                    result->bounds.technical_cap, desktop_slot_technical_cap
-                );
+                QCOMPARE(result->bounds.technical_cap, slot_technical_cap);
                 QVERIFY(result->bounds.recommended >= 1);
-                QVERIFY(
-                    result->bounds.recommended <= desktop_slot_technical_cap
-                );
+                QVERIFY(result->bounds.recommended <= slot_technical_cap);
                 const auto fits = [&](std::size_t count) {
                     const auto packed = packing::pack_equal_rectangles(
                         { container, aspect, count, orientation }
@@ -100,7 +96,7 @@ void gameplay_session_tests::slot_recommendations_follow_actual_packing() {
                     for (std::size_t count = 1;
                          count <= result->bounds.recommended; ++count)
                         QVERIFY(fits(count));
-                    if (result->bounds.recommended < desktop_slot_technical_cap)
+                    if (result->bounds.recommended < slot_technical_cap)
                         QVERIFY(!fits(result->bounds.recommended + 1));
                 }
             }
@@ -173,7 +169,8 @@ void gameplay_session_tests::
     QCOMPARE(deck_payloads(model), prepared);
     QVERIFY(!model.configure(original)); // cannot silently uncheck above limit
     QVERIFY(model.update_slot_limits({ 4, 64 }));
-    QVERIFY(model.configure(original)
+    QVERIFY(
+        model.configure(original)
     ); // recommendation grows, override optional
     QVERIFY(model.start());
     for (const auto phase : { session_phase::running, session_phase::paused,
@@ -197,8 +194,8 @@ void gameplay_session_tests::
     QVERIFY(overridden.start());
 }
 
-void gameplay_session_tests::traversal_requires_a_complete_physical_permutation(
-) {
+void gameplay_session_tests::
+    traversal_requires_a_complete_physical_permutation() {
     auto model = session::create({}, configurations(4), { 4, 64 }).value();
     for (std::size_t i = 0; i < model.size(); ++i) {
         QVERIFY(model.prepare_deck(deck_id { i }, cards()));
@@ -348,11 +345,13 @@ void gameplay_session_tests::
     settings.sequential_count = 3;
     auto model
         = session::create(settings, configurations(32), { 32, 64 }).value();
-    const auto wide = packing::pack_equal_rectangles({
-        .container = { 1200.0, 600.0 },
-        .item = { 88.0, 63.0 },
-        .count = 32,
-    });
+    const auto wide = packing::pack_equal_rectangles(
+        {
+            .container = { 1200.0, 600.0 },
+            .item = { 88.0, 63.0 },
+            .count = 32,
+        }
+    );
     QVERIFY(wide.complete(32));
     QVERIFY(model.set_traversal(wide.traversal));
     for (std::size_t i = 0; i < model.size(); ++i) {
@@ -365,11 +364,13 @@ void gameplay_session_tests::
         QCOMPARE(selected[i].value, wide.traversal[i]);
     }
     const auto anchor = *model.sequential_anchor();
-    const auto tall = packing::pack_equal_rectangles({
-        .container = { 600.0, 1200.0 },
-        .item = { 88.0, 63.0 },
-        .count = 32,
-    });
+    const auto tall = packing::pack_equal_rectangles(
+        {
+            .container = { 600.0, 1200.0 },
+            .item = { 88.0, 63.0 },
+            .count = 32,
+        }
+    );
     QVERIFY(tall.complete(32));
     QVERIFY(model.set_traversal(tall.traversal));
     const auto anchor_at
@@ -396,8 +397,8 @@ void gameplay_session_tests::
     }
 }
 
-void gameplay_session_tests::repack_preserves_physical_ids_and_current_geometry(
-) {
+void gameplay_session_tests::
+    repack_preserves_physical_ids_and_current_geometry() {
     auto model = ready_session();
     layout_transition presentation(model);
     QVERIFY(!presentation.slot_motion(physical_slot_id { 0 }));
@@ -486,9 +487,12 @@ void gameplay_session_tests::layout_rejects_invalid_updates_atomically() {
         QVERIFY(same_motion(
             before, *presentation.slot_motion(physical_slot_id { 0 })
         ));
-        QVERIFY(std::equal(
-            before_order.begin(), before_order.end(), model.traversal().begin()
-        ));
+        QVERIFY(
+            std::equal(
+                before_order.begin(), before_order.end(),
+                model.traversal().begin()
+            )
+        );
     }
     for (const auto progress : {
              -0.1,
@@ -512,13 +516,14 @@ void gameplay_session_tests::layout_rejects_invalid_updates_atomically() {
         same_motion(before, *presentation.slot_motion(physical_slot_id { 0 }))
     );
     QVERIFY(model.finish());
-    QVERIFY(presentation.repack(valid)
+    QVERIFY(
+        presentation.repack(valid)
     ); // geometry only; terminal game stays frozen
     QVERIFY(!presentation.swap_decks(deck_id { 0 }, deck_id { 1 }));
 }
 
-void gameplay_session_tests::layout_terminal_repack_preserves_frozen_gameplay(
-) {
+void gameplay_session_tests::
+    layout_terminal_repack_preserves_frozen_gameplay() {
     auto model = ready_session();
     layout_transition presentation(model);
     const auto wide = layout(1200.0, 600.0);
@@ -598,8 +603,8 @@ void gameplay_session_tests::layout_swap_moves_decks_between_fixed_slots() {
     QVERIFY(*model.deck(deck_id { 3 }) == payloads[3]);
 }
 
-void gameplay_session_tests::layout_interleaved_swap_and_resize_are_continuous(
-) {
+void gameplay_session_tests::
+    layout_interleaved_swap_and_resize_are_continuous() {
     auto model = ready_session();
     layout_transition presentation(model);
     const auto wide = layout(1200.0, 600.0);

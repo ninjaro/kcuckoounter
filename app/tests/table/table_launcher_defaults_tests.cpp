@@ -65,17 +65,17 @@ void table_tests::launcher_defaults_restore_global_setup() {
         window.resize(1600, 1000);
         window.show();
         QCoreApplication::processEvents();
-        window.findChild<QDialog*>()->reject();
+        if (auto* setup = window.findChild<QDialog*>())
+            setup->reject();
         auto* view = window.findChild<table*>();
         QVERIFY(view);
         set_gameplay_motion_style(*view, 0);
         view->setFixedSize(1600, 1000);
         QCoreApplication::processEvents();
-        window.findChild<QAction*>(QStringLiteral("game_new_gameplay"))
-            ->trigger();
-        auto* dialog
-            = window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog")
-            );
+        window.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
+        auto* dialog = window.findChild<QDialog*>(
+            QStringLiteral("gameplay_setup_dialog")
+        );
         QVERIFY(dialog);
         dialog->findChild<QSpinBox*>(QStringLiteral("gameplay_slot_count"))
             ->setValue(slot_count);
@@ -125,16 +125,17 @@ void table_tests::launcher_defaults_restore_global_setup() {
         deck.training = true;
         QVERIFY(owner->configure_deck({ 0 }, deck));
         QVERIFY(owner->set_show_count({ 0 }, true));
-        auto* speed
-            = window.findChild<QSlider*>(QStringLiteral("pickup_interval_slider"
-            ));
+        auto* speed = window.findChild<QSlider*>(
+            QStringLiteral("pickup_interval_slider")
+        );
         QVERIFY(speed);
         speed->setValue(650);
         QCOMPARE(owner->pick_interval_ms(), 650);
         expected = { owner->size(), owner->configuration(),
                      owner->pick_interval_ms() };
         unrelated = unrelated_settings(storage);
-        QVERIFY(!storage.contains(defaults_key)
+        QVERIFY(
+            !storage.contains(defaults_key)
         ); // accepted edits are not disk writes
         launcher_start_action(window)->trigger();
         QCOMPARE(owner->phase(), gameplay::session_phase::running);
@@ -161,16 +162,20 @@ void table_tests::launcher_defaults_restore_global_setup() {
     main_window restored;
     restored.show();
     QCoreApplication::processEvents();
-    restored.findChild<QDialog*>()->reject();
+    if (auto* setup = restored.findChild<QDialog*>())
+        setup->reject();
     auto* view = restored.findChild<table*>();
+    QVERIFY(view && view->active_gameplay_session());
+    QCOMPARE(
+        view->active_gameplay_session()->phase(), gameplay::session_phase::setup
+    );
     QVERIFY(
-        view && !view->active_gameplay_session()
-    ); // completion was admitted
+        !view->has_gameplay_runtime()
+    ); // completion was admitted, no playable restore
     set_gameplay_motion_style(*view, 0);
     view->setFixedSize(320, 240);
     QCoreApplication::processEvents();
-    restored.findChild<QAction*>(QStringLiteral("game_new_gameplay"))
-        ->trigger();
+    restored.findChild<QAction*>(QStringLiteral("game_new"))->trigger();
     auto* owner = view->active_gameplay_session();
     QVERIFY(owner);
     QCOMPARE(owner->phase(), gameplay::session_phase::setup);
@@ -242,15 +247,16 @@ void table_tests::launcher_defaults_reject_unreadable_storage() {
     window.resize(1600, 1000);
     window.show();
     QCoreApplication::processEvents();
-    window.findChild<QDialog*>()->reject();
+    if (auto* setup = window.findChild<QDialog*>())
+        setup->reject();
     auto* view = window.findChild<table*>();
     QVERIFY(view && !view->active_gameplay_session());
     const auto unrelated = unrelated_settings(storage);
-    auto* entry
-        = window.findChild<QAction*>(QStringLiteral("game_new_gameplay"));
+    auto* entry = window.findChild<QAction*>(QStringLiteral("game_new"));
     entry->trigger();
     QVERIFY(!view->active_gameplay_session());
-    QVERIFY(!window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
+    QVERIFY(
+        !window.findChild<QDialog*>(QStringLiteral("gameplay_setup_dialog"))
     );
     QCOMPARE(storage.value(defaults_key).toByteArray(), record);
     QCOMPARE(unrelated_settings(storage), unrelated);

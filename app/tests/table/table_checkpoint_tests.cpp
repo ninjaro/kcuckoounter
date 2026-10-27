@@ -86,14 +86,16 @@ void table_tests::checkpoint_restore_continues_runtime() {
     QVERIFY(!recovered.gameplay_elapsed.isValid());
     QVERIFY(!recovered.start_gameplay_runtime(9));
     QVERIFY(!recovered.advance_gameplay_runtime(900000, answers));
-    recovered.on_clock_tick(900000, 900000);
+    recovered.on_gameplay_clock_tick();
     recovered.on_gameplay_clock_tick();
     QVERIFY(recovered.capture_gameplay_checkpoint() == saved);
     const auto packed = recovered.pack_gameplay_slots(4).value();
-    QVERIFY(std::ranges::equal(
-        recovered.gameplay_owner->traversal(), packed.traversal, {},
-        &gameplay::physical_slot_id::value
-    ));
+    QVERIFY(
+        std::ranges::equal(
+            recovered.gameplay_owner->traversal(), packed.traversal, {},
+            &gameplay::physical_slot_id::value
+        )
+    );
     for (std::size_t index = 0; index < 4; ++index) {
         QCOMPARE(
             recovered.slot_widgets[index]->geometry(),
@@ -195,7 +197,7 @@ void table_tests::checkpoint_restore_keeps_pickup_remainder() {
     QTest::qWait(2);
     recovered.on_gameplay_clock_tick();
     QVERIFY(recovered.capture_gameplay_checkpoint() == saved);
-    QCOMPARE(recovered.pick_interval(), interval);
+    QCOMPARE(recovered.active_gameplay_session()->pick_interval_ms(), interval);
     QVERIFY(recovered.resume_gameplay_runtime());
     recovered.stop_gameplay_clock();
     QVERIFY(recovered.advance_gameplay_runtime(0, answers));

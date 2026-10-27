@@ -26,7 +26,7 @@ void gameplay_host_tests::start_retirement_keeps_reservation() {
     auto window = std::make_unique<main_window>();
     window->resize(1200, 800);
     window->show();
-    window->new_gameplay_action->trigger();
+    window->new_game_action->trigger();
     auto* view = window->table_widget;
     bool retired = false;
     connect(view, &table::gameplay_runtime_updated, view, [&] {
@@ -149,8 +149,7 @@ void gameplay_host_tests::recovery_finish_is_admitted() {
     window.resize(1200, 800);
     bool finished = false;
     connect(
-        window.table_widget, &table::gameplay_session_changed, &window,
-        [&] {
+        window.table_widget, &table::gameplay_session_changed, &window, [&] {
             if (!finished && window.table_widget->has_gameplay_runtime()) {
                 finished = true;
                 QVERIFY(window.table_widget->finish_gameplay_runtime());
@@ -172,7 +171,7 @@ void gameplay_host_tests::nested_finish_is_admitted() {
     main_window window;
     window.resize(1200, 800);
     window.show();
-    window.new_gameplay_action->trigger();
+    window.new_game_action->trigger();
     auto* view = window.table_widget;
     bool finished = false;
     connect(view, &table::gameplay_runtime_updated, view, [&] {

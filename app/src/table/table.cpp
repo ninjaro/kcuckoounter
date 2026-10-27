@@ -26,23 +26,16 @@ table::table(BaseWidget* parent)
     : BaseWidget(parent)
     , slot_widgets()
     , swap_source_slot(nullptr)
-    , copy_source_slot(nullptr)
     , card_orientation(card_orientation_mode::automatic)
-    , pick_interval_ms(300)
-    , pick_elapsed_ms(0)
-    , quiz_running(false)
-    , quiz_paused(false)
-    , allow_skipping(true)
-    , current_mode(dealing_mode::sequential)
-    , next_slot_index(0)
     , rasterizing_slots()
     , rasterization_busy(false)
-    , random_gen()
     , card_images(this) {
     auto presentation = shared_ui::qt::presentation_for(*this);
     if (!presentation.context.felt_surface.isValid()) {
         presentation.context.felt_surface
-            = theme_palette_registry::option(load_trainer_preferences().palette)
+            = theme_palette_registry::option(
+                  load_table_appearance_preferences().palette
+            )
                   .base_color();
         shared_ui::qt::apply_presentation(*this, presentation);
     }
@@ -101,27 +94,15 @@ std::unique_ptr<table_slot> table::create_slot_widget() {
     slot->set_action_style(action_style);
     slot->set_settings_style(settings_style);
     slot->set_quiz_presentation(answer_style, feedback_style);
-    slot->set_allow_skipping(allow_skipping);
     slot->set_presented_image_mode(true);
     connect(
         slot->card_widget_internal, &card_widget::image_demand_changed, this,
         &table::schedule_card_preload
     );
     connect(slot.get(), &table_slot::swap_clicked, this, &table::on_slot_swap);
-    connect(slot.get(), &table_slot::copy_clicked, this, &table::on_slot_copy);
-    connect(
-        slot.get(), &table_slot::copy_all_clicked, this,
-        &table::on_slot_copy_all
-    );
     connect(
         slot.get(), &table_slot::rasterization_busy_changed, this,
         &table::on_slot_rasterization_busy_changed
-    );
-    connect(
-        slot.get(), &table_slot::dialog_opened, this, &table::dialog_opened
-    );
-    connect(
-        slot.get(), &table_slot::score_adjusted, this, &table::score_adjusted
     );
     connect(
         slot.get(), &table_slot::gameplay_configuration_changed, this, [this] {
@@ -145,7 +126,6 @@ void table::destroy_slot_widgets() {
     delete gameplay_motion_layer;
     gameplay_motion_layer = nullptr;
     clear_swap_selection();
-    clear_copy_selection();
     for (auto* slot : slot_widgets) {
         update_rasterization_state(slot, false);
         delete slot;
@@ -217,106 +197,6 @@ void table::clear_gameplay_session() {
     emit gameplay_session_changed();
 }
 
-void table::set_slot_count(int count) {
-    if (gameplay_owner)
-        return;
-    if (count < 0) {
-        count = 0;
-    }
-
-    int current_count = static_cast<int>(slot_widgets.size());
-    if (count == current_count) {
-        return;
-    }
-
-    clear_swap_selection();
-    clear_copy_selection();
-
-    if (count < current_count) {
-        if (count == 0) {
-            quiz_running = false;
-            pick_elapsed_ms = 0;
-        }
-        for (int index = count; index < current_count; ++index) {
-            table_slot* slot_widget
-                = slot_widgets[static_cast<std::size_t>(index)];
-            if (slot_widget != nullptr) {
-                update_rasterization_state(slot_widget, false);
-                delete slot_widget;
-            }
-        }
-        slot_widgets.resize(static_cast<std::size_t>(count));
-    } else {
-        slot_widgets.reserve(static_cast<std::size_t>(count));
-        for (int index = current_count; index < count; ++index) {
-            slot_widgets.push_back(create_slot_widget().release());
-        }
-    }
-
-    if (next_slot_index >= count) {
-        next_slot_index = 0;
-    }
-
-    update_layout();
-    schedule_card_preload();
-    update_card_image_demands();
-}
-
-void table::start_quiz(int quiz_type_index, bool wait_for_answers) {
-    if (gameplay_owner)
-        return;
-    for (table_slot* slot_widget : slot_widgets) {
-        if (slot_widget != nullptr) {
-            slot_widget->set_allow_skipping(allow_skipping);
-            slot_widget->start_quiz(quiz_type_index);
-        }
-    }
-
-    next_slot_index = 0;
-    quiz_running = true;
-    quiz_paused = wait_for_answers;
-    if (quiz_paused) {
-        for (table_slot* slot_widget : slot_widgets) {
-            if (slot_widget != nullptr) {
-                slot_widget->set_paused(true);
-            }
-        }
-    }
-    pick_elapsed_ms = 0;
-    update_card_image_demands();
-}
-
-void table::clear_quiz() {
-    if (gameplay_owner)
-        return;
-    for (table_slot* slot_widget : slot_widgets) {
-        if (slot_widget != nullptr) {
-            slot_widget->clear_quiz();
-        }
-    }
-
-    quiz_running = false;
-    quiz_paused = false;
-    pick_elapsed_ms = 0;
-}
-
-void table::set_paused(bool paused) {
-    if (gameplay_owner)
-        return;
-    for (table_slot* slot_widget : slot_widgets) {
-        if (slot_widget != nullptr) {
-            slot_widget->set_paused(paused);
-        }
-    }
-
-    quiz_paused = paused;
-}
-
-int table::pick_interval() const {
-    return gameplay_owner ? gameplay_owner->pick_interval_ms()
-                          : pick_interval_ms;
-}
-
 card_orientation_mode table::current_card_orientation() const {
     return card_orientation;
 }
@@ -350,42 +230,6 @@ std::vector<gameplay::quiz_answer> table::gameplay_corrections() const {
     return corrections;
 }
 
-void table::set_pick_interval(int interval_ms) {
-    if (gameplay_owner)
-        return;
-    if (interval_ms < 1) {
-        interval_ms = 1;
-    }
-    pick_interval_ms = interval_ms;
-}
-
-void table::set_dealing_mode(int mode_index) {
-    if (gameplay_owner)
-        return;
-    switch (mode_index) {
-    case 0:
-        current_mode = dealing_mode::sequential;
-        break;
-    case 1:
-        current_mode = dealing_mode::random;
-        break;
-    default:
-        current_mode = dealing_mode::simultaneous;
-        break;
-    }
-}
-
-void table::set_allow_skipping(bool allow) {
-    if (gameplay_owner)
-        return;
-    allow_skipping = allow;
-    for (table_slot* slot_widget : slot_widgets) {
-        if (slot_widget != nullptr) {
-            slot_widget->set_allow_skipping(allow_skipping);
-        }
-    }
-}
-
 void table::set_card_orientation(card_orientation_mode orientation) {
     if (card_orientation == orientation) {
         return;
@@ -397,86 +241,6 @@ void table::set_card_orientation(card_orientation_mode orientation) {
     update_card_image_demands();
 }
 
-table_session_state table::capture_session_state() const {
-    if (gameplay_owner)
-        return {}; // domain sessions have a distinct current checkpoint
-                   // representation
-    table_session_state state;
-    state.slot_states.reserve(static_cast<qsizetype>(slot_widgets.size()));
-    for (const table_slot* slot_widget : slot_widgets) {
-        if (slot_widget != nullptr) {
-            state.slot_states.append(slot_widget->capture_session_state());
-        }
-    }
-    state.pick_elapsed_ms = pick_elapsed_ms;
-    state.quiz_running = quiz_running;
-    state.quiz_paused = quiz_paused;
-    state.allow_skipping = allow_skipping;
-    switch (current_mode) {
-    case dealing_mode::sequential:
-        state.dealing_mode = 0;
-        break;
-    case dealing_mode::random:
-        state.dealing_mode = 1;
-        break;
-    case dealing_mode::simultaneous:
-        state.dealing_mode = 2;
-        break;
-    }
-    state.next_slot_index = next_slot_index;
-    return state;
-}
-
-bool table::restore_session_state(const table_session_state& state) {
-    if (gameplay_owner || !state.quiz_running || state.slot_states.isEmpty()
-        || state.slot_states.size() > 16 || state.dealing_mode < 0
-        || state.dealing_mode > 2 || state.next_slot_index < 0
-        || state.next_slot_index >= state.slot_states.size()
-        || state.pick_elapsed_ms < 0) {
-        return false;
-    }
-    if (std::ranges::any_of(
-            state.slot_states, [](const table_slot_session_state& slot_state) {
-                return !table_slot::is_session_state_valid(slot_state);
-            }
-        )) {
-        return false;
-    }
-
-    set_slot_count(static_cast<int>(state.slot_states.size()));
-    if (slot_widgets.size() != static_cast<size_t>(state.slot_states.size())) {
-        return false;
-    }
-    for (qsizetype index = 0; index < state.slot_states.size(); ++index) {
-        table_slot* slot_widget = slot_widgets[static_cast<std::size_t>(index)];
-        if (slot_widget == nullptr
-            || !slot_widget->restore_session_state(
-                state.slot_states.at(index)
-            )) {
-            clear_quiz();
-            return false;
-        }
-    }
-
-    set_dealing_mode(state.dealing_mode);
-    allow_skipping = state.allow_skipping;
-    next_slot_index = state.next_slot_index;
-    pick_elapsed_ms = std::min<qint64>(
-        state.pick_elapsed_ms, std::max(0, pick_interval_ms - 1)
-    );
-    quiz_running = true;
-    quiz_paused = true;
-    for (table_slot* slot_widget : slot_widgets) {
-        if (slot_widget != nullptr) {
-            slot_widget->set_allow_skipping(allow_skipping);
-            slot_widget->set_paused(true);
-        }
-    }
-    schedule_card_preload();
-    update_card_image_demands();
-    return true;
-}
-
 void table::paintEvent(QPaintEvent* event) {
     BaseWidget::paintEvent(event);
 
@@ -485,10 +249,11 @@ void table::paintEvent(QPaintEvent* event) {
         = shared_ui::qt::presentation_for(*this).context.felt_surface;
     painter.fillRect(
         rect(),
-        color.isValid()
-            ? color
-            : theme_palette_registry::option(load_trainer_preferences().palette)
-                  .base_color()
+        color.isValid() ? color
+                        : theme_palette_registry::option(
+                              load_table_appearance_preferences().palette
+                          )
+                              .base_color()
     );
 }
 
@@ -599,7 +364,6 @@ void table::on_slot_swap(table_slot* slot) {
         return;
 
     if (swap_source_slot == nullptr) {
-        clear_copy_selection();
         swap_source_slot = slot;
         swap_source_slot->set_swap_selected(true);
         return;
@@ -628,159 +392,6 @@ void table::on_slot_swap(table_slot* slot) {
         clear_swap_selection();
         return;
     }
-    std::iter_swap(it_first, it_second);
-
-    swap_source_slot->set_swap_selected(false);
-    slot->set_swap_selected(false);
-    swap_source_slot = nullptr;
-
-    update_layout();
-}
-
-void table::on_slot_copy(table_slot* slot) {
-    if (gameplay_owner)
-        return;
-    if (slot == nullptr) {
-        return;
-    }
-
-    if (copy_source_slot == nullptr) {
-        clear_swap_selection();
-        copy_source_slot = slot;
-        copy_source_slot->set_swap_selected(true);
-        update_copy_button_labels(copy_source_slot);
-        return;
-    }
-
-    if (copy_source_slot == slot) {
-        clear_copy_selection();
-        return;
-    }
-
-    slot->apply_settings_from(*copy_source_slot);
-    clear_copy_selection();
-}
-
-void table::on_slot_copy_all(table_slot* slot) {
-    if (gameplay_owner)
-        return;
-    if (slot == nullptr) {
-        return;
-    }
-
-    for (table_slot* slot_widget : slot_widgets) {
-        if (slot_widget != nullptr && slot_widget != slot) {
-            slot_widget->apply_settings_from(*slot);
-        }
-    }
-}
-
-void table::on_pick_timeout() {
-    if (gameplay_owner || !quiz_running) {
-        return;
-    }
-
-    const int slot_count = static_cast<int>(slot_widgets.size());
-    if (slot_count <= 0) {
-        return;
-    }
-
-    if (current_mode == dealing_mode::simultaneous) {
-        for (table_slot* slot_widget : slot_widgets) {
-            if (slot_widget != nullptr && !slot_widget->is_deck_exhausted()
-                && !slot_widget->is_quiz_prompt_active()) {
-                slot_widget->advance_card();
-                slot_widget->trigger_highlight(pick_interval_ms);
-            }
-        }
-        if (all_slots_exhausted()) {
-            handle_game_over();
-        }
-        return;
-    }
-
-    int slot_index = 0;
-    if (current_mode == dealing_mode::random) {
-        std::vector<int> eligible_slots;
-        eligible_slots.reserve(static_cast<size_t>(slot_count));
-        bool has_available_slots = false;
-        for (int index = 0; index < slot_count; ++index) {
-            table_slot* slot_widget
-                = slot_widgets[static_cast<std::size_t>(index)];
-            if (slot_widget != nullptr && !slot_widget->is_deck_exhausted()) {
-                has_available_slots = true;
-            }
-            if (slot_widget != nullptr && !slot_widget->is_deck_exhausted()
-                && !slot_widget->is_quiz_prompt_active()) {
-                eligible_slots.push_back(index);
-            }
-        }
-        if (eligible_slots.empty()) {
-            if (!has_available_slots) {
-                handle_game_over();
-            }
-            return;
-        }
-        const int pick_index = random_gen.uniform_int(
-            0, static_cast<int>(eligible_slots.size()) - 1
-        );
-        slot_index = eligible_slots[static_cast<std::size_t>(pick_index)];
-    } else {
-        int attempts = 0;
-        slot_index = next_slot_index;
-        while (attempts < slot_count) {
-            table_slot* slot_widget
-                = slot_widgets[static_cast<std::size_t>(slot_index)];
-            if (slot_widget != nullptr && !slot_widget->is_deck_exhausted()
-                && !slot_widget->is_quiz_prompt_active()) {
-                break;
-            }
-            slot_index = (slot_index + 1) % slot_count;
-            ++attempts;
-        }
-        if (attempts >= slot_count) {
-            if (all_slots_exhausted()) {
-                handle_game_over();
-            }
-            return;
-        }
-        next_slot_index = (slot_index + 1) % slot_count;
-    }
-
-    if (slot_index < 0 || slot_index >= slot_count) {
-        return;
-    }
-
-    table_slot* slot_widget
-        = slot_widgets[static_cast<std::size_t>(slot_index)];
-    if (slot_widget == nullptr) {
-        return;
-    }
-    slot_widget->advance_card();
-    slot_widget->trigger_highlight(pick_interval_ms);
-
-    if (all_slots_exhausted()) {
-        handle_game_over();
-    }
-}
-
-void table::on_clock_tick(qint64 elapsed_ms, qint64 delta_ms) {
-    Q_UNUSED(elapsed_ms);
-    if (gameplay_owner || !quiz_running || quiz_paused) {
-        return;
-    }
-
-    for (table_slot* slot_widget : slot_widgets) {
-        if (slot_widget != nullptr) {
-            slot_widget->tick_highlight(static_cast<int>(delta_ms));
-        }
-    }
-
-    pick_elapsed_ms += delta_ms;
-    while (pick_elapsed_ms >= pick_interval_ms) {
-        pick_elapsed_ms -= pick_interval_ms;
-        on_pick_timeout();
-    }
 }
 
 void table::clear_swap_selection() {
@@ -789,47 +400,4 @@ void table::clear_swap_selection() {
     }
     swap_source_slot->set_swap_selected(false);
     swap_source_slot = nullptr;
-}
-
-void table::clear_copy_selection() {
-    if (copy_source_slot == nullptr) {
-        return;
-    }
-    copy_source_slot->set_swap_selected(false);
-    copy_source_slot = nullptr;
-    update_copy_button_labels();
-}
-
-void table::update_copy_button_labels(table_slot* selected_slot) {
-    for (table_slot* slot_widget : slot_widgets) {
-        if (slot_widget == nullptr) {
-            continue;
-        }
-        slot_widget->set_copy_action(
-            selected_slot == nullptr ? table_slot::copy_action::copy
-                                     : (slot_widget == selected_slot
-                                            ? table_slot::copy_action::cancel
-                                            : table_slot::copy_action::apply)
-        );
-    }
-}
-
-bool table::all_slots_exhausted() const {
-    if (slot_widgets.empty()) {
-        return false;
-    }
-
-    return std::ranges::all_of(slot_widgets, [](const table_slot* slot_widget) {
-        return slot_widget == nullptr || slot_widget->is_deck_exhausted();
-    });
-}
-
-void table::handle_game_over() {
-    if (!quiz_running) {
-        return;
-    }
-    quiz_running = false;
-    quiz_paused = false;
-    pick_elapsed_ms = 0;
-    emit game_over();
 }

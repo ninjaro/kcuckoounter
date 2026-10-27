@@ -1,4 +1,5 @@
 #include "shell/main_window.hpp"
+#include <shared_ui/qt/toolbar_presentation.hpp>
 
 #ifndef KC_KDE
 
@@ -14,6 +15,7 @@
 #include <QProgressBar>
 #include <QSlider>
 #include <QToolBar>
+#include <QToolButton>
 
 namespace {
 
@@ -34,6 +36,8 @@ bool is_primary_shell_action(const QString& action_name) {
 void main_window::setup_platform_shell() {
 #if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     menuBar()->hide();
+    game_menu = new QMenu(str_label("More commands"), this);
+    game_menu->setObjectName(QStringLiteral("mobile_commands_menu"));
     primary_toolbar = new BaseToolBar(str_label("Navigation"), this);
     primary_toolbar->setObjectName(QStringLiteral("mobile_navigation_toolbar"));
     primary_toolbar->setAllowedAreas(Qt::BottomToolBarArea);
@@ -55,6 +59,17 @@ void main_window::setup_platform_shell() {
 
 void main_window::finalize_platform_shell() {
 #if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    auto* more = primary_toolbar->addAction(
+        style()->standardIcon(QStyle::SP_ArrowDown), str_label("More commands")
+    );
+    more->setObjectName(QStringLiteral("mobile_more_commands"));
+    more->setMenu(game_menu);
+    if (auto* button
+        = qobject_cast<QToolButton*>(primary_toolbar->widgetForAction(more)))
+        button->setPopupMode(QToolButton::InstantPopup);
+    shared_ui::qt::set_toolbar_presentation(
+        *primary_toolbar, shared_ui::qt::toolbar_variant::compact
+    );
     return;
 #else
     if (game_menu != nullptr) {
@@ -78,6 +93,7 @@ void main_window::setup_status_surface(BaseVBoxLayout* main_layout) {
     main_layout->addWidget(create_desktop_status_surface());
 #else
     auto* status_strip = new BaseWidget(this);
+    status_strip->setObjectName(QStringLiteral("mobile_status_surface"));
     auto* strip_layout = new QVBoxLayout;
     strip_layout->setContentsMargins(8, 4, 8, 4);
     strip_layout->setSpacing(8);
@@ -124,6 +140,8 @@ void main_window::register_shell_action(
 #if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
     if (primary_toolbar != nullptr && is_primary_shell_action(action_name)) {
         primary_toolbar->addAction(action);
+    } else if (game_menu) {
+        game_menu->addAction(action);
     }
     return;
 #else
@@ -148,18 +166,8 @@ void main_window::register_shell_action(
 void main_window::insert_shell_separator() { }
 
 void main_window::refresh_clock_label() const {
-    if (table_widget && table_widget->active_gameplay_session()) {
-        if (clock_label)
-            clock_label->setText(table_widget->gameplay_clock_text());
-        return;
-    }
-    if (clock_timer != nullptr && clock_label != nullptr) {
-        clock_label->setText(clock_timer->time_string_hh_mm_ss());
-    }
+    if (clock_label)
+        clock_label->setText(table_widget->gameplay_clock_text());
 }
-
-void main_window::record_platform_score() { }
-
-void main_window::show_platform_highscores() { }
 
 #endif

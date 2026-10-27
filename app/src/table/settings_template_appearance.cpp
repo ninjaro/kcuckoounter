@@ -65,7 +65,8 @@ void settings_template_widget::setup_appearance_ui() {
     );
     // "Absolute" is intentionally not exposed: its layout semantics remain
     // deferred until a dedicated fixed-size packing mode is specified.
-    const trainer_preferences preferences = load_trainer_preferences();
+    const table_appearance_preferences preferences
+        = load_table_appearance_preferences();
     orientation_combo_box->setCurrentIndex(
         settings_template_support::orientation_index(
             preferences.card_orientation
@@ -220,7 +221,8 @@ bool settings_template_widget::commit_theme_settings(
         theme_combo_box->currentText()
     );
     const QString selected_theme_source = selected_theme_source_id();
-    const trainer_preferences previous = load_trainer_preferences();
+    const table_appearance_preferences previous
+        = load_table_appearance_preferences();
     const QColor previous_color = table_widget != nullptr
         ? shared_ui::qt::presentation_for(*table_widget).context.felt_surface
         : theme_palette_registry::option(previous.palette).base_color();
@@ -231,7 +233,7 @@ bool settings_template_widget::commit_theme_settings(
     if (source_changed)
         set_card_sheet_source_path(selected_theme_source);
     shared_state->set_table_color_index(theme_combo_box->currentIndex());
-    trainer_preferences preferences = previous;
+    table_appearance_preferences preferences = previous;
     preferences.palette = theme_palette_registry::id_from_color(base_color);
     preferences.card_orientation
         = settings_template_support::orientation_from_index(
@@ -239,7 +241,7 @@ bool settings_template_widget::commit_theme_settings(
                 ? orientation_combo_box->currentIndex()
                 : 0
         );
-    save_trainer_appearance_preferences(previous, preferences);
+    save_table_appearance_preferences(previous, preferences);
     if (table_widget != nullptr) {
         auto presentation = shared_ui::qt::presentation_for(*table_widget);
         presentation.context.felt_surface = base_color;
@@ -281,7 +283,7 @@ void settings_template_widget::reset_theme_selection() {
     if (orientation_combo_box != nullptr) {
         orientation_combo_box->setCurrentIndex(
             settings_template_support::orientation_index(
-                load_trainer_preferences().card_orientation
+                load_table_appearance_preferences().card_orientation
             )
         );
     }

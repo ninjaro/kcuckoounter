@@ -26,9 +26,10 @@ private slots:
     void modal_background_stays_paused_data();
     void modal_background_stays_paused();
     void mobile_callback_is_connected();
-    void mobile_restores_legacy();
+    void mobile_new_game_uses_owned_session();
+    void mobile_deck_details_are_usable();
     void mobile_early_action_restores();
-    void mobile_preserves_both_records();
+    void mobile_restores_owned_session();
 
 private:
     static void prepare_window(main_window& window);

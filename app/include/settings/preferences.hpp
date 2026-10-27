@@ -11,7 +11,6 @@
 #include <optional>
 
 class QSettings;
-struct strategy_catalog;
 
 // Appearance only; suit order matches the existing card/preview selectors:
 // Clubs, Diamonds, Hearts, Spades. No trainer/drill/checkpoint field.
@@ -78,24 +77,10 @@ load_desktop_ui_preferences(QSettings& settings);
 [[nodiscard]] bool
 save_desktop_ui_preferences(const desktop_ui_preferences& preferences);
 
-struct trainer_preferences {
-    // Current classic trainer bounds; domain gameplay owns its own slot limits.
-    static constexpr int minimum_slot_count = 1;
-    static constexpr int maximum_slot_count = 16;
-    static constexpr int minimum_pickup_interval_ms = 100;
-    static constexpr int maximum_pickup_interval_ms = 1000;
-
-    int slot_count = 4;
-    int quiz_type = 0;
-    bool wait_for_answers = false;
-    bool allow_skipping = true;
-    int dealing_mode = 0;
-    int pickup_interval_ms = 300;
+struct table_appearance_preferences {
     theme_palette_id palette = theme_palette_id::green;
     card_orientation_mode card_orientation = card_orientation_mode::automatic;
-    QString preferred_strategy_slug;
-
-    bool operator==(const trainer_preferences&) const = default;
+    bool operator==(const table_appearance_preferences&) const = default;
 };
 
 struct desktop_shell_state {
@@ -109,15 +94,11 @@ class preferences_service {
 public:
     explicit preferences_service(QSettings& settings);
 
-    trainer_preferences load(const strategy_catalog& catalog);
-    void save(
-        const trainer_preferences& preferences, const strategy_catalog& catalog
-    );
+    [[nodiscard]] table_appearance_preferences load() const;
     void save_appearance(
-        const trainer_preferences& before, const trainer_preferences& after
+        const table_appearance_preferences& before,
+        const table_appearance_preferences& after
     );
-
-    static trainer_preferences defaults(const strategy_catalog& catalog);
 
 private:
     QSettings& settings;
@@ -134,10 +115,10 @@ private:
     QSettings& settings;
 };
 
-trainer_preferences load_trainer_preferences();
-void save_trainer_preferences(const trainer_preferences& preferences);
-void save_trainer_appearance_preferences(
-    const trainer_preferences& before, const trainer_preferences& after
+table_appearance_preferences load_table_appearance_preferences();
+void save_table_appearance_preferences(
+    const table_appearance_preferences& before,
+    const table_appearance_preferences& after
 );
 desktop_shell_state load_desktop_shell_state();
 void save_desktop_shell_state(const desktop_shell_state& state);

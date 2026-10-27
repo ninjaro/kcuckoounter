@@ -5,7 +5,6 @@
 
 #include "settings/gameplay_progress_fixture.hpp"
 #include "settings/gameplay_recovery_fixture.hpp"
-#include "settings/training_progress.hpp"
 #include "shell/gameplay_reservation.hpp"
 #include "shell/main_window.hpp"
 #include "table/table_fixture.hpp"
@@ -23,7 +22,6 @@ using namespace recovery_test;
 
 void gameplay_host_tests::menu_start_pause_finish() {
     launcher_preferences_guard preferences;
-    const auto legacy = load_training_progress();
     main_window window;
     launch(window);
     auto* view = window.findChild<table*>();
@@ -61,11 +59,10 @@ void gameplay_host_tests::menu_start_pause_finish() {
     QVERIFY(progress && progress->completed_sessions == 1);
     QCOMPARE(progress->recent_results.front(), exact);
     QVERIFY(!storage.contains(storage_key));
-    QCOMPARE(load_training_progress(), legacy);
     const auto before = storage.value(progress_key);
     window.retry_gameplay_from_ui();
     QCOMPARE(storage.value(progress_key), before);
-    window.new_gameplay_action->trigger();
+    window.new_game_action->trigger();
     QCOMPARE(
         view->active_gameplay_session()->phase(), gameplay::session_phase::setup
     );
@@ -110,7 +107,7 @@ void gameplay_host_tests::startup_restores_paused() {
     QVERIFY(!view->gameplay_timer.isActive());
     QCOMPARE(*view->capture_gameplay_checkpoint(), exact);
     QCOMPARE(storage.value(storage_key), bytes);
-    QVERIFY(!window.setup_dialog->isVisible());
+    QVERIFY(!window.gameplay_setup_dialog);
     launcher_start_action(window)->trigger();
     QVERIFY(view->finish_gameplay_runtime());
     QVERIFY(window.gameplay_binding->acknowledged());
@@ -142,12 +139,17 @@ void gameplay_host_tests::startup_retries_pending() {
     QCoreApplication::processEvents();
     QVERIFY(window.gameplay_recovery_ready);
     QVERIFY(!window.gameplay_binding->sequence());
-    QVERIFY(!window.table_widget->active_gameplay_session());
+    QVERIFY(window.table_widget->active_gameplay_session());
+    QCOMPARE(
+        window.table_widget->active_gameplay_session()->phase(),
+        gameplay::session_phase::setup
+    );
+    QVERIFY(!window.table_widget->has_gameplay_runtime());
     QVERIFY(!storage.contains(storage_key));
     const auto progress = gameplay_progress_service(storage, { 64, 64 }).load();
     QVERIFY(progress && progress->completed_sessions == 1);
     QCOMPARE(progress->recent_results.front(), exact);
-    QVERIFY(window.setup_dialog->isVisible());
+    QVERIFY(window.gameplay_setup_dialog->isVisible());
 }
 
 void gameplay_host_tests::startup_protects_records_data() {
@@ -189,7 +191,7 @@ void gameplay_host_tests::startup_protects_records() {
         window.gameplay_recovery_checked && !window.gameplay_recovery_ready
     );
     QVERIFY(!window.gameplay_storage_error.isEmpty());
-    QVERIFY(!window.new_gameplay_action->isEnabled());
+    QVERIFY(!window.new_game_action->isEnabled());
     QVERIFY(window.gameplay_retry_action->isEnabled());
     bool in_menu = false;
     for (auto* menu : window.findChildren<QMenu*>())
@@ -201,12 +203,9 @@ void gameplay_host_tests::startup_protects_records() {
     QCOMPARE(window.status_label->text(), window.gameplay_storage_error);
     for (auto value = before.cbegin(); value != before.cend(); ++value)
         QCOMPARE(storage.value(value.key()), *value);
-    // Classic trainer play is not relabeled or prohibited by target data.
-    window.on_continue_button_clicked();
+    window.new_game_action->trigger();
     launcher_start_action(window)->trigger();
-    QVERIFY(
-        window.quiz_started && !window.table_widget->active_gameplay_session()
-    );
+    QVERIFY(!window.table_widget->active_gameplay_session());
     QVERIFY(
         window.close()
     ); // protected records are still durable, not discarded
@@ -220,12 +219,11 @@ void gameplay_host_tests::plain_errors_replace_hud_fields() {
     QCoreApplication::processEvents();
     auto* strip = window.findChild<shared_ui::qt::status_strip*>();
     QVERIFY(strip);
-    QVERIFY(!window.table_widget->active_gameplay_session());
+    QVERIFY(window.table_widget->active_gameplay_session());
     QVERIFY(!strip->status_fields().isEmpty());
     const auto message = QStringLiteral("Error:  keep this exact text");
     window.report_gameplay_error(message);
-    QCOMPARE(strip->status_label()->text(), message);
-    QVERIFY(strip->status_fields().isEmpty());
+    QCOMPARE(window.gameplay_setup_error->text(), message);
     window.update_status_text();
     QVERIFY(!strip->status_fields().isEmpty());
 }
@@ -235,7 +233,7 @@ void gameplay_host_tests::start_rejection_keeps_choices() {
     main_window window;
     window.resize(1200, 800);
     window.show();
-    window.new_gameplay_action->trigger();
+    window.new_game_action->trigger();
     auto* view = window.table_widget;
     auto* owner = view->active_gameplay_session();
     const auto deck = owner->deck({ 0 })->configuration;

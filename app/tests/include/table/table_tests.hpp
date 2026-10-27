@@ -8,7 +8,7 @@ class table_tests : public QObject {
 
 private slots:
     static void appearance_previews_are_real_and_sample_only();
-    void gameplay_table_owns_roster_without_legacy_state();
+    void gameplay_table_owns_roster_and_bindings();
     void gameplay_table_installation_preflight_preserves_current_scene();
     void gameplay_table_replacement_destroys_views_before_owner();
     void owned_table_projects_mixed_decks_and_swap();
@@ -84,14 +84,14 @@ private slots:
     void gameplay_launcher_routes_runtime_and_finish_data();
     void gameplay_launcher_routes_runtime_and_finish();
     void gameplay_launcher_finish_replacement_is_not_finished();
-    void launcher_natural_end_and_legacy_return_data();
-    void launcher_natural_end_and_legacy_return();
+    void launcher_natural_end_and_fresh_session_data();
+    void launcher_natural_end_and_fresh_session();
     void gameplay_launcher_teardown_retires_global_view();
     void review_keeps_one_record_per_deck();
     void gameplay_review_native_timeout_data();
     void gameplay_review_native_timeout();
     void gameplay_review_native_live_mapping_and_clear();
-    void gameplay_review_native_replacement_and_legacy();
+    void gameplay_review_native_replacement_and_new_setup();
     void gameplay_lives_hud_data();
     void gameplay_lives_hud();
     void gameplay_lives_suit_settings_preserve_domain();
@@ -128,18 +128,6 @@ private slots:
     void overlay_palette_uses_gold_text_on_frames();
     /// @brief Verifies overlay frames enable auto-fill background.
     void overlay_frames_enable_auto_fill();
-    /// @brief Verifies skip button hides when skipping is disabled.
-    void quiz_hides_skip_when_skipping_disabled();
-    /// @brief Verifies training mode avoids score adjustments.
-    void quiz_training_mode_does_not_adjust_score();
-    /// @brief Verifies wrong answers exhaust deck outside training.
-    void quiz_wrong_answer_exhausts_deck_without_training();
-    /// @brief Verifies continue feedback when training answers are wrong.
-    void quiz_wrong_answer_shows_continue_in_training();
-    /// @brief Verifies continue feedback after skipping a question.
-    void quiz_skip_shows_continue_feedback();
-    /// @brief Verifies quiz spin box remembers the last input.
-    void quiz_spin_box_remembers_last_input();
     /// @brief Verifies shared card-face presence tracks set and clear calls.
     void shared_faces_track_set_and_clear();
     void shared_tables_reuse_and_withdraw_data();
@@ -155,23 +143,12 @@ private slots:
     void compact_slot_controls_remain_reachable_data();
     void compact_slot_controls_remain_reachable();
     void compact_controls_follow_slot_lifetime();
-    void quiz_variants_preserve_count_semantics_data();
-    void quiz_variants_preserve_count_semantics();
-    void quiz_presentation_reaches_existing_and_new_slots();
-    void quiz_presentation_editor_applies_and_resets();
-    void felt_presentation_restyles_without_session_changes();
     void felt_shell_round_trips_one_bar();
     void native_toolbar_follows_felt_commands_and_late_actions();
     void action_variants_reuse_controls_data();
     void action_variants_reuse_controls();
-    void action_variants_preserve_copy_and_swap_workflows();
-    void settings_surfaces_stage_changes_data();
-    void settings_surfaces_stage_changes();
-    void felt_settings_card_follows_kit_layout();
     void material_contexts_are_window_local();
     void table_palette_preferences_are_window_local();
-    void settings_editor_lifecycle_cancels_stale_drafts();
-    void classic_settings_dialog_preserves_transaction();
     void desktop_toolbar_preserves_table_and_commands_data();
     void desktop_toolbar_preserves_table_and_commands();
     void toolbar_styles_preserve_owned_quiz_data();
@@ -195,12 +172,6 @@ private slots:
     /// @brief Verifies theme/resize transitions stay non-blocking while
     /// shared-face warming runs.
     void theme_and_resize_transitions_are_non_blocking();
-    /// @brief Verifies invalid later-slot recovery cannot partially mutate the
-    /// current table.
-    void session_restore_preflight_is_transactional();
-    /// @brief Verifies exact table/card progress restores without resuming
-    /// dealing.
-    void session_capture_restore_recovers_paused_quiz_state();
 };
 
 #endif // KCUCKOOUNTER_TESTS_TABLE_TESTS_HPP

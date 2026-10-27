@@ -18,7 +18,7 @@ private slots:
     void history_accounting();
     void lifetime_sequence_bounds();
     void history_reopen_and_retries();
-    void progress_records_are_mode_local();
+    void progress_preserves_other_settings();
     void storage_protects_unreadable_records();
     void storage_overflow_is_atomic();
     void storage_reports_failed_writes();

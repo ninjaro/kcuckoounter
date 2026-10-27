@@ -160,7 +160,9 @@ void card_widget::paint_slot_frame(
         = shared_ui::qt::presentation_for(*this).context.felt_surface;
     const QColor table_color = contextual.isValid()
         ? contextual
-        : theme_palette_registry::option(load_trainer_preferences().palette)
+        : theme_palette_registry::option(
+              load_table_appearance_preferences().palette
+          )
               .base_color();
     const QColor slot_fill_color
         = failed ? QColor(70, 70, 70) : table_color.darker(125);
@@ -257,7 +259,9 @@ void card_widget::paint_piping_frame(
         = shared_ui::qt::presentation_for(*this).context.felt_surface;
     const QColor table_fill = contextual.isValid()
         ? contextual
-        : theme_palette_registry::option(load_trainer_preferences().palette)
+        : theme_palette_registry::option(
+              load_table_appearance_preferences().palette
+          )
               .base_color();
     if (slot_number > 0) {
         const QString number
@@ -407,7 +411,6 @@ void card_widget::paint_deck_content(
         return;
     }
 
-    const auto* target = gameplay_deck();
     const bool has_deck = has_cards();
     const int card_index = display_card_index();
     const bool has_current_card = card_index >= 0;
@@ -548,18 +551,6 @@ void card_widget::paint_deck_content(
     }
 
     QStringList extra_lines = target_lines;
-    const bool piping = frame_style == slot_frame_style::piping;
-    if (!target && !piping && show_strategy_name_flag
-        && !strategy_name.isEmpty()) {
-        extra_lines.append(strategy_name);
-    }
-    if (!target && training_mode_flag) {
-        if (picker.current_card_index() >= 0) {
-            const int total_weight = total_weight_for_picks();
-            extra_lines.append(weight_text_for_value(total_weight));
-        }
-    }
-
     if (!extra_lines.isEmpty()) {
         draw_card_extra_lines(
             painter, oriented_card_rect, slot_rotation_deg, rendered_offset,
@@ -684,22 +675,7 @@ QString card_widget::current_index_text() const {
 #endif
     }
 
-    const int position = picker.current_position();
-    if (position < 0) {
-        return {};
-    }
-
-    const int current_value = position + 1;
-    if (infinity_enabled) {
-        return QString::number(current_value);
-    }
-
-    const int total = std::max(1, cards_per_deck * decks_count);
-#ifdef KC_KDE
-    return i18n("%1/%2", current_value, total);
-#else
-    return str_label("%1/%2").arg(current_value).arg(total);
-#endif
+    return {};
 }
 
 void card_widget::draw_card_index(

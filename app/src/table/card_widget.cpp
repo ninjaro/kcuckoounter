@@ -15,13 +15,6 @@
 #include <algorithm>
 #include <cmath>
 
-int card_widget::total_cards_for_quiz_type(int quiz_type_index) {
-    if (quiz_type_index == 1) {
-        return 54;
-    }
-    return 52;
-}
-
 QString card_widget::weight_text_for_value(std::int64_t weight) {
     if (weight >= 0) {
 #ifdef KC_KDE
@@ -42,22 +35,15 @@ int card_widget::rank_index_from_card_index(int card_index) {
 
 card_widget::card_widget(BaseWidget* parent)
     : BaseWidget(parent)
-    , running(false)
     , swap_selected_flag(false)
-    , picker()
     , random_gen()
     , card_rotation_deg(0.0)
     , card_offset(0.0, 0.0)
     , slot_rotated(false)
     , show_card_indexing_flag(false)
     , show_strategy_name_flag(false)
-    , training_mode_flag(false)
     , strategy_name()
-    , strategy_weights()
-    , cards_per_deck(0)
-    , decks_count(0)
-    , infinity_enabled(false)
-    , selection_timer(std::make_unique<time_interface>())
+    , selection_timer(std::make_unique<QTimer>())
     , selection_phase(0.0)
     , discard_history()
     , highlight_duration_ms(0)
@@ -76,13 +62,15 @@ card_widget::card_widget(BaseWidget* parent)
     auto presentation = shared_ui::qt::presentation_for(*this);
     if (parent == nullptr) {
         presentation.context.felt_surface
-            = theme_palette_registry::option(load_trainer_preferences().palette)
+            = theme_palette_registry::option(
+                  load_table_appearance_preferences().palette
+            )
                   .base_color();
         shared_ui::qt::apply_presentation(*this, presentation);
     }
-    selection_timer->set_interval(45);
+    selection_timer->setInterval(45);
     QObject::connect(
-        selection_timer.get(), &time_interface::timeout, this,
+        selection_timer.get(), &QTimer::timeout, this,
         &card_widget::update_selection_pulse
     );
     setAccessibleName(str_label("Playing card"));
@@ -110,7 +98,7 @@ bool card_widget::event(QEvent* event) {
 bool card_widget::bind_gameplay_deck(
     const gameplay::session& owner, gameplay::deck_id id
 ) {
-    if (!owner.deck(id) || picker.has_cards()
+    if (!owner.deck(id)
         || (gameplay_owner && (gameplay_owner != &owner || gameplay_id != id)))
         return false;
     gameplay_owner = &owner;
@@ -146,7 +134,7 @@ void card_widget::unbind_gameplay_deck() {
     gameplay_paint_external = false;
     presented_physical_cards = 0;
     hide_cards_flag = false;
-    clear_quiz();
+    reset_presentation();
 }
 
 const gameplay::deck_state* card_widget::gameplay_deck() const {
@@ -160,7 +148,7 @@ int card_widget::display_card_index() const {
             ? static_cast<int>(deck->stream.cards[deck->next_card - 1])
             : -1;
     }
-    return picker.current_card_index();
+    return -1;
 }
 
 bool card_widget::display_running() const {
@@ -169,7 +157,7 @@ bool card_widget::display_running() const {
             || (deck->status == gameplay::deck_status::active
                 && gameplay_owner->phase() == gameplay::session_phase::running);
     }
-    return running;
+    return false;
 }
 
 bool card_widget::display_hidden() const {
@@ -196,8 +184,10 @@ QStringList card_widget::gameplay_extra_lines() const {
         lines.append(str_label("Expected final count: %1")
                          .arg(static_cast<qlonglong>(deck->running_count)));
 #endif
-    } else if (deck->status == gameplay::deck_status::active
-               && deck->configuration.training && deck->show_count) {
+    } else if (
+        deck->status == gameplay::deck_status::active
+        && deck->configuration.training && deck->show_count
+    ) {
         lines.append(weight_text_for_value(deck->running_count));
     }
     return lines;
@@ -210,7 +200,7 @@ void card_widget::set_swap_selected(bool selected) {
 
     swap_selected_flag = selected;
     if (swap_selected_flag) {
-        if (!selection_timer->is_active()) {
+        if (!selection_timer->isActive()) {
             selection_timer->start();
         }
     } else {
@@ -221,46 +211,6 @@ void card_widget::set_swap_selected(bool selected) {
 }
 
 bool card_widget::swap_selected() const { return swap_selected_flag; }
-
-void card_widget::start_quiz(
-    int quiz_type_index, int requested_decks_count, bool infinity_enabled_flag
-) {
-    if (gameplay_owner)
-        return;
-    const int total_per_deck = total_cards_for_quiz_type(quiz_type_index);
-    if (requested_decks_count <= 0) {
-        requested_decks_count = 1;
-    }
-
-    picker.setup(total_per_deck, requested_decks_count, infinity_enabled_flag);
-    cards_per_deck = total_per_deck;
-    decks_count = requested_decks_count;
-    infinity_enabled = infinity_enabled_flag;
-    discard_history.clear();
-    update_card_jitter();
-    update_accessible_description();
-    update();
-}
-
-void card_widget::set_infinity(bool enabled) {
-    if (gameplay_owner)
-        return;
-    picker.set_infinity(enabled);
-    infinity_enabled = enabled;
-    update();
-}
-
-void card_widget::set_running(bool new_running) {
-    if (gameplay_owner)
-        return;
-    if (running == new_running) {
-        return;
-    }
-
-    running = new_running;
-    update_accessible_description();
-    update();
-}
 
 void card_widget::set_slot_rotated(bool rotated) {
     if (slot_rotated == rotated) {
@@ -327,34 +277,12 @@ void card_widget::set_show_strategy_name(bool enabled) {
     update();
 }
 
-void card_widget::set_training_mode(bool enabled) {
-    if (gameplay_owner)
-        return;
-    if (training_mode_flag == enabled) {
-        return;
-    }
-
-    training_mode_flag = enabled;
-    update();
-}
-
 void card_widget::set_strategy_name(const QString& name) {
     if (strategy_name == name) {
         return;
     }
 
     strategy_name = name;
-    update();
-}
-
-void card_widget::set_strategy_weights(const QVector<int>& weights) {
-    if (gameplay_owner)
-        return;
-    if (strategy_weights == weights) {
-        return;
-    }
-
-    strategy_weights = weights;
     update();
 }
 
@@ -373,108 +301,22 @@ void card_widget::set_hide_cards(bool hide) {
     update();
 }
 
-void card_widget::advance_card() {
-    if (gameplay_owner || !running) {
-        return;
-    }
-
-    record_discard();
-    picker.advance();
-    update_accessible_description();
-    update_card_jitter();
-    update();
-}
-
 bool card_widget::has_cards() const {
-    if (const auto* deck = gameplay_deck())
-        return !deck->stream.cards.empty();
-    return picker.has_cards();
+    const auto* deck = gameplay_deck();
+    return deck && !deck->stream.cards.empty();
 }
 
 bool card_widget::has_current_card() const { return display_card_index() >= 0; }
 
 bool card_widget::is_deck_exhausted() const {
-    if (const auto* deck = gameplay_deck())
-        return deck->status != gameplay::deck_status::active;
-    return picker.is_depleted();
+    const auto* deck = gameplay_deck();
+    return deck && deck->status != gameplay::deck_status::active;
 }
 
-void card_widget::mark_deck_exhausted() {
+void card_widget::reset_presentation() {
     if (gameplay_owner)
         return;
-    picker.set_infinity(false);
-    infinity_enabled = false;
-    picker.mark_depleted();
-    update_accessible_description();
-    update();
-}
-
-int card_widget::current_position() const { return picker.current_position(); }
-
-int card_widget::current_total_weight() const {
-    return total_weight_for_picks();
-}
-
-card_session_state card_widget::capture_session_state() const {
-    // An empty classic snapshot cannot serialize a domain deck.
-    // Domain hosts use identified gameplay recovery.
-    if (gameplay_owner)
-        return {};
-    return {
-        .cards_per_deck = cards_per_deck,
-        .decks_count = decks_count,
-        .infinity_enabled = infinity_enabled,
-        .deck = picker.deck_order(),
-        .deck_position = picker.is_depleted() ? picker.total_cards()
-                                              : picker.current_position(),
-    };
-}
-
-bool card_widget::restore_session_state(const card_session_state& state) {
-    if (gameplay_owner || !can_restore_session_state(state)
-        || !picker.restore(
-            state.deck, state.deck_position, state.infinity_enabled,
-            state.cards_per_deck
-        )) {
-        return false;
-    }
-
-    cards_per_deck = state.cards_per_deck;
-    decks_count = state.decks_count;
-    infinity_enabled = state.infinity_enabled;
     discard_history.clear();
-    running = false;
-    swap_selected_flag = false;
-    highlight_duration_ms = 0;
-    highlight_remaining_ms = 0;
-    highlight_active = false;
-    hide_cards_flag = false;
-    selection_timer->stop();
-    selection_phase = 0.0;
-    update_card_jitter();
-    update_accessible_description();
-    update();
-    return true;
-}
-
-bool card_widget::can_restore_session_state(const card_session_state& state) {
-    return state.cards_per_deck >= 1 && state.decks_count >= 1
-        && state.deck.size() == state.cards_per_deck * state.decks_count
-        && card_picker::is_valid_restore(
-               state.deck, state.deck_position, state.infinity_enabled,
-               state.cards_per_deck
-        );
-}
-
-void card_widget::clear_quiz() {
-    if (gameplay_owner)
-        return;
-    picker.setup(0, 0, false);
-    cards_per_deck = 0;
-    decks_count = 0;
-    infinity_enabled = false;
-    discard_history.clear();
-    running = false;
     swap_selected_flag = false;
     highlight_duration_ms = 0;
     highlight_remaining_ms = 0;
@@ -493,8 +335,10 @@ void card_widget::update_accessible_description() {
     // A quiz prompt must not expose the hidden face to assistive technology.
     if (!has_cards()) {
         setAccessibleDescription(str_label("Empty card slot"));
-    } else if (const auto* deck = gameplay_deck();
-               deck && deck->status == gameplay::deck_status::failed) {
+    } else if (
+        const auto* deck = gameplay_deck();
+        deck && deck->status == gameplay::deck_status::failed
+    ) {
         setAccessibleDescription(str_label("Failed deck. Card back."));
     } else if (display_hidden()) {
         setAccessibleDescription(str_label("Card hidden"));
@@ -568,27 +412,6 @@ void card_widget::record_discard() {
     while (discard_history.size() > 5) {
         discard_history.pop_front();
     }
-}
-
-int card_widget::total_weight_for_picks() const {
-    if (strategy_weights.isEmpty()) {
-        return 0;
-    }
-
-    const int current_position = picker.current_position();
-    if (current_position < 0) {
-        return 0;
-    }
-
-    int total_weight = 0;
-    for (int position = 0; position <= current_position; ++position) {
-        const int card_index = picker.card_index_at(position);
-        const int rank_index = rank_index_from_card_index(card_index);
-        if (rank_index >= 0 && rank_index < strategy_weights.size()) {
-            total_weight += strategy_weights.at(rank_index);
-        }
-    }
-    return total_weight;
 }
 
 qreal card_widget::highlight_strength() const {

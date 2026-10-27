@@ -22,9 +22,6 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include "arch/base_clock.hpp"
-#include "arch/time_interface.hpp"
-
 #ifdef KC_KDE
 using BaseMainWindow = KXmlGuiWindow; // Alternatives: QMainWindow
 using BaseCheckBox = QCheckBox; // Alternatives: KToggleAction
@@ -40,7 +37,6 @@ using BaseToolBar = QToolBar;
 #endif
 
 using BaseAction = QAction;
-using BaseClock = ::base_clock;
 using BaseFormLayout = QFormLayout;
 using BaseSpinBox = QSpinBox;
 using BaseVBoxLayout = QVBoxLayout;

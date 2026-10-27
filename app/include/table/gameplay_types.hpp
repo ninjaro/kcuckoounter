@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-// Gameplay domain, independent of widgets and classic trainer state.
+// Gameplay domain, independent of widgets.
 namespace gameplay {
 
 struct deck_id {
@@ -175,11 +175,11 @@ enum class dealing_step_status {
 struct card_reveal {
     deck_id owner;
     physical_slot_id slot;
-    std::uint8_t face;
+    std::uint8_t face = 0;
     // One-based cumulative physical reveals, NOT the current chunk offset.
-    std::uint64_t dealt_physical_cards;
-    std::int64_t running_count;
-    bool completed;
+    std::uint64_t dealt_physical_cards = 0;
+    std::int64_t running_count = 0;
+    bool completed = false;
     bool operator==(const card_reveal&) const = default;
 };
 
@@ -201,12 +201,12 @@ enum class quiz_outcome { correct, wrong, skipped };
 // Correction is the whole frozen count, never the last visible card's weight.
 struct quiz_answer {
     deck_id owner;
-    std::uint64_t batch_id;
-    std::int64_t submitted_count;
-    std::int64_t expected_count;
-    std::uint64_t normal_cards;
-    quiz_outcome outcome;
-    bool timed_out;
+    std::uint64_t batch_id = 0;
+    std::int64_t submitted_count = 0;
+    std::int64_t expected_count = 0;
+    std::uint64_t normal_cards = 0;
+    quiz_outcome outcome = quiz_outcome::correct;
+    bool timed_out = false;
     bool operator==(const quiz_answer&) const = default;
 };
 

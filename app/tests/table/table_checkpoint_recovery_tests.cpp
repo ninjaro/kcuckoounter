@@ -70,14 +70,6 @@ void table_tests::checkpoint_restore_preflight_is_atomic() {
     QCOMPARE(view.slot_widgets.front(), first.data());
     QVERIFY(view.gameplay_timer.isActive());
     QCOMPARE(changed.count(), 0);
-    table legacy;
-    legacy.resize(900, 700);
-    legacy.set_slot_count(2);
-    legacy.start_quiz(0, false);
-    const auto old = legacy.capture_session_state();
-    QVERIFY(!legacy.restore_gameplay_checkpoint(saved));
-    QVERIFY(!legacy.capture_gameplay_checkpoint());
-    QCOMPARE(legacy.capture_session_state(), old);
 }
 
 void table_tests::checkpoint_restore_replaces_paused_views() {
@@ -106,8 +98,7 @@ void table_tests::checkpoint_restore_replaces_paused_views() {
     bool old_alive = false;
     bool attached_when_changed = false;
     QObject::connect(
-        &view, &table::gameplay_session_about_to_change, &view,
-        [&] {
+        &view, &table::gameplay_session_about_to_change, &view, [&] {
             old_alive = view.active_gameplay_session() == old_owner;
             fields.reset();
         }
@@ -119,8 +110,6 @@ void table_tests::checkpoint_restore_replaces_paused_views() {
             && !view.gameplay_elapsed.isValid()
             && view.slot_widgets[0]->is_quiz_prompt_active();
     });
-    QSignalSpy legacy_scores(&view, &table::score_adjusted);
-    QSignalSpy legacy_end(&view, &table::game_over);
     QVERIFY(view.restore_gameplay_checkpoint(saved));
     QVERIFY(old_alive && attached_when_changed);
     QVERIFY(!fields && old_slot.isNull());
@@ -137,8 +126,6 @@ void table_tests::checkpoint_restore_replaces_paused_views() {
     view.stop_gameplay_clock();
     QVERIFY(!view.check_gameplay_quiz(stale));
     QVERIFY(view.check_gameplay_quiz(prompt));
-    QCOMPARE(legacy_scores.count(), 0);
-    QCOMPARE(legacy_end.count(), 0);
 }
 
 void table_tests::checkpoint_capture_settles_active_clock() {
