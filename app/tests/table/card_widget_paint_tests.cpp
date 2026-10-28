@@ -47,66 +47,6 @@ void card_widget_tests::selected_presentation_preserves_master_pixels() {
     QCOMPARE(widget.card_face_image(0), master);
 }
 
-void card_widget_tests::rotated_master_uses_smooth_single_transform_data() {
-    QTest::addColumn<qreal>("angle");
-    QTest::addColumn<QSize>("display");
-    for (const auto& display : { QSize(32, 48), QSize(100, 150) })
-        for (const qreal angle : { 0.0, 2.0, 3.5, 15.0, 90.0 })
-            QTest::newRow(
-                qPrintable(QStringLiteral("%1x%2-%3deg")
-                               .arg(display.width())
-                               .arg(display.height())
-                               .arg(angle))
-            ) << angle
-              << display;
-}
-
-void card_widget_tests::rotated_master_uses_smooth_single_transform() {
-    QFETCH(qreal, angle);
-    QFETCH(QSize, display);
-    const card_widget widget;
-    const qreal dpr = widget.devicePixelRatioF();
-    const auto source = detailed_face();
-    auto master = QPixmap::fromImage(source);
-    master.setDevicePixelRatio(dpr);
-    const auto canvas = [&] {
-        QImage result(
-            QSize(240, 240) * dpr, QImage::Format_ARGB32_Premultiplied
-        );
-        result.setDevicePixelRatio(dpr);
-        result.fill(Qt::transparent);
-        return result;
-    };
-    auto actual = canvas();
-    auto expected = canvas();
-    const QRectF destination(
-        QPointF(120 - display.width() / 2.0, 120 - display.height() / 2.0),
-        display
-    );
-    const QPointF offset(0.4, -0.2);
-    {
-        QPainter painter(&actual);
-        painter.setRenderHint(QPainter::Antialiasing);
-        card_widget::draw_card_image(
-            painter, destination, 0, angle, offset, source
-        );
-        QVERIFY(!painter.testRenderHint(QPainter::SmoothPixmapTransform));
-    }
-    {
-        QPainter painter(&expected);
-        painter.setRenderHints(
-            QPainter::Antialiasing | QPainter::SmoothPixmapTransform
-        );
-        painter.translate(destination.center() + offset);
-        painter.rotate(angle);
-        painter.translate(-destination.center());
-        // One final scaling/rotation from the complete 2:3 master, with no
-        // display-sized intermediate and no angle-dependent image identity.
-        painter.drawPixmap(destination, master, QRectF(master.rect()));
-    }
-    QCOMPARE(actual, expected);
-}
-
 void card_widget_tests::accumulated_count_survives_presentation_changes() {
     gameplay::session_configuration configuration;
     configuration.failure = gameplay::failure_policy::block;
@@ -328,20 +268,21 @@ void card_widget_tests::retained_transforms_fit_after_resize() {
         for (const bool rotated : { false, true }) {
             widget.set_slot_rotated(rotated);
             const auto geometry = widget.layout_geometry();
-            QVERIFY(!geometry.card.isEmpty());
+            QVERIFY(!geometry.item.isEmpty());
             QCOMPARE(
                 widget.card_face_target_size(),
-                geometry.card.size().toSize().expandedTo(QSize(1, 1))
+                geometry.item.size().toSize().expandedTo(QSize(1, 1))
             );
             for (const auto& discard : widget.discard_history) {
                 painter.resetTransform();
-                card_widget::apply_card_transform(
-                    painter, geometry.card, geometry.slot_rotation,
-                    discard.rotation_deg,
-                    geometry.bounded_offset(discard.offset)
+                painter.translate(
+                    geometry.item.center()
+                    + geometry.bounded_offset(discard.offset)
                 );
+                painter.rotate(discard.rotation_deg + geometry.rotation);
+                painter.translate(-geometry.item.center());
                 const QRectF bounds
-                    = painter.transform().mapRect(geometry.card);
+                    = painter.transform().mapRect(geometry.item);
                 QVERIFY2(
                     geometry.frame.contains(bounds),
                     "rotated discard leaves its frame after resize"

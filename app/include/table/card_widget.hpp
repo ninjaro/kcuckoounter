@@ -20,11 +20,10 @@
 #include <memory>
 #include <optional>
 #include <shared_ui/graphics/qt/raster_image_binding.hpp>
+#include <shared_ui/qt/item_scene.hpp>
 
 class QPaintEvent;
 class QResizeEvent;
-class QColor;
-class QPainter;
 
 class card_widget : public BaseWidget {
     Q_OBJECT
@@ -104,9 +103,6 @@ private:
     QPointF card_offset;
     bool slot_rotated;
     std::optional<qreal> gameplay_layout_rotation_deg;
-    // Table's temporary paint layer borrows this renderer, never its images or
-    // domain state. Native controls/accessibility remain on the bound widget.
-    bool gameplay_paint_external = false;
     slot_frame_style frame_style = slot_frame_style::classic;
     int slot_number = 0;
     bool verdict_glow = false;
@@ -137,26 +133,13 @@ private:
     bool rasterizing;
     bool presented_image_mode;
 
-    // One slot-local geometry for paint, jitter and raster demand. The packer
-    // still owns the widget rectangle, independently of presentation choices.
-    struct paint_geometry {
-        QRectF frame;
-        QRectF card;
-        qreal slot_rotation = 0.0;
-        qreal min_dim = 0.0;
-        qreal jitter_limit = 0.0;
-        [[nodiscard]] QPointF bounded_offset(const QPointF& offset) const;
-    };
-
-    [[nodiscard]] paint_geometry layout_geometry() const;
-    [[nodiscard]] paint_geometry layout_geometry(const QSizeF& size) const;
-    void
-    paint_slot_frame(QPainter& painter, const paint_geometry& geometry) const;
-    void paint_deck_content(QPainter& painter, const paint_geometry& geometry);
-    void paint_piping_frame(
-        QPainter& painter, const paint_geometry& geometry, const QColor& fill,
-        const QColor& border
+    // Domain projection shared by native painting, raster demand and the
+    // table's borrowed motion layer; no retained second scene model.
+    [[nodiscard]] shared_ui::qt::item_geometry layout_geometry() const;
+    [[nodiscard]] shared_ui::qt::item_geometry layout_geometry(
+        const QSizeF& size, std::optional<qreal> rotation = std::nullopt
     ) const;
+    [[nodiscard]] shared_ui::qt::item_scene visual_scene() const;
 
     void update_card_jitter();
     void update_accessible_description();
@@ -176,56 +159,9 @@ private:
     void update_selection_pulse();
     void set_rasterizing(bool active);
     void on_card_images_changed();
-    static void apply_card_transform(
-        QPainter& painter, const QRectF& oriented_card_rect,
-        qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset
-    );
-    void draw_table_marking(
-        QPainter& painter, const QRectF& slot_frame_rect, qreal min_dim,
-        qreal scale = 1.0
-    ) const;
-    void draw_card_index(
-        QPainter& painter, const QRectF& oriented_card_rect,
-        qreal slot_rotation_deg, const QPointF& offset
-    ) const;
-    // Felt only: soft drop shadow and, under piping, the kit's paper mat.
-    void draw_card_mat(
-        QPainter& painter, const QRectF& oriented_card_rect,
-        qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-        bool top_card
-    ) const;
-    static void draw_card_shape(
-        QPainter& painter, const QRectF& oriented_card_rect,
-        qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-        const QColor& fill, const QColor& border
-    );
-    static void draw_card_image(
-        QPainter& painter, const QRectF& oriented_card_rect,
-        qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-        const QImage& image
-    );
-    static void draw_card_text(
-        QPainter& painter, const QRectF& oriented_card_rect,
-        qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-        const QString& text
-    );
-    static void draw_card_center_text(
-        QPainter& painter, const QRectF& oriented_card_rect,
-        qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-        const QString& text
-    );
-    void draw_card_extra_lines(
-        QPainter& painter, const QRectF& oriented_card_rect,
-        qreal slot_rotation_deg, const QPointF& offset,
-        const QStringList& extra_lines
-    ) const;
     [[nodiscard]] QString current_index_text() const;
-    static qreal compute_font_point_size(const QRectF& card_rect);
     static QString weight_text_for_value(std::int64_t weight);
     static int rank_index_from_card_index(int card_index);
-    static int blend_color_channel(int from, int to, qreal strength);
-    static QColor
-    blend_color(const QColor& from, const QColor& to, qreal strength);
 };
 
 #endif // KCUCKOOUNTER_TABLE_CARD_WIDGET_HPP

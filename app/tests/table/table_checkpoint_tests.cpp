@@ -111,9 +111,10 @@ void table_tests::checkpoint_restore_continues_runtime() {
         QCOMPARE(motion->from.rotated, motion->to.rotated);
     }
     QCOMPARE(
-        recovered.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+        recovered.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Stopped
     );
-    QVERIFY(!recovered.gameplay_motion_layer);
+    QVERIFY(recovered.scene_motion->isHidden());
     // Both continuations use today's same Packing traversal; physical IDs and
     // Sequential anchor remain the saved ones, not creation-order positions.
     baseline.resize(recovered.size());

@@ -33,26 +33,26 @@ void card_widget_tests::gameplay_layout_rotation_fits_every_frame() {
             widget.set_slot_rotated(rotated);
             const auto endpoint = widget.layout_geometry();
             widget.set_gameplay_layout_rotation(rotated ? 0.0 : 90.0);
-            QCOMPARE(widget.layout_geometry().card, endpoint.card);
-            QCOMPARE(
-                widget.layout_geometry().slot_rotation, endpoint.slot_rotation
-            );
+            QCOMPARE(widget.layout_geometry().item, endpoint.item);
+            QCOMPARE(widget.layout_geometry().rotation, endpoint.rotation);
             for (int angle = 0; angle <= 90; angle += 5) {
                 widget.set_gameplay_layout_rotation(static_cast<qreal>(angle));
                 const auto geometry = widget.layout_geometry();
-                QCOMPARE(geometry.slot_rotation, static_cast<qreal>(angle));
-                QVERIFY(!geometry.card.isEmpty());
+                QCOMPARE(geometry.rotation, static_cast<qreal>(angle));
+                QVERIFY(!geometry.item.isEmpty());
                 for (const qreal jitter : { -3.5, 0.0, 3.5 }) {
                     for (const QPointF offset :
                          { QPointF(-7.2, -7.2), QPointF(7.2, 7.2) }) {
                         painter.resetTransform();
-                        card_widget::apply_card_transform(
-                            painter, geometry.card, geometry.slot_rotation,
-                            jitter, geometry.bounded_offset(offset)
+                        painter.translate(
+                            geometry.item.center()
+                            + geometry.bounded_offset(offset)
                         );
+                        painter.rotate(jitter + geometry.rotation);
+                        painter.translate(-geometry.item.center());
                         QVERIFY2(
                             geometry.frame.contains(
-                                painter.transform().mapRect(geometry.card)
+                                painter.transform().mapRect(geometry.item)
                             ),
                             "Intermediate card rotation must remain inside its "
                             "frame"
@@ -64,10 +64,10 @@ void card_widget_tests::gameplay_layout_rotation_fits_every_frame() {
                  { -1.0, 91.0, std::numeric_limits<qreal>::infinity(),
                    std::numeric_limits<qreal>::quiet_NaN() }) {
                 widget.set_gameplay_layout_rotation(invalid);
-                QCOMPARE(widget.layout_geometry().slot_rotation, 90.0);
+                QCOMPARE(widget.layout_geometry().rotation, 90.0);
             }
             widget.set_gameplay_layout_rotation(std::nullopt);
-            QCOMPARE(widget.layout_geometry().card, endpoint.card);
+            QCOMPARE(widget.layout_geometry().item, endpoint.item);
         }
     }
     widget.unbind_gameplay_deck();
@@ -151,19 +151,17 @@ void card_widget_tests::gameplay_external_paint_matches_native() {
         painter.setRenderHint(QPainter::Antialiasing, true);
         painter.setFont(widget.font());
         const auto geometry = widget.layout_geometry(QSizeF(widget.size()));
-        widget.paint_slot_frame(painter, geometry);
-        widget.paint_deck_content(painter, geometry);
+        shared_ui::qt::paint_item_scene(
+            painter, geometry, widget.visual_scene(),
+            shared_ui::qt::item_scene_layer::frame
+        );
+        shared_ui::qt::paint_item_scene(
+            painter, geometry, widget.visual_scene(),
+            shared_ui::qt::item_scene_layer::content
+        );
     }
     QCOMPARE(split, native); // No endpoint renderer fork.
-    widget.gameplay_paint_external = true;
-    QImage suppressed(widget.size(), QImage::Format_ARGB32_Premultiplied);
-    suppressed.fill(Qt::transparent);
-    widget.render(&suppressed, QPoint(), QRegion(), QWidget::RenderFlags {});
-    QImage empty = suppressed;
-    empty.fill(Qt::transparent);
-    QCOMPARE(suppressed, empty);
     widget.unbind_gameplay_deck();
-    QVERIFY(!widget.gameplay_paint_external);
 }
 
 void card_widget_tests::gameplay_external_pending_paint_keeps_faces_hidden() {
@@ -183,7 +181,6 @@ void card_widget_tests::gameplay_external_pending_paint_keeps_faces_hidden() {
     card_widget widget;
     supply_renderer_faces(widget);
     QVERIFY(widget.bind_gameplay_deck(owner, { 0 }));
-    widget.gameplay_paint_external = true;
     const auto record = *owner.deck({ 0 });
     widget.set_show_card_indexing(true);
     widget.set_strategy_name(QStringLiteral("Allowed hint"));
@@ -199,8 +196,9 @@ void card_widget_tests::gameplay_external_pending_paint_keeps_faces_hidden() {
             QImage image(600, 500, QImage::Format_ARGB32_Premultiplied);
             image.fill(Qt::transparent);
             QPainter painter(&image);
-            widget.paint_deck_content(
-                painter, widget.layout_geometry(QSizeF(600, 500))
+            shared_ui::qt::paint_item_scene(
+                painter, widget.layout_geometry(QSizeF(600, 500)),
+                widget.visual_scene(), shared_ui::qt::item_scene_layer::content
             );
             return image;
         };

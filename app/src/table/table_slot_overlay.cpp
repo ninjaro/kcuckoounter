@@ -1,6 +1,7 @@
 #include "table/table_slot.hpp"
 #include <shared_ui/qt/adaptive_surface.hpp>
 #include <shared_ui/qt/answer_panel.hpp>
+#include <shared_ui/qt/control_overlay.hpp>
 #include <shared_ui/qt/editor_panel.hpp>
 #include <shared_ui/qt/icons.hpp>
 #include <shared_ui/qt/presentation.hpp>
@@ -17,29 +18,18 @@
 #include <shared_ui/qt/action_group.hpp>
 
 #include <QAction>
-#include <QBoxLayout>
 #include <QDialog>
 #include <QEvent>
-#include <QFrame>
-#include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QString>
 #include <QToolButton>
-#include <QVBoxLayout>
 #include <QtGlobal>
 
 void table_slot::setup_overlay() {
-    overlay_widget = new BaseWidget(this);
-
-    overlay_layout = new QBoxLayout(QBoxLayout::TopToBottom, overlay_widget);
-    overlay_layout->setContentsMargins(2, 2, 2, 2);
-    overlay_layout->setSpacing(2);
-
-    // A packed slot must never inherit the controls' minimum size. If they
-    // cannot fit, expose the same widgets in a transient desktop window.
-    overlay_layout->setSizeConstraint(QLayout::SetNoConstraint);
+    overlay_widget = new shared_ui::qt::control_overlay(this);
+    // Existing adaptive hosting keeps the same controls when they cannot fit.
     controls_surface
         = new shared_ui::qt::adaptive_surface(*this, *overlay_widget);
     controls_surface->set_open_permission([this] {
@@ -60,15 +50,8 @@ void table_slot::setup_overlay() {
         }
     );
 
-    swap_bar_widget = new QFrame(overlay_widget);
+    swap_bar_widget = overlay_widget->command_surface();
     swap_bar_widget->setObjectName(QStringLiteral("swap_bar_frame"));
-    shared_ui::qt::set_presentation_role(
-        *swap_bar_widget, QStringLiteral("transparent")
-    );
-    swap_bar_widget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-    swap_layout = new QBoxLayout(QBoxLayout::LeftToRight, swap_bar_widget);
-    swap_layout->setContentsMargins(4, 4, 4, 4);
-    swap_layout->setSpacing(2);
 
     quiz_bar_widget = new shared_ui::qt::answer_panel(overlay_widget);
     quiz_bar_widget->setObjectName(QStringLiteral("quiz_bar_frame"));
@@ -156,9 +139,6 @@ void table_slot::setup_overlay() {
         button->setAutoDefault(false);
 #endif
 
-    swap_layout->addWidget(slot_actions);
-    swap_layout->addStretch();
-
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     quiz_feedback_heading
         = new QLabel(str_label("ACCUMULATED COUNT"), quiz_bar_widget);
@@ -173,6 +153,7 @@ void table_slot::setup_overlay() {
           quiz_continue_button }
     );
     setup_quiz_chips();
+    overlay_widget->set_widgets(*slot_actions, *quiz_bar_widget);
 
     update_overlay_layout();
 
@@ -229,15 +210,24 @@ void table_slot::update_overlay_palette() {
         )
               .accent;
     const QColor input_color = palette_option.input_color();
-    apply_palette_to_widget(
-        swap_bar_widget, panel_color, accent_color, input_color
-    );
-    apply_palette_to_widget(
-        quiz_bar_widget, panel_color, accent_color, input_color
-    );
-    apply_palette_to_widget(
-        settings_editor_panel, panel_color, accent_color, input_color
-    );
+    for (QWidget* widget :
+         { swap_bar_widget, static_cast<QWidget*>(quiz_bar_widget),
+           static_cast<QWidget*>(settings_editor_panel.data()) }) {
+        if (!widget)
+            continue;
+        auto value = widget->parentWidget()
+            ? shared_ui::qt::presentation_for(*widget->parentWidget())
+            : shared_ui::qt::presentation {};
+        value.context.overlay_surface = panel_color;
+        value.context.overlay_text = accent_color;
+        value.context.overlay_input = input_color;
+        shared_ui::qt::apply_presentation(
+            *widget, value, shared_ui::qt::presentation_surface::overlay
+        );
+        widget->setAutoFillBackground(
+            value.value == shared_ui::qt::material::system
+        );
+    }
     // D-SET-1: under the felt chrome the settings card is warm paper placed
     // on the table rather than another dark panel.
     if (settings_editor_panel
@@ -255,73 +245,22 @@ void table_slot::update_overlay_palette() {
     update_quiz_presentation();
 }
 
-void table_slot::apply_palette_to_widget(
-    BaseWidget* widget, const QColor& panel_color, const QColor& accent_color,
-    const QColor& input_color
-) {
-    if (widget == nullptr) {
-        return;
-    }
-
-    auto value = widget->parentWidget() != nullptr
-        ? shared_ui::qt::presentation_for(*widget->parentWidget())
-        : shared_ui::qt::presentation {};
-    value.context.overlay_surface = panel_color;
-    value.context.overlay_text = accent_color;
-    value.context.overlay_input = input_color;
-    shared_ui::qt::apply_presentation(
-        *widget, value, shared_ui::qt::presentation_surface::overlay
-    );
-    widget->setAutoFillBackground(
-        value.value == shared_ui::qt::material::system
-    );
-}
-
 void table_slot::update_overlay_layout() {
-    if (overlay_layout == nullptr || swap_bar_widget == nullptr
-        || quiz_bar_widget == nullptr) {
+    if (!overlay_widget)
         return;
-    }
-
-    while (overlay_layout->count() > 0) {
-        delete overlay_layout->takeAt(0);
-    }
-
     const bool rail = action_style == slot_action_style::rail;
-    const bool horizontal_composition
+    const bool horizontal
         = !quiz_prompt_active && action_style != slot_action_style::classic
         ? rail
         : is_rotated;
-    overlay_layout->setDirection(
-        horizontal_composition ? QBoxLayout::LeftToRight
-                               : QBoxLayout::TopToBottom
+    const bool column
+        = rail || (action_style == slot_action_style::classic && is_rotated);
+    overlay_widget->arrange(
+        horizontal ? Qt::Horizontal : Qt::Vertical,
+        column ? Qt::Vertical : Qt::Horizontal, quiz_prompt_active,
+        gameplay_owner
+            && gameplay_owner->phase() == gameplay::session_phase::paused
     );
-
-    if (quiz_prompt_active) {
-        // Felt docks the prompt below the raised quiz marking.
-        const bool docked = shared_ui::qt::presentation_for(*this).value
-                == shared_ui::qt::material::felt
-            && overlay_layout->direction() == QBoxLayout::TopToBottom;
-        overlay_layout->addStretch(docked ? 3 : 1);
-        overlay_layout->addWidget(quiz_bar_widget, 0, Qt::AlignCenter);
-        if (gameplay_owner
-            && gameplay_owner->phase() == gameplay::session_phase::paused)
-            overlay_layout->addWidget(swap_bar_widget, 0, Qt::AlignCenter);
-        overlay_layout->addStretch(1);
-    } else {
-        overlay_layout->addStretch();
-        overlay_layout->addWidget(swap_bar_widget, 0, Qt::AlignCenter);
-        overlay_layout->addWidget(quiz_bar_widget, 0, Qt::AlignCenter);
-    }
-
-    if (swap_layout != nullptr) {
-        const bool column = rail
-            || (action_style == slot_action_style::classic && is_rotated);
-        swap_layout->setDirection(
-            column ? QBoxLayout::TopToBottom : QBoxLayout::LeftToRight
-        );
-        slot_actions->set_orientation(column ? Qt::Vertical : Qt::Horizontal);
-    }
     update_compact_controls();
 }
 

@@ -1,3 +1,4 @@
+#include <QVariantAnimation>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
@@ -28,6 +29,7 @@
 #endif
 
 #include "table/table_fixture.hpp"
+#include <shared_ui/qt/presentation.hpp>
 
 using namespace table_test;
 
@@ -53,7 +55,8 @@ void table_tests::gameplay_resize_paths() {
     ));
     QCoreApplication::processEvents();
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Stopped
     );
     auto& owner = *view.active_gameplay_session();
     QVERIFY(owner.start());
@@ -86,24 +89,27 @@ void table_tests::gameplay_resize_paths() {
     QSignalSpy preparation(&view, &table::gameplay_preparation_required);
     view.resize(800, 1100);
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
-    QCOMPARE(view.gameplay_layout_progress, 0.0);
+    QCOMPARE(view.scene_motion->progress(), 0.0);
     QCOMPARE(layouts.count(), 1);
-    view.gameplay_layout_animation.pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
     for (const int time : { 0, 50, 100 }) {
-        view.gameplay_layout_animation.setCurrentTime(time);
+        view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(
+            time
+        );
         QCOMPARE(
-            view.gameplay_layout_progress,
-            view.gameplay_layout_animation.easingCurve().valueForProgress(
-                static_cast<double>(time) / 200.0
-            )
+            view.scene_motion->progress(),
+            view.scene_motion->findChild<QVariantAnimation*>()
+                ->easingCurve()
+                .valueForProgress(static_cast<double>(time) / 200.0)
         );
         for (std::size_t index = 0; index < owner.size(); ++index) {
             const auto* motion = view.gameplay_layout->deck_motion({ index });
             QCOMPARE(
                 widgets[index]->geometry(),
-                widget_rectangle(*motion->sample(view.gameplay_layout_progress))
+                widget_rectangle(*motion->sample(view.scene_motion->progress()))
             );
             if (time == 0)
                 QCOMPARE(widgets[index]->geometry(), original[index]);
@@ -111,11 +117,15 @@ void table_tests::gameplay_resize_paths() {
         }
     }
     // A same-size/theme notification cannot restart the active path.
-    const int halfway_time = view.gameplay_layout_animation.currentTime();
-    const auto halfway_progress = view.gameplay_layout_progress;
+    const int halfway_time
+        = view.scene_motion->findChild<QVariantAnimation*>()->currentTime();
+    const auto halfway_progress = view.scene_motion->progress();
     view.update_layout();
-    QCOMPARE(view.gameplay_layout_animation.currentTime(), halfway_time);
-    QCOMPARE(view.gameplay_layout_progress, halfway_progress);
+    QCOMPARE(
+        view.scene_motion->findChild<QVariantAnimation*>()->currentTime(),
+        halfway_time
+    );
+    QCOMPARE(view.scene_motion->progress(), halfway_progress);
     QCOMPARE(layouts.count(), 1);
     std::vector<QRect> displayed;
     for (auto* widget : widgets)
@@ -123,31 +133,45 @@ void table_tests::gameplay_resize_paths() {
     view.resize(
         220, 180
     ); // interrupt from displayed boxes, not old destinations
-    QCOMPARE(view.gameplay_layout_progress, 0.0);
+    QCOMPARE(view.scene_motion->progress(), 0.0);
     for (std::size_t index = 0; index < owner.size(); ++index)
         QCOMPARE(widgets[index]->geometry(), displayed[index]);
-    view.gameplay_layout_animation.pause();
-    view.gameplay_layout_animation.setCurrentTime(50);
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(50);
     displayed.clear();
     for (auto* widget : widgets)
         displayed.push_back(widget->geometry());
     view.set_card_orientation(card_orientation_mode::vertical);
-    QCOMPARE(view.gameplay_layout_progress, 0.0);
+    QCOMPARE(view.scene_motion->progress(), 0.0);
     for (std::size_t index = 0; index < owner.size(); ++index) {
         QCOMPARE(widgets[index]->geometry(), displayed[index]);
-        QCOMPARE(view.gameplay_rotation_paths[index].from, 90.0);
-        QCOMPARE(view.gameplay_rotation_paths[index].to, 0.0);
+        QCOMPARE(
+            view.scene_motion->sample(static_cast<qsizetype>(index)).rotation,
+            90.0
+        );
+        QCOMPARE(
+            view.scene_motion->sample(static_cast<qsizetype>(index))
+                .target_rotation,
+            0.0
+        );
     }
-    view.gameplay_layout_animation.pause();
-    view.gameplay_layout_animation.setCurrentTime(100);
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(100);
     displayed.clear();
     for (auto* widget : widgets)
         displayed.push_back(widget->geometry());
     view.set_card_orientation(card_orientation_mode::horizontal);
     for (std::size_t index = 0; index < owner.size(); ++index) {
         QCOMPARE(widgets[index]->geometry(), displayed[index]);
-        QCOMPARE(view.gameplay_rotation_paths[index].from, 45.0);
-        QCOMPARE(view.gameplay_rotation_paths[index].to, 90.0);
+        QCOMPARE(
+            view.scene_motion->sample(static_cast<qsizetype>(index)).rotation,
+            45.0
+        );
+        QCOMPARE(
+            view.scene_motion->sample(static_cast<qsizetype>(index))
+                .target_rotation,
+            90.0
+        );
     }
     QCOMPARE(table::shared_image_service(), cache);
     QCOMPARE(
@@ -156,13 +180,14 @@ void table_tests::gameplay_resize_paths() {
     ); // no frame generations
     QCOMPARE(runtime.count(), 0);
     QCOMPARE(preparation.count(), 0);
-    view.gameplay_layout_animation.setCurrentTime(
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(
         200
     ); // actual finished signal
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Stopped
     );
-    QCOMPARE(view.gameplay_layout_progress, 1.0);
+    QCOMPARE(view.scene_motion->progress(), 1.0);
     const auto packed = view.pack_gameplay_slots(owner.size());
     QVERIFY(packed);
     QVERIFY(
@@ -202,9 +227,10 @@ void table_tests::gameplay_resize_motion_policy_and_lifetime() {
     QVERIFY(view.install_gameplay_session(owned_table_fixture()));
     view.resize(700, 1000);
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Stopped
     );
-    QCOMPARE(view.gameplay_layout_progress, 1.0);
+    QCOMPARE(view.scene_motion->progress(), 1.0);
     QCOMPARE(
         view.slot_widgets.front()->geometry(),
         widget_rectangle(view.gameplay_layout->deck_motion({ 0 })->to)
@@ -212,14 +238,16 @@ void table_tests::gameplay_resize_motion_policy_and_lifetime() {
     set_gameplay_motion_style(view, 2000);
     view.resize(1200, 900);
     QCOMPARE(
-        view.gameplay_layout_animation.duration(), 250
+        view.scene_motion->findChild<QVariantAnimation*>()->duration(), 250
     ); // bounded native hint
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
     QVERIFY(!view.install_gameplay_session(owned_table_fixture(65)));
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
     const auto destination = view.gameplay_layout->deck_motion({ 0 })->to;
     view.resize(
@@ -232,7 +260,8 @@ void table_tests::gameplay_resize_motion_policy_and_lifetime() {
         view.gameplay_layout->deck_motion({ 0 })->to.height, destination.height
     );
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
     auto& owner = *view.active_gameplay_session();
     QVERIFY(owner.start());
@@ -242,9 +271,10 @@ void table_tests::gameplay_resize_motion_policy_and_lifetime() {
         view.swap_gameplay_decks({ 0 }, { 2 })
     ); // content retargets from the active resize; frames keep slot paths
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
-    QVERIFY(view.gameplay_content_motion);
+    QVERIFY(view.scene_motion->moving_content());
     QCOMPARE(
         view.slot_widgets[0]->geometry(),
         widget_rectangle(
@@ -253,49 +283,58 @@ void table_tests::gameplay_resize_motion_policy_and_lifetime() {
     );
     view.resize(900, 1100);
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
     view.hide();
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Stopped
     );
-    QCOMPARE(view.gameplay_layout_progress, 1.0);
+    QCOMPARE(view.scene_motion->progress(), 1.0);
     view.resize(800, 1100);
     view.update_layout(); // hidden resize delivery is deferred by QWidget
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Stopped
     );
     view.show();
     view.resize(1400, 900);
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
     set_gameplay_motion_style(view, 0); // style disables in-flight animation
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Stopped
     );
-    QCOMPARE(view.gameplay_layout_progress, 1.0);
+    QCOMPARE(view.scene_motion->progress(), 1.0);
     set_gameplay_motion_style(view, 200);
     view.resize(900, 1200);
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
     QPointer<table_slot> old = view.slot_widgets.front();
     QVERIFY(view.install_gameplay_session(owned_table_fixture(2)));
     QVERIFY(old.isNull());
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Stopped
     );
     view.resize(1200, 900);
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
     old = view.slot_widgets.front();
     view.clear_gameplay_session();
     QVERIFY(old.isNull());
-    QVERIFY(view.gameplay_rotation_paths.empty());
+    QVERIFY(view.scene_motion->count() == 0);
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Stopped
     );
     QCoreApplication::processEvents();
     auto retiring = std::make_unique<table>();
@@ -305,7 +344,8 @@ void table_tests::gameplay_resize_motion_policy_and_lifetime() {
     QVERIFY(retiring->install_gameplay_session(owned_table_fixture()));
     retiring->resize(900, 1200);
     QCOMPARE(
-        retiring->gameplay_layout_animation.state(), QAbstractAnimation::Running
+        retiring->scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
     QPointer<table_slot> retiring_slot = retiring->slot_widgets.front();
     retiring.reset();
@@ -347,8 +387,8 @@ void table_tests::resize_preserves_owned_clock_and_terminal_result() {
     QVERIFY(view.resume_gameplay_runtime());
     view.stop_gameplay_clock();
     view.resize(900, 1200);
-    view.gameplay_layout_animation.pause();
-    view.gameplay_layout_animation.setCurrentTime(20);
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(20);
     QCOMPARE(view.gameplay_owner->phase(), gameplay::session_phase::running);
     QCOMPARE(view.gameplay_owner->current_quiz_batch(), batch);
     QCOMPARE(view.gameplay_owner->timing(), timing);
@@ -356,7 +396,9 @@ void table_tests::resize_preserves_owned_clock_and_terminal_result() {
     QCOMPARE(*view.gameplay_owner->deck({ 2 }), record);
     QVERIFY(view.pause_gameplay_runtime());
     for (const int time : { 40, 100, 160 }) {
-        view.gameplay_layout_animation.setCurrentTime(time);
+        view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(
+            time
+        );
         QCOMPARE(*view.gameplay_owner->deck({ 2 }), record);
         QCOMPARE(view.gameplay_owner->current_quiz_batch(), batch);
         QCOMPARE(view.gameplay_owner->timing(), timing);
@@ -381,9 +423,10 @@ void table_tests::resize_preserves_owned_clock_and_terminal_result() {
         1200, 700
     ); // finished geometry still animates, frozen traversal does not
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
-    view.gameplay_layout_animation.setCurrentTime(200);
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(200);
     QCOMPARE(view.gameplay_owner->result(), result);
     QCOMPARE(*view.gameplay_owner->deck({ 2 }), record);
     QVERIFY(std::ranges::equal(view.gameplay_owner->traversal(), order));
@@ -448,14 +491,17 @@ void table_tests::gameplay_swap_content_paths() {
     const gameplay::deck_id peer { static_cast<std::size_t>(count - 1) };
     QVERIFY(view.swap_gameplay_decks({ 0 }, peer));
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
-    QVERIFY(view.gameplay_motion_layer);
-    QVERIFY(view.gameplay_content_motion);
+    QVERIFY(view.scene_motion);
+    QVERIFY(view.scene_motion->moving_content());
     QCOMPARE(layouts.count(), 1);
-    view.gameplay_layout_animation.pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
     for (const int time : { 0, 50, 100, 150 }) {
-        view.gameplay_layout_animation.setCurrentTime(time);
+        view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(
+            time
+        );
         for (std::size_t index = 0; index < owner.size(); ++index) {
             QCOMPARE(
                 widgets[index]->geometry(),
@@ -473,55 +519,75 @@ void table_tests::gameplay_swap_content_paths() {
     }
     // Another Swap starts from displayed content, not old endpoints, and
     // changes only the committed mapping. Rejected actions keep this path.
-    auto* layer = view.gameplay_motion_layer;
+    auto* layer = view.scene_motion;
     const auto displayed = *view.gameplay_layout->deck_motion({ 0 })->sample(
-        view.gameplay_layout_progress
+        view.scene_motion->progress()
     );
     QVERIFY(!view.swap_gameplay_decks({ 0 }, { owner.size() }));
     QCOMPARE(layouts.count(), 1);
     QVERIFY(view.swap_gameplay_decks({ 0 }, peer));
-    QCOMPARE(view.gameplay_layout_progress, 0.0);
+    QCOMPARE(view.scene_motion->progress(), 0.0);
     QCOMPARE(
         widget_rectangle(view.gameplay_layout->deck_motion({ 0 })->from),
         widget_rectangle(displayed)
     );
-    QCOMPARE(view.gameplay_motion_layer, layer);
-    view.gameplay_layout_animation.pause();
-    view.gameplay_layout_animation.setCurrentTime(100);
+    QCOMPARE(view.scene_motion, layer);
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(100);
+    // A material change repaints the borrowed scene without replacing widgets,
+    // moving native controls, restarting motion or mutating the session.
+    const auto original_presentation = shared_ui::qt::presentation_for(view);
+    auto felt = original_presentation;
+    felt.value = shared_ui::qt::material::felt;
+    const auto progress = view.scene_motion->progress();
+    std::vector<QRect> native_boxes;
+    for (auto* widget : widgets)
+        native_boxes.push_back(widget->geometry());
+    shared_ui::qt::apply_presentation(view, felt);
+    view.refresh_material();
+    QVERIFY(view.scene_motion->moving_content());
+    QCOMPARE(view.scene_motion->progress(), progress);
+    QVERIFY(!layer->grab().isNull());
+    shared_ui::qt::apply_presentation(view, original_presentation);
+    view.refresh_material();
+    QCOMPARE(view.scene_motion->progress(), progress);
+    for (std::size_t index = 0; index < widgets.size(); ++index) {
+        QCOMPARE(widgets[index]->geometry(), native_boxes[index]);
+        QCOMPARE(*owner.deck({ index }), records[index]);
+    }
     const auto content = *view.gameplay_layout->deck_motion({ 0 })->sample(
-        view.gameplay_layout_progress
+        view.scene_motion->progress()
     );
     const auto frame = widgets[0]->geometry();
-    const auto angle = std::lerp(
-        view.gameplay_rotation_paths[0].from,
-        view.gameplay_rotation_paths[0].to, view.gameplay_layout_progress
-    );
+    const auto angle = view.scene_motion->sample(0).rotation;
     view.set_card_orientation(card_orientation_mode::horizontal);
     view.resize(900, 1200); // Repack during Swap keeps the two path families.
-    QCOMPARE(view.gameplay_layout_progress, 0.0);
+    QCOMPARE(view.scene_motion->progress(), 0.0);
     QCOMPARE(
         widget_rectangle(view.gameplay_layout->deck_motion({ 0 })->from),
         widget_rectangle(content)
     );
     QCOMPARE(widgets[0]->geometry(), frame);
-    QCOMPARE(view.gameplay_rotation_paths[0].from, angle);
-    view.gameplay_layout_animation.pause();
-    view.gameplay_layout_animation.setCurrentTime(100);
-    const auto halfway_angle = std::lerp(
-        view.gameplay_rotation_paths[0].from,
-        view.gameplay_rotation_paths[0].to, view.gameplay_layout_progress
+    QCOMPARE(
+        view.scene_motion->sample(static_cast<qsizetype>(0)).rotation, angle
     );
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(100);
+    const auto halfway_angle = view.scene_motion->sample(0).rotation;
     const auto halfway_content
         = *view.gameplay_layout->deck_motion({ 0 })->sample(
-            view.gameplay_layout_progress
+            view.scene_motion->progress()
         );
     const auto halfway_frame
         = *view.gameplay_layout->slot_motion(*owner.slot_for(peer))
-               ->sample(view.gameplay_layout_progress);
+               ->sample(view.scene_motion->progress());
     QVERIFY(
         view.swap_gameplay_decks({ 0 }, peer)
     ); // Swap during rotated repack.
-    QCOMPARE(view.gameplay_rotation_paths[0].from, halfway_angle);
+    QCOMPARE(
+        view.scene_motion->sample(static_cast<qsizetype>(0)).rotation,
+        halfway_angle
+    );
     QCOMPARE(
         widget_rectangle(view.gameplay_layout->deck_motion({ 0 })->from),
         widget_rectangle(halfway_content)
@@ -534,9 +600,9 @@ void table_tests::gameplay_swap_content_paths() {
     );
     QCOMPARE(runtime.count(), 0);
     QCOMPARE(preparation.count(), 0);
-    view.gameplay_layout_animation.setCurrentTime(200);
-    QCOMPARE(view.gameplay_layout_progress, 1.0);
-    QVERIFY(!view.gameplay_content_motion);
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(200);
+    QCOMPARE(view.scene_motion->progress(), 1.0);
+    QVERIFY(!view.scene_motion->moving_content());
     QVERIFY(layer->isHidden());
     const auto packed = view.pack_gameplay_slots(owner.size());
     QVERIFY(packed);
@@ -618,18 +684,24 @@ void table_tests::gameplay_swap_pending_state() {
     const auto revision = view.gameplay_scene_revision;
     QSignalSpy resolved(&view, &table::gameplay_quiz_resolved);
     QVERIFY(view.swap_gameplay_decks({ 2 }, { 0 }));
-    view.gameplay_layout_animation.pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
     for (const int time : { 0, 60, 100, 180 }) {
-        view.gameplay_layout_animation.setCurrentTime(time);
+        view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(
+            time
+        );
         if (time == 60) {
             view.set_card_orientation(card_orientation_mode::horizontal);
-            view.gameplay_layout_animation.pause();
-            QCOMPARE(view.gameplay_layout_progress, 0.0);
-            QCOMPARE(view.gameplay_rotation_paths[2].to, 90.0);
+            view.scene_motion->findChild<QVariantAnimation*>()->pause();
+            QCOMPARE(view.scene_motion->progress(), 0.0);
+            QCOMPARE(
+                view.scene_motion->sample(static_cast<qsizetype>(2))
+                    .target_rotation,
+                90.0
+            );
         }
         QImage image(view.size(), QImage::Format_ARGB32_Premultiplied);
         image.fill(Qt::transparent);
-        view.gameplay_motion_layer->render(&image); // Real pending paint path.
+        view.scene_motion->render(&image); // Real pending paint path.
         for (std::size_t index = 0; index < owner.size(); ++index)
             QCOMPARE(*owner.deck({ index }), records[index]);
         QCOMPARE(owner.current_quiz_batch(), batch);
@@ -647,7 +719,7 @@ void table_tests::gameplay_swap_pending_state() {
         );
         QVERIFY(!view.gameplay_timer.isActive());
     }
-    view.gameplay_layout_animation.setCurrentTime(200);
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(200);
     QCOMPARE(resolved.count(), 0);
     QCOMPARE(*owner.deck({ 2 }), records[2]);
     QVERIFY(view.resume_gameplay_runtime());
@@ -673,56 +745,57 @@ void table_tests::gameplay_swap_motion_policy_and_lifetime() {
     QVERIFY(view.gameplay_owner->start());
     QVERIFY(view.gameplay_owner->pause());
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 2 }));
-    QVERIFY(
-        !view.gameplay_motion_layer
-    ); // No paint-layer allocation when inert.
-    QVERIFY(!view.gameplay_content_motion);
+    QVERIFY(view.scene_motion->isHidden()); // No borrowed painting when inert.
+    QVERIFY(!view.scene_motion->moving_content());
     set_gameplay_motion_style(view, 200);
     view.hide();
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 2 }));
-    QVERIFY(!view.gameplay_motion_layer);
+    QVERIFY(view.scene_motion->isHidden());
     view.show();
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 2 }));
-    QVERIFY(view.gameplay_content_motion);
-    QPointer<BaseWidget> layer = view.gameplay_motion_layer;
+    QVERIFY(view.scene_motion->moving_content());
+    QPointer<BaseWidget> layer = view.scene_motion;
     view.hide();
     QVERIFY(layer->isHidden());
-    QVERIFY(!view.gameplay_content_motion);
-    QCOMPARE(view.gameplay_layout_progress, 1.0);
+    QVERIFY(!view.scene_motion->moving_content());
+    QCOMPARE(view.scene_motion->progress(), 1.0);
     view.show();
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 2 }));
-    QCOMPARE(view.gameplay_motion_layer, layer.data());
-    view.gameplay_layout_animation.pause();
-    view.gameplay_layout_animation.setCurrentTime(180);
+    QCOMPARE(view.scene_motion, layer.data());
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(180);
     set_gameplay_motion_style(view, 50);
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 2 }));
-    QCOMPARE(view.gameplay_layout_animation.duration(), 50);
-    QCOMPARE(view.gameplay_layout_progress, 0.0);
+    QCOMPARE(
+        view.scene_motion->findChild<QVariantAnimation*>()->duration(), 50
+    );
+    QCOMPARE(view.scene_motion->progress(), 0.0);
     QVERIFY(
-        view.gameplay_content_motion
+        view.scene_motion->moving_content()
     ); // Shorter nonzero hint cannot retire new motion.
-    view.gameplay_layout_animation.setCurrentTime(50);
-    QVERIFY(!view.gameplay_content_motion);
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(50);
+    QVERIFY(!view.scene_motion->moving_content());
     set_gameplay_motion_style(view, 200);
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 2 }));
     set_gameplay_motion_style(view, 0);
     QVERIFY(layer->isHidden());
-    QVERIFY(!view.gameplay_content_motion);
+    QVERIFY(!view.scene_motion->moving_content());
     set_gameplay_motion_style(view, 200);
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 2 }));
     QVERIFY(!view.install_gameplay_session(owned_table_fixture(65)));
-    QVERIFY(view.gameplay_content_motion);
+    QVERIFY(view.scene_motion->moving_content());
     QVERIFY(view.install_gameplay_session(owned_table_fixture(2)));
-    QVERIFY(layer.isNull());
-    QVERIFY(!view.gameplay_motion_layer);
-    QVERIFY(!view.gameplay_content_motion);
+    QVERIFY(layer && layer->isHidden());
+    QVERIFY(view.scene_motion->isHidden());
+    QVERIFY(!view.scene_motion->moving_content());
     QVERIFY(view.gameplay_owner->start());
     QVERIFY(view.gameplay_owner->pause());
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 1 }));
-    layer = view.gameplay_motion_layer;
+    layer = view.scene_motion;
     view.clear_gameplay_session();
-    QVERIFY(layer.isNull());
-    QVERIFY(!view.gameplay_content_motion);
+    QVERIFY(layer && layer->isHidden());
+    QCOMPARE(view.scene_motion->count(), qsizetype(0));
+    QVERIFY(!view.scene_motion->moving_content());
     auto retiring = std::make_unique<table>();
     set_gameplay_motion_style(*retiring, 200);
     retiring->resize(1200, 900);
@@ -731,7 +804,7 @@ void table_tests::gameplay_swap_motion_policy_and_lifetime() {
     QVERIFY(retiring->gameplay_owner->start());
     QVERIFY(retiring->gameplay_owner->pause());
     QVERIFY(retiring->swap_gameplay_decks({ 0 }, { 2 }));
-    layer = retiring->gameplay_motion_layer;
+    layer = retiring->scene_motion;
     QPointer<card_widget> card = owned_card(retiring->slot_widgets[0]);
     retiring.reset();
     QVERIFY(layer.isNull());
@@ -769,11 +842,11 @@ void table_tests::swap_paints_moving_content_below_controls() {
         owned_card(view.slot_widgets[index])->set_presented_card_images(faces);
     }
     QVERIFY(view.swap_gameplay_decks({ 0 }, { 1 }));
-    auto* layer = view.gameplay_motion_layer;
+    auto* layer = view.scene_motion;
     QVERIFY(layer->testAttribute(Qt::WA_TransparentForMouseEvents));
     QCOMPARE(layer->focusPolicy(), Qt::NoFocus);
-    view.gameplay_layout_animation.pause();
-    view.gameplay_layout_animation.setCurrentTime(80);
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(80);
     QImage image(view.size(), QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
     layer->render(&image, QPoint(), QRegion(), QWidget::RenderFlags {});
@@ -783,7 +856,7 @@ void table_tests::swap_paints_moving_content_below_controls() {
     for (std::size_t index = 0; index < colors.size(); ++index) {
         const auto moving
             = *view.gameplay_layout->deck_motion({ index })->sample(
-                view.gameplay_layout_progress
+                view.scene_motion->progress()
             );
         const QPoint center(
             static_cast<int>(moving.x + moving.width / 2.0),
@@ -821,10 +894,10 @@ void table_tests::swap_paints_moving_content_below_controls() {
             QVERIFY(slot->swap_selected());
     }
     QCOMPARE(
-        view.gameplay_layout_progress, 0.0
+        view.scene_motion->progress(), 0.0
     ); // Buttons reversed the mapping.
-    QCOMPARE(view.gameplay_motion_layer, layer);
-    view.gameplay_layout_animation.setCurrentTime(200);
+    QCOMPARE(view.scene_motion, layer);
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(200);
     QVERIFY(layer->isHidden());
 }
 

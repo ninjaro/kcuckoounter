@@ -6,7 +6,6 @@
 #include "table/gameplay_session.hpp"
 #include "table/table.hpp"
 
-#include <QBoxLayout>
 #include <QHash>
 #include <QImage>
 #include <QPointer>
@@ -14,6 +13,7 @@
 #include <QString>
 #include <QVector>
 #include <optional>
+#include <shared_ui/qt/control_overlay.hpp>
 
 class QAction;
 class QResizeEvent;
@@ -110,12 +110,10 @@ private:
     void focus_gameplay_input();
     card_widget* card_widget_internal;
 
-    BaseWidget* overlay_widget;
+    shared_ui::qt::control_overlay* overlay_widget;
     QToolButton* compact_controls_button = nullptr;
     shared_ui::qt::adaptive_surface* controls_surface = nullptr;
     BaseWidget* swap_bar_widget;
-    QBoxLayout* overlay_layout;
-    QBoxLayout* swap_layout;
     slot_action_style action_style = slot_action_style::classic;
     slot_settings_style settings_style = slot_settings_style::classic;
     QPointer<shared_ui::qt::editor_panel> settings_editor_panel;
@@ -153,10 +151,6 @@ private:
     void update_settings_button_state();
     void update_quiz_controls_visibility();
     void update_action_button_state();
-    static void apply_palette_to_widget(
-        BaseWidget* widget, const QColor& panel_color,
-        const QColor& accent_color, const QColor& input_color
-    );
     void update_overlay_palette();
     void open_settings_editor();
     void place_settings_editor();

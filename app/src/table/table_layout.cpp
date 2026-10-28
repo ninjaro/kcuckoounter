@@ -1,43 +1,14 @@
-#include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
 #include "packing/layout/equal_rectangles.hpp"
-#include "settings/strategy_data.hpp"
 #include "table/card_widget.hpp"
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 
-#include <QPaintEvent>
-#include <QPainter>
 #include <QRect>
-#include <QStyle>
 
 #include <algorithm>
-#include <functional>
-#include <utility>
 
 namespace table_layout {
-
-// One non-interactive layer below native controls, not a snapshot or a second
-// renderer. The callback borrows the table's current capped scene only.
-class motion_layer final : public BaseWidget {
-public:
-    motion_layer(BaseWidget* parent, std::function<void(QPainter&)> paint)
-        : BaseWidget(parent)
-        , paint_scene(std::move(paint)) {
-        setAttribute(Qt::WA_TransparentForMouseEvents);
-        setFocusPolicy(Qt::NoFocus);
-    }
-
-protected:
-    void paintEvent(QPaintEvent*) override {
-        QPainter painter(this);
-        painter.setRenderHint(QPainter::Antialiasing, true);
-        paint_scene(painter);
-    }
-
-private:
-    std::function<void(QPainter&)> paint_scene;
-};
 
 packing::orientation_constraint
 packing_orientation(card_orientation_mode orientation) noexcept {
@@ -75,134 +46,46 @@ table::pack_gameplay_slots(std::size_t count) const {
     return result;
 }
 
+QList<shared_ui::qt::scene_track> table::layout_tracks() const {
+    const auto box = [](const packing::rectangle& value) {
+        return QRectF(value.x, value.y, value.width, value.height);
+    };
+    QList<shared_ui::qt::scene_track> tracks;
+    for (std::size_t index = 0; index < slot_widgets.size(); ++index) {
+        const auto* frame = gameplay_layout->slot_motion(
+            *gameplay_owner->slot_for({ index })
+        );
+        const auto* content = gameplay_layout->deck_motion({ index });
+        auto* slot = slot_widgets[index];
+        tracks.append(
+            { slot,
+              slot->card_widget_internal,
+              { box(frame->from), box(frame->to) },
+              { box(content->from), box(content->to) },
+              content->to.rotated ? 0.0 : 90.0 }
+        );
+    }
+    return tracks;
+}
+
 void table::project_gameplay_layout() {
     if (!gameplay_layout)
         return;
-    if (gameplay_layout_progress == 1.0)
-        retire_gameplay_content_motion();
-    if (gameplay_content_motion && !gameplay_motion_layer)
-        gameplay_motion_layer
-            = new table_layout::motion_layer(this, [this](QPainter& painter) {
-                  paint_gameplay_motion(painter);
-              });
     for (std::size_t index = 0; index < slot_widgets.size(); ++index) {
-        const auto* motion = gameplay_layout->deck_motion({ index });
-        // A bound widget keeps deck identity, but its native controls occupy
-        // the committed physical destination. Only content follows deck paths.
-        const auto rectangle
-            = *gameplay_layout
-                   ->slot_motion(*gameplay_owner->slot_for({ index }))
-                   ->sample(gameplay_layout_progress);
-        const auto rotation = gameplay_rotation_paths[index];
         auto* slot = slot_widgets[index];
-        // Notches label the physical frame, matching review's "Current slot".
+        const auto pose = scene_motion->sample(static_cast<qsizetype>(index));
         slot->card_widget_internal->set_slot_number(
             static_cast<int>(gameplay_owner->slot_for({ index })->value) + 1
         );
-        slot->card_widget_internal->gameplay_paint_external
-            = gameplay_content_motion;
-        slot->set_rotated(motion->to.rotated); // Controls stay upright/native.
-        slot->set_gameplay_layout_rotation(
-            std::lerp(rotation.from, rotation.to, gameplay_layout_progress)
-        );
-        slot->setGeometry(
-            static_cast<int>(rectangle.x), static_cast<int>(rectangle.y),
-            static_cast<int>(rectangle.width),
-            static_cast<int>(rectangle.height)
-        );
-        if (gameplay_layout_progress == 1.0)
+        slot->set_rotated(gameplay_layout->deck_motion({ index })->to.rotated);
+        // Set the pose before native resizing, so presentation-only frames do
+        // not regenerate card jitter or watermark demand.
+        slot->set_gameplay_layout_rotation(pose.rotation);
+        slot->setGeometry(pose.frame);
+        if (!scene_motion->active())
             slot->set_gameplay_layout_rotation(std::nullopt);
         slot->show();
     }
-    if (gameplay_content_motion) {
-        gameplay_motion_layer->setGeometry(rect());
-        gameplay_motion_layer->lower(); // Every native control stays above it.
-        gameplay_motion_layer->show();
-        gameplay_motion_layer->update();
-    }
-}
-
-void table::paint_gameplay_motion(QPainter& painter) {
-    if (!gameplay_content_motion || !gameplay_layout)
-        return;
-    // All fixed-slot frames first, then borrowed deck paint. Temporary content
-    // overlap is permitted; a later frame must not erase another deck's card.
-    for (const bool content : { false, true }) {
-        for (std::size_t index = 0; index < slot_widgets.size(); ++index) {
-            const auto* motion = content
-                ? gameplay_layout->deck_motion({ index })
-                : gameplay_layout->slot_motion(
-                      *gameplay_owner->slot_for({ index })
-                  );
-            const auto rectangle = *motion->sample(gameplay_layout_progress);
-            auto* card = slot_widgets[index]->card_widget_internal;
-            // Match native logical-pixel rounding at both ends of the layer
-            // interval; G2 retains its full-precision path independently.
-            const QRect box(
-                static_cast<int>(rectangle.x), static_cast<int>(rectangle.y),
-                static_cast<int>(rectangle.width),
-                static_cast<int>(rectangle.height)
-            );
-            painter.save();
-            painter.translate(box.topLeft());
-            const QSizeF size(box.size());
-            painter.setClipRect(QRectF(QPointF(), size), Qt::IntersectClip);
-            painter.setFont(card->font());
-            const auto geometry = card->layout_geometry(size);
-            if (content)
-                card->paint_deck_content(painter, geometry);
-            else
-                card->paint_slot_frame(painter, geometry);
-            painter.restore();
-        }
-    }
-}
-
-void table::retire_gameplay_content_motion() {
-    gameplay_content_motion = false;
-    if (gameplay_motion_layer)
-        gameplay_motion_layer->hide();
-    for (auto* slot : slot_widgets) {
-        auto* card = slot->card_widget_internal;
-        if (card->gameplay_paint_external) {
-            card->gameplay_paint_external = false;
-            card->update();
-        }
-    }
-}
-
-void table::finish_gameplay_layout_transition() {
-    gameplay_layout_animation.stop();
-    gameplay_layout_progress = 1.0;
-    project_gameplay_layout();
-    if (gameplay_owner)
-        update_card_image_demands();
-}
-
-void table::restart_gameplay_layout_transition() {
-    gameplay_layout_animation.stop();
-    int duration = 0;
-#if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
-    if (isVisible())
-        duration = std::clamp(
-            style()->styleHint(
-                QStyle::SH_Widget_Animation_Duration, nullptr, this
-            ),
-            0, 250
-        );
-#endif
-    if (duration == 0) {
-        finish_gameplay_layout_transition();
-        return;
-    }
-    gameplay_layout_progress = 0.0;
-    // Reset old elapsed time before changing duration. A shorter new native
-    // hint must not emit progress=1 for the newly installed paths and retire
-    // their content layer before the timeline starts.
-    gameplay_layout_animation.setCurrentTime(0);
-    gameplay_layout_animation.setDuration(duration);
-    project_gameplay_layout();
-    gameplay_layout_animation.start();
 }
 
 void table::update_layout() {
@@ -221,19 +104,8 @@ void table::update_layout() {
         }
         if (!changed)
             return; // Repeated same-size notifications must not restart motion.
-        auto rotations = gameplay_rotation_paths;
-        for (auto& rotation : rotations)
-            rotation.from = std::lerp(
-                rotation.from, rotation.to, gameplay_layout_progress
-            );
-        if (gameplay_layout->repack(*packed, gameplay_layout_progress)) {
-            for (std::size_t index = 0; index < rotations.size(); ++index)
-                rotations[index].to
-                    = gameplay_layout->deck_motion({ index })->to.rotated
-                    ? 0.0
-                    : 90.0;
-            gameplay_rotation_paths = std::move(rotations);
-            restart_gameplay_layout_transition();
+        if (gameplay_layout->repack(*packed, scene_motion->progress())) {
+            scene_motion->transition(layout_tracks(), false);
             emit gameplay_layout_changed();
         }
         return;

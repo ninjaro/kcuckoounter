@@ -137,7 +137,6 @@ void card_widget::unbind_gameplay_deck() {
         return;
     gameplay_owner = nullptr;
     gameplay_layout_rotation_deg.reset();
-    gameplay_paint_external = false;
     presented_physical_cards = 0;
     hide_cards_flag = false;
     reset_presentation();

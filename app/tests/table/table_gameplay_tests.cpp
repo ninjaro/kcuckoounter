@@ -1,4 +1,5 @@
 #include <QLineEdit>
+#include <QVariantAnimation>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
@@ -208,7 +209,8 @@ void table_tests::owned_table_projects_mixed_decks_and_swap() {
         view.resize(700, 1100);
         QCoreApplication::processEvents();
         QTRY_COMPARE(
-            view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+            view.scene_motion->findChild<QVariantAnimation*>()->state(),
+            QAbstractAnimation::Stopped
         );
         const auto [long_side, short_side] = card_sheet_ratio();
         const auto expected = packing::pack_equal_rectangles(
@@ -280,7 +282,8 @@ void table_tests::gameplay_table_terminal_resize_preserves_results() {
     view.resize(600, 1000);
     QCoreApplication::processEvents();
     QTRY_COMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Stopped
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Stopped
     );
     QVERIFY(slot->geometry() != before);
     QCOMPARE(game.result(), result);

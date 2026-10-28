@@ -1,6 +1,7 @@
 #include "table/table_slot.hpp"
 #include <shared_ui/qt/adaptive_surface.hpp>
 #include <shared_ui/qt/answer_panel.hpp>
+#include <shared_ui/qt/control_overlay.hpp>
 #include <shared_ui/qt/presentation.hpp>
 
 #include "arch/asset_locator.hpp"
@@ -26,8 +27,6 @@ table_slot::table_slot(BaseWidget* parent)
     , card_widget_internal(new card_widget(this))
     , overlay_widget(nullptr)
     , swap_bar_widget(nullptr)
-    , overlay_layout(nullptr)
-    , swap_layout(nullptr)
     , quiz_bar_widget(nullptr)
     , quiz_weight_label(nullptr)
     , quiz_answer_button(nullptr)
@@ -166,12 +165,10 @@ void table_slot::set_frame_style(slot_frame_style style) {
 }
 
 void table_slot::update_overlay_margins() {
-    if (overlay_layout == nullptr || card_widget_internal == nullptr)
-        return;
-    // D-BAR-2: actions sit on the felt, clear of the piping's bottom legends.
-    overlay_layout->setContentsMargins(
-        2, 2, 2, std::max(2, card_widget_internal->bottom_legend_clearance())
-    );
+    if (overlay_widget && card_widget_internal)
+        overlay_widget->set_bottom_clearance(
+            card_widget_internal->bottom_legend_clearance()
+        );
 }
 
 void table_slot::set_quiz_presentation(

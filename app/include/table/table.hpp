@@ -15,17 +15,16 @@
 #include <QSize>
 #include <QString>
 #include <QTimer>
-#include <QVariantAnimation>
 #include <QVector>
 #include <QtGlobal>
 #include <functional>
 #include <memory>
 #include <optional>
+#include <shared_ui/qt/scene_transition.hpp>
 #include <vector>
 
 class QGridLayout;
 class QPaintEvent;
-class QPainter;
 class QResizeEvent;
 class table_slot;
 Q_MOC_INCLUDE("table/table_slot.hpp")
@@ -176,18 +175,7 @@ private:
     std::vector<table_slot*> slot_widgets;
     std::unique_ptr<gameplay::session> gameplay_owner;
     std::unique_ptr<gameplay::layout_transition> gameplay_layout;
-    // Ephemeral presentation only; never advances the gameplay clock.
-    QVariantAnimation gameplay_layout_animation;
-    double gameplay_layout_progress = 1.0;
-    BaseWidget* gameplay_motion_layer = nullptr;
-    bool gameplay_content_motion = false;
-
-    struct rotation_motion {
-        double from;
-        double to;
-    };
-
-    std::vector<rotation_motion> gameplay_rotation_paths;
+    shared_ui::qt::scene_transition* scene_motion;
     QTimer gameplay_timer;
     QElapsedTimer gameplay_elapsed;
     qint64 gameplay_sampled_ms = 0;
@@ -228,10 +216,7 @@ private:
     [[nodiscard]] std::optional<packing::equal_packing_result>
     pack_gameplay_slots(std::size_t count) const;
     void project_gameplay_layout();
-    void paint_gameplay_motion(QPainter& painter);
-    void retire_gameplay_content_motion();
-    void finish_gameplay_layout_transition();
-    void restart_gameplay_layout_transition();
+    [[nodiscard]] QList<shared_ui::qt::scene_track> layout_tracks() const;
     void stop_gameplay_clock();
     void on_gameplay_clock_tick();
     [[nodiscard]] bool

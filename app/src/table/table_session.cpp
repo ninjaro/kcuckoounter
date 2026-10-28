@@ -1,5 +1,6 @@
 #include "table/table.hpp"
 
+#include "table/card_widget.hpp"
 #include "table/table_slot.hpp"
 
 #include <QPointer>
@@ -30,13 +31,6 @@ bool table::install_gameplay_scene(
     auto paths = std::make_unique<gameplay::layout_transition>(*owner);
     if (!paths->repack(packed))
         return false;
-    std::vector<rotation_motion> rotations;
-    rotations.reserve(owner->size());
-    for (std::size_t index = 0; index < owner->size(); ++index) {
-        const double angle
-            = paths->deck_motion({ index })->to.rotated ? 0.0 : 90.0;
-        rotations.push_back({ angle, angle });
-    }
     std::vector<std::unique_ptr<table_slot>> staged;
     staged.reserve(owner->size());
     std::vector<table_slot*> next_slots;
@@ -60,7 +54,7 @@ bool table::install_gameplay_scene(
             guard->gameplay_start_pending = false;
     });
     stop_gameplay_clock();
-    gameplay_layout_animation.stop();
+    scene_motion->cancel();
     gameplay_runtime_attached = false;
     gameplay_pick_elapsed_ms = 0;
     gameplay_runtime_failure.clear();
@@ -74,8 +68,6 @@ bool table::install_gameplay_scene(
     gameplay_owner = std::move(owner);
     ++gameplay_scene_revision;
     gameplay_layout = std::move(paths);
-    gameplay_layout_progress = 1.0;
-    gameplay_rotation_paths = std::move(rotations);
     slot_widgets
         = std::move(next_slots); // already allocated before replacement
     for (auto& slot : staged) {
@@ -95,7 +87,20 @@ bool table::install_gameplay_scene(
     if (pickup_elapsed) {
         refresh_gameplay_session();
     }
-    project_gameplay_layout();
+    scene_motion->reset(
+        layout_tracks(),
+        [this](
+            QPainter& painter, qsizetype index, const QSize& size,
+            qreal rotation, shared_ui::qt::item_scene_layer layer
+        ) {
+            const auto* card = slot_widgets[static_cast<std::size_t>(index)]
+                                   ->card_widget_internal;
+            shared_ui::qt::paint_item_scene(
+                painter, card->layout_geometry(size, rotation),
+                card->visual_scene(), layer
+            );
+        }
+    );
     if (!apply_displayed_card_images())
         return false;
     schedule_card_preload();

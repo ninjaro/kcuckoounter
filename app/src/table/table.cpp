@@ -15,7 +15,6 @@
 #include <QResizeEvent>
 #include <QSignalBlocker>
 #include <QString>
-#include <QStyle>
 #include <QTimer>
 
 #include <algorithm>
@@ -25,6 +24,7 @@
 table::table(BaseWidget* parent)
     : BaseWidget(parent)
     , slot_widgets()
+    , scene_motion(new shared_ui::qt::scene_transition(*this))
     , swap_source_slot(nullptr)
     , card_orientation(card_orientation_mode::automatic)
     , rasterizing_slots()
@@ -51,21 +51,18 @@ table::table(BaseWidget* parent)
     setMinimumHeight(88);
     gameplay_timer.setInterval(50);
     gameplay_timer.setTimerType(Qt::PreciseTimer);
-    gameplay_layout_animation.setStartValue(0.0);
-    gameplay_layout_animation.setEndValue(1.0);
-    gameplay_layout_animation.setEasingCurve(QEasingCurve::InOutCubic);
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    scene_motion->set_animation_enabled(false);
+#endif
     connect(
-        &gameplay_layout_animation, &QVariantAnimation::valueChanged, this,
-        [this](const QVariant& value) {
-            if (!gameplay_layout)
-                return;
-            gameplay_layout_progress = value.toDouble();
-            project_gameplay_layout();
-        }
+        scene_motion, &shared_ui::qt::scene_transition::frame_changed, this,
+        &table::project_gameplay_layout
     );
     connect(
-        &gameplay_layout_animation, &QVariantAnimation::finished, this,
-        &table::finish_gameplay_layout_transition
+        scene_motion, &shared_ui::qt::scene_transition::finished, this, [this] {
+            if (gameplay_owner)
+                update_card_image_demands();
+        }
     );
     connect(
         &gameplay_timer, &QTimer::timeout, this, &table::on_gameplay_clock_tick
@@ -81,7 +78,7 @@ table::~table() {
     // Withdraw only this table; other consumers retain shared jobs and images.
     card_images.clear();
     stop_gameplay_clock();
-    gameplay_layout_animation.stop();
+    scene_motion->clear();
     // QObject deletes children after member destruction. Bound views must go
     // first; do not emit host notifications from a partially destroyed table.
     if (gameplay_owner)
@@ -122,9 +119,7 @@ std::unique_ptr<table_slot> table::create_slot_widget() {
 }
 
 void table::destroy_slot_widgets() {
-    retire_gameplay_content_motion();
-    delete gameplay_motion_layer;
-    gameplay_motion_layer = nullptr;
+    scene_motion->clear();
     clear_swap_selection();
     for (auto* slot : slot_widgets) {
         update_rasterization_state(slot, false);
@@ -155,22 +150,13 @@ void table::refresh_gameplay_session() {
 bool table::swap_gameplay_decks(
     gameplay::deck_id first, gameplay::deck_id second
 ) {
-    auto rotations = gameplay_rotation_paths;
-    for (auto& rotation : rotations)
-        rotation.from
-            = std::lerp(rotation.from, rotation.to, gameplay_layout_progress);
     if (!gameplay_layout
         || !gameplay_layout->swap_decks(
-            first, second, gameplay_layout_progress
+            first, second, scene_motion->progress()
         ))
         return false;
     clear_swap_selection();
-    for (std::size_t index = 0; index < rotations.size(); ++index)
-        rotations[index].to
-            = gameplay_layout->deck_motion({ index })->to.rotated ? 0.0 : 90.0;
-    gameplay_rotation_paths = std::move(rotations);
-    gameplay_content_motion = true;
-    restart_gameplay_layout_transition();
+    scene_motion->transition(layout_tracks(), true);
     refresh_gameplay_session();
     emit gameplay_layout_changed(); // mapping-dependent projections follow Swap
     return true;
@@ -180,7 +166,7 @@ void table::clear_gameplay_session() {
     if (gameplay_start_pending || !gameplay_owner)
         return;
     stop_gameplay_clock();
-    gameplay_layout_animation.stop();
+    scene_motion->cancel();
     gameplay_runtime_attached = false;
     gameplay_pick_elapsed_ms = 0;
     gameplay_runtime_failure.clear();
@@ -189,8 +175,6 @@ void table::clear_gameplay_session() {
     destroy_slot_widgets();
     gameplay_completion = {};
     gameplay_layout.reset();
-    gameplay_rotation_paths.clear();
-    gameplay_layout_progress = 1.0;
     gameplay_owner.reset();
     ++gameplay_scene_revision;
     clear_presented_card_images();
@@ -262,14 +246,6 @@ bool table::event(QEvent* event) {
         && (event->type() == QEvent::DevicePixelRatioChange
             || event->type() == QEvent::ScreenChangeInternal);
     const bool accepted = BaseWidget::event(event);
-
-    if (gameplay_owner && event != nullptr
-        && (event->type() == QEvent::Hide
-            || (event->type() == QEvent::StyleChange
-                && style()->styleHint(
-                       QStyle::SH_Widget_Animation_Duration, nullptr, this
-                   ) <= 0)))
-        finish_gameplay_layout_transition();
 
     if (screen_metrics_changed) {
         // Let Qt finish updating the window/screen association before reading

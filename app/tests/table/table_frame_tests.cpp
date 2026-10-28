@@ -1,3 +1,4 @@
+#include <QVariantAnimation>
 // QtTest invokes these slots through the meta-object system.
 // NOLINTBEGIN(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)
@@ -179,15 +180,16 @@ void table_tests::frame_styles_preserve_owned_runtime() {
     set_gameplay_motion_style(view, 200);
     QVERIFY(view.swap_gameplay_decks({ 1 }, { 2 }));
     QCOMPARE(
-        view.gameplay_layout_animation.state(), QAbstractAnimation::Running
+        view.scene_motion->findChild<QVariantAnimation*>()->state(),
+        QAbstractAnimation::Running
     );
-    view.gameplay_layout_animation.pause();
-    view.gameplay_layout_animation.setCurrentTime(100);
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(100);
     QVERIFY(!view.grab().isNull());
-    view.gameplay_layout_animation.setCurrentTime(200);
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(200);
     view.resize(compact ? QSize(1800, 1200) : QSize(1000, 1500));
-    view.gameplay_layout_animation.pause();
-    view.gameplay_layout_animation.setCurrentTime(200);
+    view.scene_motion->findChild<QVariantAnimation*>()->pause();
+    view.scene_motion->findChild<QVariantAnimation*>()->setCurrentTime(200);
     QCOMPARE(
         owner.slot_for({ 1 }),
         std::optional { gameplay::physical_slot_id { 2 } }

@@ -122,7 +122,7 @@ int card_widget::card_face_target_short_px() const {
 }
 
 QSize card_widget::card_face_target_size() const {
-    const auto rect = layout_geometry().card;
+    const auto rect = layout_geometry().item;
     return rect.isEmpty() ? QSize()
                           : rect.size().toSize().expandedTo(QSize(1, 1));
 }

@@ -27,7 +27,7 @@ const rasterflow::qt::image_service* table::shared_image_service() {
 }
 
 void table::update_card_image_demands(bool immediate, bool force) {
-    if (gameplay_owner && gameplay_layout_progress < 1.0 && !force
+    if (gameplay_owner && scene_motion->progress() < 1.0 && !force
         && !immediate)
         return;
     QMap<QString, QSize> needed;
