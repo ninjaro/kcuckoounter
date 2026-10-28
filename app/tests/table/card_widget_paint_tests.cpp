@@ -42,10 +42,9 @@ void card_widget_tests::selected_presentation_preserves_master_pixels() {
         { { card_element_ids().front(), master } }
     );
     widget.update_card_faces(QSize(32, 48));
-    master.setDevicePixelRatio(widget.devicePixelRatioF());
-    QCOMPARE(widget.card_face_pixmap(0).toImage(), master);
+    QCOMPARE(widget.card_face_image(0), master);
     widget.update_card_faces(QSize(100, 150));
-    QCOMPARE(widget.card_face_pixmap(0).toImage(), master);
+    QCOMPARE(widget.card_face_image(0), master);
 }
 
 void card_widget_tests::rotated_master_uses_smooth_single_transform_data() {
@@ -67,7 +66,8 @@ void card_widget_tests::rotated_master_uses_smooth_single_transform() {
     QFETCH(QSize, display);
     const card_widget widget;
     const qreal dpr = widget.devicePixelRatioF();
-    auto master = QPixmap::fromImage(detailed_face());
+    const auto source = detailed_face();
+    auto master = QPixmap::fromImage(source);
     master.setDevicePixelRatio(dpr);
     const auto canvas = [&] {
         QImage result(
@@ -87,8 +87,8 @@ void card_widget_tests::rotated_master_uses_smooth_single_transform() {
     {
         QPainter painter(&actual);
         painter.setRenderHint(QPainter::Antialiasing);
-        card_widget::draw_card_pixmap(
-            painter, destination, 0, angle, offset, master
+        card_widget::draw_card_image(
+            painter, destination, 0, angle, offset, source
         );
         QVERIFY(!painter.testRenderHint(QPainter::SmoothPixmapTransform));
     }

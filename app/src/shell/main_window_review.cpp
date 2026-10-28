@@ -6,8 +6,6 @@
 #include "table/settings_template.hpp"
 #include "table/table.hpp"
 
-#include "arch/android_ui.hpp"
-#include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"

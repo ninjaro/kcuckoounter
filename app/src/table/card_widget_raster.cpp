@@ -3,7 +3,7 @@
 #include "card_helpers/card_sheet.hpp"
 #include <QPointer>
 #include <algorithm>
-#include <cmath>
+#include <shared_ui/graphics/qt/svg_image_view.hpp>
 
 namespace {
 bool same_images(
@@ -39,14 +39,19 @@ QString card_widget::displayed_card_image_id() const {
         return {};
     if (!display_running() || display_card_index() < 0)
         return card_back_element_id();
-    return card_element_id_from_index(std::min(
-        display_card_index(), static_cast<int>(card_element_ids().size()) - 1
-    ));
+    return card_element_id_from_index(
+        std::min(
+            display_card_index(),
+            static_cast<int>(card_element_ids().size()) - 1
+        )
+    );
 }
 
 void card_widget::prepare_card_faces() {
     const QPointer<card_widget> lifetime(this);
-    table_marking.set_device_pixel_ratio(devicePixelRatioF());
+    auto marking_target = table_marking.target();
+    marking_target.device_pixel_ratio = devicePixelRatioF();
+    table_marking.set_target(marking_target);
     if (!lifetime)
         return;
     const auto target = card_face_target_size();
@@ -57,7 +62,8 @@ void card_widget::prepare_card_faces() {
         emit image_demand_changed();
 }
 
-void card_widget::set_presented_card_images(const QHash<QString, QImage>& images
+void card_widget::set_presented_card_images(
+    const QHash<QString, QImage>& images
 ) {
     presented_image_mode = true;
     card_images.reset();
@@ -66,7 +72,7 @@ void card_widget::set_presented_card_images(const QHash<QString, QImage>& images
         || target != card_face_size;
     card_face_size = target;
     if (changed) {
-        apply_presented_images(images);
+        displayed_card_images = images;
         update();
     }
     set_rasterizing(false);
@@ -85,7 +91,6 @@ void card_widget::set_presented_image_mode(bool enabled) {
         return;
     presented_image_mode = enabled;
     displayed_card_images.clear();
-    invalidate_selected_card_face();
     update();
     if (enabled) {
         card_images.reset();
@@ -107,7 +112,6 @@ void card_widget::sync_card_sheet_source() {
     }
     card_images.reset();
     displayed_card_images.clear();
-    invalidate_selected_card_face();
     update();
     schedule_card_preparation();
 }
@@ -125,7 +129,6 @@ QSize card_widget::card_face_target_size() const {
 
 void card_widget::update_card_faces(const QSize& target_size) {
     if (card_face_size != target_size) {
-        invalidate_selected_card_face();
         update();
     }
     card_face_size = target_size;
@@ -138,7 +141,6 @@ void card_widget::update_card_faces(const QSize& target_size) {
         if (card_images)
             card_images->replace_desired({});
         displayed_card_images.clear();
-        invalidate_selected_card_face();
         set_rasterizing(false);
         return;
     }
@@ -150,45 +152,21 @@ void card_widget::update_card_faces(const QSize& target_size) {
         );
     }
     card_images->set_source(card_sheet_source);
-    const qreal dpr = devicePixelRatioF();
-    const QSize physical(
-        static_cast<int>(std::ceil(target_size.width() * dpr)),
-        static_cast<int>(std::ceil(target_size.height() * dpr))
-    );
+    const auto physical
+        = shared_ui::qt::raster_physical_size(target_size, devicePixelRatioF());
     card_images->replace_desired({ { visible, physical } });
     on_card_images_changed();
 }
 
-void card_widget::invalidate_selected_card_face() {
-    selected_card_face = {};
-    selected_card_face_index = -1;
-}
-
-const QPixmap& card_widget::card_face_pixmap(int index) {
+QImage card_widget::card_face_image(int index) const {
+    if (card_face_size.isEmpty())
+        return {};
     const auto id = index == card_element_ids().size()
         ? card_back_element_id()
         : card_element_id_from_index(index);
-    const auto image = presented_image_mode
+    return presented_image_mode
         ? displayed_card_images.value(id)
         : (card_images ? card_images->image_for(id) : QImage());
-    if (image.isNull() || card_face_size.isEmpty()) {
-        invalidate_selected_card_face();
-        return selected_card_face;
-    }
-    if (selected_card_face_index != index) {
-        const qreal dpr = devicePixelRatioF();
-        // Preserve the shared master's detail. Final sizing and arbitrary
-        // rotation are one smooth painter transform, not two resampling steps.
-        selected_card_face = QPixmap::fromImage(image);
-        selected_card_face.setDevicePixelRatio(dpr);
-        selected_card_face_index = index;
-    }
-    return selected_card_face;
-}
-
-void card_widget::apply_presented_images(const QHash<QString, QImage>& images) {
-    displayed_card_images = images;
-    invalidate_selected_card_face();
 }
 
 void card_widget::set_rasterizing(bool active) {
@@ -205,7 +183,6 @@ void card_widget::on_card_images_changed() {
         card_images.reset();
         displayed_card_images.clear();
         card_face_size = {};
-        invalidate_selected_card_face();
         update();
     } else {
         if (card_images->is_pending()) {
@@ -218,7 +195,7 @@ void card_widget::on_card_images_changed() {
         if (!image.isNull())
             next.insert(id, image);
         if (!same_images(next, displayed_card_images)) {
-            apply_presented_images(next);
+            displayed_card_images = std::move(next);
             update();
         }
     }

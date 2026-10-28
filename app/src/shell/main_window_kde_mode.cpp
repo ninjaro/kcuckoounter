@@ -213,8 +213,6 @@ void main_window::register_shell_action(
     }
 }
 
-void main_window::insert_shell_separator() { }
-
 void main_window::refresh_clock_label() const {
     if (clock_label)
         clock_label->setText(table_widget->gameplay_clock_text());

@@ -3,7 +3,6 @@
 
 #ifndef KC_KDE
 
-#include "arch/android_ui.hpp"
 #include "arch/str_label.hpp"
 #include "table/table.hpp"
 
@@ -43,7 +42,6 @@ void main_window::setup_platform_shell() {
     primary_toolbar->setAllowedAreas(Qt::BottomToolBarArea);
     primary_toolbar->setFloatable(false);
     primary_toolbar->setMovable(false);
-    android_ui::apply_toolbar_style(primary_toolbar);
     addToolBar(Qt::BottomToolBarArea, primary_toolbar);
 #else
     game_menu = menuBar()->addMenu(str_label("&Game"));
@@ -52,7 +50,6 @@ void main_window::setup_platform_shell() {
     primary_toolbar = new BaseToolBar(str_label("Main"), this);
     primary_toolbar->setObjectName(QStringLiteral("main_toolbar"));
     primary_toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    android_ui::apply_toolbar_style(primary_toolbar);
     addToolBar(primary_toolbar);
 #endif
 }
@@ -70,7 +67,7 @@ void main_window::finalize_platform_shell() {
     shared_ui::qt::set_toolbar_presentation(
         *primary_toolbar, shared_ui::qt::toolbar_variant::compact
     );
-    return;
+
 #else
     if (game_menu != nullptr) {
         game_menu->addSeparator();
@@ -121,7 +118,6 @@ void main_window::setup_status_surface(BaseVBoxLayout* main_layout) {
     speed_slider->setRange(100, 1000);
     speed_slider->setValue(300);
     speed_slider->setToolTip(str_label("Card pickup interval (ms)"));
-    android_ui::apply_slider_style(speed_slider);
     speed_row->addWidget(speed_slider, 1);
     strip_layout->addLayout(speed_row);
 
@@ -143,7 +139,7 @@ void main_window::register_shell_action(
     } else if (game_menu) {
         game_menu->addAction(action);
     }
-    return;
+
 #else
     if (primary_toolbar != nullptr && is_primary_shell_action(action_name)) {
         primary_toolbar->addAction(action);
@@ -162,8 +158,6 @@ void main_window::register_shell_action(
     }
 #endif
 }
-
-void main_window::insert_shell_separator() { }
 
 void main_window::refresh_clock_label() const {
     if (clock_label)

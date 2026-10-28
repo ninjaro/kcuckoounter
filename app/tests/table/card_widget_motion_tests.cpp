@@ -91,9 +91,9 @@ void card_widget_tests::layout_frames_preserve_jitter_and_shared_faces() {
     const auto before = *owner.deck({ 0 });
     const auto jitter = widget.card_rotation_deg;
     const auto offset = widget.card_offset;
-    const auto marking_size = widget.table_marking.display_size();
+    const auto marking_size = widget.table_marking.target().logical_size;
     const auto faces = widget.displayed_card_images;
-    const auto marking_key = widget.table_marking.pixmap().cacheKey();
+    const auto marking_key = widget.table_marking.image().cacheKey();
     const auto description = widget.accessibleDescription();
     for (int frame = 0; frame <= 12; ++frame) {
         widget.set_gameplay_layout_rotation(static_cast<qreal>(frame) * 7.5);
@@ -101,8 +101,8 @@ void card_widget_tests::layout_frames_preserve_jitter_and_shared_faces() {
         (void)render_card(widget);
         QCOMPARE(widget.card_rotation_deg, jitter);
         QCOMPARE(widget.card_offset, offset);
-        QCOMPARE(widget.table_marking.display_size(), marking_size);
-        QCOMPARE(widget.table_marking.pixmap().cacheKey(), marking_key);
+        QCOMPARE(widget.table_marking.target().logical_size, marking_size);
+        QCOMPARE(widget.table_marking.image().cacheKey(), marking_key);
         QCOMPARE(widget.displayed_card_images, faces);
         QVERIFY(!widget.rasterizing);
         QCOMPARE(widget.accessibleDescription(), description);
@@ -111,7 +111,7 @@ void card_widget_tests::layout_frames_preserve_jitter_and_shared_faces() {
     widget.set_gameplay_layout_rotation(std::nullopt);
     QCOMPARE(widget.card_rotation_deg, jitter);
     QCOMPARE(widget.card_offset, offset);
-    QVERIFY(widget.table_marking.display_size() != marking_size);
+    QVERIFY(widget.table_marking.target().logical_size != marking_size);
     QCOMPARE(widget.displayed_card_images, faces);
     widget.unbind_gameplay_deck();
     QVERIFY(!widget.gameplay_layout_rotation_deg);
@@ -192,7 +192,7 @@ void card_widget_tests::gameplay_external_pending_paint_keeps_faces_hidden() {
     const auto faces = widget.displayed_card_images;
     const auto jitter = widget.card_rotation_deg;
     const auto offset = widget.card_offset;
-    const auto marking = widget.table_marking.display_size();
+    const auto marking = widget.table_marking.target().logical_size;
     for (const qreal angle : { 0.0, 22.5, 45.0, 67.5, 90.0 }) {
         widget.set_gameplay_layout_rotation(angle);
         const auto paint_content = [&widget] {
@@ -212,14 +212,12 @@ void card_widget_tests::gameplay_external_pending_paint_keeps_faces_hidden() {
             paint_content(), moving
         ); // Index/hint offsets use moving geometry, not widget size.
         widget.resize(260, 360);
-        QCOMPARE(
-            widget.selected_card_face_index, -1
-        ); // Neither face nor back selected for pending Joker.
+        QVERIFY(widget.displayed_card_image_id().isEmpty());
         QCOMPARE(widget.displayed_card_images, faces);
         QVERIFY(!widget.rasterizing);
         QCOMPARE(widget.card_rotation_deg, jitter);
         QCOMPARE(widget.card_offset, offset);
-        QCOMPARE(widget.table_marking.display_size(), marking);
+        QCOMPARE(widget.table_marking.target().logical_size, marking);
         QCOMPARE(widget.accessibleDescription(), str_label("Card hidden"));
         QCOMPARE(*owner.deck({ 0 }), record);
     }

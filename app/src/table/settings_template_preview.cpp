@@ -1,32 +1,33 @@
 #include "table/settings_template.hpp"
 
 #include "card_helpers/card_sheet.hpp"
-#include "image/card_preview_carousel.hpp"
 #include "table/settings_template_support.hpp"
 #include <QListWidget>
 #include <QMap>
 #include <QPointer>
 #include <QTimer>
-#include <cmath>
+#include <shared_ui/graphics/qt/svg_image_view.hpp>
+#include <shared_ui/qt/image_carousel.hpp>
 #include <utility>
 
 void settings_template_widget::update_theme_carousel(int suit_index) {
     if (!theme_carousel)
         return;
     theme_suit = suit_index;
-    theme_carousel->set_card_size(settings_template_support::preview_card_size()
+    theme_carousel->set_item_size(
+        settings_template_support::preview_card_size()
     );
-    theme_carousel->set_card_accessible_name_provider([suit_index](int index) {
+    theme_carousel->set_item_accessible_name_provider([suit_index](int index) {
         return card_label_from_index(suit_index * 13 + index);
     });
     connect(
-        theme_carousel, &card_preview_carousel::demand_changed, this,
+        theme_carousel, &shared_ui::qt::image_carousel::demand_changed, this,
         &settings_template_widget::update_preview_demands,
         static_cast<Qt::ConnectionType>(
             Qt::QueuedConnection | Qt::UniqueConnection
         )
     );
-    theme_carousel->set_card_provider(
+    theme_carousel->set_image_provider(
         13, std::bind_front(&settings_template_widget::active_theme_card, this)
     );
     update_preview_demands();
@@ -35,18 +36,16 @@ void settings_template_widget::update_theme_carousel(int suit_index) {
 void settings_template_widget::update_preview_demands() {
     QMap<QString, card_image_demand> needed;
     const auto collect
-        = [&needed](const card_preview_carousel* carousel, int suit) {
+        = [&needed](const shared_ui::qt::image_carousel* carousel, int suit) {
               if (!carousel || !carousel->isVisible()
-                  || carousel->requested_card_size().isEmpty())
+                  || carousel->requested_item_size().isEmpty())
                   return;
-              const auto logical = carousel->requested_card_size();
-              const qreal dpr = carousel->devicePixelRatioF();
-              const QSize physical(
-                  static_cast<int>(std::ceil(logical.width() * dpr)),
-                  static_cast<int>(std::ceil(logical.height() * dpr))
+              const auto logical = carousel->requested_item_size();
+              const auto physical = shared_ui::qt::raster_physical_size(
+                  logical, carousel->devicePixelRatioF()
               );
-              const auto visible = carousel->visible_card_indices();
-              for (int rank : carousel->requested_card_indices()) {
+              const auto visible = carousel->visible_item_indices();
+              for (int rank : carousel->requested_item_indices()) {
                   const auto id
                       = settings_template_support::preview_scope(rank, suit);
                   if (id.isEmpty())
@@ -145,30 +144,9 @@ settings_template_widget::preview_face(int card_index, int suit_index) const {
 QPixmap settings_template_widget::active_theme_card(
     int card_index, const QSize& size
 ) const {
-    return theme_card(card_index, theme_suit, size);
-}
-
-QPixmap settings_template_widget::theme_card(
-    int card_index, int suit_index, const QSize& size
-) const {
-    const auto face = preview_face(card_index, suit_index);
-    if (face.isNull() || size.isEmpty())
-        return {};
-    const qreal dpr = devicePixelRatioF();
-    const QSize physical(
-        static_cast<int>(std::ceil(size.width() * dpr)),
-        static_cast<int>(std::ceil(size.height() * dpr))
+    return shared_ui::qt::raster_image_pixmap(
+        preview_face(card_index, theme_suit), size, devicePixelRatioF()
     );
-    if (!rasterflow::satisfies(
-            { face.width(), face.height() },
-            { physical.width(), physical.height() }
-        ))
-        return {};
-    auto pixmap = QPixmap::fromImage(face).scaled(
-        physical, Qt::KeepAspectRatio, Qt::SmoothTransformation
-    );
-    pixmap.setDevicePixelRatio(dpr);
-    return pixmap;
 }
 
 void settings_template_widget::flush_preview_refresh() {
@@ -179,11 +157,11 @@ void settings_template_widget::flush_preview_refresh() {
         = std::exchange(weights_preview_needs_refresh, false);
     const QPointer<settings_template_widget> lifetime(this);
     if (refresh_theme && theme_carousel)
-        theme_carousel->refresh_cards();
+        theme_carousel->refresh_images();
     if (!lifetime)
         return;
     if (refresh_weights && weights_carousel)
-        weights_carousel->refresh_cards();
+        weights_carousel->refresh_images();
 }
 
 void settings_template_widget::mark_preview_refresh_pending(
@@ -212,8 +190,8 @@ void settings_template_widget::update_weights_carousel(int suit_index) {
         return;
     }
     const QSize card_size = settings_template_support::preview_card_size();
-    weights_carousel->set_card_size(card_size);
-    weights_carousel->set_card_accessible_name_provider([this, suit_index](
+    weights_carousel->set_item_size(card_size);
+    weights_carousel->set_item_accessible_name_provider([this, suit_index](
                                                             int card_index
                                                         ) {
         QString card_name = card_label_from_index(suit_index * 13 + card_index);
@@ -233,12 +211,12 @@ void settings_template_widget::update_weights_carousel(int suit_index) {
                 )
             );
     });
-    weights_carousel->set_card_provider(
+    weights_carousel->set_image_provider(
         13,
         std::bind_front(&settings_template_widget::active_weighted_card, this)
     );
     connect(
-        weights_carousel, &card_preview_carousel::demand_changed, this,
+        weights_carousel, &shared_ui::qt::image_carousel::demand_changed, this,
         &settings_template_widget::update_preview_demands,
         static_cast<Qt::ConnectionType>(
             Qt::QueuedConnection | Qt::UniqueConnection
@@ -261,12 +239,7 @@ QPixmap settings_template_widget::weighted_card(
     if (strategy < 0 || strategy >= strategies.size())
         return {};
     const auto face = preview_face(card_index, suit_index);
-    const qreal dpr = devicePixelRatioF();
-    if (!rasterflow::satisfies(
-            { face.width(), face.height() },
-            { static_cast<int>(std::ceil(size.width() * dpr)),
-              static_cast<int>(std::ceil(size.height() * dpr)) }
-        ))
+    if (!shared_ui::qt::raster_image_covers(face, size, devicePixelRatioF()))
         return {};
     return settings_template_support::build_weighted_card_preview(
         face, card_index, suit_index, size, strategies[strategy].weights,

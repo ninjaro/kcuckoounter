@@ -1,4 +1,5 @@
 #include "table/card_widget.hpp"
+#include <shared_ui/graphics/qt/svg_image_view.hpp>
 #include <shared_ui/qt/presentation.hpp>
 
 #include "arch/asset_locator.hpp"
@@ -490,10 +491,10 @@ void card_widget::paint_deck_content(
             rendered_offset, base_card_fill, base_card_border
         );
 
-        const QPixmap& back = card_face_pixmap(back_index);
+        const auto back = card_face_image(back_index);
 
         if (!back.isNull()) {
-            draw_card_pixmap(
+            draw_card_image(
                 painter, oriented_card_rect, slot_rotation_deg,
                 card_rotation_deg, rendered_offset, back
             );
@@ -536,10 +537,10 @@ void card_widget::paint_deck_content(
         rendered_offset, card_fill_color, card_border_color
     );
 
-    const QPixmap& face = card_face_pixmap(mapped_card_index);
+    const auto face = card_face_image(mapped_card_index);
 
     if (!face.isNull()) {
-        draw_card_pixmap(
+        draw_card_image(
             painter, oriented_card_rect, slot_rotation_deg, card_rotation_deg,
             rendered_offset, face
         );
@@ -591,8 +592,10 @@ void card_widget::update_table_marking() {
     const qreal target_dim
         = std::min(slot_frame_rect.width(), slot_frame_rect.height()) * 0.5;
     const int size = static_cast<int>(std::max(1.0, target_dim));
-    table_marking.set_device_pixel_ratio(devicePixelRatioF());
-    table_marking.set_target_size(QSize(size, size));
+    auto target = table_marking.target();
+    target.device_pixel_ratio = devicePixelRatioF();
+    target.logical_size = QSize(size, size);
+    table_marking.set_target(target);
 }
 
 void card_widget::apply_card_transform(
@@ -608,20 +611,18 @@ void card_widget::apply_card_transform(
 void card_widget::draw_table_marking(
     QPainter& painter, const QRectF& slot_frame_rect, qreal min_dim, qreal scale
 ) const {
-    if (table_marking.is_ready()) {
-        const QPixmap& marking = table_marking.pixmap();
-        const QSizeF marking_size
-            = QSizeF(marking.size())
-                  .scaled(
-                      QSizeF(table_marking.display_size()) * scale,
-                      Qt::KeepAspectRatio
-                  );
-        const QPointF marking_top_left(
-            slot_frame_rect.center().x() - marking_size.width() / 2.0,
-            slot_frame_rect.center().y() - marking_size.height() / 2.0
+    const auto marking = table_marking.image();
+    if (!marking.isNull()) {
+        const QSizeF extent
+            = QSizeF(table_marking.target().logical_size) * scale;
+        shared_ui::qt::paint_raster_image(
+            painter, marking,
+            QRectF(
+                slot_frame_rect.center()
+                    - QPointF(extent.width() / 2, extent.height() / 2),
+                extent
+            )
         );
-        const QRectF marking_rect(marking_top_left, marking_size);
-        painter.drawPixmap(marking_rect, marking, marking.rect());
         return;
     }
 
@@ -722,25 +723,17 @@ void card_widget::draw_card_shape(
     painter.restore();
 }
 
-void card_widget::draw_card_pixmap(
+void card_widget::draw_card_image(
     QPainter& painter, const QRectF& oriented_card_rect,
     qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-    const QPixmap& pixmap
+    const QImage& image
 ) {
     painter.save();
     painter.setRenderHint(QPainter::SmoothPixmapTransform);
     apply_card_transform(
         painter, oriented_card_rect, slot_rotation_deg, rotation_deg, offset
     );
-    const auto fit = pixmap.deviceIndependentSize().scaled(
-        oriented_card_rect.size(), Qt::KeepAspectRatio
-    );
-    const QRectF destination(
-        oriented_card_rect.center()
-            - QPointF(fit.width() / 2, fit.height() / 2),
-        fit
-    );
-    painter.drawPixmap(destination, pixmap, QRectF(pixmap.rect()));
+    shared_ui::qt::paint_raster_image(painter, image, oriented_card_rect);
     painter.restore();
 }
 

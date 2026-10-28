@@ -5,7 +5,7 @@
 #include "include/preview_carousel_tests.hpp"
 
 #include "card_helpers/card_sheet.hpp"
-#include "image/card_preview_carousel.hpp"
+#include "shared_ui/qt/image_carousel.hpp"
 #include "table/settings_template.hpp"
 #include "table/settings_template_support.hpp"
 #include "table/table.hpp"
@@ -17,24 +17,20 @@
 #include <QAbstractButton>
 #include <QButtonGroup>
 #include <QFile>
+#include <QLabel>
 #include <QPointer>
 #include <QScopeGuard>
 #include <QSet>
 #include <QTemporaryDir>
+#include <QToolButton>
 #include <algorithm>
 #include <cmath>
 #include <functional>
 #include <memory>
 #include <utility>
 
-static QPixmap test_card_pixmap(const QSize& size) {
-    QPixmap pixmap(size);
-    pixmap.fill(Qt::blue);
-    return pixmap;
-}
-
 static QToolButton*
-carousel_button(card_preview_carousel& carousel, Qt::ArrowType arrow) {
+carousel_button(shared_ui::qt::image_carousel& carousel, Qt::ArrowType arrow) {
     const auto buttons = carousel.findChildren<QToolButton*>();
     for (auto* button : buttons) {
         if (button != nullptr && button->arrowType() == arrow) {
@@ -42,370 +38,6 @@ carousel_button(card_preview_carousel& carousel, Qt::ArrowType arrow) {
         }
     }
     return nullptr;
-}
-
-static QPixmap provide_test_card_pixmap(
-    QSet<int>* requested_indices, int index, const QSize& size
-) {
-    if (requested_indices != nullptr) {
-        requested_indices->insert(index);
-    }
-    return test_card_pixmap(size);
-}
-
-void preview_carousel_tests::default_prefetch_loads_adjacent_cards() {
-    card_preview_carousel carousel;
-    carousel.resize(640, 200);
-    carousel.set_visible_count(3);
-    carousel.set_card_size(QSize(64, 96));
-
-    QSet<int> requested_indices;
-    carousel.set_card_provider(
-        8, std::bind_front(provide_test_card_pixmap, &requested_indices)
-    );
-
-    QCOMPARE(carousel.visible_card_indices(), QVector<int>({ 0, 1, 2 }));
-    QVERIFY(requested_indices.contains(0));
-    QVERIFY(requested_indices.contains(1));
-    QVERIFY(requested_indices.contains(2));
-    QVERIFY(requested_indices.contains(7));
-    QVERIFY(requested_indices.contains(3));
-}
-
-void preview_carousel_tests::disabled_prefetch_only_loads_visible_cards() {
-    card_preview_carousel carousel;
-    carousel.resize(640, 200);
-    carousel.set_visible_count(3);
-    carousel.set_prefetch_adjacent_cards(false);
-    carousel.set_card_size(QSize(64, 96));
-
-    QSet<int> requested_indices;
-    carousel.set_card_provider(
-        8, std::bind_front(provide_test_card_pixmap, &requested_indices)
-    );
-
-    QCOMPARE(requested_indices.size(), 3);
-    QVERIFY(requested_indices.contains(0));
-    QVERIFY(requested_indices.contains(1));
-    QVERIFY(requested_indices.contains(2));
-
-    QToolButton* next_button = carousel_button(carousel, Qt::RightArrow);
-    QVERIFY(next_button != nullptr);
-    QVERIFY(next_button->isEnabled());
-    next_button->click();
-
-    QVERIFY(requested_indices.contains(3));
-    QCOMPARE(requested_indices.size(), 4);
-}
-
-static QVector<QRgb> carousel_colors(const card_preview_carousel& carousel) {
-    QVector<QRgb> colors;
-    for (const auto* label : carousel.findChildren<QLabel*>()) {
-        const QImage image = label->pixmap().toImage();
-        colors.append(image.isNull() ? QRgb { 0 } : image.pixel(0, 0));
-    }
-    return colors;
-}
-
-static QRgb card_color(int index) { return qRgb(index + 1, 0, 0); }
-
-void preview_carousel_tests::geometry_requests_use_settled_dimensions_data() {
-    QTest::addColumn<QString>("transition");
-    QTest::addColumn<bool>("prefetch");
-    for (const char* transition :
-         { "grow", "shrink", "range", "minimum-width", "spacing", "resize",
-           "pending", "aspect", "unchanged", "no-size" }) {
-        for (const bool prefetch : { false, true }) {
-            const QByteArray name = QByteArray(transition)
-                + (prefetch ? "-adjacent" : "-visible");
-            QTest::newRow(name.constData())
-                << QString::fromLatin1(transition) << prefetch;
-        }
-    }
-}
-
-void preview_carousel_tests::geometry_requests_use_settled_dimensions() {
-    QFETCH(QString, transition);
-    QFETCH(bool, prefetch);
-
-    card_preview_carousel carousel;
-    carousel.setFixedSize(1000, 400);
-    carousel.set_visible_count(
-        transition == QStringLiteral("shrink")
-                || transition == QStringLiteral("pending")
-            ? 5
-            : 3
-    );
-    carousel.set_prefetch_adjacent_cards(prefetch);
-    if (transition != QStringLiteral("no-size"))
-        carousel.set_card_size(QSize(64, 96));
-    if (transition == QStringLiteral("minimum-width")
-        || transition == QStringLiteral("spacing")
-        || transition == QStringLiteral("resize"))
-        carousel.set_visible_range(3, 5);
-    carousel.show();
-    QVERIFY(QTest::qWaitForWindowExposed(&carousel));
-
-    QVector<int> requests;
-    QVector<QSize> requested_sizes;
-    carousel.set_card_provider(
-        13,
-        [&requests, &requested_sizes,
-         &transition](int index, const QSize& size) {
-            requests.append(index);
-            requested_sizes.append(size);
-            if (transition == QStringLiteral("pending"))
-                return QPixmap();
-            QPixmap pixmap(size.isValid() ? size : QSize(1, 1));
-            pixmap.fill(card_color(index));
-            return pixmap;
-        }
-    );
-    const auto initial_labels = carousel.findChildren<QLabel*>();
-    QVERIFY(!initial_labels.isEmpty());
-    const QSize initial_size = initial_labels.front()->size();
-    requests.clear();
-    requested_sizes.clear();
-
-    if (transition == QStringLiteral("grow")
-        || transition == QStringLiteral("no-size"))
-        carousel.set_visible_count(4);
-    else if (
-        transition == QStringLiteral("shrink")
-        || transition == QStringLiteral("pending")
-    )
-        carousel.set_visible_count(3);
-    else if (transition == QStringLiteral("range"))
-        carousel.set_visible_range(4, 5);
-    else if (transition == QStringLiteral("minimum-width"))
-        carousel.set_minimum_card_width(300);
-    else if (transition == QStringLiteral("spacing"))
-        carousel.set_card_spacing(240);
-    else if (transition == QStringLiteral("resize"))
-        carousel.setFixedSize(320, 400);
-    else if (transition == QStringLiteral("aspect"))
-        carousel.set_card_size(QSize(96, 64));
-    else
-        carousel.set_visible_count(3);
-
-    const auto labels = carousel.findChildren<QLabel*>();
-    QVERIFY(!labels.isEmpty());
-    const int expected_count = transition == QStringLiteral("grow")
-            || transition == QStringLiteral("no-size")
-        ? 4
-        : transition == QStringLiteral("range") ? 5
-                                                : 3;
-    QCOMPARE(labels.size(), expected_count);
-    if (transition == QStringLiteral("unchanged")) {
-        QVERIFY(requests.isEmpty());
-        QCOMPARE(labels.front()->size(), initial_size);
-    } else {
-        QCOMPARE(requests, carousel.requested_card_indices());
-        for (const QSize& size : requested_sizes) {
-            if (transition == QStringLiteral("no-size"))
-                QVERIFY(!size.isValid());
-            else
-                QCOMPARE(size, labels.front()->size());
-        }
-    }
-    for (int index = 0; index < labels.size(); ++index) {
-        if (transition == QStringLiteral("pending")) {
-            QVERIFY(labels[index]->pixmap().isNull());
-            continue;
-        }
-        QCOMPARE(
-            labels[index]->pixmap().toImage().pixel(0, 0), card_color(index)
-        );
-        if (transition != QStringLiteral("no-size"))
-            QCOMPARE(labels[index]->pixmap().size(), labels[index]->size());
-    }
-    requests.clear();
-    requested_sizes.clear();
-    if (transition != QStringLiteral("no-size")) {
-        carousel.refresh_cards();
-        QCOMPARE(requests, carousel.requested_card_indices());
-        for (const QSize& size : requested_sizes)
-            QCOMPARE(size, labels.front()->size());
-    }
-}
-
-static QVector<QRgb> expected_carousel_colors(int first, int total) {
-    QVector<QRgb> colors;
-    for (int offset = 0; offset < 3; ++offset)
-        colors.append(card_color((first + offset) % total));
-    return colors;
-}
-
-void preview_carousel_tests::provider_window_releases_departed_cards_data() {
-    QTest::addColumn<bool>("prefetch");
-    QTest::addColumn<int>("total");
-    QTest::newRow("visible-only") << false << 13;
-    QTest::newRow("visible-and-adjacent") << true << 13;
-    QTest::newRow("short-visible-only") << false << 2;
-    QTest::newRow("short-visible-and-adjacent") << true << 2;
-}
-
-void preview_carousel_tests::provider_window_releases_departed_cards() {
-    QFETCH(bool, prefetch);
-    QFETCH(int, total);
-    card_preview_carousel carousel;
-    carousel.resize(640, 200);
-    carousel.set_visible_count(3);
-    carousel.set_prefetch_adjacent_cards(prefetch);
-    carousel.set_card_size(QSize(64, 96));
-    QVector<int> requests;
-    carousel.set_card_provider(
-        total, [&requests](int index, const QSize& size) {
-            requests.append(index);
-            QPixmap image(size);
-            image.fill(QColor::fromRgb(card_color(index)));
-            return image;
-        }
-    );
-    QCOMPARE(
-        requests,
-        total == 2     ? QVector<int>({ 0, 1 })
-            : prefetch ? QVector<int>({ 0, 1, 2, 12, 3 })
-                       : QVector<int>({ 0, 1, 2 })
-    );
-    QCOMPARE(carousel_colors(carousel), expected_carousel_colors(0, total));
-    auto* next = carousel_button(carousel, Qt::RightArrow);
-    auto* previous = carousel_button(carousel, Qt::LeftArrow);
-    QVERIFY(next != nullptr);
-    QVERIFY(previous != nullptr);
-
-    // Moving one position reuses the overlap and loads only the entering face.
-    // Two circuits in both directions exercise eviction, return and wraparound.
-    for (int step = 1; step <= 2 * total; ++step) {
-        requests.clear();
-        next->click();
-        const int first = step % total;
-        QCOMPARE(
-            requests,
-            total == 2 ? QVector<int>()
-                       : QVector<int>({ (first + (prefetch ? 3 : 2)) % total })
-        );
-        QCOMPARE(
-            carousel_colors(carousel), expected_carousel_colors(first, total)
-        );
-    }
-    for (int step = 1; step <= 2 * total; ++step) {
-        requests.clear();
-        previous->click();
-        const int first = (total - step % total) % total;
-        QCOMPARE(
-            requests,
-            total == 2
-                ? QVector<int>()
-                : QVector<int>({ (first + total - (prefetch ? 1 : 0)) % total })
-        );
-        QCOMPARE(
-            carousel_colors(carousel), expected_carousel_colors(first, total)
-        );
-    }
-}
-
-void preview_carousel_tests::changing_prefetch_preserves_visible_cards() {
-    card_preview_carousel carousel;
-    carousel.set_visible_count(3);
-    carousel.set_card_size(QSize(64, 96));
-    QVector<int> requests;
-    carousel.set_card_provider(13, [&requests](int index, const QSize& size) {
-        requests.append(index);
-        return test_card_pixmap(size);
-    });
-    QCOMPARE(requests, QVector<int>({ 0, 1, 2, 12, 3 }));
-    requests.clear();
-    carousel.set_prefetch_adjacent_cards(false);
-    QVERIFY(requests.isEmpty());
-    auto* next = carousel_button(carousel, Qt::RightArrow);
-    auto* previous = carousel_button(carousel, Qt::LeftArrow);
-    QVERIFY(next != nullptr);
-    QVERIFY(previous != nullptr);
-    next->click();
-    QCOMPARE(requests, QVector<int>({ 3 }));
-    requests.clear();
-    carousel.set_prefetch_adjacent_cards(true);
-    QVERIFY(requests.isEmpty());
-    next->click();
-    QCOMPARE(requests, QVector<int>({ 4, 5 }));
-    requests.clear();
-    carousel.set_prefetch_adjacent_cards(false);
-    QVERIFY(requests.isEmpty());
-    previous->click();
-    QCOMPARE(requests, QVector<int>({ 1 }));
-}
-
-void preview_carousel_tests::supplied_cards_survive_window_navigation() {
-    card_preview_carousel carousel;
-    carousel.set_visible_count(3);
-    carousel.set_prefetch_adjacent_cards(false);
-    QVector<QPixmap> cards;
-    for (int index = 0; index < 13; ++index) {
-        QPixmap image(16, 24);
-        image.fill(QColor::fromRgb(card_color(index)));
-        cards.append(image);
-    }
-    carousel.set_cards(cards);
-    auto* next = carousel_button(carousel, Qt::RightArrow);
-    QVERIFY(next != nullptr);
-    for (int step = 0; step < 26; ++step) {
-        QCOMPARE(
-            carousel_colors(carousel), expected_carousel_colors(step % 13, 13)
-        );
-        next->click();
-    }
-    carousel.set_prefetch_adjacent_cards(true);
-    carousel.refresh_cards();
-    QCOMPARE(carousel_colors(carousel), expected_carousel_colors(0, 13));
-}
-
-void preview_carousel_tests::navigation_controls_expose_accessible_semantics() {
-    card_preview_carousel carousel;
-
-    QToolButton* previous_button = carousel_button(carousel, Qt::LeftArrow);
-    QToolButton* next_button = carousel_button(carousel, Qt::RightArrow);
-    QVERIFY(previous_button != nullptr);
-    QVERIFY(next_button != nullptr);
-    QCOMPARE(
-        previous_button->accessibleName(), QStringLiteral("Previous cards")
-    );
-    QCOMPARE(next_button->accessibleName(), QStringLiteral("Next cards"));
-    QVERIFY(!previous_button->accessibleDescription().isEmpty());
-    QVERIFY(!next_button->accessibleDescription().isEmpty());
-    QVERIFY(!previous_button->toolTip().isEmpty());
-    QVERIFY(!next_button->toolTip().isEmpty());
-}
-
-void preview_carousel_tests::visible_cards_expose_domain_accessible_names() {
-    card_preview_carousel carousel;
-    carousel.resize(640, 200);
-    carousel.set_visible_count(3);
-    carousel.set_card_size(QSize(64, 96));
-    carousel.set_card_accessible_name_provider([](int index) {
-        return QStringLiteral("Semantic card %1, count value -1")
-            .arg(index + 1);
-    });
-    carousel.set_card_provider(4, [](int, const QSize& size) {
-        return test_card_pixmap(size);
-    });
-
-    const auto labels = carousel.findChildren<QLabel*>();
-    QVERIFY(labels.size() >= 3);
-    int semantic_label_count = 0;
-    for (const QLabel* label : labels) {
-        if (label != nullptr
-            && label->accessibleName().startsWith(
-                QStringLiteral("Semantic card")
-            )) {
-            ++semantic_label_count;
-            QVERIFY(label->accessibleName().contains(
-                QStringLiteral("count value -1")
-            ));
-            QVERIFY(!label->accessibleDescription().isEmpty());
-        }
-    }
-    QCOMPARE(semantic_label_count, 3);
 }
 
 namespace {
@@ -449,13 +81,24 @@ void preview_carousel_tests::settings_previews_share_master_images() {
         editor->resize(800, 600);
         editor->show();
         editor->theme_carousel->set_visible_count(2);
-        editor->theme_carousel->set_prefetch_adjacent_cards(false);
+        editor->theme_carousel->set_prefetch_adjacent(false);
         editor->update_preview_demands();
     }
     QTRY_VERIFY(
         !first.preview_images.is_pending()
         && !second.preview_images.is_pending()
     );
+    for (const auto* label : first.theme_carousel->findChildren<QLabel*>()) {
+        QVERIFY(!label->accessibleDescription().isEmpty());
+        QVERIFY(
+            label->accessibleName().contains(
+                card_label_from_index(first.theme_suit * 13)
+            )
+            || label->accessibleName().contains(
+                card_label_from_index(first.theme_suit * 13 + 1)
+            )
+        );
+    }
     QVERIFY(!first.preview_requested_ids.isEmpty());
     QCOMPARE(first.preview_requested_ids, second.preview_requested_ids);
     for (const auto& id : first.preview_requested_ids)
@@ -509,7 +152,7 @@ void preview_carousel_tests::table_and_preview_share_master_images() {
         settings_tab_kind::appearance, nullptr, {}, &field
     );
     editor.theme_carousel->set_visible_count(13);
-    editor.theme_carousel->set_prefetch_adjacent_cards(false);
+    editor.theme_carousel->set_prefetch_adjacent(false);
     QVERIFY(select_source(editor, source));
     editor.show();
     QTRY_VERIFY(!editor.preview_images.is_pending());
@@ -529,14 +172,14 @@ void preview_carousel_tests::settings_preview_window_replaces_desired() {
     editor.resize(800, 600);
     editor.show();
     editor.theme_carousel->set_visible_count(2);
-    editor.theme_carousel->set_prefetch_adjacent_cards(true);
+    editor.theme_carousel->set_prefetch_adjacent(true);
     auto* next = carousel_button(*editor.theme_carousel, Qt::RightArrow);
     QVERIFY(next);
     for (int step = 0; step < 15; ++step) {
         next->click();
         editor.update_preview_demands();
         QStringList expected;
-        for (int rank : editor.theme_carousel->requested_card_indices())
+        for (int rank : editor.theme_carousel->requested_item_indices())
             expected.append(
                 settings_template_support::preview_scope(
                     rank, editor.theme_suit
@@ -553,7 +196,7 @@ void preview_carousel_tests::settings_preview_window_replaces_desired() {
     );
     for (const auto& id : editor.displayed_preview_images.keys())
         QVERIFY(editor.preview_requested_ids.contains(id));
-    editor.theme_carousel->set_prefetch_adjacent_cards(false);
+    editor.theme_carousel->set_prefetch_adjacent(false);
     QTRY_VERIFY(editor.preview_requested_ids.size() <= 2);
 }
 
@@ -574,7 +217,7 @@ void preview_carousel_tests::settings_preview_source_cutover_is_atomic() {
     QCOMPARE(editor.displayed_preview_source, previous_source);
     QCOMPARE(editor.displayed_preview_images, previous);
     QTRY_COMPARE(editor.displayed_preview_source, source);
-    for (int rank : editor.theme_carousel->visible_card_indices()) {
+    for (int rank : editor.theme_carousel->visible_item_indices()) {
         const auto id
             = settings_template_support::preview_scope(rank, editor.theme_suit);
         QVERIFY(!editor.displayed_preview_images.value(id).isNull());
@@ -599,6 +242,36 @@ void preview_carousel_tests::settings_preview_source_cutover_is_atomic() {
     QCOMPARE(card_sheet_source_path(), game_source);
 }
 
+void preview_carousel_tests::rapid_source_switch_preserves_latest_artwork() {
+    QTemporaryDir directory;
+    const auto first = copy_theme(directory, 4, "rapid-first");
+    const auto second = copy_theme(directory, 11, "rapid-second");
+    const auto latest = copy_theme(directory, 23, "rapid-latest");
+    QVERIFY(!first.isEmpty() && !second.isEmpty() && !latest.isEmpty());
+    const auto game_source = card_sheet_source_path();
+    settings_template_widget editor(settings_tab_kind::appearance);
+    editor.show();
+    QVERIFY(select_source(editor, first));
+    QVERIFY(select_source(editor, second));
+    QVERIFY(select_source(editor, latest));
+    QTRY_COMPARE(editor.displayed_preview_source, latest);
+    QTRY_VERIFY(!editor.preview_images.is_pending());
+    // Deliver every pending queued publication before checking for stale faces.
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::MetaCall);
+    QCOMPARE(editor.displayed_preview_source, latest);
+    for (int rank : editor.theme_carousel->visible_item_indices()) {
+        const auto id
+            = settings_template_support::preview_scope(rank, editor.theme_suit);
+        const auto current = editor.preview_images.image_for(id);
+        QVERIFY(!current.isNull());
+        QCOMPARE(
+            editor.displayed_preview_images.value(id).cacheKey(),
+            current.cacheKey()
+        );
+    }
+    QCOMPARE(card_sheet_source_path(), game_source);
+}
+
 void preview_carousel_tests::
     speculative_neighbors_do_not_hold_visible_cutover() {
     auto& service = application_image_service();
@@ -607,7 +280,7 @@ void preview_carousel_tests::
     settings_template_widget editor(settings_tab_kind::appearance);
     editor.resize(600, 500);
     editor.theme_carousel->set_visible_count(1);
-    editor.theme_carousel->set_prefetch_adjacent_cards(false);
+    editor.theme_carousel->set_prefetch_adjacent(false);
     const auto write = [&](const QString& name, const QByteArray& color) {
         const auto path = directory.filePath(name);
         QByteArray bytes
@@ -638,7 +311,7 @@ void preview_carousel_tests::
         = settings_template_support::preview_scope(0, editor.theme_suit);
     const auto original = editor.displayed_preview_images.value(id);
     QVERIFY(!original.isNull());
-    const auto logical = editor.theme_carousel->requested_card_size();
+    const auto logical = editor.theme_carousel->requested_item_size();
     const qreal dpr = editor.theme_carousel->devicePixelRatioF();
     QVERIFY(!logical.isEmpty());
     const auto required = rasterflow::normalized_size(
@@ -649,7 +322,7 @@ void preview_carousel_tests::
     service.set_limits(
         { 1, bytes * 8, std::max<std::uint64_t>(bytes * 2, 10000) }
     );
-    editor.theme_carousel->set_prefetch_adjacent_cards(true);
+    editor.theme_carousel->set_prefetch_adjacent(true);
     QVERIFY(select_source(editor, blue));
     QCOMPARE(editor.displayed_preview_source, red);
     QTRY_VERIFY(!editor.preview_images.image_for(id).isNull());
@@ -657,7 +330,7 @@ void preview_carousel_tests::
     QVERIFY(!editor.preview_images.is_pending_required());
     QVERIFY(editor.preview_images.is_pending());
     QCOMPARE(editor.preview_requested_ids.size(), 3);
-    QCOMPARE(editor.theme_carousel->visible_card_indices().size(), 1);
+    QCOMPARE(editor.theme_carousel->visible_item_indices().size(), 1);
     QCOMPARE(editor.displayed_preview_images.size(), 1);
     const auto current = editor.displayed_preview_images.value(id);
     QCOMPARE(
@@ -694,7 +367,7 @@ void preview_carousel_tests::settings_preview_retirement_preserves_survivor() {
     for (auto* editor : { departing.get(), &survivor }) {
         editor->show();
         editor->theme_carousel->set_visible_count(2);
-        editor->theme_carousel->set_prefetch_adjacent_cards(false);
+        editor->theme_carousel->set_prefetch_adjacent(false);
         QVERIFY(select_source(*editor, source));
     }
     if (ready)
@@ -716,7 +389,7 @@ void preview_carousel_tests::settings_preview_returns_to_cached_demand() {
     settings_template_widget editor(settings_tab_kind::appearance);
     editor.show();
     editor.theme_carousel->set_visible_count(1);
-    editor.theme_carousel->set_prefetch_adjacent_cards(false);
+    editor.theme_carousel->set_prefetch_adjacent(false);
     QVERIFY(select_source(editor, source));
     QTRY_VERIFY(!editor.preview_images.is_pending());
     QTRY_COMPARE(editor.displayed_preview_source, source);
@@ -747,7 +420,7 @@ void preview_carousel_tests::settings_preview_geometry_has_physical_quality() {
     editor.update_preview_demands();
     QTRY_VERIFY(!editor.preview_images.is_pending());
     QVERIFY(!editor.preview_requested_ids.isEmpty());
-    const auto logical = editor.theme_carousel->requested_card_size();
+    const auto logical = editor.theme_carousel->requested_item_size();
     const qreal dpr = editor.theme_carousel->devicePixelRatioF();
     QVERIFY(!logical.isEmpty());
     for (const auto& id : editor.preview_requested_ids) {
@@ -772,8 +445,8 @@ void preview_carousel_tests::weighted_preview_does_not_mutate_shared_pixels() {
     const auto key = source.cacheKey();
     const auto pixel
         = source.pixelColor(source.width() / 2, source.height() / 2);
-    const auto logical = editor.weights_carousel->requested_card_size();
-    for (int rank : editor.weights_carousel->requested_card_indices()) {
+    const auto logical = editor.weights_carousel->requested_item_size();
+    for (int rank : editor.weights_carousel->requested_item_indices()) {
         const auto pixmap
             = editor.weighted_card(rank, editor.weights_suit, logical);
         QVERIFY(!pixmap.isNull());
@@ -802,7 +475,7 @@ void preview_carousel_tests::preview_publication_can_destroy_owner() {
         = new settings_template_widget(settings_tab_kind::appearance);
     editor->resize(800, 600);
     editor->theme_carousel->set_visible_count(2);
-    editor->theme_carousel->set_prefetch_adjacent_cards(false);
+    editor->theme_carousel->set_prefetch_adjacent(false);
     editor->show();
     QVERIFY(select_source(*editor, source));
     if (cached) {
@@ -843,7 +516,7 @@ void preview_carousel_tests::
     const auto source = copy_theme(directory, 4, "preview-partial-publication");
     settings_template_widget editor(settings_tab_kind::appearance);
     editor.theme_carousel->set_visible_count(13);
-    editor.theme_carousel->set_prefetch_adjacent_cards(false);
+    editor.theme_carousel->set_prefetch_adjacent(false);
     editor.show();
     // Model an initial unpublished presentation even if another test warmed
     // the application's default artwork. The selected source itself is cold.

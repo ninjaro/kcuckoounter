@@ -4,12 +4,11 @@
 #include "arch/random_generator.hpp"
 #include "arch/widget_helpers.hpp"
 #include "image/card_images.hpp"
-#include "image/image_cacher.hpp"
+#include "image/image_sources.hpp"
 #include "settings/preferences.hpp"
 #include "table/gameplay_session.hpp"
 #include <QHash>
 #include <QImage>
-#include <QPixmap>
 #include <QPointF>
 #include <QRectF>
 #include <QSizeF>
@@ -20,6 +19,7 @@
 #include <deque>
 #include <memory>
 #include <optional>
+#include <shared_ui/graphics/qt/raster_image_binding.hpp>
 
 class QPaintEvent;
 class QResizeEvent;
@@ -126,11 +126,11 @@ private:
     int highlight_remaining_ms;
     bool highlight_active;
     bool hide_cards_flag;
-    image_cacher table_marking;
+    image_source_request marking_source;
+    QString marking_source_path;
+    shared_ui::qt::raster_image_binding table_marking;
     QString card_sheet_source;
     std::unique_ptr<card_image_consumer> card_images;
-    QPixmap selected_card_face;
-    int selected_card_face_index;
     QSize card_face_size;
     QHash<QString, QImage> displayed_card_images;
     bool preparation_queued = false;
@@ -170,12 +170,10 @@ private:
     void update_card_faces(const QSize& target_size);
     void schedule_card_preparation();
     [[nodiscard]] QString displayed_card_image_id() const;
-    void invalidate_selected_card_face();
-    const QPixmap& card_face_pixmap(int index);
+    [[nodiscard]] QImage card_face_image(int index) const;
     void record_discard();
     [[nodiscard]] qreal highlight_strength() const;
     void update_selection_pulse();
-    void apply_presented_images(const QHash<QString, QImage>& images);
     void set_rasterizing(bool active);
     void on_card_images_changed();
     static void apply_card_transform(
@@ -201,10 +199,10 @@ private:
         qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
         const QColor& fill, const QColor& border
     );
-    static void draw_card_pixmap(
+    static void draw_card_image(
         QPainter& painter, const QRectF& oriented_card_rect,
         qreal slot_rotation_deg, qreal rotation_deg, const QPointF& offset,
-        const QPixmap& pixmap
+        const QImage& image
     );
     static void draw_card_text(
         QPainter& painter, const QRectF& oriented_card_rect,

@@ -79,8 +79,18 @@ void table_tests::gameplay_controls_numeric_and_chips() {
     QFETCH(bool, thin);
     QFETCH(bool, compact);
     QFETCH(bool, horizontal);
+#ifdef Q_OS_ANDROID
+    // Android owns top-level window size. Use the actual host embedding so
+    // a compact child viewport stays compact on the real Qt Android backend.
+    QWidget host;
+    host.show();
+    QCoreApplication::processEvents();
+    table view(&host);
+    view.resize(compact ? QSize(180, 120) : host.contentsRect().size());
+#else
     table view;
     view.resize(compact ? QSize(180, 120) : QSize(1200, 900));
+#endif
     view.set_card_orientation(
         horizontal ? card_orientation_mode::horizontal
                    : card_orientation_mode::vertical

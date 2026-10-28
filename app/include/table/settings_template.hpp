@@ -39,13 +39,17 @@ private:
 
 namespace shared_ui::qt {
 class appearance_editor;
+class image_carousel;
 }
 
 class QLabel;
 class QListWidget;
 class QButtonGroup;
 class QAbstractButton;
-class card_preview_carousel;
+
+namespace shared_ui::qt {
+class image_carousel;
+}
 class QTableWidget;
 class table;
 
@@ -90,8 +94,6 @@ private:
     /** Presentation lookup for the selected suit. */
     [[nodiscard]] QPixmap
     active_theme_card(int card_index, const QSize& size) const;
-    [[nodiscard]] QPixmap
-    theme_card(int card_index, int suit_index, const QSize& size) const;
     /** Selected-suit preview with strategy weights, not a separate face cache.
      */
     [[nodiscard]] QPixmap
@@ -115,7 +117,7 @@ private:
     QLabel* notes_label;
     QLabel* references_title_label;
     QLabel* references_label;
-    card_preview_carousel* weights_carousel;
+    shared_ui::qt::image_carousel* weights_carousel;
     QTableWidget* general_table;
     QTableWidget* metrics_table;
     BaseComboBox* suit_combo_box;
@@ -125,7 +127,7 @@ private:
     QPointer<shared_ui::qt::appearance_editor> appearance_editor_;
     BaseWidget* theme_palette_preview;
     QButtonGroup* theme_button_group;
-    card_preview_carousel* theme_carousel;
+    shared_ui::qt::image_carousel* theme_carousel;
     int theme_suit;
     int weights_suit;
     card_image_consumer preview_images;

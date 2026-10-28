@@ -206,11 +206,24 @@ void table_tests::shared_tables_reuse_and_withdraw() {
     theme_fixture fixture(ready ? "depart-ready" : "depart-pending");
     QCOMPARE(fixture.sources.size(), 3);
     set_card_sheet_source_path(fixture.sources.front());
+#ifdef Q_OS_ANDROID
+    // Android owns top-level geometry. Keep both demand sizes stable when
+    // one table retires, rather than testing a platform window cutover too.
+    QWidget host;
+    host.show();
+    QCoreApplication::processEvents();
+    auto departing = std::make_unique<table>(&host);
+    table survivor(&host);
+#else
     auto departing = std::make_unique<table>();
     table survivor;
+#endif
     for (auto* view : { departing.get(), &survivor }) {
         view->resize(300, 240);
         QVERIFY(view->install_gameplay_session(owned_table_fixture(1)));
+        // This counter checks card reuse, not independent decorative rasters.
+        for (auto* card : view->findChildren<card_widget*>())
+            card->set_table_marking_source({});
         view->show();
     }
     QCoreApplication::processEvents();

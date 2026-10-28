@@ -81,18 +81,20 @@ void card_widget_tests::visible_faces_preserve_variants() {
         QVERIFY(face.width() > requested.width());
         QVERIFY(face.height() > requested.height());
     }
-    const auto& master = widget.displayed_card_images.cbegin().value();
-    const auto& pixmap = widget.card_face_pixmap(back_index());
-    QVERIFY(!pixmap.isNull());
-    // Integer rounding of a fitted display can change its ratio by one pixel.
-    QVERIFY(
-        std::abs(
-            static_cast<double>(pixmap.width()) / pixmap.height()
-            - static_cast<double>(master.width()) / master.height()
-        )
-        < 0.04
+    const auto image = widget.card_face_image(back_index());
+    QVERIFY(!image.isNull());
+    // Native cache/geometry settlement can replace a sufficient master before
+    // the queued snapshot notice. Paint current bytes, not an old display copy.
+    QCOMPARE(
+        image.cacheKey(),
+        widget.card_images->image_for(card_back_element_id()).cacheKey()
     );
-    QCOMPARE(pixmap.devicePixelRatio(), widget.devicePixelRatioF());
+    QVERIFY(
+        rasterflow::satisfies(
+            { image.width(), image.height() },
+            { requested.width(), requested.height() }
+        )
+    );
 }
 
 void card_widget_tests::local_resize_tracks_latest_demand_data() {
@@ -146,7 +148,7 @@ void card_widget_tests::shared_faces_disable_local_rasterization() {
             .constBits(),
         images.value(card_element_ids().front()).constBits()
     );
-    QCOMPARE(widget.card_face_pixmap(0).size(), images.cbegin()->size());
+    QCOMPARE(widget.card_face_image(0).size(), images.cbegin()->size());
 }
 
 void card_widget_tests::shared_faces_outlive_source_file() {
@@ -159,7 +161,7 @@ void card_widget_tests::shared_faces_outlive_source_file() {
     widget.set_presented_card_images(shared_images());
     QVERIFY(QFile::remove(path));
     widget.update_card_faces(QSize(20, 30));
-    QVERIFY(!widget.card_face_pixmap(0).isNull());
+    QVERIFY(!widget.card_face_image(0).isNull());
     QVERIFY(!widget.card_images);
     QVERIFY(!widget.rasterizing);
 }
@@ -178,12 +180,12 @@ void card_widget_tests::standalone_source_validation_rejects_invalid_svg() {
     widget.update_card_faces(QSize(20, 30));
     QTRY_VERIFY(!widget.rasterizing);
     QVERIFY(widget.displayed_card_images.isEmpty());
-    QVERIFY(widget.card_face_pixmap(back_index()).isNull());
+    QVERIFY(widget.card_face_image(back_index()).isNull());
     QVERIFY(!widget.card_images);
     widget.sync_card_sheet_source();
     widget.update_card_faces(QSize(20, 30));
     QTRY_VERIFY(!widget.rasterizing);
-    QVERIFY(!widget.card_face_pixmap(back_index()).isNull());
+    QVERIFY(!widget.card_face_image(back_index()).isNull());
 }
 
 void card_widget_tests::shared_faces_reject_local_notifications_data() {
@@ -278,15 +280,14 @@ void card_widget_tests::local_withdrawal_preserves_other_subscribers() {
     departing->update_card_faces(QSize());
     QVERIFY(!departing->card_images);
     QVERIFY(departing->displayed_card_images.isEmpty());
-    QVERIFY(departing->selected_card_face.isNull());
     QVERIFY(!departing->rasterizing);
     departing.reset();
     QTRY_VERIFY(!survivor.rasterizing);
     QCOMPARE(survivor.displayed_card_images.size(), 1);
-    QVERIFY(!survivor.card_face_pixmap(back_index()).isNull());
+    QVERIFY(!survivor.card_face_image(back_index()).isNull());
 }
 
-void card_widget_tests::selected_presentation_reuses_and_invalidates() {
+void card_widget_tests::selected_presentation_borrows_current_images() {
     auto images = shared_images();
     images.insert(card_element_ids().at(1), QImage());
     card_widget first, second;
@@ -298,25 +299,31 @@ void card_widget_tests::selected_presentation_reuses_and_invalidates() {
                 .constBits(),
             images.value(card_element_ids().front()).constBits()
         );
-        QVERIFY(widget->selected_card_face.isNull());
     }
-    const auto key = first.card_face_pixmap(0).cacheKey();
-    QCOMPARE(first.card_face_pixmap(0).cacheKey(), key);
+    const auto key = first.card_face_image(0).cacheKey();
+    QCOMPARE(first.card_face_image(0).cacheKey(), key);
     first.update_card_faces(QSize(20, 30));
-    QCOMPARE(first.card_face_pixmap(0).cacheKey(), key);
-    QVERIFY(second.selected_card_face.isNull());
-    QVERIFY(first.card_face_pixmap(1).isNull());
-    QVERIFY(first.card_face_pixmap(-1).isNull());
-    QVERIFY(first.card_face_pixmap(55).isNull());
-    QVERIFY(!first.card_face_pixmap(0).isNull());
+    QCOMPARE(first.card_face_image(0).cacheKey(), key);
+    QCOMPARE(second.card_face_image(0).cacheKey(), key);
+    QVERIFY(first.card_face_image(1).isNull());
+    QVERIFY(first.card_face_image(-1).isNull());
+    QVERIFY(first.card_face_image(55).isNull());
+    QVERIFY(!first.card_face_image(0).isNull());
     first.update_card_faces(QSize(24, 36));
-    QVERIFY(first.selected_card_face.isNull());
     QCOMPARE(
-        first.card_face_pixmap(0).size(),
+        first.card_face_image(0).size(),
         images.value(card_element_ids().front()).size()
     );
     first.set_presented_card_images(images);
-    QVERIFY(first.selected_card_face.isNull());
+    auto replacement = images;
+    QImage blue(32, 48, QImage::Format_ARGB32_Premultiplied);
+    blue.fill(Qt::blue);
+    replacement[card_element_ids().front()] = blue;
+    first.set_presented_card_images(replacement);
+    QCOMPARE(first.card_face_image(0).cacheKey(), blue.cacheKey());
+    QCOMPARE(second.card_face_image(0).cacheKey(), key);
+    first.clear_presented_card_images();
+    QVERIFY(first.card_face_image(0).isNull());
     QCOMPARE(images.value(card_element_ids().front()).size(), QSize(32, 48));
 }
 
@@ -365,7 +372,7 @@ void card_widget_tests::visible_face_does_not_wait_for_unrelated_elements() {
     QCOMPARE(widget.displayed_card_images.size(), 1);
     QCOMPARE(widget.card_images->source_resolution().active_theme_keys, 1);
     QVERIFY(widget.card_images->image_for(QStringLiteral("club_1")).isNull());
-    QVERIFY(!widget.card_face_pixmap(back_index()).isNull());
+    QVERIFY(!widget.card_face_image(back_index()).isNull());
     widget.set_hide_cards(true);
     QTRY_VERIFY(widget.displayed_card_images.isEmpty());
     QVERIFY(widget.card_images->image_for(card_back_element_id()).isNull());
@@ -384,7 +391,10 @@ void card_widget_tests::visible_face_does_not_wait_for_unrelated_elements() {
     );
     QCOMPARE(widget.displayed_card_images.size(), 1);
     QVERIFY(widget.card_images->image_for(card_back_element_id()).isNull());
-    QTRY_VERIFY(widget.table_marking.is_ready());
+    QTRY_VERIFY(
+        widget.table_marking.status().state
+        == rasterflow::qt::image_state::ready
+    );
     QTRY_COMPARE(
         application_image_service().observations().scheduling.running_jobs, 0
     );

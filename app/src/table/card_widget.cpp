@@ -50,11 +50,9 @@ card_widget::card_widget(BaseWidget* parent)
     , highlight_remaining_ms(0)
     , highlight_active(false)
     , hide_cards_flag(false)
-    , table_marking(bundled_asset_path(QStringLiteral("brand/cuckoo.svg")))
+    , table_marking(application_image_service())
     , card_sheet_source(card_sheet_source_path())
     , card_images()
-    , selected_card_face()
-    , selected_card_face_index(-1)
     , card_face_size()
     , displayed_card_images()
     , rasterizing(false)
@@ -76,9 +74,17 @@ card_widget::card_widget(BaseWidget* parent)
     setAccessibleName(str_label("Playing card"));
     update_accessible_description();
     QObject::connect(
-        &table_marking, &image_cacher::pixmap_changed, this,
+        &table_marking, &shared_ui::qt::raster_image_binding::changed, this,
         qOverload<>(&card_widget::update)
     );
+    connect(&marking_source, &image_source_request::finished, this, [this] {
+        auto target = table_marking.target();
+        target.source = marking_source.source();
+        table_marking.set_target(target);
+    });
+    marking_source_path
+        = bundled_asset_path(QStringLiteral("brand/cuckoo.svg"));
+    marking_source.load(marking_source_path);
 }
 
 card_widget::~card_widget() = default;
@@ -287,8 +293,18 @@ void card_widget::set_strategy_name(const QString& name) {
 }
 
 void card_widget::set_table_marking_source(const QString& source) {
-    table_marking.set_source(source);
-    update_table_marking();
+    if (marking_source_path == source)
+        return;
+    marking_source_path = source;
+    const QPointer<card_widget> lifetime(this);
+    auto target = table_marking.target();
+    target.source = {};
+    table_marking.set_target(target);
+    if (!lifetime || marking_source_path != source)
+        return;
+    marking_source.load(source);
+    if (lifetime && marking_source_path == source)
+        update_table_marking();
     update();
 }
 

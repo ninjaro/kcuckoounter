@@ -18,7 +18,7 @@ private slots:
     void shared_faces_reject_local_notifications();
     void local_withdrawal_preserves_other_subscribers_data();
     void local_withdrawal_preserves_other_subscribers();
-    void selected_presentation_reuses_and_invalidates();
+    void selected_presentation_borrows_current_images();
     void selected_presentation_preserves_master_pixels();
     void rotated_master_uses_smooth_single_transform_data();
     void rotated_master_uses_smooth_single_transform();
@@ -30,7 +30,7 @@ private slots:
     void accessible_description_tracks_visible_card_state();
     void frame_choice_only_changes_presentation();
     void rotated_stack_stays_inside_slot();
-    void retained_transforms_fit_after_resize();
+    static void retained_transforms_fit_after_resize();
     void binding_projects_owned_deck_and_lifetime();
     void count_visibility_uses_training_choice_and_int64();
     void quiz_and_pause_keep_faces_hidden();

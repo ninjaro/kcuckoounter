@@ -1,5 +1,6 @@
 #include "shell/main_window.hpp"
 #include <shared_ui/qt/editor_panel.hpp>
+#include <shared_ui/qt/icons.hpp>
 #include <shared_ui/qt/settings_section.hpp>
 #include <shared_ui/qt/status_strip.hpp>
 #include <shared_ui/qt/toolbar_presentation.hpp>
@@ -10,8 +11,6 @@
 #include "table/settings_template.hpp"
 #include "table/table.hpp"
 
-#include "arch/android_ui.hpp"
-#include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
 #include "settings/gameplay_drill.hpp"
 #include "settings/gameplay_preferences.hpp"
@@ -281,7 +280,7 @@ void main_window::refresh_gameplay_actions() {
         );
         start_pause_action->setText(str_label("Start"));
         start_pause_action->setIcon(
-            icon_loader::themed(
+            shared_ui::qt::themed_icon(
                 { "media-playback-start", "media-playback-play", "play" },
                 QStyle::SP_MediaPlay
             )

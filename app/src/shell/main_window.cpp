@@ -1,4 +1,5 @@
 #include "shell/main_window.hpp"
+#include <shared_ui/qt/icons.hpp>
 #include <shared_ui/qt/presentation.hpp>
 
 #include "card_helpers/card_sheet.hpp"
@@ -7,9 +8,7 @@
 #include "table/settings_template.hpp"
 #include "table/table.hpp"
 
-#include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
-#include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
@@ -192,7 +191,7 @@ void main_window::update_start_pause_action(bool paused) const {
     if (paused) {
         start_pause_action->setText(str_label("Resume"));
         start_pause_action->setIcon(
-            icon_loader::themed(
+            shared_ui::qt::themed_icon(
                 { "media-playback-start", "media-playback-play", "play" },
                 QStyle::SP_MediaPlay
             )
@@ -202,7 +201,7 @@ void main_window::update_start_pause_action(bool paused) const {
 
     start_pause_action->setText(str_label("Pause"));
     start_pause_action->setIcon(
-        icon_loader::themed(
+        shared_ui::qt::themed_icon(
             { "media-playback-pause", "media-playback-stop", "pause" },
             QStyle::SP_MediaPause
         )
@@ -215,7 +214,7 @@ void main_window::setup_game_actions() {
     new_game_action->setShortcut(QKeySequence::New);
     register_shell_action(new_game_action, QStringLiteral("game_new"));
     new_game_action->setIcon(
-        icon_loader::themed(
+        shared_ui::qt::themed_icon(
             { "document-new", "list-add", "folder-new" }, QStyle::SP_FileIcon
         )
     );
@@ -232,7 +231,7 @@ void main_window::setup_game_actions() {
         start_pause_action, QStringLiteral("game_start_pause")
     );
     start_pause_action->setIcon(
-        icon_loader::themed(
+        shared_ui::qt::themed_icon(
             { "media-playback-start", "media-playback-play", "play" },
             QStyle::SP_MediaPlay
         )
@@ -247,7 +246,7 @@ void main_window::setup_game_actions() {
     finish_action = new BaseAction(str_label("Finish"), this);
     register_shell_action(finish_action, QStringLiteral("game_finish"));
     finish_action->setIcon(
-        icon_loader::themed(
+        shared_ui::qt::themed_icon(
             { "process-stop-symbolic", "process-stop", "dialog-close-symbolic",
               "dialog-close", "window-close" },
             QStyle::SP_DialogCloseButton
@@ -263,7 +262,7 @@ void main_window::setup_game_actions() {
     settings_action->setShortcut(QKeySequence::Preferences);
     register_shell_action(settings_action, QStringLiteral("game_settings"));
     settings_action->setIcon(
-        icon_loader::themed(
+        shared_ui::qt::themed_icon(
             { "preferences-system-symbolic", "settings-symbolic",
               "preferences-system", "configure", "settings" },
             QStyle::SP_FileDialogDetailedView
@@ -322,7 +321,7 @@ void main_window::setup_game_actions() {
     register_shell_action(progress_action, QStringLiteral("game_progress"));
     progress_action->setToolTip(str_label("Show completed gameplay results"));
     progress_action->setIcon(
-        icon_loader::themed(
+        shared_ui::qt::themed_icon(
             { "view-statistics", "office-chart-line", "games-highscores" },
             QStyle::SP_FileDialogInfoView
         )

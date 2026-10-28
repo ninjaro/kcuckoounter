@@ -7,7 +7,7 @@
 
 #include "include/asset_locator_tests.hpp"
 #include "include/card_sheet_tests.hpp"
-#include "include/image_cacher_tests.hpp"
+#include "include/image_source_tests.hpp"
 #include "include/preview_carousel_tests.hpp"
 #include "include/settings/gameplay_checkpoint_tests.hpp"
 #include "include/settings/gameplay_progress_tests.hpp"
@@ -105,7 +105,7 @@ int main(int argc, char** argv) {
         status |= run(t);
     }
     {
-        image_cacher_tests t;
+        image_source_tests t;
         status |= run(t);
     }
     {

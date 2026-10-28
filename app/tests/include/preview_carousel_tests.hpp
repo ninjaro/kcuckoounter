@@ -10,20 +10,11 @@ class preview_carousel_tests : public QObject {
     Q_OBJECT
 
 private slots:
-    void default_prefetch_loads_adjacent_cards();
-    void disabled_prefetch_only_loads_visible_cards();
-    void provider_window_releases_departed_cards_data();
-    void provider_window_releases_departed_cards();
-    void changing_prefetch_preserves_visible_cards();
-    void supplied_cards_survive_window_navigation();
-    void geometry_requests_use_settled_dimensions_data();
-    void geometry_requests_use_settled_dimensions();
-    void navigation_controls_expose_accessible_semantics();
-    void visible_cards_expose_domain_accessible_names();
     void settings_previews_share_master_images();
     void table_and_preview_share_master_images();
     void settings_preview_window_replaces_desired();
     void settings_preview_source_cutover_is_atomic();
+    void rapid_source_switch_preserves_latest_artwork();
     void speculative_neighbors_do_not_hold_visible_cutover();
     void initial_previews_publish_before_all_requests_finish();
     void settings_preview_retirement_preserves_survivor_data();

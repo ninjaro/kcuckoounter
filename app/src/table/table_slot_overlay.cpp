@@ -2,11 +2,10 @@
 #include <shared_ui/qt/adaptive_surface.hpp>
 #include <shared_ui/qt/answer_panel.hpp>
 #include <shared_ui/qt/editor_panel.hpp>
+#include <shared_ui/qt/icons.hpp>
 #include <shared_ui/qt/presentation.hpp>
 
-#include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
-#include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
@@ -101,14 +100,14 @@ void table_slot::setup_overlay() {
     );
 
     details_action->setIcon(
-        icon_loader::themed(
+        shared_ui::qt::themed_icon(
             { "document-properties", "view-list-details", "document-preview",
               "dialog-information" },
             QStyle::SP_FileDialogContentsView
         )
     );
     swap_action->setIcon(
-        icon_loader::themed(
+        shared_ui::qt::themed_icon(
             { "view-refresh", "reload", "object-rotate-right" },
             QStyle::SP_BrowserReload
         )
@@ -123,14 +122,14 @@ void table_slot::setup_overlay() {
 
     quiz_weight_label = new QLabel(str_label("Count"), quiz_bar_widget);
     quiz_weight_label->setObjectName(QStringLiteral("quiz_weight_label"));
-    quiz_answer_button = android_ui::create_button(quiz_bar_widget);
+    quiz_answer_button = new QPushButton(quiz_bar_widget);
     quiz_answer_button->setObjectName(QStringLiteral("quiz_answer_button"));
     shared_ui::qt::set_presentation_role(
         *quiz_answer_button, QStringLiteral("primary")
     );
     quiz_answer_button->setText(str_label("Check"));
     quiz_answer_button->setToolTip(str_label("Check your answer"));
-    quiz_skip_button = android_ui::create_button(quiz_bar_widget);
+    quiz_skip_button = new QPushButton(quiz_bar_widget);
     quiz_skip_button->setObjectName(QStringLiteral("quiz_skip_button"));
     shared_ui::qt::set_presentation_role(
         *quiz_skip_button, QStringLiteral("secondary")
@@ -141,7 +140,7 @@ void table_slot::setup_overlay() {
     quiz_feedback_label->setAccessibleName(str_label("Answer feedback"));
     quiz_feedback_label->setObjectName(QStringLiteral("quiz_feedback_label"));
     quiz_feedback_label->setVisible(false);
-    quiz_continue_button = android_ui::create_button(quiz_bar_widget);
+    quiz_continue_button = new QPushButton(quiz_bar_widget);
     quiz_continue_button->setObjectName(QStringLiteral("quiz_continue_button"));
     shared_ui::qt::set_presentation_role(
         *quiz_continue_button, QStringLiteral("primary")
@@ -149,16 +148,13 @@ void table_slot::setup_overlay() {
     quiz_continue_button->setText(str_label("Continue"));
     quiz_continue_button->setToolTip(str_label("Continue to the next card"));
     quiz_continue_button->setVisible(false);
-
-    android_ui::apply_button_style(
-        quiz_answer_button, android_button_profile::quiz_action
-    );
-    android_ui::apply_button_style(
-        quiz_skip_button, android_button_profile::quiz_action
-    );
-    android_ui::apply_button_style(
-        quiz_continue_button, android_button_profile::quiz_action
-    );
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    // Return belongs to the validated answer input, including in its mobile
+    // dialog. Reparenting must not add a second implicit default submission.
+    for (auto* button :
+         { quiz_answer_button, quiz_skip_button, quiz_continue_button })
+        button->setAutoDefault(false);
+#endif
 
     swap_layout->addWidget(slot_actions);
     swap_layout->addStretch();

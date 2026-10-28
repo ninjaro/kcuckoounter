@@ -2,7 +2,6 @@
 
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
-#include "image/card_preview_carousel.hpp"
 #include "settings/preferences.hpp"
 #include "settings/theme_palette.hpp"
 
@@ -14,6 +13,8 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QTableWidget>
+
+#include <shared_ui/graphics/qt/svg_image_view.hpp>
 
 #include <algorithm>
 #include <cmath>
@@ -147,22 +148,15 @@ QPixmap build_weighted_card_preview(
     }
 
     QImage image(
-        QSize(
-            static_cast<int>(std::ceil(card_size.width() * device_pixel_ratio)),
-            static_cast<int>(std::ceil(card_size.height() * device_pixel_ratio))
-        ),
+        shared_ui::qt::raster_physical_size(card_size, device_pixel_ratio),
         QImage::Format_ARGB32_Premultiplied
     );
     image.fill(Qt::transparent);
     image.setDevicePixelRatio(device_pixel_ratio);
     QPainter painter(&image);
-    const auto fit = QSizeF(base_face.size())
-                         .scaled(QSizeF(card_size), Qt::KeepAspectRatio);
-    const QPointF origin(
-        (card_size.width() - fit.width()) / 2,
-        (card_size.height() - fit.height()) / 2
+    shared_ui::qt::paint_raster_image(
+        painter, base_face, QRectF(QPointF(), QSizeF(card_size))
     );
-    painter.drawImage(QRectF(origin, fit), base_face, QRectF(base_face.rect()));
 
     const int weight = (rank_index >= 0 && rank_index < weights.size())
         ? weights[rank_index]

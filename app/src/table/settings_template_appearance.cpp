@@ -2,10 +2,10 @@
 
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
-#include "image/card_preview_carousel.hpp"
 #include "settings/preferences.hpp"
 #include "settings/theme_palette.hpp"
 #include "table/table.hpp"
+#include <shared_ui/qt/image_carousel.hpp>
 #include <shared_ui/qt/presentation.hpp>
 
 #include <QButtonGroup>
@@ -141,12 +141,12 @@ void settings_template_widget::setup_appearance_ui() {
 
     theme_section_layout->addWidget(theme_options_widget);
 
-    theme_carousel = new card_preview_carousel(theme_section);
+    theme_carousel = new shared_ui::qt::image_carousel(theme_section);
     theme_carousel->set_visible_range(3, 5);
-    theme_carousel->set_minimum_card_width(88);
-    theme_carousel->set_prefetch_adjacent_cards(false);
+    theme_carousel->set_minimum_item_width(88);
+    theme_carousel->set_prefetch_adjacent(false);
     const QSize card_size = settings_template_support::preview_card_size();
-    theme_carousel->set_card_size(card_size);
+    theme_carousel->set_item_size(card_size);
     update_theme_carousel(shared_state->default_suit());
     theme_section_layout->addWidget(theme_carousel);
 

@@ -122,7 +122,6 @@ private:
     void setup_status_surface(BaseVBoxLayout* main_layout);
     BaseWidget* create_desktop_status_surface();
     void register_shell_action(BaseAction* action, const QString& action_name);
-    void insert_shell_separator();
     void update_status_text();
     void set_pickup_readout(int interval_ms) const;
     void refresh_clock_label() const;

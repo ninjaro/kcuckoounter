@@ -3,10 +3,10 @@
 
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
-#include "image/card_preview_carousel.hpp"
 #include "settings/preferences.hpp"
 #include "settings/theme_palette.hpp"
 #include "table/table.hpp"
+#include <shared_ui/qt/image_carousel.hpp>
 
 #include <QImage>
 #include <shared_ui/qt/appearance_editor.hpp>

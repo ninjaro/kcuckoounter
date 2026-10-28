@@ -2,9 +2,7 @@
 #include <shared_ui/qt/answer_panel.hpp>
 #include <shared_ui/qt/presentation.hpp>
 
-#include "arch/android_ui.hpp"
 #include "arch/asset_locator.hpp"
-#include "arch/icon_loader.hpp"
 #include "arch/str_label.hpp"
 #include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"

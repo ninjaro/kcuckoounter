@@ -8,7 +8,7 @@ if(NOT ECOSYSTEM_FACADE_INNER)
     if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
         set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
     endif()
-    string(SHA256 _ecosystem_selection [=[[["monitor","https://github.com/ninjaro/peepbooth","master",["monitor::watchdog_client__client","monitor::watchdog_qt__qt"]],["packing","https://github.com/ninjaro/rothko","master",["packing::library__core"]],["rasterflow","https://github.com/ninjaro/rasterflow","HEAD",["rasterflow::qt__qt"]],["shared_ui","https://github.com/ninjaro/shared_ui","HEAD",["shared_ui::qt__qt"]]]]=])
+    string(SHA256 _ecosystem_selection [=[[["monitor","https://github.com/ninjaro/peepbooth","master",["monitor::watchdog_client__client","monitor::watchdog_qt__qt"]],["packing","https://github.com/ninjaro/rothko","master",["packing::library__core"]],["rasterflow","https://github.com/ninjaro/rasterflow","HEAD",["rasterflow::qt__qt"]],["shared_ui","https://github.com/ninjaro/shared_ui","HEAD",["shared_ui::graphics__qt","shared_ui::qt__qt"]]]]=])
     set(_ecosystem_state "${CMAKE_CURRENT_BINARY_DIR}/.ecosystem-facade/${_ecosystem_selection}")
     file(MAKE_DIRECTORY "${_ecosystem_state}")
     foreach(name mvp mvp.exe)
@@ -123,7 +123,7 @@ endif()
     _ecosystem_source([=[monitor]=] [=[https://github.com/ninjaro/peepbooth]=] [=[master]=] [=[monitor::watchdog_client__client]=] [=[monitor::watchdog_qt__qt]=])
     _ecosystem_source([=[packing]=] [=[https://github.com/ninjaro/rothko]=] [=[master]=] [=[packing::library__core]=])
     _ecosystem_source([=[rasterflow]=] [=[https://github.com/ninjaro/rasterflow]=] [=[HEAD]=] [=[rasterflow::qt__qt]=])
-    _ecosystem_source([=[shared_ui]=] [=[https://github.com/ninjaro/shared_ui]=] [=[HEAD]=] [=[shared_ui::qt__qt]=])
+    _ecosystem_source([=[shared_ui]=] [=[https://github.com/ninjaro/shared_ui]=] [=[HEAD]=] [=[shared_ui::graphics__qt]=] [=[shared_ui::qt__qt]=])
 
     # Validate the installed contract, not a provider's source/build layout.
     file(WRITE "${_ecosystem_state}/packages.cmake" [==[
@@ -926,17 +926,13 @@ if __name__ == "__main__":
 endif ()
 
 set(KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/android_ui.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/asset_locator.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/icon_loader.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/num_helpers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/random_generator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/str_label.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/widget_helpers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/card_helpers/card_sheet.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/card_images.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/card_preview_carousel.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/image_cacher.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/image/image_sources.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/gameplay_checkpoint.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/gameplay_checkpoint_codec.hpp
@@ -972,14 +968,10 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/table_slot.hpp
 )
 set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/android_ui.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/asset_locator.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/icon_loader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/random_generator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_sheet.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_images.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_preview_carousel.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/image_cacher.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/image_sources.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_codec.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_decks.cpp
@@ -1054,14 +1046,10 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_start.cpp
 )
 set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/android_ui.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/asset_locator.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/icon_loader.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/random_generator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_sheet.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_images.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_preview_carousel.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/image_cacher.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/image_sources.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_codec.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_checkpoint_decks.cpp
@@ -1154,6 +1142,12 @@ if (NOT TARGET shared_ui::qt__qt)
 endif ()
 add_library(shared_ui__qt ALIAS shared_ui::qt__qt)
 
+find_package(shared_ui CONFIG REQUIRED)
+if (NOT TARGET shared_ui::graphics__qt)
+    message(FATAL_ERROR "Package shared_ui does not export shared_ui::graphics__qt; non-facade exports require an installed SDK or Marx preparation")
+endif ()
+add_library(shared_ui_graphics__qt ALIAS shared_ui::graphics__qt)
+
 find_package(monitor CONFIG REQUIRED)
 if (NOT TARGET monitor::watchdog_client__client)
     message(FATAL_ERROR "Package monitor does not export monitor::watchdog_client__client; non-facade exports require an installed SDK or Marx preparation")
@@ -1194,6 +1188,7 @@ target_link_libraries(trainer_app__core PUBLIC
     packing_library__core
     rasterflow__qt
     shared_ui__qt
+    shared_ui_graphics__qt
 )
 
 target_compile_definitions(trainer_app__core PUBLIC $<$<BOOL:${ECOSYSTEM_PROFILE_KDE}>:KC_KDE>)

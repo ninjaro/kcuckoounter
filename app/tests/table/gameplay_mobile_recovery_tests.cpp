@@ -9,6 +9,8 @@
 #include "table/table_fixture.hpp"
 #include "table/table_slot.hpp"
 
+#include <QCheckBox>
+#include <QComboBox>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QLineEdit>
@@ -207,6 +209,11 @@ void gameplay_mobile_tests::mobile_deck_details_are_usable() {
     auto* field
         = panel->findChild<QSpinBox*>(QStringLiteral("gameplay_deck_count"));
     QVERIFY(field && field->isEnabled());
+    QTRY_VERIFY(field->height() >= 48);
+    for (auto* combo : panel->findChildren<QComboBox*>())
+        QTRY_VERIFY(combo->height() >= 48);
+    for (auto* check : panel->findChildren<QCheckBox*>())
+        QTRY_VERIFY(check->height() >= 48);
     QVERIFY(panel->findChild<QScrollArea*>());
     field->setValue(2);
     panel->buttons()->button(QDialogButtonBox::Cancel)->click();

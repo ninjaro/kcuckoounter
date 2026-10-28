@@ -3,16 +3,8 @@
 #include "table/table.hpp"
 #include "table/table_slot.hpp"
 #include <QPointer>
-#include <cmath>
+#include <shared_ui/graphics/qt/svg_image_view.hpp>
 #include <utility>
-
-namespace {
-QSize physical_need(const card_widget& card, const QSize& logical) {
-    const qreal dpr = card.devicePixelRatioF();
-    return { static_cast<int>(std::ceil(logical.width() * dpr)),
-             static_cast<int>(std::ceil(logical.height() * dpr)) };
-}
-}
 
 void table::schedule_card_preload() {
     if (layout_demand_queued)
@@ -46,8 +38,11 @@ void table::update_card_image_demands(bool immediate, bool force) {
         const auto id = card->displayed_card_image_id();
         const auto logical = card->card_face_target_size();
         if (!id.isEmpty() && !logical.isEmpty())
-            needed[id]
-                = needed.value(id).expandedTo(physical_need(*card, logical));
+            needed[id] = needed.value(id).expandedTo(
+                shared_ui::qt::raster_physical_size(
+                    logical, card->devicePixelRatioF()
+                )
+            );
     }
     const auto source = card_sheet_source_path();
     if (needed.isEmpty()) {
@@ -123,13 +118,9 @@ bool table::apply_displayed_card_images() {
         QHash<QString, QImage> presentation;
         const auto id = card->displayed_card_image_id();
         const auto image = displayed_card_images.value(id);
-        const auto physical
-            = physical_need(*card, card->card_face_target_size());
         // A retained older raster is never upscaled across a geometry cutover.
-        if (!image.isNull()
-            && rasterflow::satisfies(
-                { image.width(), image.height() },
-                { physical.width(), physical.height() }
+        if (shared_ui::qt::raster_image_covers(
+                image, card->card_face_target_size(), card->devicePixelRatioF()
             ))
             presentation.insert(id, image);
         slot->set_presented_card_images(presentation);

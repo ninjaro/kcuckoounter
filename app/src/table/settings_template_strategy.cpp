@@ -2,10 +2,10 @@
 
 #include "arch/str_label.hpp"
 #include "card_helpers/card_sheet.hpp"
-#include "image/card_preview_carousel.hpp"
 #include "settings/preferences.hpp"
 #include "settings/theme_palette.hpp"
 #include "table/table.hpp"
+#include <shared_ui/qt/image_carousel.hpp>
 
 #include <QAbstractItemView>
 #include <QDialog>
@@ -124,12 +124,12 @@ void settings_template_widget::setup_strategy_ui(
     strategy_title_label->setFont(title_font);
     detail_layout->addWidget(strategy_title_label);
 
-    weights_carousel = new card_preview_carousel(detail_container);
+    weights_carousel = new shared_ui::qt::image_carousel(detail_container);
     weights_carousel->set_visible_range(3, 5);
-    weights_carousel->set_minimum_card_width(88);
-    weights_carousel->set_prefetch_adjacent_cards(false);
+    weights_carousel->set_minimum_item_width(88);
+    weights_carousel->set_prefetch_adjacent(false);
     const QSize card_size = settings_template_support::preview_card_size();
-    weights_carousel->set_card_size(card_size);
+    weights_carousel->set_item_size(card_size);
     detail_layout->addWidget(weights_carousel);
 
     auto scroll_area = new QScrollArea(detail_container);

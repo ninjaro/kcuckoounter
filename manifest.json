@@ -50,6 +50,20 @@
       "name": "shared_ui_qt"
     },
     {
+      "id": "shared_ui_graphics:qt",
+      "kind": "static_lib",
+      "owns": [],
+      "packages": {
+        "external_project": {
+          "repository": "https://github.com/ninjaro/shared_ui",
+          "revision": "HEAD",
+          "package": "shared_ui",
+          "artifact": "graphics:qt"
+        }
+      },
+      "name": "shared_ui_graphics_qt"
+    },
+    {
       "id": "watchdog_client:client",
       "kind": "static_lib",
       "owns": [],
@@ -114,7 +128,8 @@
         "watchdog_client:client",
         "packing_library:core",
         "rasterflow:qt",
-        "shared_ui:qt"
+        "shared_ui:qt",
+        "shared_ui_graphics:qt"
       ],
       "packages": {
         "zlib": [
