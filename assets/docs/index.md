@@ -4,6 +4,13 @@ Kcuckoounter is a Qt/KDE card-training application. Presentation and data owners
 remain independent: changing desktop appearance does not change a drill, counting
 strategy or active session.
 
+The nonvisual gameplay engine, strategy catalogue, asset lookup and physical
+layout projection live in `core/` (`gameplay:core`). Their tests use
+QCoreApplication without constructing Widgets/KDE. QtCore and Packing are genuine
+core dependencies. Windows, settings surfaces, rendering and platform integration
+remain in `app/` (`trainer_app:ui`); the public executable remains
+`trainer_app:app`. Persistence and gameplay policy remain owned by Kcuckoounter.
+
 All existing visual choices remain supported and switchable: Classic/Thin card
 frames, Numeric/Chips input, Classic/Count-stamp feedback, Classic/rail/pill
 actions, Classic/card/drawer/sill settings, Classic/compact toolbar and

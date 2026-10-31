@@ -5,7 +5,6 @@
 #include "table/gameplay_session_tests.hpp"
 
 #include "packing/layout/equal_rectangles.hpp"
-#include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "table/gameplay_cadence.hpp"
 #include "table/gameplay_generation.hpp"
@@ -263,8 +262,8 @@ void gameplay_session_tests::block_filters_failed_decks_keeps_training_live() {
     QCOMPARE(model.result()->decks[2].statistics.skips, 2U);
 }
 
-void gameplay_session_tests::block_reevaluates_multi_cadence_after_wrong_answer(
-) {
+void gameplay_session_tests::
+    block_reevaluates_multi_cadence_after_wrong_answer() {
     session_configuration settings;
     settings.failure = failure_policy::block;
     settings.scope = quiz_scope::multi;
@@ -392,7 +391,8 @@ void gameplay_session_tests::
     QVERIFY(model.pause());
     QVERIFY(model.swap_decks(deck_id { 0 }, deck_id { 2 }));
     const auto payloads = deck_payloads(model);
-    QVERIFY(model.finish()
+    QVERIFY(
+        model.finish()
     ); // Paused, pending infinite question is not auto-Skip.
     QVERIFY(deck_payloads(model) == payloads);
     const auto result = model.result();
@@ -457,8 +457,8 @@ void gameplay_session_tests::
     QVERIFY(results[0] != results[1]);
 }
 
-void gameplay_session_tests::natural_finish_preserves_reveal_and_random_ordinal(
-) {
+void gameplay_session_tests::
+    natural_finish_preserves_reveal_and_random_ordinal() {
     for (const auto mode :
          { dealing_mode::sequential, dealing_mode::simultaneous,
            dealing_mode::random }) {
@@ -532,8 +532,8 @@ void gameplay_session_tests::running_frozen_and_paused_times_are_distinct() {
     QVERIFY(model.result()->timing == model.timing());
 }
 
-void gameplay_session_tests::non_global_quizzes_overlap_without_double_counting(
-) {
+void gameplay_session_tests::
+    non_global_quizzes_overlap_without_double_counting() {
     session_configuration settings;
     settings.failure = failure_policy::block;
     settings.global_quiz_pause = false;
@@ -562,8 +562,8 @@ void gameplay_session_tests::non_global_quizzes_overlap_without_double_counting(
     QCOMPARE(model.result()->timing.quiz_time_ms, 1750U);
 }
 
-void gameplay_session_tests::timeout_clips_elapsed_and_excludes_stopped_decks(
-) {
+void gameplay_session_tests::
+    timeout_clips_elapsed_and_excludes_stopped_decks() {
     session_configuration settings;
     settings.failure = failure_policy::block;
     settings.dealing = dealing_mode::simultaneous;
@@ -591,8 +591,8 @@ void gameplay_session_tests::timeout_clips_elapsed_and_excludes_stopped_decks(
     QCOMPARE(model.deck(deck_id { 2 })->statistics.dealing_time_ms, 300U);
 }
 
-void gameplay_session_tests::timing_overflow_rejects_the_whole_slice_atomically(
-) {
+void gameplay_session_tests::
+    timing_overflow_rejects_the_whole_slice_atomically() {
     session_configuration settings;
     settings.failure = failure_policy::block;
     settings.global_quiz_pause = false;

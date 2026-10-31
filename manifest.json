@@ -106,9 +106,48 @@
       "name": "packing_core"
     },
     {
-      "id": "trainer_app:core",
+      "id": "gameplay:core",
       "kind": "static_lib",
-      "name": "kcuckoounter_core",
+      "name": "kcuckoounter_gameplay",
+      "root": "core",
+      "owns": [
+        "include",
+        "src"
+      ],
+      "dependencies": [
+        "packing_library:core"
+      ],
+      "packages": {
+        "qt": [
+          "Core"
+        ]
+      }
+    },
+    {
+      "id": "gameplay:tests",
+      "kind": "exe",
+      "name": "kcuckoounter_gameplay_tests",
+      "root": "core",
+      "owns": [
+        "tests"
+      ],
+      "entry": "tests/main_tests.cpp",
+      "dependencies": [
+        "gameplay:core"
+      ],
+      "packages": {
+        "qt": [
+          "Test"
+        ]
+      },
+      "tests": {
+        "qttest": true
+      }
+    },
+    {
+      "id": "trainer_app:ui",
+      "kind": "static_lib",
+      "name": "kcuckoounter_ui",
       "root": "app",
       "owns": [
         "include/arch",
@@ -129,7 +168,8 @@
         "packing_library:core",
         "rasterflow:qt",
         "shared_ui:qt",
-        "shared_ui_graphics:qt"
+        "shared_ui_graphics:qt",
+        "gameplay:core"
       ],
       "packages": {
         "zlib": [
@@ -161,7 +201,7 @@
       ],
       "entry": "src/cli/main.cpp",
       "dependencies": [
-        "trainer_app:core",
+        "trainer_app:ui",
         "watchdog_qt:qt"
       ],
       "packages": {
@@ -194,7 +234,7 @@
       ],
       "entry": "tests/main_tests.cpp",
       "dependencies": [
-        "trainer_app:core"
+        "trainer_app:ui"
       ],
       "packages": {
         "qt": [

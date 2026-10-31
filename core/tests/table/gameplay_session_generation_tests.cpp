@@ -5,7 +5,6 @@
 #include "table/gameplay_session_tests.hpp"
 
 #include "packing/layout/equal_rectangles.hpp"
-#include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "table/gameplay_cadence.hpp"
 #include "table/gameplay_generation.hpp"
@@ -23,8 +22,8 @@
 using namespace gameplay;
 using namespace gameplay_test;
 
-void gameplay_session_tests::strategy_counts_are_automatic_limits_are_advisory(
-) {
+void gameplay_session_tests::
+    strategy_counts_are_automatic_limits_are_advisory() {
     const auto& catalog = strategy_repository();
     QVERIFY2(catalog.is_valid(), qPrintable(catalog.diagnostic_summary()));
     const std::array<std::uint8_t, 4> dealt_cards { 0, 13, 26, 39 };
@@ -41,10 +40,12 @@ void gameplay_session_tests::strategy_counts_are_automatic_limits_are_advisory(
                 parameters->recommended_decks,
                 static_cast<std::size_t>(strategy.min_decks)
             );
-            QVERIFY(std::equal(
-                parameters->rank_weights.begin(),
-                parameters->rank_weights.end(), strategy.weights.begin()
-            ));
+            QVERIFY(
+                std::equal(
+                    parameters->rank_weights.begin(),
+                    parameters->rank_weights.end(), strategy.weights.begin()
+                )
+            );
             const auto expected = strategy.slug == QStringLiteral("uston_ss")
                 ? -4 * static_cast<std::int64_t>(count)
                 : 0;
@@ -59,10 +60,12 @@ void gameplay_session_tests::strategy_counts_are_automatic_limits_are_advisory(
             QCOMPARE(state.running_count, expected);
             QCOMPARE(state.stream.initial_running_count, expected);
             QVERIFY(state.stream.rank_weights == parameters->rank_weights);
-            QVERIFY(std::equal(
-                state.stream.cards.begin(), state.stream.cards.end(),
-                dealt_cards.begin()
-            ));
+            QVERIFY(
+                std::equal(
+                    state.stream.cards.begin(), state.stream.cards.end(),
+                    dealt_cards.begin()
+                )
+            );
             QCOMPARE(state.next_card, 0U);
         }
     }
@@ -81,7 +84,8 @@ void gameplay_session_tests::
     QVERIFY(prepare_strategy_deck(model, deck_id { 0 }, catalog, valid_cards));
     const auto before = *model.deck(deck_id { 0 });
     QVERIFY(!prepare_strategy_deck(model, deck_id { 0 }, catalog, {}));
-    QVERIFY(!prepare_strategy_deck(model, deck_id { 0 }, catalog, invalid_card)
+    QVERIFY(
+        !prepare_strategy_deck(model, deck_id { 0 }, catalog, invalid_card)
     );
     QVERIFY(!prepare_strategy_deck(model, deck_id { 1 }, catalog, valid_cards));
     auto invalid_catalog = catalog;
@@ -136,7 +140,8 @@ void gameplay_session_tests::
     QVERIFY(prepare_generated_session(model, catalog, 1234));
     QCOMPARE(model.deck(deck_id { 0 })->running_count, -4);
     QCOMPARE(model.deck(deck_id { 0 })->configuration.deck_count, 1U);
-    QVERIFY(!recommended_configuration(catalog, { .strategy_slug = "missing" })
+    QVERIFY(
+        !recommended_configuration(catalog, { .strategy_slug = "missing" })
     );
     QVERIFY(!recommended_configuration({}, chosen));
 }
@@ -148,8 +153,10 @@ void gameplay_session_tests::
     std::vector<deck_configuration> templates;
     for (const auto& strategy : catalog.strategies) {
         const auto index = templates.size();
-        templates.push_back({ strategy.slug.toStdString(), index % 2 ? 17U : 1U,
-                              index % 2 == 0, index % 3 == 0 });
+        templates.push_back(
+            { strategy.slug.toStdString(), index % 2 ? 17U : 1U, index % 2 == 0,
+              index % 3 == 0 }
+        );
     }
     const auto original = templates;
     auto settings = session_configuration {};
@@ -226,8 +233,8 @@ void gameplay_session_tests::
     QCOMPARE(templates, original);
 }
 
-void gameplay_session_tests::generated_shoes_have_exact_composition_and_replay(
-) {
+void gameplay_session_tests::
+    generated_shoes_have_exact_composition_and_replay() {
     for (const auto source :
          { quiz_source::virtual_interrupt, quiz_source::physical_joker }) {
         const std::size_t faces
@@ -426,8 +433,8 @@ void gameplay_session_tests::
     QVERIFY(model.slot_for(deck_id { 0 }) == physical_slot_id { 1 });
 }
 
-void gameplay_session_tests::finite_multi_preparation_owns_one_table_schedule(
-) {
+void gameplay_session_tests::
+    finite_multi_preparation_owns_one_table_schedule() {
     session_configuration settings;
     settings.scope = quiz_scope::multi;
     std::vector<deck_configuration> decks {
@@ -447,9 +454,11 @@ void gameplay_session_tests::finite_multi_preparation_owns_one_table_schedule(
     std::reverse(decks.begin(), decks.end());
     auto reordered = session::create(settings, decks, { 2, 64 }).value();
     QVERIFY(prepare_finite_session(reordered, catalog, 1234));
-    QVERIFY(std::ranges::equal(
-        model.table_quiz_targets(), reordered.table_quiz_targets()
-    ));
+    QVERIFY(
+        std::ranges::equal(
+            model.table_quiz_targets(), reordered.table_quiz_targets()
+        )
+    );
     const auto first = *model.deck(deck_id { 0 });
     QVERIFY(model.start());
     QVERIFY(model.pause());
@@ -583,7 +592,8 @@ void gameplay_session_tests::
     prepared.virtual_quiz_targets.clear();
     QVERIFY(model.prepare_deck(deck_id { 0 }, prepared));
     QVERIFY(model.set_traversal(std::array<std::size_t, 1> { 0 }));
-    QVERIFY(!model.start()
+    QVERIFY(
+        !model.start()
     ); // per-deck preparation cannot certify table cadence
     const std::array<std::uint64_t, 2> targets { 1, 3 };
     QVERIFY(model.prepare_decks(std::array { prepared }, targets));

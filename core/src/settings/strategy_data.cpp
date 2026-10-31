@@ -328,8 +328,8 @@ QVector<strategy_data::strategy_reference> validated_references(
 
 } // namespace
 
-std::optional<std::int64_t> strategy_initial_count::evaluate(std::size_t decks
-) const {
+std::optional<std::int64_t>
+strategy_initial_count::evaluate(std::size_t decks) const {
     if (decks == 0) {
         return std::nullopt;
     }

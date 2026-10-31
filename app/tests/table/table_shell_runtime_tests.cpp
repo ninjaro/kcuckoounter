@@ -14,16 +14,19 @@
 
 #include <QComboBox>
 #include <QDialog>
+#include <QEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMap>
 #include <QMenu>
 #include <QMenuBar>
+#include <QPointer>
 #include <QSettings>
 #include <QStatusBar>
 #include <QtTest/QtTest>
 
 #include <array>
+#include <memory>
 
 #ifdef KC_KDE
 #include <KActionCollection>
@@ -88,6 +91,33 @@ void use_menu(
 }
 
 } // namespace
+
+void table_tests::shell_close_preserves_explicit_window_owner() {
+    launcher_preferences_guard preferences;
+    shell_storage_guard storage;
+    auto window = std::make_unique<main_window>();
+    const QPointer<main_window> guard(window.get());
+    QSignalSpy destroyed(window.get(), &QObject::destroyed);
+    // The real entrypoint retains its unique_ptr until QApplication::exec()
+    // returns. A platform base must not independently delete that window.
+    QCOMPARE(window->testAttribute(Qt::WA_DeleteOnClose), false);
+    window->show();
+    QCoreApplication::processEvents();
+    QSettings settings(
+        QStringLiteral("ninjaro"), QStringLiteral("kcuckoounter")
+    );
+    const auto documents = non_shell_settings(settings);
+    QVERIFY(window->close());
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    QVERIFY(guard);
+    QVERIFY(!window->isVisible());
+    QCOMPARE(destroyed.count(), 0);
+    window.reset();
+    QVERIFY(!guard);
+    QCOMPARE(destroyed.count(), 1);
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    QCOMPARE(non_shell_settings(settings), documents);
+}
 
 void table_tests::shell_menus_preserve_owned_routes_data() {
     QTest::addColumn<bool>("global_pause");

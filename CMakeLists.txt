@@ -925,8 +925,49 @@ if __name__ == "__main__":
     endfunction()
 endif ()
 
-set(KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/asset_locator.hpp
+set(KCUCKOOUNTER_GAMEPLAY_CORE_HEADERS
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/arch/asset_locator.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/settings/strategy_data.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/table/gameplay_cadence.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/table/gameplay_checkpoint.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/table/gameplay_checkpoint_checks.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/table/gameplay_generation.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/table/gameplay_layout.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/table/gameplay_result.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/table/gameplay_session.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/table/gameplay_session_checks.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/table/gameplay_strategy.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/include/table/gameplay_types.hpp
+)
+set(KCUCKOOUNTER_GAMEPLAY_CORE_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/arch/asset_locator.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/settings/strategy_data.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_cadence.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_checkpoint.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_checkpoint_checks.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_checkpoint_streams.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_generation.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_layout.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_result.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_session.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_session_setup.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_strategy.cpp
+)
+set(KCUCKOOUNTER_GAMEPLAY_CORE_RUNTIME_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/arch/asset_locator.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/settings/strategy_data.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_cadence.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_checkpoint.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_checkpoint_checks.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_checkpoint_streams.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_generation.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_layout.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_result.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_session.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_session_setup.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/core/src/table/gameplay_strategy.cpp
+)
+set(KCUCKOOUNTER_TRAINER_APP_UI_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/num_helpers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/random_generator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/str_label.hpp
@@ -944,31 +985,19 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/gameplay_recovery.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/gameplay_recovery_codec.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/preferences.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/strategy_data.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/settings/theme_palette.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/drill_picker.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/gameplay_reservation.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/main_window.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/card_widget.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_cadence.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_checkpoint.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_checkpoint_checks.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_generation.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_layout.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_result.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_session.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_session_checks.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_setup.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_strategy.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_types.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/settings_template.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/settings_template_support.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/strategy_browser.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/table.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/table_slot.hpp
 )
-set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/asset_locator.cpp
+set(KCUCKOOUNTER_TRAINER_APP_UI_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/random_generator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_sheet.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_images.cpp
@@ -993,7 +1022,6 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_recovery_codec.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_recovery_completion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/preferences.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/strategy_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/theme_palette.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_storage.cpp
@@ -1014,17 +1042,7 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_paint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_raster.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_cadence.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_checkpoint.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_checkpoint_checks.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_checkpoint_streams.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_generation.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_layout.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_result.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_session.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_session_setup.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_setup.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_strategy.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_appearance.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_editor.cpp
@@ -1045,8 +1063,7 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_settings.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_start.cpp
 )
-set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/asset_locator.cpp
+set(KCUCKOOUNTER_TRAINER_APP_UI_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/random_generator.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/card_helpers/card_sheet.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/image/card_images.cpp
@@ -1071,7 +1088,6 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_recovery_codec.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/gameplay_recovery_completion.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/preferences.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/strategy_data.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/settings/theme_palette.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/drill_picker_storage.cpp
@@ -1092,17 +1108,7 @@ set(KCUCKOOUNTER_TRAINER_APP_CORE_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_paint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_raster.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_cadence.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_checkpoint.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_checkpoint_checks.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_checkpoint_streams.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_generation.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_layout.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_result.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_session.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_session_setup.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_setup.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/gameplay_strategy.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_appearance.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/settings_template_editor.cpp
@@ -1166,18 +1172,44 @@ if (NOT TARGET packing::library__core)
 endif ()
 add_library(packing_library__core ALIAS packing::library__core)
 
-add_library(trainer_app__core STATIC
-    ${KCUCKOOUNTER_TRAINER_APP_CORE_HEADERS}
-    ${KCUCKOOUNTER_TRAINER_APP_CORE_SOURCES}
+add_library(gameplay__core STATIC
+    ${KCUCKOOUNTER_GAMEPLAY_CORE_HEADERS}
+    ${KCUCKOOUNTER_GAMEPLAY_CORE_SOURCES}
 )
 
-target_compile_features(trainer_app__core PUBLIC cxx_std_20)
+target_compile_features(gameplay__core PUBLIC cxx_std_20)
 
-target_include_directories(trainer_app__core PUBLIC
+target_include_directories(gameplay__core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/core/include
+)
+
+target_link_libraries(gameplay__core PUBLIC
+    Qt6::Core
+    packing_library__core
+)
+
+set_target_properties(gameplay__core PROPERTIES OUTPUT_NAME kcuckoounter_gameplay)
+
+ecosystem_apply_defaults(gameplay__core)
+
+target_compile_definitions(gameplay__core
+        PRIVATE
+        ECOSYSTEM_PROJECT_VERSION="${PROJECT_VERSION}"
+)
+
+
+add_library(trainer_app__ui STATIC
+    ${KCUCKOOUNTER_TRAINER_APP_UI_HEADERS}
+    ${KCUCKOOUNTER_TRAINER_APP_UI_SOURCES}
+)
+
+target_compile_features(trainer_app__ui PUBLIC cxx_std_20)
+
+target_include_directories(trainer_app__ui PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/app/include
 )
 
-target_link_libraries(trainer_app__core PUBLIC
+target_link_libraries(trainer_app__ui PUBLIC
     Qt6::Concurrent
     Qt6::Core
     Qt6::Svg
@@ -1189,15 +1221,16 @@ target_link_libraries(trainer_app__core PUBLIC
     rasterflow__qt
     shared_ui__qt
     shared_ui_graphics__qt
+    gameplay__core
 )
 
-target_compile_definitions(trainer_app__core PUBLIC $<$<BOOL:${ECOSYSTEM_PROFILE_KDE}>:KC_KDE>)
+target_compile_definitions(trainer_app__ui PUBLIC $<$<BOOL:${ECOSYSTEM_PROFILE_KDE}>:KC_KDE>)
 
-set_target_properties(trainer_app__core PROPERTIES OUTPUT_NAME kcuckoounter_core)
+set_target_properties(trainer_app__ui PROPERTIES OUTPUT_NAME kcuckoounter_ui)
 
-ecosystem_apply_defaults(trainer_app__core)
+ecosystem_apply_defaults(trainer_app__ui)
 
-target_compile_definitions(trainer_app__core
+target_compile_definitions(trainer_app__ui
         PRIVATE
         ECOSYSTEM_PROJECT_VERSION="${PROJECT_VERSION}"
 )
@@ -1220,7 +1253,7 @@ target_link_libraries(trainer_app__app PRIVATE
     Qt6::Svg
     Qt6::Widgets
     ecosystem_kde_support
-    trainer_app__core
+    trainer_app__ui
     watchdog_qt__qt
 )
 

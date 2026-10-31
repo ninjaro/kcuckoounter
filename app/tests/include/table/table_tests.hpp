@@ -71,6 +71,7 @@ private slots:
     void shell_menus_preserve_owned_routes();
     void shell_state_keeps_gameplay_ephemeral_data();
     void shell_state_keeps_gameplay_ephemeral();
+    void shell_close_preserves_explicit_window_owner();
     void kde_commands_use_shared_actions();
     void launcher_defaults_restore_global_setup_data();
     void launcher_defaults_restore_global_setup();

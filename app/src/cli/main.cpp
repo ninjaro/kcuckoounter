@@ -71,6 +71,10 @@ int main(int argc, char* argv[]) {
     monitor::qt::gui_heartbeat gui_watchdog(&app);
 
     auto window = std::make_unique<main_window>();
+    // Explicit ownership keeps KDE's window quit-lock alive until exec returns.
+    QObject::connect(
+        &app, &QGuiApplication::lastWindowClosed, &app, &QCoreApplication::quit
+    );
 #if defined(Q_OS_ANDROID)
     window->showMaximized();
 #else

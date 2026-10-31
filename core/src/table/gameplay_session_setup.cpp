@@ -306,10 +306,9 @@ bool session::can_start() const {
         || physical_order.size() != decks.size()
         || (settings.source == quiz_source::virtual_interrupt
             && settings.scope == quiz_scope::multi && !multi_schedule_prepared)
-        || std::any_of(
-            decks.begin(), decks.end(),
-            [](const auto& deck) { return deck.stream.cards.empty(); }
-        )
+        || std::any_of(decks.begin(), decks.end(), [](const auto& deck) {
+               return deck.stream.cards.empty();
+           })
     );
 }
 

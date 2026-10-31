@@ -3,6 +3,7 @@
 // readability-make-member-function-const)
 
 #include "table/table_tests.hpp"
+#include <shared_ui/qt/adaptive_surface.hpp>
 #include <shared_ui/qt/presentation.hpp>
 
 #include "card_helpers/card_sheet.hpp"
@@ -107,9 +108,35 @@ void table_tests::compact_slot_controls_remain_reachable() {
     QCoreApplication::processEvents();
     const auto before = view.capture_gameplay_checkpoint();
     auto* trigger
-        = slot.findChild<QToolButton*>(QStringLiteral("compact_slot_controls"));
+        = slot.findChild<shared_ui::qt::adaptive_surface*>()->trigger();
     QVERIFY(trigger && trigger->isVisible());
-    QVERIFY(slot.rect().contains(trigger->geometry()));
+    qInfo() << "REACH" << view.window()->geometry() << view.geometry()
+            << slot.geometry() << "trigger" << trigger->geometry()
+            << trigger->minimumSize() << trigger->sizeHint() << "parent"
+            << trigger->parentWidget() << QApplication::activeWindow()
+            << QApplication::focusWidget();
+    const auto profile = shared_ui::qt::presentation_for(slot).profile;
+    if (profile == shared_ui::qt::platform_profile::android) {
+        QVERIFY(trigger->width() >= 48);
+        QVERIFY(trigger->height() >= 48);
+    }
+    if (slot.width() >= trigger->width()
+        && slot.height() >= trigger->height()) {
+        QCOMPARE(trigger->parentWidget(), &slot);
+        QVERIFY(slot.rect().contains(trigger->geometry()));
+    } else {
+        // A 48x48 target cannot fit inside a 54x38 or 38x54 slot.
+        // Its containing surface must expose the complete target instead.
+        QVERIFY(trigger->parentWidget() != &slot);
+        QVERIFY(trigger->parentWidget()->isAncestorOf(&slot));
+        QVERIFY(trigger->parentWidget()->rect().contains(trigger->geometry()));
+    }
+    QVERIFY(trigger->visibleRegion().contains(trigger->rect()));
+    QCOMPARE(
+        QApplication::widgetAt(trigger->mapToGlobal(trigger->rect().center())),
+        trigger
+    );
+    QVERIFY(!trigger->accessibleName().isEmpty());
     trigger->click();
     QPointer<QDialog> dialog
         = slot.findChild<QDialog*>(QStringLiteral("slot_controls_dialog"));
@@ -195,7 +222,7 @@ void table_tests::action_variants_reuse_controls() {
     QCoreApplication::processEvents();
     const auto before = view.capture_gameplay_checkpoint();
     auto* trigger
-        = slot.findChild<QToolButton*>(QStringLiteral("compact_slot_controls"));
+        = slot.findChild<shared_ui::qt::adaptive_surface*>()->trigger();
     QVERIFY(trigger);
     QCOMPARE(trigger->isVisible(), compact);
     if (compact)

@@ -22,6 +22,7 @@
 #include <QLineEdit>
 #include <QToolButton>
 #include <QtTest/QtTest>
+#include <shared_ui/qt/adaptive_surface.hpp>
 #include <shared_ui/qt/presentation.hpp>
 
 #include <array>
@@ -34,6 +35,50 @@
 #include "table/table_fixture.hpp"
 
 using namespace table_test;
+
+namespace {
+class layout_trace final : public QObject {
+public:
+    explicit layout_trace(QWidget& root)
+        : root_(root) {
+        if (qEnvironmentVariableIsSet("KCUCKOOUNTER_LAYOUT_TRACE"))
+            qApp->installEventFilter(this);
+    }
+
+protected:
+    bool eventFilter(QObject* object, QEvent* event) override {
+        auto* widget = qobject_cast<QWidget*>(object);
+        if (!widget || (widget != &root_ && !root_.isAncestorOf(widget))
+            || remaining_ <= 0)
+            return false;
+        if (event->type() == QEvent::FocusIn
+            || event->type() == QEvent::FocusOut
+            || event->type() == QEvent::WindowActivate
+            || event->type() == QEvent::WindowDeactivate
+            || ((widget == &root_
+                 || widget->objectName()
+                     == QStringLiteral("compact_slot_controls")
+                 || widget->objectName()
+                     == QStringLiteral("gameplay_quiz_input"))
+                && (event->type() == QEvent::Resize
+                    || event->type() == QEvent::Show
+                    || event->type() == QEvent::Hide
+                    || event->type() == QEvent::LayoutRequest
+                    || event->type() == QEvent::ParentChange))) {
+            --remaining_;
+            qInfo() << "LAYOUT EVENT" << event->type() << widget
+                    << widget->geometry() << "parent" << widget->parentWidget()
+                    << "active" << QApplication::activeWindow() << "focus"
+                    << QApplication::focusWidget();
+        }
+        return false;
+    }
+
+private:
+    QWidget& root_;
+    int remaining_ = 300;
+};
+} // namespace
 
 void table_tests::gameplay_controls_numeric_and_chips_data() {
     QTest::addColumn<bool>("chips");
@@ -412,11 +457,23 @@ void table_tests::controls_follow_packing_focus_and_swap_data() {
 void table_tests::controls_follow_packing_focus_and_swap() {
     QFETCH(bool, multi);
     QFETCH(bool, compact);
+#ifdef Q_OS_ANDROID
+    QWidget viewport;
+    viewport.show();
+    QCoreApplication::processEvents();
+    table view(&viewport);
+#else
     table view;
+#endif
+    layout_trace trace(view);
+#ifdef Q_OS_ANDROID
+    view.resize(compact ? QSize(320, 240) : viewport.contentsRect().size());
+#else
     view.resize(compact ? QSize(320, 240) : QSize(1800, 1200));
+#endif
     view.show();
     view.activateWindow();
-    QTest::qWait(1);
+    QTRY_VERIFY(view.window()->isActiveWindow());
     QVERIFY(view.install_gameplay_session(owned_clock_fixture(
         4, true, gameplay::dealing_mode::simultaneous,
         multi ? gameplay::quiz_scope::multi : gameplay::quiz_scope::single,
@@ -432,22 +489,46 @@ void table_tests::controls_follow_packing_focus_and_swap() {
     auto input = [&](gameplay::deck_id id) {
         return owned_input(view.slot_widgets[id.value]);
     };
+    // Android owns the top-level geometry. Orientation changes can also
+    // turn a compact prompt inline, so test the current presentation.
     const auto focus_target = [&](gameplay::deck_id id) -> QWidget* {
-        auto* opener = view.slot_widgets[id.value]->findChild<QToolButton*>(
-            QStringLiteral("compact_slot_controls")
-        );
-        return compact ? static_cast<QWidget*>(opener) : input(id);
+        auto* surface = view.slot_widgets[id.value]
+                            ->findChild<shared_ui::qt::adaptive_surface*>();
+        return surface->trigger()->isVisible() && !surface->window()
+            ? static_cast<QWidget*>(surface->trigger())
+            : input(id);
     };
     const auto open_prompt = [&](gameplay::deck_id id) {
-        if (compact) {
-            auto* opener = qobject_cast<QToolButton*>(focus_target(id));
-            opener->click();
+        auto* surface = view.slot_widgets[id.value]
+                            ->findChild<shared_ui::qt::adaptive_surface*>();
+        if (surface->trigger()->isVisible() && !surface->window()) {
+            surface->trigger()->click();
             input(id)->window()->activateWindow();
-            QTest::qWait(1);
+            QTRY_VERIFY(input(id)->window()->isActiveWindow());
         }
     };
+    qInfo() << "WINDOW" << view.window()->geometry() << view.geometry()
+            << "active" << QApplication::activeWindow() << "focus"
+            << QApplication::focusWidget();
     for (const auto id : order) {
+        auto* slot = view.slot_widgets[id.value];
+        auto* overlay
+            = slot->findChild<QWidget*>(QStringLiteral("quiz_bar_frame"))
+                  ->parentWidget();
+        auto* trigger = slot->findChild<QToolButton*>(
+            QStringLiteral("compact_slot_controls")
+        );
+        qInfo() << "SLOT" << id.value << slot->geometry() << "parent"
+                << slot->parentWidget() << "overlay" << overlay
+                << overlay->geometry() << overlay->sizeHint()
+                << overlay->minimumSizeHint() << "parent"
+                << overlay->parentWidget() << "visible" << overlay->isVisible()
+                << "trigger" << trigger->geometry() << trigger->minimumSize()
+                << trigger->sizeHint() << trigger->isVisible() << "input"
+                << input(id)->geometry() << input(id)->isVisible();
         QVERIFY(focus_target(id)->isVisible());
+        if (compact)
+            QVERIFY(trigger->isVisible());
         QVERIFY(input(id)->isEnabled());
     }
     QCOMPARE(QApplication::focusWidget(), focus_target(order[0]));
@@ -463,14 +544,14 @@ void table_tests::controls_follow_packing_focus_and_swap() {
         )
     );
     QTest::keyClick(input(order[0]), Qt::Key_Return);
-    QTest::qWait(1);
+    QTRY_VERIFY(view.window()->isActiveWindow());
     QCOMPARE(QApplication::focusWidget(), focus_target(order[1]));
     open_prompt(order[1]);
     auto* skip = view.slot_widgets[order[1].value]->findChild<QPushButton*>(
         QStringLiteral("quiz_skip_button")
     );
     skip->click();
-    QTest::qWait(1);
+    QTRY_VERIFY(view.window()->isActiveWindow());
     QCOMPARE(QApplication::focusWidget(), focus_target(order[2]));
     const auto pending = *view.gameplay_owner->deck(order[2]);
     const auto key = *view.gameplay_quiz_prompt(order[2]);
@@ -483,13 +564,26 @@ void table_tests::controls_follow_packing_focus_and_swap() {
     view.stop_gameplay_clock();
     QVERIFY(view.focus_gameplay_quiz());
     const auto changed_order = view.gameplay_owner->unresolved_quizzes();
+    qInfo() << "RESUME" << view.geometry() << QApplication::activeWindow()
+            << QApplication::focusWidget() << "target"
+            << focus_target(changed_order.front()) << "input"
+            << input(changed_order.front())
+            << input(changed_order.front())->window();
     QCOMPARE(QApplication::focusWidget(), focus_target(changed_order.front()));
     QTest::keyClick(focus_target(changed_order.front()), Qt::Key_Tab);
     QCOMPARE(QApplication::focusWidget(), focus_target(changed_order.back()));
 }
 
 void table_tests::gameplay_controls_compact_host_and_replacement() {
+#ifdef Q_OS_ANDROID
+    QWidget viewport;
+    viewport.show();
+    QCoreApplication::processEvents();
+    table view(&viewport);
+#else
     table view;
+#endif
+    layout_trace trace(view);
     view.resize(180, 120);
     view.show();
     QVERIFY(view.install_gameplay_session(owned_clock_fixture(
@@ -505,6 +599,10 @@ void table_tests::gameplay_controls_compact_host_and_replacement() {
     auto* opener = slot->findChild<QToolButton*>(
         QStringLiteral("compact_slot_controls")
     );
+    qInfo() << "COMPACT" << view.window()->geometry() << view.geometry()
+            << slot->geometry() << opener->geometry() << opener->minimumSize()
+            << opener->isVisible() << QApplication::activeWindow()
+            << QApplication::focusWidget();
     QVERIFY(opener->isVisible());
     opener->click();
     QPointer<QDialog> host

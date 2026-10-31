@@ -32,9 +32,11 @@ namespace {
             if (physical < offset || (physical - offset) % size != 0) {
                 return false;
             }
-        } else if (physical != offset
-                   || (deck.status == deck_status::active
-                       && deck.next_card == stream.cards.size())) {
+        } else if (
+            physical != offset
+            || (deck.status == deck_status::active
+                && deck.next_card == stream.cards.size())
+        ) {
             return false;
         }
         // Finite history is present in this buffer. Infinite history is not:
@@ -66,8 +68,10 @@ namespace {
                     && deck.statistics.dealt_normal_cards != physical)) {
                 return false;
             }
-        } else if (deck.statistics.dealt_normal_cards != normal
-                   || deck.running_count != running) {
+        } else if (
+            deck.statistics.dealt_normal_cards != normal
+            || deck.running_count != running
+        ) {
             return false;
         }
         // Consumed Single targets cannot exceed this deck's own exposure.
@@ -96,8 +100,9 @@ bool within_budget(
     for (const auto& deck : decks) {
         if (!consume(cards, deck.stream.cards.size())
             || (deck.stream.infinite_cards
-                && !consume(cards, deck.stream.infinite_cards->lookahead.size())
-            )
+                && !consume(
+                    cards, deck.stream.infinite_cards->lookahead.size()
+                ))
             || !consume(targets, deck.stream.virtual_quiz_targets.size())) {
             return false;
         }

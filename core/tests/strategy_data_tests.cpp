@@ -155,7 +155,8 @@ void strategy_data_tests::parser_rejects_duplicate_ids_and_slugs() {
 
     const strategy_catalog duplicate = parse_root(root);
     QVERIFY(!duplicate.is_valid());
-    QVERIFY(duplicate.diagnostic_summary().contains(QStringLiteral("duplicate"))
+    QVERIFY(
+        duplicate.diagnostic_summary().contains(QStringLiteral("duplicate"))
     );
 }
 
@@ -200,8 +201,9 @@ void strategy_data_tests::initial_count_formulas_are_decoded_and_evaluated() {
         / 4;
     if (boundary <= std::numeric_limits<std::size_t>::max()) {
         QVERIFY(
-            negative.initial_running_count_for(static_cast<std::size_t>(boundary
-            ))
+            negative.initial_running_count_for(
+                static_cast<std::size_t>(boundary)
+            )
             == std::numeric_limits<std::int64_t>::min()
         );
         QVERIFY(!positive.initial_running_count_for(

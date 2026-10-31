@@ -5,7 +5,6 @@
 #include "table/gameplay_session_tests.hpp"
 
 #include "packing/layout/equal_rectangles.hpp"
-#include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "table/gameplay_cadence.hpp"
 #include "table/gameplay_generation.hpp"
@@ -68,12 +67,17 @@ void gameplay_session_tests::
     const std::array<std::uint8_t, 12> lookahead_prefix { 8,  18, 16, 50,
                                                           45, 23, 17, 23,
                                                           8,  21, 33, 47 };
-    QVERIFY(std::ranges::equal(
-        std::span(generated->cards).first(12), current_prefix
-    ));
-    QVERIFY(std::ranges::equal(
-        std::span(generated->continuation.lookahead).first(12), lookahead_prefix
-    ));
+    QVERIFY(
+        std::ranges::equal(
+            std::span(generated->cards).first(12), current_prefix
+        )
+    );
+    QVERIFY(
+        std::ranges::equal(
+            std::span(generated->continuation.lookahead).first(12),
+            lookahead_prefix
+        )
+    );
     QVERIFY(generated->cards != generated->continuation.lookahead);
     const auto other = generate_infinite_shoe(
         quiz_source::virtual_interrupt, 1234, deck_id { 1 }
@@ -225,14 +229,16 @@ void gameplay_session_tests::
     };
     const std::array<std::uint64_t, 6> next_prefix { 1876, 1898, 1922,
                                                      1959, 1992, 2026 };
-    QVERIFY(std::ranges::equal(std::span(first.targets).first(6), first_prefix)
+    QVERIFY(
+        std::ranges::equal(std::span(first.targets).first(6), first_prefix)
     );
     QVERIFY(std::ranges::equal(std::span(next.targets).first(6), next_prefix));
     const auto table = generate_quiz_page(initial, std::nullopt).value();
     const std::array<std::uint64_t, 6> table_prefix {
         35, 66, 89, 115, 143, 171
     };
-    QVERIFY(std::ranges::equal(std::span(table.targets).first(6), table_prefix)
+    QVERIFY(
+        std::ranges::equal(std::span(table.targets).first(6), table_prefix)
     );
     auto previous = std::uint64_t { 0 };
     for (const auto* targets : { &first.targets, &next.targets }) {
@@ -276,8 +282,8 @@ void gameplay_session_tests::
     );
 }
 
-void gameplay_session_tests::infinite_pages_freeze_policy_and_reject_overflow(
-) {
+void gameplay_session_tests::
+    infinite_pages_freeze_policy_and_reject_overflow() {
     const quiz_schedule_continuation initial { .seed = 1234 };
     const auto expected = generate_quiz_page(initial, std::nullopt).value();
     generation_policy changed;
@@ -404,8 +410,8 @@ void gameplay_session_tests::
     }
 }
 
-void gameplay_session_tests::mixed_preparation_budget_and_lifecycle_are_atomic(
-) {
+void gameplay_session_tests::
+    mixed_preparation_budget_and_lifecycle_are_atomic() {
     const auto& catalog = strategy_repository();
     const std::vector<deck_configuration> decks {
         { .strategy_slug = "hi_lo", .deck_count = 1 },
@@ -554,7 +560,8 @@ void gameplay_session_tests::
     physical.quiz_continuation = continuation;
     QVERIFY(!model.prepare_deck(deck_id { 0 }, physical));
     physical.quiz_continuation.reset();
-    QVERIFY(!model.prepare_decks(std::array { physical }, targets, continuation)
+    QVERIFY(
+        !model.prepare_decks(std::array { physical }, targets, continuation)
     );
 }
 

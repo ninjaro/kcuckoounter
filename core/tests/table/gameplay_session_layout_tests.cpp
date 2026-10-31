@@ -5,7 +5,6 @@
 #include "table/gameplay_session_tests.hpp"
 
 #include "packing/layout/equal_rectangles.hpp"
-#include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "table/gameplay_cadence.hpp"
 #include "table/gameplay_generation.hpp"

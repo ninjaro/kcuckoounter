@@ -5,7 +5,6 @@
 
 #include <cstdio>
 
-#include "include/asset_locator_tests.hpp"
 #include "include/card_sheet_tests.hpp"
 #include "include/image_source_tests.hpp"
 #include "include/preview_carousel_tests.hpp"
@@ -13,13 +12,11 @@
 #include "include/settings/gameplay_progress_tests.hpp"
 #include "include/settings/gameplay_recovery_tests.hpp"
 #include "include/settings/preferences_tests.hpp"
-#include "include/strategy_data_tests.hpp"
 #include "include/table/card_widget_tests.hpp"
 #include "include/table/gameplay_completion_tests.hpp"
 #include "include/table/gameplay_host_tests.hpp"
 #include "include/table/gameplay_mobile_tests.hpp"
 #include "include/table/gameplay_restore_tests.hpp"
-#include "include/table/gameplay_session_tests.hpp"
 #include "include/table/gameplay_start_tests.hpp"
 #include "include/table/table_tests.hpp"
 
@@ -68,10 +65,6 @@ int main(int argc, char** argv) {
     };
 
     {
-        gameplay_session_tests t;
-        status |= run(t);
-    }
-    {
         gameplay_checkpoint_tests t;
         status |= run(t);
     }
@@ -84,10 +77,6 @@ int main(int argc, char** argv) {
         status |= run(t);
     }
 
-    {
-        asset_locator_tests t;
-        status |= run(t);
-    }
     {
         card_sheet_tests t;
         status |= run(t);
@@ -106,10 +95,6 @@ int main(int argc, char** argv) {
     }
     {
         image_source_tests t;
-        status |= run(t);
-    }
-    {
-        strategy_data_tests t;
         status |= run(t);
     }
     {

@@ -5,7 +5,6 @@
 #include "table/gameplay_session_tests.hpp"
 
 #include "packing/layout/equal_rectangles.hpp"
-#include "settings/preferences.hpp"
 #include "settings/strategy_data.hpp"
 #include "table/gameplay_cadence.hpp"
 #include "table/gameplay_generation.hpp"
@@ -24,8 +23,8 @@
 using namespace gameplay;
 using namespace gameplay_test;
 
-void gameplay_session_tests::dealing_sequential_matches_live_traversal_oracle(
-) {
+void gameplay_session_tests::
+    dealing_sequential_matches_live_traversal_oracle() {
     for (std::size_t m = 1; m <= 16; ++m) {
         for (std::size_t n = 1; n <= m; ++n) {
             for (const bool holes : { false, true }) {
@@ -236,10 +235,12 @@ void gameplay_session_tests::dealing_simultaneous_completes_each_deck_once() {
     }
     QVERIFY(!model.sequential_anchor());
     QCOMPARE(model.random_dealing().next_step, 0U);
-    QVERIFY(std::ranges::equal(
-        model.traversal(),
-        std::vector<physical_slot_id> { { 2 }, { 0 }, { 3 }, { 1 } }
-    ));
+    QVERIFY(
+        std::ranges::equal(
+            model.traversal(),
+            std::vector<physical_slot_id> { { 2 }, { 0 }, { 3 }, { 1 } }
+        )
+    );
 }
 
 void gameplay_session_tests::
@@ -278,7 +279,8 @@ void gameplay_session_tests::
         { 1 }, { 0 }, { 3 }, { 2 }, { 1 }, { 2 },
         { 3 }, { 2 }, { 3 }, { 2 }, { 2 }, { 2 },
     };
-    QVERIFY(std::ranges::equal(std::span(sequence).first(prefix.size()), prefix)
+    QVERIFY(
+        std::ranges::equal(std::span(sequence).first(prefix.size()), prefix)
     );
     QVERIFY(
         std::adjacent_find(sequence.begin(), sequence.end()) != sequence.end()
@@ -323,7 +325,8 @@ void gameplay_session_tests::
     for (std::size_t i = 0; i < short_game.size(); ++i) {
         QVERIFY(short_game.prepare_deck(deck_id { i }, one_card));
     }
-    QVERIFY(short_game.set_traversal(std::array<std::size_t, 4> { 2, 0, 3, 1 })
+    QVERIFY(
+        short_game.set_traversal(std::array<std::size_t, 4> { 2, 0, 3, 1 })
     );
     QVERIFY(short_game.start(seed));
     std::array<bool, 4> completed {};
@@ -478,8 +481,8 @@ void gameplay_session_tests::dealing_phase_and_arithmetic_guards_are_atomic() {
     }
 }
 
-void gameplay_session_tests::dealing_infinite_rollover_preserves_owned_payload(
-) {
+void gameplay_session_tests::
+    dealing_infinite_rollover_preserves_owned_payload() {
     const auto& catalog = strategy_repository();
     session_configuration settings;
     settings.dealing = dealing_mode::simultaneous;
@@ -560,8 +563,8 @@ void gameplay_session_tests::dealing_infinite_rollover_preserves_owned_payload(
     }
 }
 
-void gameplay_session_tests::late_rollover_failure_keeps_whole_step_unchanged(
-) {
+void gameplay_session_tests::
+    late_rollover_failure_keeps_whole_step_unchanged() {
     session_configuration settings;
     settings.dealing = dealing_mode::simultaneous;
     auto configured = configurations(2);
@@ -599,8 +602,8 @@ void gameplay_session_tests::late_rollover_failure_keeps_whole_step_unchanged(
     }
 }
 
-void gameplay_session_tests::dealing_consumes_actual_multi_cadence_targets_once(
-) {
+void gameplay_session_tests::
+    dealing_consumes_actual_multi_cadence_targets_once() {
     for (const auto mode :
          { dealing_mode::sequential, dealing_mode::simultaneous,
            dealing_mode::random }) {
@@ -615,7 +618,8 @@ void gameplay_session_tests::dealing_consumes_actual_multi_cadence_targets_once(
         auto prepared = cards();
         prepared.cards.assign(32, 0);
         const std::array<std::uint64_t, 2> targets { 2, 4 };
-        QVERIFY(model.prepare_decks(std::array { prepared, prepared }, targets)
+        QVERIFY(
+            model.prepare_decks(std::array { prepared, prepared }, targets)
         );
         QVERIFY(model.set_traversal(std::array<std::size_t, 2> { 1, 0 }));
         QVERIFY(model.start(1234));

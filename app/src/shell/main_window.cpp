@@ -159,6 +159,9 @@ main_window::main_window(BaseWidget* parent)
     , progress_action(nullptr)
     , settings_action(nullptr)
     , rasterization_busy(false) {
+    // Callers own this window. KDE's delete-on-close default would invalidate
+    // the entrypoint's unique_ptr before QApplication::exec() returns.
+    setAttribute(Qt::WA_DeleteOnClose, false);
     setup_ui();
     connect(
         &current_card_sheet_metadata(), &card_sheet_metadata::geometry_changed,

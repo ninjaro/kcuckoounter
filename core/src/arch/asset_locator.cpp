@@ -69,7 +69,8 @@ QString bundled_asset_path(const QString& relative_name) {
     append_candidate(&candidates, generic_data);
 
 #if !defined(NDEBUG)
-    const QDir source_dir(QFileInfo(QString::fromUtf8(__FILE__)).absolutePath()
+    const QDir source_dir(
+        QFileInfo(QString::fromUtf8(__FILE__)).absolutePath()
     );
     append_candidate(
         &candidates,
