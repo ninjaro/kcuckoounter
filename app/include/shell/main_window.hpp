@@ -27,6 +27,7 @@ class QVBoxLayout;
 class QTableWidget;
 class QCloseEvent;
 class gameplay_reservation;
+class mobile_shell;
 
 namespace shared_ui::qt {
 class status_strip;
@@ -61,6 +62,8 @@ private slots:
 private:
     friend class gameplay_host_tests;
     friend class gameplay_mobile_tests;
+    // The phone screens drive the same guarded operations as the toolbar.
+    friend class mobile_shell;
     bool eventFilter(QObject* watched, QEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
     BaseToolBar* primary_toolbar;
@@ -112,6 +115,8 @@ private:
     bool mobile_background = false;
     bool mobile_checkpoint_pending = false;
     std::uint64_t mobile_pause_revision = 0;
+    // Phone profile only: the touch screens around the table.
+    mobile_shell* mobile = nullptr;
 
     void setup_ui();
     void apply_desktop_presentation();

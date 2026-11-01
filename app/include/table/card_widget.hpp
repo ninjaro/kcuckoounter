@@ -60,6 +60,17 @@ public:
 
     // Felt piping glows in the correction colour while feedback is shown.
     void set_verdict_glow(bool enabled);
+    // Touch profile: Appearance's deck frame with an inside legend and the
+    // slot's marks. Presentation only; the deck projection is unchanged.
+    void set_deck_frame(bool enabled);
+    void set_deck_label(const QString& label);
+    void set_deck_marks(const shared_ui::qt::item_deck_marks& marks);
+
+    [[nodiscard]] bool deck_frame() const { return deck_frame_enabled; }
+
+    // The item's rectangle in widget coordinates, e.g. to place a command
+    // over its band.
+    [[nodiscard]] QRectF deck_frame_rect() const;
     // Under gold piping, the band above the bottom edge that holds the frame
     // line and its legends; overlays stay above it. 0 for other frames.
     [[nodiscard]] int bottom_legend_clearance() const;
@@ -106,6 +117,9 @@ private:
     slot_frame_style frame_style = slot_frame_style::classic;
     int slot_number = 0;
     bool verdict_glow = false;
+    bool deck_frame_enabled = false;
+    QString deck_label;
+    shared_ui::qt::item_deck_marks deck_marks;
     bool show_card_indexing_flag;
     bool show_strategy_name_flag;
     QString strategy_name;

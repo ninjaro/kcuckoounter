@@ -28,6 +28,7 @@ private slots:
     void mobile_callback_is_connected();
     void mobile_new_game_uses_owned_session();
     void mobile_deck_details_are_usable();
+    void mobile_back_pauses_then_leaves();
     void mobile_early_action_restores();
     void mobile_restores_owned_session();
 

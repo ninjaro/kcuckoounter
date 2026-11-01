@@ -71,6 +71,7 @@ void table_slot::set_swap_selected(bool selected) {
     }
     card_widget_internal->set_swap_selected(selected);
     update_action_button_state();
+    refresh_touch_marks();
 }
 
 bool table_slot::swap_selected() const {
@@ -123,8 +124,7 @@ int table_slot::card_face_need_short_px() const {
     return card_widget_internal->card_face_target_short_px();
 }
 
-void table_slot::set_presented_card_images(
-    const QHash<QString, QImage>& images
+void table_slot::set_presented_card_images(const QHash<QString, QImage>& images
 ) {
     if (card_widget_internal == nullptr) {
         return;

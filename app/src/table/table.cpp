@@ -59,7 +59,8 @@ table::table(BaseWidget* parent)
         &table::project_gameplay_layout
     );
     connect(
-        scene_motion, &shared_ui::qt::scene_transition::finished, this, [this] {
+        scene_motion, &shared_ui::qt::scene_transition::finished, this,
+        [this] {
             if (gameplay_owner)
                 update_card_image_demands();
         }
@@ -102,7 +103,8 @@ std::unique_ptr<table_slot> table::create_slot_widget() {
         &table::on_slot_rasterization_busy_changed
     );
     connect(
-        slot.get(), &table_slot::gameplay_configuration_changed, this, [this] {
+        slot.get(), &table_slot::gameplay_configuration_changed, this,
+        [this] {
             refresh_gameplay_session();
             emit gameplay_preparation_required();
         }
@@ -115,6 +117,14 @@ std::unique_ptr<table_slot> table::create_slot_widget() {
         slot.get(), &table_slot::gameplay_correction_dismissed, this,
         &table::gameplay_corrections_changed
     );
+    connect(
+        slot.get(), &table_slot::touch_tapped, this,
+        [this](table_slot* tapped) {
+            if (const auto deck = tapped->gameplay_deck_id())
+                emit gameplay_deck_tapped(static_cast<int>(deck->value));
+        }
+    );
+    slot->set_touch_presentation(touch_presentation);
     return slot;
 }
 
@@ -329,6 +339,35 @@ void table::refresh_material() {
         slot_widget->card_widget_internal->update();
     }
 }
+
+void table::set_touch_presentation(bool enabled) {
+    if (touch_presentation == enabled)
+        return;
+    touch_presentation = enabled;
+    for (auto* slot : slot_widgets)
+        slot->set_touch_presentation(enabled);
+}
+
+void table::set_touch_ordinal(
+    gameplay::deck_id id, const QString& ordinal, bool done
+) {
+    if (id.value < slot_widgets.size())
+        slot_widgets[id.value]->set_touch_ordinal(ordinal, done);
+}
+
+void table::set_touch_dealing(gameplay::deck_id id, bool dealing) {
+    if (id.value < slot_widgets.size())
+        slot_widgets[id.value]->set_touch_dealing(dealing);
+}
+
+bool table::choose_swap_deck(gameplay::deck_id id) {
+    if (!gameplay_owner || id.value >= slot_widgets.size())
+        return false;
+    on_slot_swap(slot_widgets[id.value]);
+    return true;
+}
+
+void table::cancel_swap_choice() { clear_swap_selection(); }
 
 void table::on_slot_swap(table_slot* slot) {
     if (slot == nullptr) {

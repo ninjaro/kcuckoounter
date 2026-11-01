@@ -93,10 +93,8 @@ void main_window::on_finish_triggered() {
             return; // a modal event loop must not finish a replacement scene
         if (answer == QMessageBox::Yes)
             (void)table_widget->finish_gameplay_runtime();
-        else if (
-            was_running && !mobile_background
-            && pause_revision == mobile_pause_revision
-        )
+        else if (was_running && !mobile_background
+                 && pause_revision == mobile_pause_revision)
             (void)table_widget->resume_gameplay_runtime();
         return;
     }
@@ -106,7 +104,7 @@ void main_window::on_settings_triggered() {
     pause_for_dialog();
 
     if (settings_dialog != nullptr) {
-#if defined(Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
         settings_dialog->setWindowState(Qt::WindowMaximized);
 #endif
         settings_dialog->show();
@@ -201,7 +199,7 @@ void main_window::on_settings_triggered() {
         &main_window::on_settings_dialog_finished
     );
 
-#if defined(Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
     settings_dialog->setWindowState(Qt::WindowMaximized);
 #else
     settings_dialog->resize(820, 620);
@@ -244,10 +242,8 @@ void main_window::on_progress_triggered() {
     for (const auto& record : value.recent_results) {
         recent.append(
             str_label("%1 — Verified: %2  Errors: %3  Skips: %4  Play: %5 ms")
-                .arg(
-                    QDateTime::fromMSecsSinceEpoch(record.completed_at_utc_ms)
-                        .toString(Qt::ISODate)
-                )
+                .arg(QDateTime::fromMSecsSinceEpoch(record.completed_at_utc_ms)
+                         .toString(Qt::ISODate))
                 .arg(record.result.challenge.verified_cards)
                 .arg(record.result.challenge.errors)
                 .arg(record.result.challenge.skips)

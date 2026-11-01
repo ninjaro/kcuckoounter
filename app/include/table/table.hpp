@@ -138,6 +138,22 @@ public:
         quiz_answer_style answer, quiz_feedback_style feedback
     );
     void schedule_card_preload();
+    // Touch profile: deck frames, marks and taps; questions are answered by
+    // the host's sheet through the prompt API above.
+    void set_touch_presentation(bool enabled);
+    // The ordinal of a deck's question in the open frozen batch, or empty.
+    void
+    set_touch_ordinal(gameplay::deck_id id, const QString& ordinal, bool done);
+    // Marks decks that keep dealing while another deck waits.
+    void set_touch_dealing(gameplay::deck_id id, bool dealing);
+    // Choose a deck for Swap as its slot's Swap command would.
+    bool choose_swap_deck(gameplay::deck_id id);
+    void cancel_swap_choice();
+
+    [[nodiscard]] bool has_swap_choice() const {
+        return swap_source_slot != nullptr;
+    }
+
     void apply_theme();
     // Restyles slot controls for the current window chrome; no repacking.
     void refresh_material();
@@ -160,6 +176,8 @@ signals:
     void gameplay_corrections_changed();
     void gameplay_runtime_failed(const QString& diagnostic);
     void rasterization_busy_changed(bool busy);
+    // Touch profile: a deck's slot was tapped (zero-based deck identity).
+    void gameplay_deck_tapped(int deck);
 
 protected:
     bool event(QEvent* event) override;
@@ -185,6 +203,7 @@ private:
     std::optional<std::uint64_t> gameplay_presented_batch;
     QString gameplay_runtime_failure;
     table_slot* swap_source_slot;
+    bool touch_presentation = false;
     card_orientation_mode card_orientation;
     slot_frame_style frame_style = slot_frame_style::classic;
     slot_action_style action_style = slot_action_style::classic;
@@ -227,8 +246,8 @@ private:
     );
     void
     publish_gameplay_runtime(const std::vector<gameplay::quiz_answer>& answers);
-    [[nodiscard]] bool
-    current_gameplay_prompt(const gameplay_prompt_key& prompt) const;
+    [[nodiscard]] bool current_gameplay_prompt(const gameplay_prompt_key& prompt
+    ) const;
     [[nodiscard]] bool
     answer_gameplay_quiz(const gameplay_prompt_key& prompt, bool skip);
     void update_rasterization_state(table_slot* slot, bool busy);

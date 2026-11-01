@@ -16,6 +16,8 @@
 #include <shared_ui/qt/control_overlay.hpp>
 
 class QAction;
+class QAbstractButton;
+class QTimer;
 class QResizeEvent;
 class QLabel;
 class QColor;
@@ -68,8 +70,28 @@ public:
     [[nodiscard]] bool is_quiz_prompt_active() const;
     // Called by table only after whole-drill preflight and clearing the quiz.
 
+    // Touch profile: the slot draws Appearance's deck frame and marks, and
+    // its questions are answered in the host's sheet instead of an overlay.
+    void set_touch_presentation(bool enabled);
+
+    [[nodiscard]] bool touch_presentation() const { return touch_mode; }
+
+    // Position of this deck's question in the open frozen batch; empty when
+    // none. Done marks an already answered question of the same batch.
+    void set_touch_ordinal(const QString& ordinal, bool done);
+    // Other decks keep dealing while a question waits.
+    void set_touch_dealing(bool dealing);
+
+    // The latest answer's band, if shown.
+    [[nodiscard]] bool has_touch_verdict() const {
+        return touch_verdict.has_value();
+    }
+
+    void dismiss_touch_verdict();
+
 signals:
     void swap_clicked(table_slot* slot);
+    void touch_tapped(table_slot* slot);
     void rasterization_busy_changed(bool busy);
     // Target setup invalidation and hint changes have different host duties.
     void gameplay_configuration_changed();
@@ -137,6 +159,17 @@ private:
     bool is_rotated;
     bool quiz_prompt_active;
     bool quiz_feedback_active;
+    bool touch_mode = false;
+    QString touch_ordinal;
+    bool touch_ordinal_done = false;
+    bool touch_live = false;
+    // Presentation of the latest answer, including right ones; corrections
+    // for review stay in gameplay_feedback.
+    std::optional<gameplay::quiz_answer> touch_verdict;
+    QAbstractButton* touch_dismiss = nullptr;
+    QTimer* touch_verdict_timer = nullptr;
+    void refresh_touch_marks();
+    void place_touch_dismiss();
 
     void setup_overlay();
     void setup_quiz_chips();

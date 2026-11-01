@@ -969,6 +969,7 @@ set(KCUCKOOUNTER_GAMEPLAY_CORE_RUNTIME_SOURCES
 )
 set(KCUCKOOUNTER_TRAINER_APP_UI_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/num_helpers.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/platform.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/random_generator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/str_label.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/arch/widget_helpers.hpp
@@ -989,6 +990,7 @@ set(KCUCKOOUNTER_TRAINER_APP_UI_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/drill_picker.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/gameplay_reservation.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/main_window.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/shell/mobile_shell.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/card_widget.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/gameplay_setup.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/settings_template.hpp
@@ -996,6 +998,7 @@ set(KCUCKOOUNTER_TRAINER_APP_UI_HEADERS
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/strategy_browser.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/table.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/table_slot.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/include/table/touch_text.hpp
 )
 set(KCUCKOOUNTER_TRAINER_APP_UI_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/random_generator.cpp
@@ -1039,6 +1042,10 @@ set(KCUCKOOUNTER_TRAINER_APP_UI_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_recovery.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_review.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_state.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/mobile_play.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/mobile_results.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/mobile_setup.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/mobile_shell.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_paint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_raster.cpp
@@ -1061,7 +1068,9 @@ set(KCUCKOOUNTER_TRAINER_APP_UI_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_overlay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_quiz.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_settings.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_touch.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_start.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/touch_text.cpp
 )
 set(KCUCKOOUNTER_TRAINER_APP_UI_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/arch/random_generator.cpp
@@ -1105,6 +1114,10 @@ set(KCUCKOOUNTER_TRAINER_APP_UI_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_recovery.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_review.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/main_window_state.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/mobile_play.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/mobile_results.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/mobile_setup.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/shell/mobile_shell.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_paint.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/card_widget_raster.cpp
@@ -1127,7 +1140,9 @@ set(KCUCKOOUNTER_TRAINER_APP_UI_RUNTIME_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_overlay.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_quiz.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_settings.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_slot_touch.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/table_start.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/app/src/table/touch_text.cpp
 )
 set(KCUCKOOUNTER_TRAINER_APP_APP_HEADERS
 )

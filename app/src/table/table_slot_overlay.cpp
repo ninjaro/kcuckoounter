@@ -23,6 +23,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMouseEvent>
 #include <QString>
 #include <QToolButton>
 #include <QtGlobal>
@@ -82,19 +83,15 @@ void table_slot::setup_overlay() {
         str_label("Swap this slot with another"), true
     );
 
-    details_action->setIcon(
-        shared_ui::qt::themed_icon(
-            { "document-properties", "view-list-details", "document-preview",
-              "dialog-information" },
-            QStyle::SP_FileDialogContentsView
-        )
-    );
-    swap_action->setIcon(
-        shared_ui::qt::themed_icon(
-            { "view-refresh", "reload", "object-rotate-right" },
-            QStyle::SP_BrowserReload
-        )
-    );
+    details_action->setIcon(shared_ui::qt::themed_icon(
+        { "document-properties", "view-list-details", "document-preview",
+          "dialog-information" },
+        QStyle::SP_FileDialogContentsView
+    ));
+    swap_action->setIcon(shared_ui::qt::themed_icon(
+        { "view-refresh", "reload", "object-rotate-right" },
+        QStyle::SP_BrowserReload
+    ));
     slot_actions = new shared_ui::qt::action_group(swap_bar_widget);
     slot_actions->setObjectName(QStringLiteral("slot_actions"));
     slot_actions->setAccessibleName(str_label("Slot actions"));
@@ -144,14 +141,12 @@ void table_slot::setup_overlay() {
         = new QLabel(str_label("ACCUMULATED COUNT"), quiz_bar_widget);
     quiz_feedback_heading->setObjectName(QStringLiteral("quiz_feedback_stamp"));
 #endif
-    quiz_bar_widget->set_widgets(
-        { quiz_weight_label,
-          nullptr,
-          { quiz_answer_button, quiz_skip_button },
-          quiz_feedback_heading,
-          quiz_feedback_label,
-          quiz_continue_button }
-    );
+    quiz_bar_widget->set_widgets({ quiz_weight_label,
+                                   nullptr,
+                                   { quiz_answer_button, quiz_skip_button },
+                                   quiz_feedback_heading,
+                                   quiz_feedback_label,
+                                   quiz_continue_button });
     setup_quiz_chips();
     overlay_widget->set_widgets(*slot_actions, *quiz_bar_widget);
 
@@ -265,6 +260,15 @@ void table_slot::update_overlay_layout() {
 }
 
 bool table_slot::eventFilter(QObject* watched, QEvent* event) {
+    if (touch_mode && watched == card_widget_internal
+        && event->type() == QEvent::MouseButtonRelease) {
+        const auto* release = static_cast<QMouseEvent*>(event);
+        if (release->button() == Qt::LeftButton
+            && card_widget_internal->rect().contains(
+                release->position().toPoint()
+            ))
+            emit touch_tapped(this);
+    }
     if (watched == settings_editor_panel
         && event->type() == QEvent::LayoutRequest) {
         place_settings_editor();

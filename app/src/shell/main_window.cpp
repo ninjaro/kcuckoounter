@@ -14,6 +14,7 @@
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
 #include "shell/gameplay_reservation.hpp"
+#include "shell/mobile_shell.hpp"
 
 #include <shared_ui/qt/status_strip.hpp>
 #include <shared_ui/qt/toolbar_presentation.hpp>
@@ -193,22 +194,18 @@ void main_window::update_start_pause_action(bool paused) const {
     );
     if (paused) {
         start_pause_action->setText(str_label("Resume"));
-        start_pause_action->setIcon(
-            shared_ui::qt::themed_icon(
-                { "media-playback-start", "media-playback-play", "play" },
-                QStyle::SP_MediaPlay
-            )
-        );
+        start_pause_action->setIcon(shared_ui::qt::themed_icon(
+            { "media-playback-start", "media-playback-play", "play" },
+            QStyle::SP_MediaPlay
+        ));
         return;
     }
 
     start_pause_action->setText(str_label("Pause"));
-    start_pause_action->setIcon(
-        shared_ui::qt::themed_icon(
-            { "media-playback-pause", "media-playback-stop", "pause" },
-            QStyle::SP_MediaPause
-        )
-    );
+    start_pause_action->setIcon(shared_ui::qt::themed_icon(
+        { "media-playback-pause", "media-playback-stop", "pause" },
+        QStyle::SP_MediaPause
+    ));
 }
 
 void main_window::setup_game_actions() {
@@ -216,11 +213,9 @@ void main_window::setup_game_actions() {
     new_game_action->setObjectName(QStringLiteral("game_new"));
     new_game_action->setShortcut(QKeySequence::New);
     register_shell_action(new_game_action, QStringLiteral("game_new"));
-    new_game_action->setIcon(
-        shared_ui::qt::themed_icon(
-            { "document-new", "list-add", "folder-new" }, QStyle::SP_FileIcon
-        )
-    );
+    new_game_action->setIcon(shared_ui::qt::themed_icon(
+        { "document-new", "list-add", "folder-new" }, QStyle::SP_FileIcon
+    ));
     QObject::connect(
         new_game_action, &BaseAction::triggered, this,
         &main_window::on_new_game_triggered
@@ -233,12 +228,10 @@ void main_window::setup_game_actions() {
     register_shell_action(
         start_pause_action, QStringLiteral("game_start_pause")
     );
-    start_pause_action->setIcon(
-        shared_ui::qt::themed_icon(
-            { "media-playback-start", "media-playback-play", "play" },
-            QStyle::SP_MediaPlay
-        )
-    );
+    start_pause_action->setIcon(shared_ui::qt::themed_icon(
+        { "media-playback-start", "media-playback-play", "play" },
+        QStyle::SP_MediaPlay
+    ));
     start_pause_action->setEnabled(false);
     start_pause_action->setShortcut(QKeySequence(Qt::Key_P));
     QObject::connect(
@@ -248,13 +241,11 @@ void main_window::setup_game_actions() {
 
     finish_action = new BaseAction(str_label("Finish"), this);
     register_shell_action(finish_action, QStringLiteral("game_finish"));
-    finish_action->setIcon(
-        shared_ui::qt::themed_icon(
-            { "process-stop-symbolic", "process-stop", "dialog-close-symbolic",
-              "dialog-close", "window-close" },
-            QStyle::SP_DialogCloseButton
-        )
-    );
+    finish_action->setIcon(shared_ui::qt::themed_icon(
+        { "process-stop-symbolic", "process-stop", "dialog-close-symbolic",
+          "dialog-close", "window-close" },
+        QStyle::SP_DialogCloseButton
+    ));
     finish_action->setEnabled(false);
     QObject::connect(
         finish_action, &BaseAction::triggered, this,
@@ -264,13 +255,11 @@ void main_window::setup_game_actions() {
     settings_action = new BaseAction(str_label("Settings"), this);
     settings_action->setShortcut(QKeySequence::Preferences);
     register_shell_action(settings_action, QStringLiteral("game_settings"));
-    settings_action->setIcon(
-        shared_ui::qt::themed_icon(
-            { "preferences-system-symbolic", "settings-symbolic",
-              "preferences-system", "configure", "settings" },
-            QStyle::SP_FileDialogDetailedView
-        )
-    );
+    settings_action->setIcon(shared_ui::qt::themed_icon(
+        { "preferences-system-symbolic", "settings-symbolic",
+          "preferences-system", "configure", "settings" },
+        QStyle::SP_FileDialogDetailedView
+    ));
     QObject::connect(
         settings_action, &BaseAction::triggered, this,
         &main_window::on_settings_triggered
@@ -323,12 +312,10 @@ void main_window::setup_game_actions() {
     progress_action = new BaseAction(str_label("Progress"), this);
     register_shell_action(progress_action, QStringLiteral("game_progress"));
     progress_action->setToolTip(str_label("Show completed gameplay results"));
-    progress_action->setIcon(
-        shared_ui::qt::themed_icon(
-            { "view-statistics", "office-chart-line", "games-highscores" },
-            QStyle::SP_FileDialogInfoView
-        )
-    );
+    progress_action->setIcon(shared_ui::qt::themed_icon(
+        { "view-statistics", "office-chart-line", "games-highscores" },
+        QStyle::SP_FileDialogInfoView
+    ));
     QObject::connect(
         progress_action, &BaseAction::triggered, this,
         &main_window::on_progress_triggered
@@ -350,6 +337,22 @@ void main_window::setup_ui() {
 
     setup_platform_shell();
 
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    // Phones: the touch screens own the window; the table sits on their
+    // table page. Native status/toolbar pieces stay as hidden command and
+    // value plumbing for the shared window operations.
+    mobile = new mobile_shell(*this);
+    auto central_widget = new BaseWidget(mobile);
+    central_widget->hide();
+    auto main_layout = new BaseVBoxLayout;
+    central_widget->setLayout(main_layout);
+    table_widget = new table(mobile->table_host());
+    mobile->table_host()->layout()->addWidget(table_widget);
+    table_widget->set_card_orientation(preferences.card_orientation);
+    setup_game_actions();
+    setCentralWidget(mobile);
+    gameplay_setup_error = mobile->setup_message();
+#else
     auto central_widget = new BaseWidget(this);
     auto main_layout = new BaseVBoxLayout;
 
@@ -362,8 +365,11 @@ void main_window::setup_ui() {
 
     central_widget->setLayout(main_layout);
     setCentralWidget(central_widget);
+#endif
 
     finalize_platform_shell();
+    if (mobile != nullptr && primary_toolbar != nullptr)
+        primary_toolbar->hide(); // the screens carry these commands
 #if !defined(KC_ANDROID) && !defined(Q_OS_ANDROID)
     // Stable host identity after KDE has finalized the native actions.
     if (primary_toolbar)
@@ -400,11 +406,9 @@ void main_window::setup_ui() {
             if (gameplay_binding->completion()) {
                 if (!gameplay_completion_attempted)
                     (void)complete_gameplay_from_ui();
-            } else if (
-                gameplay_binding->sequence()
-                && !gameplay_binding->acknowledged()
-                && !gameplay_binding->owns(*table_widget)
-            ) {
+            } else if (gameplay_binding->sequence()
+                       && !gameplay_binding->acknowledged()
+                       && !gameplay_binding->owns(*table_widget)) {
                 report_gameplay_storage(str_label(
                     "The identified scene was retired. Its checkpoint is "
                     "preserved for recovery."
@@ -499,12 +503,18 @@ void main_window::setup_ui() {
         const QPointer<main_window> guard(this);
         if (!gameplay_recovery_checked)
             (void)recover_gameplay_from_ui();
+        // Phones open on Home: a recovered session waits there, paused.
+        if (guard && mobile) {
+            mobile->refresh();
+            return;
+        }
         if (guard && gameplay_recovery_ready
             && !table_widget->active_gameplay_session())
             on_new_game_triggered();
     });
 
 #if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    mobile->attach_table(*table_widget);
     QObject::connect(
         qApp, &QGuiApplication::applicationStateChanged, this,
         &main_window::apply_mobile_state
@@ -572,8 +582,16 @@ void main_window::apply_desktop_presentation() {
 #else
     window_presentation.profile = shared_ui::qt::platform_profile::android;
     shared_ui::qt::apply_presentation(*this, window_presentation);
-    if (table_widget != nullptr)
-        shared_ui::qt::apply_presentation(*table_widget, window_presentation);
+    // The touch screens and their table draw the kit's Felt material over
+    // the player's table colour; native dialogs keep the System look.
+    auto touch = window_presentation;
+    touch.value = shared_ui::qt::material::felt;
+    if (mobile != nullptr)
+        shared_ui::qt::apply_presentation(*mobile, touch);
+    if (table_widget != nullptr) {
+        shared_ui::qt::apply_presentation(*table_widget, touch);
+        table_widget->refresh_material();
+    }
 #endif
 }
 

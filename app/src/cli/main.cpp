@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
     QObject::connect(
         &app, &QGuiApplication::lastWindowClosed, &app, &QCoreApplication::quit
     );
-#if defined(Q_OS_ANDROID)
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
     window->showMaximized();
 #else
     window->show();

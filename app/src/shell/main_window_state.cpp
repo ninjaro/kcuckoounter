@@ -11,6 +11,7 @@
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
 #include "shell/gameplay_reservation.hpp"
+#include "shell/mobile_shell.hpp"
 
 #include <QDateTime>
 #include <QDialog>
@@ -58,6 +59,8 @@ void main_window::apply_mobile_state(Qt::ApplicationState state) {
     mobile_background = state != Qt::ApplicationActive;
     if (!mobile_background) {
         update_status_text();
+        if (mobile)
+            mobile->refresh(); // shows the paused table's sheet again
         return; // Foregrounding never implicitly resumes gameplay.
     }
     if (table_widget

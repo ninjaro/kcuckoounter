@@ -1,6 +1,8 @@
 #ifndef KCUCKOOUNTER_ARCH_WIDGET_HELPERS_HPP
 #define KCUCKOOUNTER_ARCH_WIDGET_HELPERS_HPP
 
+#include "arch/platform.hpp"
+
 #ifdef KC_KDE
 #include <KToolBar>
 #include <KXmlGuiWindow>

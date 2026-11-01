@@ -5,6 +5,7 @@
 #include "arch/asset_locator.hpp"
 #include "card_helpers/card_sheet.hpp"
 #include "shell/main_window.hpp"
+#include "shell/mobile_shell.hpp"
 #include "table/card_widget.hpp"
 #include "table/table.hpp"
 #include "table/table_fixture.hpp"
@@ -14,6 +15,7 @@
 #include <QFile>
 #include <QPointer>
 #include <QScopeGuard>
+#include <QStackedLayout>
 #include <QTemporaryDir>
 #include <QtTest/QtTest>
 
@@ -279,12 +281,10 @@ void table_tests::replacing_shared_demand_rejects_obsolete_images() {
         );
         const auto image = view.displayed_card_images.value(id);
         const auto needed = view.desired_card_sizes.value(id);
-        QVERIFY(
-            rasterflow::satisfies(
-                { image.width(), image.height() },
-                { needed.width(), needed.height() }
-            )
-        );
+        QVERIFY(rasterflow::satisfies(
+            { image.width(), image.height() },
+            { needed.width(), needed.height() }
+        ));
     }
     view.clear_gameplay_session();
     QTRY_VERIFY(!view.is_rasterization_busy());
@@ -316,7 +316,8 @@ void table_tests::first_visible_subset_is_incremental() {
     // at the first settled notification, before another result can be delivered
     // on the owner thread. No fake future, worker sleep or pixel substitute.
     connect(
-        &view.card_images, &card_image_consumer::images_changed, &view, [&] {
+        &view.card_images, &card_image_consumer::images_changed, &view,
+        [&] {
             int ready = 0;
             for (const auto& id : view.desired_card_sizes.keys())
                 ready += !view.card_images.image_for(id).isNull();
@@ -369,6 +370,12 @@ void table_tests::visible_window_closes_with_pending_images() {
     auto* view = window->findChild<table*>();
     QVERIFY(view);
     QVERIFY(view->install_gameplay_session(owned_table_fixture(1)));
+#if defined(KC_ANDROID) || defined(Q_OS_ANDROID)
+    // Phones open on Home; the table page must be on screen to demand faces.
+    auto* shell = window->findChild<mobile_shell*>();
+    QVERIFY(shell);
+    shell->pages->setCurrentWidget(shell->table_page);
+#endif
     view->update_card_image_demands(true);
     QVERIFY(view->is_rasterization_busy());
     const QPointer<table> table_lifetime(view);

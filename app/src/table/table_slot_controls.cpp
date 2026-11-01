@@ -154,6 +154,12 @@ void table_slot::update_compact_controls() {
     }
     if (!controls_surface)
         return;
+    if (touch_mode) {
+        // The touch host answers in its sheet and opens details itself.
+        overlay_widget->hide();
+        controls_surface->place_in(rect(), false, false);
+        return;
+    }
     const bool visible = !settings_editor_panel
         && (details_action->isEnabled() || quiz_prompt_active);
     controls_surface->set_description(
@@ -184,6 +190,7 @@ void table_slot::resizeEvent(QResizeEvent* event) {
     update_overlay_margins();
     place_settings_editor();
     update_compact_controls();
+    place_touch_dismiss();
 }
 
 void table_slot::update_action_button_state() {

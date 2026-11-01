@@ -18,6 +18,7 @@
 #include "settings/strategy_data.hpp"
 #include "settings/theme_palette.hpp"
 #include "shell/gameplay_reservation.hpp"
+#include "shell/mobile_shell.hpp"
 
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -62,7 +63,8 @@ void main_window::close_gameplay_setup_dialog() {
     gameplay_setup_fields = nullptr;
     gameplay_slot_count = nullptr;
     gameplay_setup_layout = nullptr;
-    gameplay_setup_error = nullptr;
+    // The phone setup screen outlives sessions; its message line stays.
+    gameplay_setup_error = mobile ? mobile->setup_message() : nullptr;
     gameplay_geometry_timer = nullptr;
     gameplay_geometry_ready = false;
 }
@@ -75,13 +77,13 @@ void main_window::rebuild_gameplay_setup_fields() {
         return;
     gameplay_setup_fields
         = new gameplay::setup_widget(*owner, gameplay_setup_dialog);
-    gameplay_setup_fields->setObjectName(
-        QStringLiteral("gameplay_global_setup")
+    gameplay_setup_fields->setObjectName(QStringLiteral("gameplay_global_setup")
     );
     gameplay_setup_layout->addWidget(gameplay_setup_fields);
     connect(
         gameplay_setup_fields, &gameplay::setup_widget::configuration_changed,
-        this, [this] {
+        this,
+        [this] {
             table_widget->refresh_gameplay_session();
             refresh_gameplay_setup();
         }
@@ -91,6 +93,22 @@ void main_window::rebuild_gameplay_setup_fields() {
 
 void main_window::refresh_gameplay_setup() {
     auto* owner = table_widget->active_gameplay_session();
+    if (mobile) {
+        // Recommendations come from the table page's extent, measured the
+        // same way whichever screen is showing (US-001/R-006).
+        if (owner && owner->phase() == gameplay::session_phase::setup) {
+            const auto extent = mobile->table_extent();
+            const auto recommendation = gameplay::recommend_slots(
+                { static_cast<double>(extent.width()),
+                  static_cast<double>(extent.height()) },
+                gameplay_card_extent(), gameplay_orientation(*table_widget)
+            );
+            gameplay_geometry_ready = recommendation
+                && owner->update_slot_limits(recommendation->bounds);
+        }
+        mobile->refresh();
+        return;
+    }
     if (!owner || !gameplay_setup_fields)
         return;
     if (owner->phase() == gameplay::session_phase::setup) {
@@ -111,6 +129,11 @@ void main_window::refresh_gameplay_setup() {
 void main_window::open_gameplay_setup_dialog() {
     if (!table_widget->active_gameplay_session())
         return;
+    if (mobile) {
+        refresh_gameplay_setup();
+        mobile->show_setup();
+        return;
+    }
     if (!gameplay_setup_dialog) {
         auto* dialog = new QDialog(this);
         gameplay_setup_dialog = dialog;
@@ -159,11 +182,9 @@ void main_window::open_gameplay_setup_dialog() {
         auto* count_row = new shared_ui::qt::settings_section({}, content);
         gameplay_setup_layout->addWidget(count_row);
         gameplay_slot_count = new BaseSpinBox(content);
-        gameplay_slot_count->setObjectName(
-            QStringLiteral("gameplay_slot_count")
+        gameplay_slot_count->setObjectName(QStringLiteral("gameplay_slot_count")
         );
-        gameplay_slot_count->setAccessibleName(
-            str_label("Gameplay table slots")
+        gameplay_slot_count->setAccessibleName(str_label("Gameplay table slots")
         );
         gameplay_slot_count->setRange(
             1, static_cast<int>(gameplay::slot_technical_cap)
@@ -236,6 +257,15 @@ void main_window::open_gameplay_setup_dialog() {
 }
 
 void main_window::report_gameplay_error(const QString& message) {
+    if (mobile) {
+        const auto* owner = table_widget->active_gameplay_session();
+        if (owner && owner->phase() == gameplay::session_phase::setup)
+            mobile->report_setup_error(message);
+        else if (status_label)
+            status_label->setText(message);
+        mobile->refresh();
+        return;
+    }
     if (table_widget->active_gameplay_session()) {
         const QPointer<main_window> guard(this);
         open_gameplay_setup_dialog();
@@ -279,12 +309,10 @@ void main_window::refresh_gameplay_actions() {
             *start_pause_action, shared_ui::qt::toolbar_icon::play
         );
         start_pause_action->setText(str_label("Start"));
-        start_pause_action->setIcon(
-            shared_ui::qt::themed_icon(
-                { "media-playback-start", "media-playback-play", "play" },
-                QStyle::SP_MediaPlay
-            )
-        );
+        start_pause_action->setIcon(shared_ui::qt::themed_icon(
+            { "media-playback-start", "media-playback-play", "play" },
+            QStyle::SP_MediaPlay
+        ));
     } else {
         update_start_pause_action(phase == gameplay::session_phase::paused);
     }
@@ -466,7 +494,7 @@ bool main_window::start_gameplay_from_ui() {
     auto* owner = table_widget->active_gameplay_session();
     if (!owner || owner->phase() != gameplay::session_phase::setup)
         return false;
-    if (!gameplay_setup_fields)
+    if (!gameplay_setup_fields && !mobile)
         open_gameplay_setup_dialog();
     refresh_gameplay_setup();
     if (!gameplay_geometry_ready
@@ -533,5 +561,7 @@ bool main_window::start_gameplay_from_ui() {
         gameplay_setup_error->clear();
     if (gameplay_setup_dialog && gameplay_storage_error.isEmpty())
         gameplay_setup_dialog->hide();
+    if (mobile)
+        mobile->show_table();
     return true;
 }

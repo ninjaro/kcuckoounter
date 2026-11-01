@@ -189,10 +189,8 @@ QStringList card_widget::gameplay_extra_lines() const {
         lines.append(str_label("Expected final count: %1")
                          .arg(static_cast<qlonglong>(deck->running_count)));
 #endif
-    } else if (
-        deck->status == gameplay::deck_status::active
-        && deck->configuration.training && deck->show_count
-    ) {
+    } else if (deck->status == gameplay::deck_status::active
+               && deck->configuration.training && deck->show_count) {
         lines.append(weight_text_for_value(deck->running_count));
     }
     return lines;
@@ -263,6 +261,33 @@ void card_widget::set_verdict_glow(bool enabled) {
     if (frame_style == slot_frame_style::piping)
         update();
 }
+
+void card_widget::set_deck_frame(bool enabled) {
+    if (deck_frame_enabled == enabled)
+        return;
+    deck_frame_enabled = enabled;
+    // The item area changes with the frame's legend reserve.
+    schedule_card_preparation();
+    update_card_jitter();
+    update_table_marking();
+    update();
+}
+
+void card_widget::set_deck_label(const QString& label) {
+    if (deck_label == label)
+        return;
+    deck_label = label;
+    if (deck_frame_enabled)
+        update();
+}
+
+void card_widget::set_deck_marks(const shared_ui::qt::item_deck_marks& marks) {
+    deck_marks = marks;
+    if (deck_frame_enabled)
+        update();
+}
+
+QRectF card_widget::deck_frame_rect() const { return layout_geometry().frame; }
 
 void card_widget::set_show_card_indexing(bool enabled) {
     if (show_card_indexing_flag == enabled) {
@@ -350,10 +375,8 @@ void card_widget::update_accessible_description() {
     // A quiz prompt must not expose the hidden face to assistive technology.
     if (!has_cards()) {
         setAccessibleDescription(str_label("Empty card slot"));
-    } else if (
-        const auto* deck = gameplay_deck();
-        deck && deck->status == gameplay::deck_status::failed
-    ) {
+    } else if (const auto* deck = gameplay_deck();
+               deck && deck->status == gameplay::deck_status::failed) {
         setAccessibleDescription(str_label("Failed deck. Card back."));
     } else if (display_hidden()) {
         setAccessibleDescription(str_label("Card hidden"));

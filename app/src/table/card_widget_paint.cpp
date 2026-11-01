@@ -20,13 +20,19 @@ shared_ui::qt::item_geometry card_widget::layout_geometry(
               std::cos(selection_phase * 1.3) * 1.8
           )
         : QPointF();
-    return shared_ui::qt::item_geometry_for(
-        size,
-        rotation.value_or(
-            gameplay_layout_rotation_deg.value_or(slot_rotated ? 0.0 : 90.0)
-        ),
-        selection_offset
+    const qreal angle = rotation.value_or(
+        gameplay_layout_rotation_deg.value_or(slot_rotated ? 0.0 : 90.0)
     );
+    if (deck_frame_enabled) {
+        // Six pixels each side: twelve between neighbouring slots. The top
+        // keeps the inside legend clear of the cards.
+        auto geometry = shared_ui::qt::deck_geometry_for(
+            size, angle, {}, QMarginsF(6, 36, 6, 12)
+        );
+        geometry.frame = QRectF(QPointF(), size).adjusted(6, 6, -6, -6);
+        return geometry;
+    }
+    return shared_ui::qt::item_geometry_for(size, angle, selection_offset);
 }
 
 shared_ui::qt::item_scene card_widget::visual_scene() const {
@@ -74,6 +80,31 @@ shared_ui::qt::item_scene card_widget::visual_scene() const {
     scene.marking = table_marking.image();
     scene.marking_size = table_marking.target().logical_size;
     scene.marking_fallback = str_label("kcuckoounter");
+    const auto* bound = gameplay_deck();
+    if (deck_frame_enabled) {
+        scene.frame = item_frame::deck;
+        scene.leading_legend = deck_label;
+        scene.deck = deck_marks;
+        scene.trailing_legend.clear();
+        if (bound && bound->dealt_physical_cards > 0) {
+            const auto position
+                = static_cast<qulonglong>(bound->dealt_physical_cards);
+#ifdef KC_KDE
+            scene.trailing_legend = bound->configuration.infinite
+                ? i18n("card %1", position)
+                : i18n(
+                      "%1/%2", position,
+                      static_cast<qulonglong>(bound->stream.cards.size())
+                  );
+#else
+            scene.trailing_legend = bound->configuration.infinite
+                ? str_label("card %1").arg(position)
+                : str_label("%1/%2").arg(position).arg(
+                      static_cast<qulonglong>(bound->stream.cards.size())
+                  );
+#endif
+        }
+    }
     if (!has_cards())
         return scene;
 
@@ -84,7 +115,10 @@ shared_ui::qt::item_scene card_widget::visual_scene() const {
         && scene.annotations.constFirst() == strategy_name)
         scene.annotations.removeFirst();
     scene.index = current_index_text();
-    if (display_hidden()) {
+    // The deck frame shows a card back where other frames show text only:
+    // the hidden face still never leaks while a question is open.
+    const bool hidden = display_hidden();
+    if (hidden && !deck_frame_enabled) {
         scene.content = item_content::annotations;
         return scene;
     }
@@ -92,7 +126,7 @@ shared_ui::qt::item_scene card_widget::visual_scene() const {
     for (const auto& discard : discard_history)
         scene.underlays.append({ discard.rotation_deg, discard.offset });
     const int index = display_card_index();
-    const bool back = !display_running() || index < 0;
+    const bool back = hidden || !display_running() || index < 0;
     const auto& ids = card_element_ids();
     const int last = static_cast<int>(ids.size()) - 1;
     scene.image = card_face_image(

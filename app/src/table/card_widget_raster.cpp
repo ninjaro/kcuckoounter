@@ -35,16 +35,15 @@ void card_widget::schedule_card_preparation() {
 }
 
 QString card_widget::displayed_card_image_id() const {
-    if (!isVisible() || !has_cards() || display_hidden())
+    if (!isVisible() || !has_cards()
+        || (display_hidden() && !deck_frame_enabled))
         return {};
-    if (!display_running() || display_card_index() < 0)
+    // The deck frame shows the back while the face is hidden.
+    if (display_hidden() || !display_running() || display_card_index() < 0)
         return card_back_element_id();
-    return card_element_id_from_index(
-        std::min(
-            display_card_index(),
-            static_cast<int>(card_element_ids().size()) - 1
-        )
-    );
+    return card_element_id_from_index(std::min(
+        display_card_index(), static_cast<int>(card_element_ids().size()) - 1
+    ));
 }
 
 void card_widget::prepare_card_faces() {
@@ -62,8 +61,7 @@ void card_widget::prepare_card_faces() {
         emit image_demand_changed();
 }
 
-void card_widget::set_presented_card_images(
-    const QHash<QString, QImage>& images
+void card_widget::set_presented_card_images(const QHash<QString, QImage>& images
 ) {
     presented_image_mode = true;
     card_images.reset();

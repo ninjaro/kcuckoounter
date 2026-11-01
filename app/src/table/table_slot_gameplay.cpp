@@ -141,6 +141,7 @@ void table_slot::refresh_gameplay_quiz() {
     );
     update_quiz_controls_visibility();
     update_overlay_layout();
+    refresh_touch_marks();
 }
 
 void table_slot::on_gameplay_input_edited() {
@@ -166,6 +167,15 @@ void table_slot::on_gameplay_input_edited() {
 void table_slot::show_gameplay_answer(const gameplay::quiz_answer& answer) {
     if (answer.owner != gameplay_id)
         return;
+    if (touch_mode) {
+        touch_verdict = answer;
+        if (touch_verdict_timer) {
+            if (answer.outcome == gameplay::quiz_outcome::correct)
+                touch_verdict_timer->start();
+            else
+                touch_verdict_timer->stop();
+        }
+    }
     if (answer.outcome == gameplay::quiz_outcome::correct) {
         gameplay_feedback.reset();
     } else {

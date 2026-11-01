@@ -1,5 +1,6 @@
 #include "shell/drill_picker.hpp"
 
+#include "arch/platform.hpp"
 #include "arch/str_label.hpp"
 #include "settings/strategy_data.hpp"
 #include <shared_ui/qt/editor_panel.hpp>
@@ -179,25 +180,20 @@ void drill_picker::selection_changed() {
     QString text = summarize(target->at(*row));
     if (!supported)
         text.prepend(
-            str_label(
-                "Cannot launch: a saved strategy is unavailable or "
-                "unsupported. No replacement strategy will be chosen."
-            )
+            str_label("Cannot launch: a saved strategy is unavailable or "
+                      "unsupported. No replacement strategy will be chosen.")
             + QLatin1Char('\n')
         );
     else if (!allowed)
         text.prepend(
-            str_label(
-                "Finish the current session before loading another drill."
+            str_label("Finish the current session before loading another drill."
             )
             + QLatin1Char('\n')
         );
     if (!policy.save_allowed || !current)
         text.prepend(
-            str_label(
-                "Apply or close open deck Details before saving current "
-                "configuration."
-            )
+            str_label("Apply or close open deck Details before saving current "
+                      "configuration.")
             + QLatin1Char('\n')
         );
     details->setPlainText(text);
