@@ -32,6 +32,7 @@ private slots:
     void fallback_loads_on_first_missing_face();
     void missing_faces_and_invalid_demand();
     void base_frames_follow_each_selected_source();
+    void sheet_ratio_uses_the_base_trimmed_face();
 };
 
 #endif // KCUCKOOUNTER_TESTS_CARD_SHEET_TESTS_HPP

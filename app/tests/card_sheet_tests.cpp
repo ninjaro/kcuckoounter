@@ -778,5 +778,35 @@ void card_sheet_tests::base_frames_follow_each_selected_source() {
     QCOMPARE(fallback_image, expected_fallback);
 }
 
+void card_sheet_tests::sheet_ratio_uses_the_base_trimmed_face() {
+    const auto original = card_sheet_source_path();
+    const auto restore
+        = qScopeGuard([&] { set_card_sheet_source_path(original); });
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    const auto path = directory.filePath(QStringLiteral("trimmed.svg"));
+    // Art overflowing the base frame (as in the bundled sheet) is trimmed
+    // when faces are rastered, so slots must be packed at the base ratio.
+    const QByteArray svg
+        = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"30\" "
+          "height=\"50\">"
+          "<rect id=\"base\" width=\"20\" height=\"30\"/>"
+          "<g id=\"club_1\"><rect x=\"-2\" y=\"-5\" width=\"24\" "
+          "height=\"40\" fill=\"red\"/>"
+          "<rect width=\"20\" height=\"30\" fill=\"blue\"/></g></svg>";
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    QCOMPARE(file.write(svg), svg.size());
+    file.close();
+    auto& metadata = current_card_sheet_metadata();
+    set_card_sheet_source_path(path);
+    QTRY_VERIFY(!metadata.is_pending());
+    QVERIFY(metadata.is_valid());
+    QCOMPARE(card_sheet_ratio(), (std::pair<int, int> { 30, 20 }));
+    QCOMPARE(card_face_extent({ 24, 40 }, { 20, 30 }), QSizeF(20, 30));
+    QCOMPARE(card_face_extent({ 18, 40 }, { 20, 30 }), QSizeF(18, 30));
+    QCOMPARE(card_face_extent({ 24, 40 }, {}), QSizeF(24, 40));
+}
+
 // NOLINTEND(readability-convert-member-functions-to-static,
 // readability-make-member-function-const)

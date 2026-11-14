@@ -16,10 +16,8 @@ QRectF card_viewport(
     const auto base = source.bounds(base_id);
     if (base.isEmpty())
         return {};
-    const QSizeF size(
-        std::min(bounds.width(), base.width()),
-        std::min(bounds.height(), base.height())
-    );
+    // Same trim as card_sheet_ratio(), so packed slots match these faces.
+    const QSizeF size = card_face_extent(bounds.size(), base.size());
     if (size == bounds.size())
         return {};
     // Preserve the game's symmetric base-frame trim in source coordinates.

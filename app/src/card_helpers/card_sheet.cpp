@@ -469,9 +469,9 @@ void card_sheet_metadata::publish_metadata() {
         || (source.is_valid() && !source.is_ready() && source.error().isEmpty()
         ))
         return;
-    std::pair<int, int> resolved_ratio { 88, 63 };
-    for (const auto& logical : required_card_ids_with_back()) {
-        bool found = false;
+    // First inspected bounds among @p logical's candidates; false while an
+    // inspection is pending (this is re-entered when it lands).
+    const auto inspect = [&](const QString& logical, QSizeF& found) {
         for (const auto& id : candidate_card_element_ids(logical)) {
             if (source.is_ready() && !source.is_inspected(id)) {
                 const rasterflow::qt::metadata_request query { source, id };
@@ -483,22 +483,36 @@ void card_sheet_metadata::publish_metadata() {
                     inspection_requests.push_back(query);
                     consumer->replace_desired({}, inspection_requests, false);
                 }
-                return;
+                return false;
             }
             const auto bounds = source.bounds(id);
-            if (bounds.isEmpty())
-                continue;
-            const auto width = static_cast<int>(std::lround(bounds.width()));
-            const auto height = static_cast<int>(std::lround(bounds.height()));
-            if (width <= 0 || height <= 0)
-                continue;
+            if (bounds.width() >= 0.5 && bounds.height() >= 0.5) {
+                found = bounds.size();
+                return true;
+            }
+        }
+        return true;
+    };
+    std::pair<int, int> resolved_ratio { 88, 63 };
+    QSizeF face;
+    for (const auto& logical : required_card_ids_with_back()) {
+        if (!inspect(logical, face))
+            return;
+        if (!face.isEmpty())
+            break;
+    }
+    if (!face.isEmpty()) {
+        // Faces are rastered trimmed to the sheet's base frame; slots and
+        // items must use the same ratio or the paper outgrows the face.
+        QSizeF base;
+        if (!inspect(QStringLiteral("base"), base))
+            return;
+        face = card_face_extent(face, base);
+        const auto width = static_cast<int>(std::lround(face.width()));
+        const auto height = static_cast<int>(std::lround(face.height()));
+        if (width > 0 && height > 0)
             resolved_ratio
                 = { std::max(width, height), std::min(width, height) };
-            found = true;
-            break;
-        }
-        if (found)
-            break;
     }
     metadata_published = true;
     current_ratio = resolved_ratio;
@@ -570,6 +584,13 @@ static QString resolve_card_sheet_source_path(const QString& source_path) {
 void set_card_sheet_source_path(const QString& source_path) {
     active_card_sheet_source() = resolve_card_sheet_source_path(source_path);
     current_card_sheet_metadata().refresh();
+}
+
+QSizeF card_face_extent(const QSizeF& bounds, const QSizeF& base) {
+    if (base.isEmpty())
+        return bounds;
+    return { std::min(bounds.width(), base.width()),
+             std::min(bounds.height(), base.height()) };
 }
 
 std::pair<int, int> card_sheet_ratio() {

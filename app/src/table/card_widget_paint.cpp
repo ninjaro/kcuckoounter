@@ -23,16 +23,23 @@ shared_ui::qt::item_geometry card_widget::layout_geometry(
     const qreal angle = rotation.value_or(
         gameplay_layout_rotation_deg.value_or(slot_rotated ? 0.0 : 90.0)
     );
+    // Faces are portrait before the layout rotation. The packer's slot has
+    // the sheet's ratio, but the frame's margins do not, so the item takes
+    // the face's own ratio: the paper shape then matches the painted face.
+    const auto [long_side, short_side] = card_sheet_ratio();
+    const QSizeF face(short_side, long_side);
     if (deck_frame_enabled) {
         // Six pixels each side: twelve between neighbouring slots. The top
         // keeps the inside legend clear of the cards.
         auto geometry = shared_ui::qt::deck_geometry_for(
-            size, angle, {}, QMarginsF(6, 36, 6, 12)
+            size, angle, {}, QMarginsF(6, 36, 6, 12), face
         );
         geometry.frame = QRectF(QPointF(), size).adjusted(6, 6, -6, -6);
         return geometry;
     }
-    return shared_ui::qt::item_geometry_for(size, angle, selection_offset);
+    return shared_ui::qt::item_geometry_for(
+        size, angle, selection_offset, face
+    );
 }
 
 shared_ui::qt::item_scene card_widget::visual_scene() const {

@@ -2,7 +2,6 @@
   "id": "kcuckoounter",
   "description": "Card-counting trainer with Qt, KDE, and touch-first profiles.",
   "version": "1.0.0",
-  "cpp_standard": 20,
   "android_application_id": "org.ninjaro.kcuckoounter",
   "android": {
     "name": "Kcuckoounter",
@@ -24,7 +23,6 @@
     {
       "id": "rasterflow:qt",
       "kind": "static_lib",
-      "owns": [],
       "packages": {
         "external_project": {
           "repository": "https://github.com/ninjaro/rasterflow",
@@ -32,13 +30,11 @@
           "package": "rasterflow",
           "artifact": "qt:qt"
         }
-      },
-      "name": "rasterflow_qt"
+      }
     },
     {
       "id": "shared_ui:qt",
       "kind": "static_lib",
-      "owns": [],
       "packages": {
         "external_project": {
           "repository": "https://github.com/ninjaro/shared_ui",
@@ -46,13 +42,11 @@
           "package": "shared_ui",
           "artifact": "qt:qt"
         }
-      },
-      "name": "shared_ui_qt"
+      }
     },
     {
       "id": "shared_ui_graphics:qt",
       "kind": "static_lib",
-      "owns": [],
       "packages": {
         "external_project": {
           "repository": "https://github.com/ninjaro/shared_ui",
@@ -60,13 +54,11 @@
           "package": "shared_ui",
           "artifact": "graphics:qt"
         }
-      },
-      "name": "shared_ui_graphics_qt"
+      }
     },
     {
       "id": "watchdog_client:client",
       "kind": "static_lib",
-      "owns": [],
       "packages": {
         "external_project": {
           "repository": "https://github.com/ninjaro/peepbooth",
@@ -74,13 +66,11 @@
           "package": "monitor",
           "artifact": "watchdog_client:client"
         }
-      },
-      "name": "monitor_watchdog_client"
+      }
     },
     {
       "id": "watchdog_qt:qt",
       "kind": "static_lib",
-      "owns": [],
       "packages": {
         "external_project": {
           "repository": "https://github.com/ninjaro/peepbooth",
@@ -88,13 +78,11 @@
           "package": "monitor",
           "artifact": "watchdog_qt:qt"
         }
-      },
-      "name": "monitor_watchdog_qt"
+      }
     },
     {
       "id": "packing_library:core",
       "kind": "static_lib",
-      "owns": [],
       "packages": {
         "external_project": {
           "repository": "https://github.com/ninjaro/rothko",
@@ -102,8 +90,7 @@
           "package": "packing",
           "artifact": "library:core"
         }
-      },
-      "name": "packing_core"
+      }
     },
     {
       "id": "gameplay:core",
@@ -196,9 +183,6 @@
       "kind": "qt_app",
       "name": "kcuckoounter",
       "root": "app",
-      "owns": [
-        "src/cli/main.cpp"
-      ],
       "entry": "src/cli/main.cpp",
       "dependencies": [
         "trainer_app:ui",

@@ -4,6 +4,7 @@
 #include "image/image_sources.hpp"
 
 #include <QSize>
+#include <QSizeF>
 #include <QString>
 #include <QStringList>
 #include <QVector>
@@ -27,7 +28,11 @@ QString card_sheet_source_path();
 QString default_card_sheet_source_path();
 const QVector<card_theme_option>& available_card_themes();
 void set_card_sheet_source_path(const QString& source_path);
+// Long:short of the painted face, i.e. after card_face_extent's trim.
 std::pair<int, int> card_sheet_ratio();
+// The face rastered for an element: a sheet's "base" frame trims art that
+// overflows the card, per dimension. An empty base keeps the bounds.
+QSizeF card_face_extent(const QSizeF& bounds, const QSizeF& base);
 QString card_label_from_index(int index);
 QString card_element_id_from_index(int index);
 const QStringList& card_element_ids();
